@@ -7,17 +7,16 @@ import NutritionForecastPanel from './nutrition/NutritionForecastPanel';
 import NutritionTargetsGrid from './nutrition/NutritionTargetsGrid';
 import { useNutritionData, type TodayEntry } from './useNutritionData';
 import NutritionChart from './NutritionChart';
-import type { Session } from '@supabase/supabase-js';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 interface NutritionCardProps {
   weeklyCalories: number;
-  session: Session;
   refreshSignal?: number;
 }
 
 export default function NutritionCard({
   weeklyCalories,
-  session,
   refreshSignal,
 }: NutritionCardProps) {
   const {
@@ -54,7 +53,7 @@ export default function NutritionCard({
     todayAnalysisRow,
     mealGroups,
     mealGroupsWithEntries,
-  } = useNutritionData({ session, weeklyCalories, refreshSignal });
+  } = useNutritionData({ weeklyCalories, refreshSignal });
 
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [editEntry, setEditEntry] = useState<TodayEntry | null>(null);
@@ -65,12 +64,14 @@ export default function NutritionCard({
       <div className="mb-4 flex items-center justify-between">
         <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-muted">Żywienie</p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => setShowEntryModal(true)}
-            className="rounded-xl border border-primary/30 bg-primary/[0.06] px-3 py-1.5 text-[10px] font-black text-primary hover:bg-primary/10 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+            variant="tonal"
+            size="sm"
+            icon={<Plus size={12} />}
           >
-            <Plus size={12} /> Dodaj posiłek
-          </button>
+            Dodaj posiłek
+          </Button>
         </div>
       </div>
 
@@ -116,12 +117,12 @@ export default function NutritionCard({
 
       {/* Food quality analysis */}
       {todayAnalysis && (
-        <div className="mt-3.5 rounded-xl bg-text-primary/[0.02] border border-border-custom/50 p-3">
+        <Card variant="accent" padding="0.75rem" className="mt-3.5">
           <p className="text-[9px] uppercase font-black tracking-wider text-text-muted mb-1">
             Analiza jakości jedzenia{todayAnalysisIsStale ? ` (${todayAnalysisRow!.key})` : ''}
           </p>
           <p className="text-[11.5px] leading-relaxed text-text-secondary">{todayAnalysis}</p>
-        </div>
+        </Card>
       )}
 
       <NutritionMealLog
@@ -146,7 +147,6 @@ export default function NutritionCard({
 
       {showEntryModal && (
         <FoodEntryModal
-          session={session}
           onClose={() => { setShowEntryModal(false); setEditEntry(null); setSelectedMealType(undefined); }}
           onSaved={handleSaved}
           initialEditEntry={editEntry ?? undefined}

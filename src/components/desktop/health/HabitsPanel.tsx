@@ -2,6 +2,8 @@ import { Plus, X, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { subDays } from 'date-fns';
 import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
 import type { HabitRow, HabitLogRow } from '../../../lib/health/habitsApi';
+import { Card } from '../../ui/Card';
+import Button from '../../ui/Button';
 
 interface NewHabit {
   name: string;
@@ -33,21 +35,21 @@ export default function HabitsPanel({
   toggleHabit,
 }: HabitsPanelProps) {
   return (
-    <div className="rounded-[20px] border border-border-custom bg-surface/60 px-5 py-4 space-y-3">
+    <Card padding="1rem 1.25rem" className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Nawyki</p>
           <p className="text-[8px] text-text-muted/70 mt-0.5">Kanoniczny log → habit_logs (Lenie = ten sam mechanizm co /lenie)</p>
         </div>
-        <button onClick={() => setIsAddingHabit(p => !p)} className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary border border-primary/20 bg-primary/5 px-2.5 py-1.5 rounded-lg hover:bg-primary/10 transition-all cursor-pointer">
-          <Plus size={10} /> Dodaj
-        </button>
+        <Button onClick={() => setIsAddingHabit(p => !p)} variant="tonal" size="sm" icon={<Plus size={10} />} className="uppercase tracking-widest">
+          Dodaj
+        </Button>
       </div>
       {isAddingHabit && (
-        <div className="space-y-2 rounded-xl border border-primary/15 bg-primary/5 p-3">
+        <Card variant="accent" padding="0.75rem" className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-[9px] font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
-            <button onClick={() => setIsAddingHabit(false)} className="text-text-muted hover:text-text-primary"><X size={13} /></button>
+            <Button onClick={() => setIsAddingHabit(false)} variant="ghost" size="sm" className="!p-1 text-text-muted"><X size={13} /></Button>
           </div>
           <div className="grid grid-cols-[44px_1fr] gap-2">
             <input value={newHabit.icon} onChange={e => setNewHabit(p => ({ ...p, icon: e.target.value }))} className="rounded-lg border border-border-custom bg-surface p-2 text-center text-[13px] font-black text-text-primary outline-none focus:border-primary/50" placeholder="✅" />
@@ -57,8 +59,8 @@ export default function HabitsPanel({
             <button onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400' : 'border-border-custom text-text-muted'}`}>Wzmacniać</button>
             <button onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-rose-500/35 bg-rose-500/10 text-rose-400' : 'border-border-custom text-text-muted'}`}>Unikać</button>
           </div>
-          <button onClick={addHabit} className="w-full rounded-lg bg-primary py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">Dodaj</button>
-        </div>
+          <Button onClick={addHabit} variant="primary" size="sm" className="w-full uppercase tracking-widest">Dodaj</Button>
+        </Card>
       )}
       <div className="space-y-2">
         {habits.map(habit => {
@@ -94,6 +96,6 @@ export default function HabitsPanel({
         })}
         {habits.length === 0 && <p className="text-[9px] text-text-muted/50 text-center py-3">Brak nawyków — dodaj pierwszy</p>}
       </div>
-    </div>
+    </Card>
   );
 }

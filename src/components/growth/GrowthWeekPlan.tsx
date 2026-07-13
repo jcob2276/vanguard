@@ -2,6 +2,8 @@ import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks
 import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth/growth';
 import { MAX_ACTIVE, MAX_MUST } from '../../lib/growth/growth';
 import type { TheoryPracticeBalance } from '../../lib/growth/growthMastery';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 import SlotSection from './SlotSection';
 
 export default function GrowthWeekPlan({
@@ -65,13 +67,14 @@ export default function GrowthWeekPlan({
           </p>
         </div>
         {!readOnly && mustOpen > 0 && (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => onAddPin('must')}
-            className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase text-white cursor-pointer shrink-0"
+            className="shrink-0 uppercase font-black"
           >
             + MUST
-          </button>
+          </Button>
         )}
       </div>
 
@@ -97,33 +100,35 @@ export default function GrowthWeekPlan({
       </div>
 
       {!readOnly && mustOpen > 0 && (suggestedTodos.length > 0 || suggestedLinks.length > 0) && (
-        <div className="rounded-xl border border-dashed border-primary/25 bg-primary/[0.03] p-3 space-y-2">
+        <Card variant="accent" padding="0.75rem" className="border-dashed space-y-2">
           <p className="text-[9px] font-black uppercase tracking-wider text-primary">
             Szybka akcja (praktyka &gt; teoria)
           </p>
           <div className="flex flex-wrap gap-2">
             {suggestedTodos.slice(0, 3).map((todo) =>
               onQuickPinTodo ? (
-                <button
+                <Button
                   key={todo.id}
-                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => onQuickPinTodo(todo.id, 'must')}
-                  className="max-w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-1.5 text-[11px] font-semibold text-text-primary hover:border-primary/40 cursor-pointer truncate"
+                  className="max-w-full truncate border-emerald-500/30 bg-emerald-500/5 hover:border-primary/40"
                 >
                   ↗ {todo.title}
-                </button>
+                </Button>
               ) : null,
             )}
             {suggestedLinks.slice(0, 4).map((link) =>
               onQuickPinLink ? (
-                <button
+                <Button
                   key={link.id}
-                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => onQuickPinLink(link.id, 'must')}
-                  className="max-w-full rounded-lg border border-border-custom bg-surface-solid px-2.5 py-1.5 text-[11px] font-semibold text-text-primary hover:border-primary/40 cursor-pointer truncate"
+                  className="max-w-full truncate hover:border-primary/40"
                 >
                   + {link.title || link.domain}
-                </button>
+                </Button>
               ) : null,
             )}
           </div>
@@ -132,7 +137,7 @@ export default function GrowthWeekPlan({
               Masz więcej teorii niż praktyki — priorytet: zadanie / ćwiczenie, nie kolejne wideo.
             </p>
           )}
-        </div>
+        </Card>
       )}
 
       <SlotSection

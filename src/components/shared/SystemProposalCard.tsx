@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { SystemProposal } from '../../lib/systemProposals';
+import { Card } from '../ui/Card';
+import Button from '../ui/Button';
 
 export function SystemProposalCard({
   proposal,
@@ -24,7 +26,7 @@ export function SystemProposalCard({
   };
 
   return (
-    <article className="rounded-2xl border border-border-custom bg-surface/60 p-4 space-y-3">
+    <Card className="space-y-3" padding="1rem">
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
           {proposal.proposal_type === 'friction_cluster' ? 'Tarcie — N×' : proposal.proposal_type}
@@ -35,14 +37,16 @@ export function SystemProposalCard({
 
       {snippets.length > 0 && (
         <div>
-          <button
+          <Button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-primary"
+            variant="ghost"
+            size="sm"
+            icon={open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            className="!px-0 text-primary"
           >
-            {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             {open ? 'Ukryj przykłady' : 'Pokaż przykłady ze streamu'}
-          </button>
+          </Button>
           {open && (
             <ul className="mt-2 space-y-1.5">
               {snippets.map((s, i) => (
@@ -56,23 +60,28 @@ export function SystemProposalCard({
       )}
 
       <div className="flex gap-2">
-        <button
+        <Button
           type="button"
           disabled={busy}
           onClick={() => void act('confirmed')}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-[12px] font-bold text-white disabled:opacity-60"
+          variant="primary"
+          size="sm"
+          icon={<Check size={14} />}
+          className="flex-1"
         >
-          <Check size={14} /> Istotne
-        </button>
-        <button
+          Istotne
+        </Button>
+        <Button
           type="button"
           disabled={busy}
           onClick={() => void act('dismissed')}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom px-4 py-2 text-[12px] font-semibold text-text-secondary disabled:opacity-60"
+          variant="outline"
+          size="sm"
+          icon={<X size={14} />}
         >
-          <X size={14} /> Olej
-        </button>
+          Olej
+        </Button>
       </div>
-    </article>
+    </Card>
   );
 }

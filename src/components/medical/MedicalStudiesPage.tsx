@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import EmptyState from '../ui/EmptyState';
+import Skeleton from '../ui/Skeleton';
+import { Card } from '../ui/Card';
 import { useMedicalData } from './hooks/useMedicalData';
 import { useRetestSuggestions } from './hooks/useMedicalRetestContext';
 import {
@@ -109,11 +111,11 @@ export default function MedicalStudiesPage() {
 
       <div className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-10">
         {loading ? (
-          <div className="h-64 animate-pulse rounded-2xl bg-surface border border-border-custom" />
+          <Skeleton variant="card" className="h-64 rounded-2xl" />
         ) : error ? (
-          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-[12px] text-rose-700 dark:text-rose-300">
+          <Card variant="danger" padding="0.75rem 1rem" className="text-[12px] text-rose-700 dark:text-rose-300">
             Nie udało się wczytać badań: {error}
-          </div>
+          </Card>
         ) : labs.length === 0 && bodyComposition.length === 0 ? (
           <EmptyState
             icon="🧪"
@@ -121,9 +123,9 @@ export default function MedicalStudiesPage() {
           />
         ) : (
           <>
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3 text-[11px] text-text-secondary leading-relaxed">
+            <Card variant="notice" padding="0.75rem 1rem" className="text-[11px] text-text-secondary leading-relaxed">
               Kontekst z datą — nie diagnoza. Stary wynik nie opisuje automatycznie dzisiejszego stanu.
-            </div>
+            </Card>
 
             <SectionShell id="przeglad" title="Przegląd" subtitle="Ostatni panel i kluczowe markery">
               {(latestPanelDate || series.length > 0) && (

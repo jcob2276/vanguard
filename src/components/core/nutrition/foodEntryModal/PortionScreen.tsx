@@ -1,3 +1,5 @@
+import Button from '../../../ui/Button';
+import { Card } from '../../../ui/Card';
 import type { FoodBase } from '../hooks/useFoodEntryData';
 
 const MEAL_TYPES = [
@@ -30,7 +32,7 @@ export default function PortionScreen({
 }: PortionScreenProps) {
   return (
     <div className="space-y-4">
-      <button onClick={() => setSelected(null)} className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
+      <Button variant="ghost" size="sm" onClick={() => setSelected(null)} className="px-0 py-0">← Wstecz</Button>
       <div>
         <p className="text-[15px] font-black text-text-primary leading-tight">{selected.name}</p>
         {selected.brand && <p className="text-[11px] text-text-muted">{selected.brand}</p>}
@@ -64,20 +66,25 @@ export default function PortionScreen({
         ))}
       </div>
       {preview && (
-        <div className="rounded-xl bg-text-primary/[0.02] border border-border-custom/50 p-3 grid grid-cols-4 gap-2 text-center">
+        <Card variant="outline" padding="0.75rem" className="grid grid-cols-4 gap-2 text-center">
           {[['kcal', preview.calories], ['B', preview.protein], ['W', preview.carbs], ['T', preview.fat]].map(([label, val]) => (
             <div key={String(label)}>
               <p className="text-[13px] font-black text-text-primary">{val ?? '–'}</p>
               <p className="text-[8px] uppercase text-text-muted">{label}</p>
             </div>
           ))}
-        </div>
+        </Card>
       )}
       {error && <p className="text-[11px] text-rose-500">{error}</p>}
-      <button onClick={save} disabled={saving}
-        className="w-full rounded-2xl bg-primary py-3 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer">
-        {saving ? 'Zapisuję...' : savedFlash ? 'Zapisano ✓' : 'Zapisz'}
-      </button>
+      <Button
+        variant="primary"
+        onClick={save}
+        disabled={saving}
+        loading={saving}
+        className="w-full"
+      >
+        {savedFlash ? 'Zapisano ✓' : 'Zapisz'}
+      </Button>
     </div>
   );
 }

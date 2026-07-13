@@ -1,10 +1,12 @@
+import { Card } from '../ui/Card';
+
 interface CoverageFooterProps {
   coverage: Record<string, number>;
 }
 
 export default function CoverageFooter({ coverage }: CoverageFooterProps) {
   return (
-    <details className="rounded-xl border border-border-custom bg-surface/50 p-3">
+    <Card as="details" variant="outline" padding="0.75rem">
       <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-text-muted">
         Pokrycie danych (90 dni)
       </summary>
@@ -19,6 +21,6 @@ export default function CoverageFooter({ coverage }: CoverageFooterProps) {
             </div>
           ))}
       </div>
-    </details>
+    </Card>
   );
 }

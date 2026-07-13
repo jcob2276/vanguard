@@ -1,3 +1,5 @@
+import { Card } from '../ui/Card';
+
 export interface TimelineBlock {
   id: string;
   startMin: number; // minutes from midnight
@@ -28,7 +30,7 @@ export default function DayTimeline({
   const hours = Array.from({ length: dayEndHour - dayStartHour + 1 }, (_, i) => dayStartHour + i);
 
   return (
-    <div className="rounded-2xl border border-border-custom/40 bg-surface-solid/10 overflow-y-auto" style={{ maxHeight: 240 }}>
+    <Card variant="outline" padding="0" className="overflow-y-auto" style={{ maxHeight: 240 }}>
       <div className="relative" style={{ height: heightPx }}>
         {hours.map((h) => (
           <div key={h} className="absolute left-0 right-0 flex items-start" style={{ top: (h - dayStartHour) * 60 * PX_PER_MIN }}>
@@ -61,6 +63,6 @@ export default function DayTimeline({
           })}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

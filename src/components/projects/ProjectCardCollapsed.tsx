@@ -1,49 +1,40 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AlertTriangle, ChevronDown, ChevronUp, Check, ArrowRight, CalendarDays } from 'lucide-react';
+import Badge from '../ui/Badge';
 import type { ProjectCheckpoint } from '../../lib/projects/projects';
 import type { GoalKpiRow, ProjectRow, ProjectStats } from './projectUtils';
 import HealthScore from './HealthScore';
 import { KpiTrendSparkline } from './KpiTrendSparkline';
+import { useProjectsContext } from './context/projectsContextStore';
 
 interface ProjectCardCollapsedProps {
   project: ProjectRow;
   s: ProjectStats;
   isExpanded: boolean;
-  setExpandedId: (updater: (prev: string | null) => string | null) => void;
   col: any;
   pm: any;
   momentumMeta: any;
   healthScore: number;
   kpis: GoalKpiRow[];
-  editingKpiId: string | null;
-  setEditingKpiId: (id: string | null) => void;
-  handleUpdateKpiValue: (kpiId: string, raw: string) => void;
   visibleCps: ProjectCheckpoint[];
   doneCheckpoints: number;
   projectCheckpoints: ProjectCheckpoint[];
   nextAction: string | null;
-  userId: string;
 }
 
 interface KpiRowsProps {
   kpis: GoalKpiRow[];
   col: any;
-  editingKpiId: string | null;
-  setEditingKpiId: (id: string | null) => void;
-  handleUpdateKpiValue: (kpiId: string, raw: string) => void;
   isExpanded: boolean;
-  userId: string;
 }
 
 function KpiRows({
   kpis,
   col,
-  editingKpiId,
-  setEditingKpiId,
-  handleUpdateKpiValue,
   isExpanded,
-  userId,
 }: KpiRowsProps) {
+  const { editingKpiId, setEditingKpiId, handlers, userId } = useProjectsContext();
+
   return (
     <div className="mt-2.5 space-y-1.5" onClick={(e) => e.stopPropagation()}>
       {kpis.map((kpi) => {
@@ -65,10 +56,10 @@ function KpiRows({
                   autoFocus
                   type="number"
                   defaultValue={kpi.current_value ?? ''}
-                  onBlur={(e) => handleUpdateKpiValue(kpi.id, e.target.value)}
+                  onBlur={(e) => handlers.handleUpdateKpiValue(kpi.id, e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      handleUpdateKpiValue(kpi.id, (e.target as HTMLInputElement).value);
+                      handlers.handleUpdateKpiValue(kpi.id, (e.target as HTMLInputElement).value);
                     }
                     if (e.key === 'Escape') setEditingKpiId(null);
                   }}
@@ -115,7 +106,18 @@ function KpiRows({
   );
 }
 
-export default function ProjectCardCollapsed({ project, s, isExpanded, setExpandedId, col, pm, momentumMeta, healthScore, kpis, editingKpiId, setEditingKpiId, handleUpdateKpiValue, visibleCps, doneCheckpoints, projectCheckpoints, nextAction, userId }: ProjectCardCollapsedProps) {
+const PILLAR_HEX_COLORS: Record<string, string> = {
+  emerald: '#10b981',
+  indigo: '#6366f1',
+  amber: '#f59e0b',
+};
+
+export default function ProjectCardCollapsed({
+  project, s, isExpanded, col, pm, momentumMeta, healthScore, kpis,
+  visibleCps, doneCheckpoints, projectCheckpoints, nextAction
+}: ProjectCardCollapsedProps) {
+  const { setExpandedId } = useProjectsContext();
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -137,19 +139,27 @@ export default function ProjectCardCollapsed({ project, s, isExpanded, setExpand
           {/* Badges row */}
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             {pm && (
-              <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${pm.bg} ${pm.text}`}>
+              <Badge
+                variant="tag"
+                color={PILLAR_HEX_COLORS[pm.color] || '#3b82f6'}
+                className="gap-1 text-[9px] font-black uppercase tracking-widest"
+              >
                 <pm.icon size={9} />
                 {pm.label}
-              </span>
+              </Badge>
             )}
             {s.slipping && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+              <Badge variant="tag" color="#f59e0b">
                 <AlertTriangle size={8} /> {s.daysSince}d temu
-              </span>
+              </Badge>
             )}
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${momentumMeta.cls}`}>
+            <Badge
+              variant="tag"
+              color={momentumMeta.color}
+              className="text-[9px] font-bold"
+            >
               {momentumMeta.label}
-            </span>
+            </Badge>
           </div>
 
           {/* Project name */}
@@ -199,11 +209,7 @@ export default function ProjectCardCollapsed({ project, s, isExpanded, setExpand
         <KpiRows
           kpis={kpis}
           col={col}
-          editingKpiId={editingKpiId}
-          setEditingKpiId={setEditingKpiId}
-          handleUpdateKpiValue={handleUpdateKpiValue}
           isExpanded={isExpanded}
-          userId={userId}
         />
       )}
 

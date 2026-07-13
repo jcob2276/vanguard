@@ -1,5 +1,7 @@
 import { formatSprintWeekBridge } from '../../../lib/goal/goalSpine';
 import { formatSprintFromLongTerm } from '../../../lib/goal/longTermBridge';
+import { Card } from '../../ui/Card';
+import Button from '../../ui/Button';
 
 type Phase2Recap = {
   block5_material?: { cialo: string; duch: string; konto: string };
@@ -92,7 +94,7 @@ export default function DirectionPlanWeekPlan({
 
       <div className="space-y-4">
         {(direction.monthTheme || direction.sprintGoal || direction.bhagLine) && (
-          <div className="rounded-xl border border-border-custom bg-surface/50 px-3 py-2.5 space-y-1.5">
+          <Card padding="0.625rem 0.75rem" className="space-y-1.5" style={{ background: 'rgba(11, 15, 25, 0.5)' }}>
             {longTermBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
             {direction.monthTheme && (
               <p className="text-[11px] text-text-secondary leading-relaxed">
@@ -101,7 +103,7 @@ export default function DirectionPlanWeekPlan({
               </p>
             )}
             {sprintBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>}
-          </div>
+          </Card>
         )}
         <div className="space-y-1">
           <p className="text-xs text-text-muted font-medium">Intencja tygodnia — jaki chcę być?</p>
@@ -129,10 +131,9 @@ export default function DirectionPlanWeekPlan({
             <Textarea value={weekGoalKonto} onChange={setWeekGoalKonto} placeholder="Jeden konkretny cel finansowy / zawodowy…" rows={2} />
           </div>
         </div>
-        <button onClick={onComplete} disabled={completing || !deepeningComplete}
-          className="w-full py-3 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-30">
+        <Button onClick={onComplete} disabled={!deepeningComplete} loading={completing} variant="primary" className="w-full">
           {completing ? "Zamykam tydzień…" : "Zakończ przegląd tygodnia"}
-        </button>
+        </Button>
       </div>
     </div>
   );

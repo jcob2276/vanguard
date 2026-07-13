@@ -3,6 +3,8 @@ import { Suspense, lazy, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 
 import type { FullPanelInfo } from '../../lib/health/medicalRetestContext';
+import Skeleton from '../ui/Skeleton';
+import Button from '../ui/Button';
 
 import {
 
@@ -88,7 +90,7 @@ export default function MedicalRetestPanel({
 
       {loading ? (
 
-        <div className="h-24 animate-pulse rounded-xl border border-border-custom bg-surface/40" />
+        <Skeleton variant="text" lines={2} className="h-24 rounded-xl" />
 
       ) : suggestions.length === 0 ? (
 
@@ -138,25 +140,19 @@ export default function MedicalRetestPanel({
 
       {!oracleOpen ? (
 
-        <button
-
+        <Button
           type="button"
-
           onClick={handleOracle}
-
-          className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-[10px] font-black uppercase tracking-wide text-primary hover:bg-primary/15 transition-colors cursor-pointer"
-
+          variant="tonal"
+          icon={<Sparkles size={14} />}
+          className="uppercase tracking-wide"
         >
-
-          <Sparkles size={14} />
-
           Zapytaj Oracle — co ma dla mnie największe przełożenie
-
-        </button>
+        </Button>
 
       ) : (
 
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-[24px] border border-border-custom bg-surface/40" />}>
+        <Suspense fallback={<Skeleton variant="card" className="h-40 rounded-[24px]" />}>
 
           <OracleCard
 

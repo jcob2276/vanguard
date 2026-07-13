@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useUserId } from '../../store/useStore';
+import { Card } from '../ui/Card';
+import Button from '../ui/Button';
 
 interface BrainHealthRow {
   table_name: string;
@@ -30,17 +32,19 @@ export default function BrainHealth() {
   if (!userId) return null;
 
   return (
-    <div className="rounded-[24px] border border-border-custom bg-surface/40 backdrop-blur-md p-5 space-y-4 shadow-sm">
+    <Card variant="glass" className="border border-border-custom backdrop-blur-md space-y-4" style={{ background: 'rgba(var(--color-surface), 0.4)' }} padding="1.25rem">
       <div className="flex items-center justify-between">
         <h4 className="text-[10px] font-black text-text-primary uppercase tracking-widest flex items-center gap-2">
           <Brain size={14} className="text-primary" /> Vanguard Brain Health
         </h4>
-        <button
+        <Button
           onClick={() => void queryClient.invalidateQueries({ queryKey: ['brain-health', userId] })}
-          className="text-[8px] font-black text-text-muted hover:text-text-primary uppercase tracking-widest transition-colors"
+          variant="ghost"
+          size="sm"
+          className="!px-0 uppercase tracking-widest"
         >
           Odśwież
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -91,6 +95,6 @@ export default function BrainHealth() {
       <p className="text-[8px] text-text-muted font-bold leading-relaxed uppercase">
         * "Semantic Coverage" oznacza procent rekordów posiadających wygenerowane embeddingi wektorowe, gotowe do użycia przez Oracle.
       </p>
-    </div>
+    </Card>
   );
 }

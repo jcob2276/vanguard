@@ -1,9 +1,12 @@
 import { Edit3, Plus, Save, Trash2, CalendarDays, Flag, Check, Repeat2, X, Zap } from 'lucide-react';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
+import Badge from '../ui/Badge';
 import { format } from 'date-fns';
 import { ProjectCheckpoint } from '../../lib/projects/projects';
-import { TodoItemRow } from '../../lib/todo/todo';
 import { COLORS, STATUS_LABEL, ProjectStats, ProjectRow } from './projectUtils';
 import ProjectEvidenceStrip from './ProjectEvidenceStrip';
+import { useProjectsContext } from './context/projectsContextStore';
 
 const RECURRENCE_CYCLE = ['', 'daily', 'weekly', 'monthly'] as const;
 const RECURRENCE_LABEL: Record<string, string> = { '': 'Jednorazowe', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc' };
@@ -17,46 +20,23 @@ interface ProjectCardExpandedProps {
   nextAction: string | null;
   projectCheckpoints: ProjectCheckpoint[];
   doneCheckpoints: number;
-  busy: boolean;
-
-  editingProjectId: string | null;
-  editForm: { name: string; goal: string; deadline: string; color: string; primary_skill_id: string };
-  setEditForm: React.Dispatch<React.SetStateAction<{ name: string; goal: string; deadline: string; color: string; primary_skill_id: string }>>;
-  startEditProject: (project: ProjectRow) => void;
-  setEditingProjectId: (id: string | null) => void;
-  handleSaveProject: (project: ProjectRow) => void;
-
-  newCheckpoint: { projectId: string; title: string; due_date: string } | null;
-  setNewCheckpoint: React.Dispatch<React.SetStateAction<{ projectId: string; title: string; due_date: string } | null>>;
-  handleAddCheckpoint: (projectId: string) => void;
-  handleToggleCheckpoint: (checkpoint: ProjectCheckpoint) => void;
-  deleteCheckpoint: (id: string) => void;
-
-  handleToggleTask: (item: TodoItemRow) => void;
-  newTask: { projectId: string; title: string; recurrence: string } | null;
-  setNewTask: React.Dispatch<React.SetStateAction<{ projectId: string; title: string; recurrence: string } | null>>;
-  handleAddTask: (project: ProjectRow, section: { id: string } | null) => void;
-
-  handleStatusCycle: (project: ProjectRow) => void;
-  updateProjectStatus: (project: ProjectRow, status: string) => void;
-  handleDelete: (id: string) => void;
-  userId: string;
-  parentSkills: { id: string; label: string }[];
 }
 
 export default function ProjectCardExpanded({
   project, s, col, healthScore, healthColors,
-  nextAction, projectCheckpoints, doneCheckpoints, busy,
-  editingProjectId, editForm, setEditForm, startEditProject, setEditingProjectId, handleSaveProject,
-  newCheckpoint, setNewCheckpoint, handleAddCheckpoint, handleToggleCheckpoint, deleteCheckpoint,
-  handleToggleTask, newTask, setNewTask, handleAddTask,
-  handleStatusCycle, updateProjectStatus, handleDelete, userId, parentSkills,
+  nextAction, projectCheckpoints, doneCheckpoints,
 }: ProjectCardExpandedProps) {
+  const {
+    busy, editingProjectId, editForm, setEditForm, setEditingProjectId,
+    newCheckpoint, setNewCheckpoint, newTask, setNewTask,
+    userId, parentSkills, handlers
+  } = useProjectsContext();
+
   return (
     <div className="border-t border-border-custom/30 px-4 pb-4 pt-3 space-y-3">
 
       {/* Project metadata / edit form */}
-      <div className="rounded-[14px] border border-border-custom/50 bg-surface-solid/30 p-3">
+      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: '14px' }}>
         {editingProjectId === project.id ? (
           <div className="space-y-3">
             <input
@@ -106,19 +86,24 @@ export default function ProjectCardExpanded({
               </div>
             )}
             <div className="flex justify-end gap-2">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setEditingProjectId(null)}
                 className="rounded-full bg-surface-solid px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:text-text-secondary"
               >
                 Anuluj
-              </button>
-              <button
-                onClick={() => handleSaveProject(project)}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handlers.handleSaveProject(project)}
                 disabled={busy || !editForm.name.trim()}
-                className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+                icon={<Save size={11} />}
               >
-                <Save size={11} /> Zapisz
-              </button>
+                Zapisz
+              </Button>
             </div>
           </div>
         ) : (
@@ -136,33 +121,34 @@ export default function ProjectCardExpanded({
                 <p className="text-[12px] text-text-muted/50">Brak opisu celu.</p>
               )}
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                <Badge variant="tag" color={
                   project.deadline
                     ? s.daysLeft !== null && s.daysLeft < 0
-                      ? 'bg-rose-500/10 text-rose-500'
-                      : 'bg-primary/10 text-primary'
-                    : 'bg-surface-solid text-text-muted'
-                }`}>
+                      ? '#f43f5e'
+                      : 'var(--color-primary)'
+                    : undefined
+                }>
                   <CalendarDays size={11} />
                   {project.deadline
                     ? `${format(new Date(project.deadline + 'T00:00:00'), 'dd.MM.yyyy')}${s.daysLeft !== null ? ` · ${s.daysLeft < 0 ? `${Math.abs(s.daysLeft)}d po` : `${s.daysLeft}d`}` : ''}`
                     : 'Brak daty zakończenia'}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-surface-solid px-2 py-1 text-[10px] font-semibold text-text-muted">
+                </Badge>
+                <Badge variant="tag">
                   <Flag size={11} /> {doneCheckpoints}/{projectCheckpoints.length} checkpointów
-                </span>
+                </Badge>
               </div>
             </div>
-            <button
-              onClick={() => startEditProject(project)}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlers.startEditProject(project)}
               className="rounded-full p-2 text-text-muted hover:bg-surface-solid hover:text-text-primary"
               title="Edytuj projekt"
-            >
-              <Edit3 size={13} />
-            </button>
+              icon={<Edit3 size={13} />}
+            />
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Next action highlight */}
       {nextAction && (
@@ -176,16 +162,19 @@ export default function ProjectCardExpanded({
       )}
 
       {/* Checkpoints */}
-      <div className="rounded-[14px] border border-border-custom/50 bg-surface-solid/20 p-3 space-y-2">
+      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: '14px' }}>
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Checkpointy</p>
           {newCheckpoint?.projectId !== project.id && (
-            <button
+            <Button
+              variant="tonal"
+              size="sm"
               onClick={() => setNewCheckpoint({ projectId: project.id, title: '', due_date: '' })}
-              className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary"
+              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold"
+              icon={<Plus size={11} />}
             >
-              <Plus size={11} /> Dodaj
-            </button>
+              Dodaj
+            </Button>
           )}
         </div>
         {projectCheckpoints.length > 0 && (
@@ -193,7 +182,7 @@ export default function ProjectCardExpanded({
             {projectCheckpoints.map(cp => (
               <div key={cp.id} className="flex items-center gap-2 rounded-[10px] px-1.5 py-1.5 hover:bg-background/40">
                 <button
-                  onClick={() => handleToggleCheckpoint(cp)}
+                  onClick={() => handlers.handleToggleCheckpoint(cp)}
                   className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${
                     cp.status === 'done' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-border-custom text-transparent'
                   }`}
@@ -206,12 +195,13 @@ export default function ProjectCardExpanded({
                     {format(new Date(cp.due_date + 'T00:00:00'), 'dd.MM')}
                   </span>
                 )}
-                <button
-                  onClick={() => deleteCheckpoint(cp.id)}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handlers.deleteCheckpoint(cp.id)}
                   className="shrink-0 rounded-full p-1 text-text-muted/35 hover:bg-rose-500/10 hover:text-rose-500"
-                >
-                  <Trash2 size={11} />
-                </button>
+                  icon={<Trash2 size={11} />}
+                />
               </div>
             ))}
           </div>
@@ -223,7 +213,7 @@ export default function ProjectCardExpanded({
               value={newCheckpoint!.title}
               onChange={e => setNewCheckpoint(cp => cp ? { ...cp, title: e.target.value } : cp)}
               onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); handleAddCheckpoint(project.id); }
+                if (e.key === 'Enter') { e.preventDefault(); handlers.handleAddCheckpoint(project.id); }
                 if (e.key === 'Escape') setNewCheckpoint(null);
               }}
               className="w-full bg-transparent text-[12px] text-text-primary outline-none placeholder:text-text-muted/40"
@@ -236,29 +226,29 @@ export default function ProjectCardExpanded({
                 onChange={e => setNewCheckpoint(cp => cp ? { ...cp, due_date: e.target.value } : cp)}
                 className="min-w-0 flex-1 rounded-[9px] border border-border-custom/50 bg-surface px-2.5 py-1.5 text-[11px] text-text-secondary outline-none"
               />
-              <button onClick={() => setNewCheckpoint(null)} className="rounded-full p-1.5 text-text-muted hover:text-text-secondary">
-                <X size={13} />
-              </button>
-              <button
-                onClick={() => handleAddCheckpoint(project.id)}
+              <Button variant="ghost" size="sm" onClick={() => setNewCheckpoint(null)} className="rounded-full p-1.5 text-text-muted hover:text-text-secondary" icon={<X size={13} />} />
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handlers.handleAddCheckpoint(project.id)}
                 disabled={!newCheckpoint!.title.trim() || busy}
-                className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-30"
+                className="rounded-full px-3 py-1.5 text-[11px] font-semibold"
               >
                 Dodaj
-              </button>
+              </Button>
             </div>
           </div>
         ) : projectCheckpoints.length === 0 ? (
           <p className="text-[12px] text-text-muted/45">Brak checkpointów.</p>
         ) : null}
-      </div>
+      </Card>
 
       {/* Task list */}
       <div className="space-y-1">
         {s.openItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => handleToggleTask(item)}
+            onClick={() => handlers.handleToggleTask(item)}
             className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left"
           >
             <div className="h-[18px] w-[18px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all border-border-custom">
@@ -271,7 +261,7 @@ export default function ProjectCardExpanded({
         {s.doneItems.slice(0, 2).map((item) => (
           <button
             key={item.id}
-            onClick={() => handleToggleTask(item)}
+            onClick={() => handlers.handleToggleTask(item)}
             className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left opacity-35"
           >
             <div className="h-[18px] w-[18px] shrink-0 rounded-full bg-emerald-500 flex items-center justify-center">
@@ -293,39 +283,45 @@ export default function ProjectCardExpanded({
             value={newTask!.title}
             onChange={e => setNewTask(t => t ? { ...t, title: e.target.value } : t)}
             onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); handleAddTask(project, s.section); }
+              if (e.key === 'Enter') { e.preventDefault(); handlers.handleAddTask(project, s.section); }
               if (e.key === 'Escape') setNewTask(null);
             }}
             placeholder="Nowe zadanie..."
             className="w-full bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-muted/40"
           />
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as typeof RECURRENCE_CYCLE[number]) + 1) % RECURRENCE_CYCLE.length] } : t)}
               className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask!.recurrence ? 'bg-violet-500/15 text-violet-500' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
+              icon={<Repeat2 size={10} />}
             >
-              <Repeat2 size={10} /> {RECURRENCE_LABEL[newTask!.recurrence]}
-            </button>
+              {RECURRENCE_LABEL[newTask!.recurrence]}
+            </Button>
             <div className="flex-1" />
-            <button onClick={() => setNewTask(null)} className="text-text-muted hover:text-text-secondary">
-              <X size={13} />
-            </button>
-            <button
-              onClick={() => handleAddTask(project, s.section)}
+            <Button variant="ghost" size="sm" onClick={() => setNewTask(null)} className="text-text-muted hover:text-text-secondary" icon={<X size={13} />} />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handlers.handleAddTask(project, s.section)}
               disabled={!newTask!.title.trim() || busy}
-              className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-30"
+              className="rounded-full px-3 py-1 text-[11px] font-semibold"
             >
               Dodaj
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => setNewTask({ projectId: project.id, title: '', recurrence: '' })}
           className="flex w-full items-center gap-2 rounded-[12px] border border-dashed border-border-custom/60 px-3 py-2 text-[12px] font-medium text-text-muted hover:text-text-secondary hover:border-border-custom transition-colors"
+          icon={<Plus size={13} />}
         >
-          <Plus size={13} /> Dodaj zadanie
-        </button>
+          Dodaj zadanie
+        </Button>
       )}
 
       {/* Footer actions */}
@@ -339,8 +335,8 @@ export default function ProjectCardExpanded({
               disabled={busy}
               onClick={() => {
                 if (project.status === st) return;
-                if (st === 'done') handleStatusCycle(project);
-                else updateProjectStatus(project, st);
+                if (st === 'done') handlers.handleStatusCycle(project);
+                else handlers.updateProjectStatus(project, st);
               }}
               className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
                 project.status === st
@@ -353,13 +349,14 @@ export default function ProjectCardExpanded({
           ))}
         </div>
         <div className="flex-1" />
-        <button
-          onClick={() => handleDelete(project.id)}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handlers.handleDelete(project.id)}
           disabled={busy}
           className="rounded-full p-1.5 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-        >
-          <Trash2 size={13} />
-        </button>
+          icon={<Trash2 size={13} />}
+        />
       </div>
     </div>
   );

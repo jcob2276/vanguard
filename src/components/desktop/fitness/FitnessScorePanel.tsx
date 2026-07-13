@@ -5,6 +5,7 @@ import { type BodyRow } from '@vanguard/domain';
 import { Activity } from 'lucide-react';
 import { computeFitnessProfile } from './fitnessScoreUtils';
 import FitnessRadarChart from './FitnessRadarChart';
+import { Card } from '../../ui/Card';
 import type { OuraRow, NutritionDayRow } from '../desktopUtils';
 import type { DesktopSessionRow, StravaActivityRow, HabitRow, HabitLogRow } from '../shell/useDesktopData';
 
@@ -75,9 +76,10 @@ export default function FitnessScorePanel({
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {profile.breakdowns.map((item) => (
-            <div
+            <Card
               key={item.key}
-              className="rounded-xl border border-border-custom/80 bg-surface-solid/30 px-3.5 py-3"
+              variant="outline"
+              padding="0.75rem 0.875rem"
             >
               <div className="flex items-baseline justify-between gap-3 mb-1.5">
                 <span className="text-[11px] font-black text-text-primary">{item.label}</span>
@@ -90,7 +92,7 @@ export default function FitnessScorePanel({
                 </span>
               </div>
               <p className="text-[11px] leading-relaxed text-text-secondary">{item.detail}</p>
-            </div>
+            </Card>
           ))}
         </div>
         <p className="text-[10px] text-text-muted mt-3 leading-relaxed">

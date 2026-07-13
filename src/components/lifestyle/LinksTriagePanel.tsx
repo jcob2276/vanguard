@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import Spinner from '../ui/Spinner';
 import type { SavedLink, TriageSuggestion } from '../../lib/linksApi';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 
 interface LinksTriagePanelProps {
   showTriagePanel: boolean;
@@ -86,18 +87,20 @@ export function LinksTriagePanel({
                 )}
 
                 <div className="flex items-center gap-2 pt-2 justify-end">
-                  <button
+                  <Button
                     onClick={() => setTriageSuggestions(prev => prev.filter(item => item.id !== s.id))}
-                    className="px-3 py-1.5 text-[11px] font-bold text-slate-400 hover:text-text-primary transition-colors"
+                    variant="ghost"
+                    size="sm"
                   >
                     Pomiń
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => applyTriageSuggestion(s.id, s.action, s.category, s.takeaways)}
-                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm"
+                    variant="primary"
+                    size="sm"
                   >
                     Zastosuj
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Plus, TrendingUp } from 'lucide-react';
+import { Card } from '../ui/Card';
+import Button from '../ui/Button';
 import {
   addProjectKpi,
   fetchProjectWeekKpis,
@@ -82,7 +84,7 @@ export default function ProjectWeekKpis({
         {projects.map((project) => {
           const kpis = byProject[project.id] ?? [];
           return (
-            <div key={project.id} className="rounded-xl border border-border-custom bg-surface px-3.5 py-3 space-y-2">
+            <Card key={project.id} padding="0.75rem 0.875rem" className="space-y-2">
               <p className="text-[13px] font-bold text-text-primary flex items-center gap-2 flex-wrap">
                 {project.name}
                 {focusProjectIds.includes(project.id) && (
@@ -125,13 +127,16 @@ export default function ProjectWeekKpis({
               })}
 
               {kpis.length === 0 && !readOnly && addingFor !== project.id && (
-                <button
+                <Button
                   type="button"
                   onClick={() => setAddingFor(project.id)}
-                  className="flex items-center gap-1 text-[10px] font-bold text-primary cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  icon={<Plus size={11} />}
+                  className="!px-0 text-primary"
                 >
-                  <Plus size={11} /> ustal liczbę
-                </button>
+                  ustal liczbę
+                </Button>
               )}
 
               {addingFor === project.id && !readOnly && (
@@ -174,25 +179,30 @@ export default function ProjectWeekKpis({
                     ))}
                   </div>
                   <div className="flex gap-1.5 pt-0.5">
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setAddingFor(null)}
-                      className="flex-1 rounded-lg border border-border-custom py-1.5 text-[10px] font-bold text-text-muted cursor-pointer"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
                     >
                       Anuluj
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => submitNewKpi(project.id)}
                       disabled={!newKpi.name.trim()}
-                      className="flex-1 rounded-lg bg-primary py-1.5 text-[10px] font-bold text-white disabled:opacity-30 cursor-pointer"
+                      variant="primary"
+                      size="sm"
+                      icon={<Check size={10} />}
+                      className="flex-1"
                     >
-                      <Check size={10} className="inline mr-1" /> Dodaj
-                    </button>
+                      Dodaj
+                    </Button>
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           );
         })}
       </div>

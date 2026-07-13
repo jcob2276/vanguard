@@ -1,4 +1,7 @@
 import { Activity, Flag, Target } from 'lucide-react';
+import Button from '../../ui/Button';
+import Badge from '../../ui/Badge';
+import { Card } from '../../ui/Card';
 import type { NutritionDayContext } from '../../../lib/health/nutritionContext';
 
 const TRAJECTORY_STYLE: Record<string, string> = {
@@ -50,7 +53,7 @@ export default function NutritionTrainingBar({
   const goalLine = [goalWeightLabel, goalBfLabel].filter(Boolean).join(' · ');
 
   return (
-    <div className="rounded-xl border border-primary/15 bg-primary/[0.04] px-3 py-2.5 space-y-2">
+    <Card variant="accent" padding="0.625rem 0.75rem" className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <Target size={12} className="text-primary shrink-0" />
@@ -73,9 +76,7 @@ export default function NutritionTrainingBar({
           {ctx.trainingLabel}
         </span>
         {ctx.inTaper ? (
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-bold uppercase tracking-wide text-amber-500 text-[8px]">
-            Taper — bez deficytu
-          </span>
+          <Badge variant="tag" color="#f59e0b">Taper — bez deficytu</Badge>
         ) : ctx.addBackKcal > 0 ? (
           <span className="text-[9px] text-text-muted">
             +{ctx.addBackKcal} kcal pod trening
@@ -176,18 +177,16 @@ export default function NutritionTrainingBar({
             </p>
           ) : null}
         </div>
-        <button
+        <Button
+          variant={logClosed ? 'tonal' : 'outline'}
+          size="sm"
           type="button"
           onClick={onToggleLogClosed}
-          className={`shrink-0 rounded-lg border px-2 py-1 text-[8px] font-black uppercase tracking-wider cursor-pointer ${
-            logClosed
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500'
-              : 'border-border-custom text-text-muted hover:text-text-primary'
-          }`}
+          className={logClosed ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/15' : ''}
         >
           {logClosed ? 'Log domknięty ✓' : 'Domknij log'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
