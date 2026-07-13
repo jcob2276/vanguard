@@ -4,6 +4,7 @@ import Spinner from '../ui/Spinner';
 import type { SavedLink, TriageSuggestion } from '../../lib/linksApi';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 interface LinksTriagePanelProps {
   showTriagePanel: boolean;
@@ -53,7 +54,7 @@ export function LinksTriagePanel({
             const link = links.find(l => l.id === s.id);
             if (!link) return null;
             return (
-              <div key={s.id} className="p-4 bg-slate-950/40 border border-slate-800 rounded-xl space-y-3">
+              <Card key={s.id} variant="outline" padding="1rem" className="!bg-slate-950/40 !border-slate-800 !rounded-xl space-y-3">
                 <h4 className="text-[13px] font-bold text-text-primary leading-snug">{link.title}</h4>
                 
                 <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase">
@@ -102,7 +103,7 @@ export function LinksTriagePanel({
                     Zastosuj
                   </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
