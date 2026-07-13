@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EXERCISES, tagClass, normalize } from '../../../data/exercises';
+import { Card } from '../../ui/Card';
 
 interface ExerciseNameInputProps {
   value: string;
@@ -51,7 +52,12 @@ export default function ExerciseNameInput({
         className="w-full bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-muted/40"
       />
       {open && matches.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-border-custom bg-surface-solid shadow-lg overflow-hidden">
+        <Card
+          variant="glass"
+          padding="0"
+          className="absolute left-0 right-0 top-full mt-2 z-50 border border-border-custom shadow-lg"
+          style={{ borderRadius: '12px' }}
+        >
           {matches.map((ex) => (
             <button
               key={ex.name}
@@ -71,7 +77,7 @@ export default function ExerciseNameInput({
               </div>
             </button>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );
