@@ -176,6 +176,23 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<un
 
       const finalStatus = 'raw';
 
+      let dbEventKind = friction.event_kind;
+      if (dbEventKind === 'recovery_event') {
+        dbEventKind = 'positive_micro_action';
+      }
+
+      const dbAllowedEventKinds = [
+        'friction_event',
+        'positive_micro_action',
+        'state_observation',
+        'micro_behavior_observation',
+        'reflection'
+      ];
+      if (dbEventKind !== null && !dbAllowedEventKinds.includes(dbEventKind)) {
+        console.warn(`[auto-classify] Warning: event_kind '${dbEventKind}' not allowed in DB check constraint. Clamping to null.`);
+        dbEventKind = null;
+      }
+
       await safeExecute(
         supabase
           .from('friction_events')
@@ -184,7 +201,7 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<un
             stream_record_id: record.id,
             occurred_at: record.created_at || new Date().toISOString(),
             raw_text: record.content,
-            event_kind: friction.event_kind,
+            event_kind: dbEventKind,
             friction_type: friction.friction_type || 'other',
             declared_intention: friction.declared_intention || null,
             actual_behavior: friction.actual_behavior || null,
@@ -204,7 +221,7 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<un
             parser_version: 'auto-classify-v41',
           })
       );
-      console.log(`[auto-classify] friction_event inserted: ${friction.event_kind} | ${friction.friction_type} | quality=${extractionQuality}% | status=${finalStatus}`);
+      console.log(`[auto-classify] friction_event inserted: ${dbEventKind} (raw: ${friction.event_kind}) | ${friction.friction_type} | quality=${extractionQuality}% | status=${finalStatus}`);
     }
   }
 
