@@ -240,7 +240,7 @@ Dla modułów renderujących "jedna rzecz, wiele wariantów" bez własnego stanu
 | `index.css` (CSS custom properties) | dynamiczne/wybieralne w runtime wartości (Tailwind nie generuje klas ze stringów budowanych w runtime) + globalne tokeny | `var(--keep-bg-red)` |
 | Tailwind utility classes w JSX | layout, spacing, typografia — 95% stylowania | `flex items-center gap-2 rounded-xl` |
 
-`index.css` jest **tylko** warstwą design tokenów i cross-cutting animacji (limit ~550 linii, patrz `DESIGN_SYSTEM.md`). CSS specyficzny dla jednego modułu (np. Keep/Notes) żyje w `components/<feature>/<feature>.css`, importowany w pliku wejściowym modułu — Vite wspiera to natywnie, zero konfiguracji.
+`index.css` jest **tylko** warstwą design tokenów i cross-cutting animacji (limit ~550 linii, patrz [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)). CSS specyficzny dla jednego modułu (np. Keep/Notes) żyje w `components/<feature>/<feature>.css`, importowany w pliku wejściowym modułu — Vite wspiera to natywnie, zero konfiguracji.
 
 ## 13. Higiena przy refaktorach strukturalnych (rozbijanie god-files, przenosiny)
 
@@ -257,6 +257,6 @@ Zasady wypracowane na realnych regresjach podczas sesji porządkowania `lib/`/`h
 
 ---
 
-*Powiązane: [`DEV_GUIDE.md`](DEV_GUIDE.md) (backend), [`README.md`](README.md) (kolejność czytania), [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) (wygląd/UI), `../BACKLOG.md` część IV (otwarta praca strukturalna: god-files, `as any`, itd.), `lessons.md` (incydenty, z których część reguł w sekcji 6/13 wynika wprost).*
+*Powiązane: [`DEV_GUIDE.md`](DEV_GUIDE.md) (backend), [`README.md`](README.md) (kolejność czytania), [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) (wygląd/UI — filozofia iOS+Pixel, tokeny, motion, roadmapa spójności), `../BACKLOG.md` część IV (otwarta praca strukturalna: god-files, `as any`, itd.), `lessons.md` (incydenty, z których część reguł w sekcji 6/13 wynika wprost).*
 
 *Ostatnia weryfikacja z kodem: 2026-07-11*
