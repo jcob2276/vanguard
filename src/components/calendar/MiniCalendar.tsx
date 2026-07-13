@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toLocalISO, todayStr } from './calendarHelpers';
 import { getMoonPhase } from '../../lib/solar';
+import { Card } from '../ui/Card';
 
 interface MiniCalendarProps {
   selectedDay: string;
@@ -73,7 +74,12 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
   const today = todayStr();
 
   return (
-    <div className="bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-2xl p-4 space-y-3.5 shadow-sm">
+    <Card
+      variant="outline"
+      padding="1rem"
+      className="!bg-surface-solid/5 dark:!bg-white/[0.015] !border-border-custom/30 space-y-3.5 shadow-sm"
+      style={{ borderRadius: 'var(--radius-md)' }}
+    >
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-black text-text-primary tracking-wide">
           {monthNames[month]} {year}
@@ -137,6 +143,6 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }
