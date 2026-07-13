@@ -6,8 +6,8 @@ import {
   useCreateCalendarEvent,
   useUpdateCalendarEvent,
   useDeleteCalendarEvent,
-  calendarKeys,
 } from '../../../lib/calendarApi';
+import { calendarKeys } from '../../../lib/queryKeys';
 import {
   todayStr,
   weekMon,

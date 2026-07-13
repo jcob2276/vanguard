@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
-import { todoKeys } from '../../../lib/todo/todoApi';
+import { todoKeys } from '../../../lib/queryKeys';
 import { usePushNotifications } from '../../../hooks/usePushNotifications';
 import { useTodoKeyboard } from './useTodoKeyboard';
 

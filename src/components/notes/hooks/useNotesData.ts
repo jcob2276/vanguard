@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNotes, Note, notesKeys, updateNoteApi, createNoteApi, sortNotes } from '../../../lib/notesApi';
+import { useNotes, Note, updateNoteApi, createNoteApi, sortNotes } from '../../../lib/notesApi';
+import { notesKeys } from '../../../lib/queryKeys';
 import { notify } from '../../../lib/notify';
 import { useNotesMutations } from './useNotesMutations';
 

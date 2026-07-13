@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
-import { biometricsKeys } from '../../../lib/biometricsApi';
+import { biometricsKeys } from '../../../lib/queryKeys';
 import { syncOura, syncStrava, computeDailyStrain } from '../../../lib/syncApi';
 
 interface Haptics {

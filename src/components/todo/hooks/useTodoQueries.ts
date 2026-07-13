@@ -7,8 +7,8 @@ import {
   useDreams,
   useSmartLists,
   useDailyWins,
-  todoKeys,
 } from '../../../lib/todo/todoApi';
+import { todoKeys } from '../../../lib/queryKeys';
 import type { Database } from '../../../lib/database.types';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];

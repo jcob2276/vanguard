@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { calendarKeys } from '../../../lib/calendarApi';
+import { calendarKeys } from '../../../lib/queryKeys';
 import { parseTime, dateOfISO, getWarsawOffset, HOUR_START, HOUR_END, PX_PER_MIN, CalRow } from '../calendarHelpers';
 
 interface VisibleRange {

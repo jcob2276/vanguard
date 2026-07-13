@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { desktopKeys } from '../desktop/shell/useDesktopData';
+import { desktopKeys, projectsKeys } from '../../lib/queryKeys';
 import {
   listProjects,
   listProjectCheckpoints,
@@ -38,10 +38,7 @@ interface ProjectsDataResult {
   parentSkills: { id: string; label: string }[];
 }
 
-export const projectsKeys = {
-  all: ['projects-data'] as const,
-  detail: (userId: string) => [...projectsKeys.all, userId] as const,
-};
+
 
 async function fetchProjectsData(userId: string): Promise<ProjectsDataResult> {
   const [p, s, i, c, dreamsData, longTerm, skillsData, rawKpis] = await Promise.all([
@@ -72,9 +69,9 @@ async function fetchProjectsData(userId: string): Promise<ProjectsDataResult> {
     sections: s ?? [],
     items: i ?? [],
     checkpoints: c ?? [],
-    dreams: (dreamsData ?? []) as unknown as DreamRow[],
+    dreams: dreamsData ?? [],
     lifeGoals: longTerm.declarations ?? null,
-    kpis: kpisWithCurrent as unknown as GoalKpiRow[],
+    kpis: kpisWithCurrent as GoalKpiRow[],
     parentSkills: (skillsData ?? []).map((sk) => ({ id: sk.id, label: sk.label })),
   };
 }

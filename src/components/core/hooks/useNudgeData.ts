@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNudgeCounts, nudgeKeys } from '../../../lib/nudgeApi';
+import { useNudgeCounts } from '../../../lib/nudgeApi';
+import { nudgeKeys } from '../../../lib/queryKeys';
 
 export function useNudgeData(userId: string | undefined) {
   const queryClient = useQueryClient();

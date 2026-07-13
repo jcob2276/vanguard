@@ -6,8 +6,10 @@ import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUserId } from '../../store/useStore';
-import { useDailyStrainOura, biometricsKeys } from '../../lib/biometricsApi';
+import { useDailyStrainOura } from '../../lib/biometricsApi';
+import { biometricsKeys } from '../../lib/queryKeys';
 import { SIGNAL_PILL, STATUS_RING, STATUS_GLOW, type StrainComponents } from './dailyStrainCardStyles';
+import { parseStrainComponents } from '../../lib/db-json-guards';
 import { useDailyStrainRefresh } from './hooks/useDailyStrainRefresh';
 import DailyStrainHeader from './DailyStrainHeader';
 import DailyStrainMetricsRow from './DailyStrainMetricsRow';
@@ -96,7 +98,7 @@ export default function DailyStrainCard({
 
   const statusKey = (row.daily_status || 'green') as keyof typeof STATUS_RING;
   const isStale = row.date !== getTodayWarsaw();
-  const comp = (row.components as unknown as StrainComponents) ?? {};
+  const comp: StrainComponents = parseStrainComponents(row.components) ?? {};
   const recConf         = comp.recovery_confidence;
   const strConf         = comp.strain_confidence;
   const sleepDebtH      = comp.sleep_debt_h;
