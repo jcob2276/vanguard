@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle2, XCircle, Eye } from 'lucide-react';
 import Spinner from '../ui/Spinner';
+import { Card } from '../ui/Card';
 import { updatePatternStatus } from '../../lib/insightsApi';
 import { notify } from '../../lib/notify';
 
@@ -56,16 +57,18 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
     : null;
 
   const statusColor =
-    pattern.status === 'user_confirmed' ? '#10B981' :
+    pattern.status === 'user_confirmed' ? 'var(--color-success)' :
     pattern.status === 'user_rejected' ? '#6B7280' :
-    pattern.confidence >= 0.75 ? '#F59E0B' : '#6366F1';
+    pattern.confidence >= 0.75 ? 'var(--color-warning)' : '#6366F1';
 
   return (
-    <div
-      className="rounded-[18px] p-4 space-y-3"
+    <Card
+      variant="outline"
+      padding="1rem"
+      className="space-y-3"
       style={{
         background: 'var(--color-surface, #fff)',
-        border: '1px solid var(--color-border, rgba(0,0,0,0.08))',
+        borderRadius: '18px',
         boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
         opacity: pattern.status === 'user_rejected' ? 0.5 : 1,
       }}
@@ -111,7 +114,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             onClick={() => handleFeedback('confirmed')}
             disabled={!!loading}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-[700] transition-all active:scale-95"
-            style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}
+            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--color-success)', border: '1px solid rgba(16,185,129,0.2)' }}
           >
             {loading === 'confirmed' ? <Spinner size="sm" className="h-3 w-3" /> : <CheckCircle2 size={11} />}
             To ma sens
@@ -136,6 +139,6 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
           </button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
