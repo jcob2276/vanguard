@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { useUserId } from '../../store/useStore';
 import { fetchUserFundament, upsertUserFundament } from '../../lib/identityVaultApi';
 import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Card } from '../ui/Card';
 const colorMap = {
   'purple-500': { 
     bg: 'bg-purple-500/8 dark:bg-purple-500/15', 
@@ -37,7 +38,7 @@ function Section({ title, icon: Icon, value, onChange, placeholder, description,
 }) {
   const themeStyles = colorMap[color] || colorMap['purple-500'];
   return (
-    <div className="bg-surface border border-border-custom rounded-[24px] p-5 space-y-4 hover:border-primary/20 transition-all shadow-sm">
+    <Card variant="glass" padding="1.25rem" className="border border-border-custom space-y-4 hover:border-primary/20">
       <div className="flex items-center gap-3">
         <div className={`p-2.5 rounded-xl ${themeStyles.bg} border ${themeStyles.border}`}>
           <Icon size={18} className={themeStyles.text} />
@@ -53,14 +54,14 @@ function Section({ title, icon: Icon, value, onChange, placeholder, description,
         placeholder={placeholder}
         className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-[12.5px] font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] outline-none transition-all placeholder:text-text-muted/40"
       />
-    </div>
+    </Card>
   );
 }
 
-export default function IdentityVault({ session: sessionProp }: { session?: Session | null }) {
+export default function IdentityVault() {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const userId = useUserId() ?? null;
   const queryClient = useQueryClient();
 
   const [vault, setVault] = useState<VaultState>({
@@ -70,12 +71,9 @@ export default function IdentityVault({ session: sessionProp }: { session?: Sess
   });
 
   useEffect(() => {
-    const resolveUser = async () => {
-      const id = sessionProp?.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
-      if (id) setUserId(id);
-    };
-    resolveUser();
-  }, [sessionProp?.user?.id]);
+    if (!userId) return;
+    // Vault data is loaded via react-query below
+  }, [userId]);
 
   const vaultQuery = useQuery({
     queryKey: ['user-fundament', userId],
