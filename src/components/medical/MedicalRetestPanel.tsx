@@ -5,6 +5,7 @@ import { Sparkles } from 'lucide-react';
 import type { FullPanelInfo } from '../../lib/health/medicalRetestContext';
 import Skeleton from '../ui/Skeleton';
 import Button from '../ui/Button';
+import { Card, type CardVariant } from '../ui/Card';
 
 import {
 
@@ -34,14 +35,10 @@ const PRIORITY_LABEL: Record<RetestSuggestion['priority'], string> = {
 
 
 
-const PRIORITY_CLASS: Record<RetestSuggestion['priority'], string> = {
-
-  high: 'border-rose-500/25 bg-rose-500/[0.04]',
-
-  medium: 'border-amber-500/25 bg-amber-500/[0.04]',
-
-  low: 'border-border-custom bg-surface/30',
-
+const PRIORITY_VARIANT: Record<RetestSuggestion['priority'], CardVariant> = {
+  high: 'danger',
+  medium: 'notice',
+  low: 'outline',
 };
 
 
@@ -106,13 +103,7 @@ export default function MedicalRetestPanel({
 
           {suggestions.map((s) => (
 
-            <li
-
-              key={s.id}
-
-              className={`rounded-xl border px-4 py-3 ${PRIORITY_CLASS[s.priority]}`}
-
-            >
+            <Card as="li" key={s.id} variant={PRIORITY_VARIANT[s.priority]} padding="0.75rem 1rem" className="!rounded-xl">
 
               <div className="flex items-start justify-between gap-2">
 
@@ -128,7 +119,7 @@ export default function MedicalRetestPanel({
 
               <p className="text-[10px] text-text-muted mt-1 leading-relaxed">{s.reason}</p>
 
-            </li>
+            </Card>
 
           ))}
 
