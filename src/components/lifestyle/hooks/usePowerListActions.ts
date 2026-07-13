@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Session } from '@supabase/supabase-js';
 import { TIMEZONE } from '../../../lib/date';
 import { supabase } from '../../../lib/supabase';
 import { useHaptics } from '../../../hooks/useHaptics';
@@ -17,26 +17,34 @@ import {
 } from '../../../lib/goal/goalSpine';
 import {
   type TaskSlot,
+  type DailyWinWithTasks,
+  type DailyWinRecord,
+  type ProjectOption,
   powerListDraftKey,
 } from '../usePowerListTypes';
+import type { useDirectionContext } from '../direction/hooks/useDirectionContext';
 import {
   suggestDailyKpiTarget,
   kpiSlotHint,
   defaultPillarProject,
   pickRollupKpi,
+  type PillarProjectBinding,
+  type KpiHint,
 } from '../../../lib/dailyPlanProposal';
+
+type DirectionContextValue = ReturnType<typeof useDirectionContext>;
 
 interface UsePowerListActionsArgs {
   userId: string;
   today: string;
-  direction: any;
-  pillarProjects: any[];
+  direction: DirectionContextValue;
+  pillarProjects: PillarProjectBinding[];
   newTaskForm: TaskSlot[];
   setNewTaskForm: React.Dispatch<React.SetStateAction<TaskSlot[]>>;
   checkpointPrompt: { index: number; checkpointId: string; title: string } | null;
   setCheckpointPrompt: React.Dispatch<React.SetStateAction<{ index: number; checkpointId: string; title: string } | null>>;
   setMarkingCheckpoint: React.Dispatch<React.SetStateAction<boolean>>;
-  yesterdayWin: any;
+  yesterdayWin: DailyWinWithTasks | null;
   yesterdayNote: string;
   yesterdayNoteRequired: boolean;
   submitting: boolean;
@@ -47,22 +55,22 @@ interface UsePowerListActionsArgs {
   todaySlotKpis: Record<number, string>;
   setAiQuestions: React.Dispatch<React.SetStateAction<string>>;
   setAiLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  onUpdate?: (data: any) => void;
-  session: any;
+  onUpdate?: (data: Record<string, unknown>) => void;
+  session: Session;
   setTodaySlotKpis: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  allProjectOptions: any[];
+  allProjectOptions: ProjectOption[];
 }
 
 export function usePowerListActions(args: UsePowerListActionsArgs) {
   const haptics = useHaptics();
 
   return {
-    fillSlotFromCheckpoint: (payload: any, slotIndex?: number) =>
+    fillSlotFromCheckpoint: (payload: { title: string; checkpointId: string; projectId: string }, slotIndex?: number) =>
       fillSlotFromCheckpointHelper(payload, slotIndex, args.newTaskForm, args.setNewTaskForm, haptics),
     confirmCheckpointDone: () => confirmCheckpointDoneHelper(args),
     generateQuestions: () => generateQuestionsHelper(args),
-    saveEveningClose: (win: any) => saveEveningCloseHelper(args, win, haptics),
-    toggleTask: (idx: number, win: any) => toggleTaskHelper(args, idx, win, haptics),
+    saveEveningClose: (win: DailyWinWithTasks | null) => saveEveningCloseHelper(args, win, haptics),
+    toggleTask: (idx: number, win: DailyWinWithTasks | null) => toggleTaskHelper(args, idx, win, haptics),
     startNewDay: () => startNewDayHelper(args, haptics),
     updateSlot: (i: number, patch: Partial<TaskSlot>) => updateSlotHelper(args, i, patch),
     projectOptionsForSlot: (slotIndex: number) =>
@@ -146,7 +154,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
   }
 }
 
-async function saveEveningCloseHelper(args: UsePowerListActionsArgs, todayWin: any, haptics: ReturnType<typeof useHaptics>) {
+async function saveEveningCloseHelper(args: UsePowerListActionsArgs, todayWin: DailyWinWithTasks | null, haptics: ReturnType<typeof useHaptics>) {
   if (!todayWin || !args.eveningNote.trim() || args.savingEvening) return;
   args.setSavingEvening(true);
   try {
@@ -168,8 +176,9 @@ async function saveEveningCloseHelper(args: UsePowerListActionsArgs, todayWin: a
   }
 }
 
-async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, todayWin: any, haptics: ReturnType<typeof useHaptics>) {
-  if (!todayWin) return;
+async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, todayWinInput: DailyWinWithTasks | null, haptics: ReturnType<typeof useHaptics>) {
+  if (!todayWinInput) return;
+  const todayWin = todayWinInput as DailyWinRecord;
   const field = `done_${index + 1}`;
   const timeField = `completed_at_${index + 1}`;
   const todoIdField = `task_${index + 1}_todo_id`;
@@ -198,9 +207,9 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
     if (args.onUpdate) args.onUpdate(data);
 
     if (newValue) {
-      const taskText = todayWin[`task_${index + 1}`];
-      const category = todayWin[`category_${index + 1}`] ?? 'general';
-      const checkpointId = todayWin[checkpointIdField];
+      const taskText = todayWin[`task_${index + 1}`] as string | null;
+      const category = (todayWin[`category_${index + 1}`] as string | null) ?? 'general';
+      const checkpointId = todayWin[checkpointIdField] as string | null;
       if (checkpointId) {
         args.setCheckpointPrompt({
           index,
@@ -216,9 +225,9 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
           metadata: {
             category,
             index: index + 1,
-            todo_id: todayWin[todoIdField] ?? null,
+            todo_id: (todayWin[todoIdField] as string | null) ?? null,
             checkpoint_id: checkpointId ?? null,
-            project_id: todayWin[`task_${index + 1}_project_id`] ?? null,
+            project_id: (todayWin[`task_${index + 1}_project_id`] as string | null) ?? null,
           },
         });
       }
@@ -250,7 +259,7 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
       })();
     }
 
-    const linkedTodoId = todayWin[todoIdField];
+    const linkedTodoId = todayWin[todoIdField] as string | null;
     if (linkedTodoId) {
       updateTodoItem(linkedTodoId, {
         status: newValue ? 'done' : 'open',
@@ -373,10 +382,10 @@ function updateSlotHelper(args: UsePowerListActionsArgs, i: number, patch: Parti
       const proj =
         args.allProjectOptions.find((p) => p.id === patch.projectId) ??
         args.pillarProjects.find((p) => p.projectId === patch.projectId);
-      const kpis = proj?.kpis ?? [];
+      const kpis: KpiHint[] = proj?.kpis ?? [];
       const picked = pickRollupKpi(kpis, n[i].kpiId);
       n[i].kpiId = picked?.id ?? null;
-      const kpiRow = kpis.find((k: any) => k.id === n[i].kpiId);
+      const kpiRow = kpis.find((k) => k.id === n[i].kpiId);
       const suggested = suggestDailyKpiTarget(kpiRow ? [kpiRow] : kpis);
       if (suggested && !n[i].targetValue?.trim()) n[i].targetValue = suggested;
       if (!patch.projectId) n[i].kpiId = null;
@@ -385,7 +394,7 @@ function updateSlotHelper(args: UsePowerListActionsArgs, i: number, patch: Parti
   });
 }
 
-function projectOptionsForSlotHelper(slotIndex: number, pillarProjects: any[], allProjectOptions: any[]) {
+function projectOptionsForSlotHelper(slotIndex: number, pillarProjects: PillarProjectBinding[], allProjectOptions: ProjectOption[]) {
   if (slotIndex < 3) {
     const SPHERE_SLOTS = [
       { category: 'cialo', label: 'Ciało' },
@@ -409,8 +418,8 @@ function kpiHintForSlotHelper(
   slotIndex: number,
   projectId: string | null,
   kpiId: string | null | undefined,
-  pillarProjects: any[],
-  allProjectOptions: any[]
+  pillarProjects: PillarProjectBinding[],
+  allProjectOptions: ProjectOption[]
 ) {
   if (!projectId) return null;
   const proj =
@@ -419,7 +428,7 @@ function kpiHintForSlotHelper(
   return kpiSlotHint(proj?.kpis ?? [], kpiId);
 }
 
-function kpisForProjectHelper(projectId: string | null, pillarProjects: any[], allProjectOptions: any[]) {
+function kpisForProjectHelper(projectId: string | null, pillarProjects: PillarProjectBinding[], allProjectOptions: ProjectOption[]) {
   if (!projectId) return [];
   const proj =
     allProjectOptions.find((p) => p.id === projectId) ??

@@ -55,3 +55,13 @@ export type DailyWinWithTasks = Tables<'daily_wins'> & {
   daily_win_tasks?: Tables<'daily_win_tasks'>[];
 };
 
+/** `daily_wins` rows use numbered-suffix columns (task_1..task_5, done_1..done_5, etc.)
+ *  accessed via computed keys; the Record index signature types those lookups instead of `any`. */
+export type DailyWinRecord = DailyWinWithTasks & Record<string, unknown>;
+
+export interface ProjectOption {
+  id: string;
+  name: string;
+  kpis: { id: string; name: string; current: number | null; target: number | null }[];
+}
+

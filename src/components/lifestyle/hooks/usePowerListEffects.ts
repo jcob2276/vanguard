@@ -1,29 +1,30 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
-import { listTodoItems, listTodoSections } from '../../../lib/todo/todo';
+import { listTodoItems, listTodoSections, type TodoItemRow } from '../../../lib/todo/todo';
 import { listProjects } from '../../../lib/projects/projects';
 import { getYesterdayWarsaw } from '../../../lib/date';
 import {
   type TaskSlot,
   type PowerListDraft,
+  type DailyWinWithTasks,
+  type DailyWinRecord,
   powerListDraftKey,
 } from '../usePowerListTypes';
 
 interface UsePowerListEffectsArgs {
   userId: string;
   today: string;
-  todayWin: any;
+  todayWin: DailyWinWithTasks | null;
   draftLoadedRef: React.MutableRefObject<boolean>;
   planDaySignalMountedRef: React.MutableRefObject<boolean>;
   newTaskForm: TaskSlot[];
   setNewTaskForm: React.Dispatch<React.SetStateAction<TaskSlot[]>>;
   yesterdayNote: string;
   setYesterdayNote: React.Dispatch<React.SetStateAction<string>>;
-  setYesterdayWin: React.Dispatch<React.SetStateAction<any>>;
+  setYesterdayWin: React.Dispatch<React.SetStateAction<DailyWinWithTasks | null>>;
   setProjectMap: React.Dispatch<React.SetStateAction<Record<string, { name: string; color: string | null }>>>;
-  setTodoItems: React.Dispatch<React.SetStateAction<any[]>>;
+  setTodoItems: React.Dispatch<React.SetStateAction<TodoItemRow[]>>;
   planDaySignal: number | undefined;
   directionLoading: boolean;
 }
@@ -52,8 +53,9 @@ export function usePowerListEffects({
     todayWin?.task_4_todo_id,
     todayWin?.task_5_todo_id,
   ].filter((id): id is string => !!id);
+  const todayWinRecord = todayWin as DailyWinRecord | null;
   const directProjectIds = [1, 2, 3, 4, 5]
-    .map((i) => todayWin?.[`task_${i}_project_id`] as string | null)
+    .map((i) => todayWinRecord?.[`task_${i}_project_id`] as string | null)
     .filter((id): id is string => !!id);
 
   const projectMetadataQuery = useQuery<Record<string, { name: string; color: string | null }>>({
@@ -66,16 +68,16 @@ export function usePowerListEffects({
         listTodoSections(userId),
         listProjects(userId),
       ]);
-      const sectionMap = new Map((sections ?? []).map((s: any) => [s.id, s]));
-      const projectData = new Map((projects ?? []).map((p: any) => [p.id, p]));
+      const sectionMap = new Map((sections ?? []).map((s) => [s.id, s]));
+      const projectData = new Map((projects ?? []).map((p) => [p.id, p]));
       const result: Record<string, { name: string; color: string | null }> = {};
       for (const item of items ?? []) {
-        const section = sectionMap.get(item.section_id) as { project_id?: string } | undefined;
-        const project = section?.project_id ? projectData.get(section.project_id) as { name: string; color: string | null } | undefined : null;
+        const section = item.section_id ? sectionMap.get(item.section_id) : undefined;
+        const project = section?.project_id ? projectData.get(section.project_id) : null;
         if (project) result[item.id] = { name: project.name, color: project.color };
       }
       for (let i = 1; i <= 5; i++) {
-        const pid = todayWin?.[`task_${i}_project_id`] as string | null;
+        const pid = todayWinRecord?.[`task_${i}_project_id`] as string | null;
         if (pid && projectData.has(pid)) {
           const project = projectData.get(pid) as { name: string; color: string | null };
           result[`task_project_${i}`] = { name: project.name, color: project.color };
@@ -93,7 +95,7 @@ export function usePowerListEffects({
   }, [projectMetadataQuery.data, setProjectMap]);
 
   // 2. Fetch yesterday's win details
-  const yesterdayWinQuery = useQuery({
+  const yesterdayWinQuery = useQuery<DailyWinWithTasks | null>({
     queryKey: ['powerlist-yesterday-win', userId],
     queryFn: async () => {
       const yesterday = getYesterdayWarsaw();
@@ -103,7 +105,7 @@ export function usePowerListEffects({
         .eq('user_id', userId)
         .eq('date', yesterday)
         .maybeSingle();
-      return data ?? null;
+      return (data as unknown as DailyWinWithTasks) ?? null;
     },
     enabled: !!userId && !todayWin,
   });

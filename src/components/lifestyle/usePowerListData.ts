@@ -12,11 +12,12 @@ import {
   powerListKpiKey,
   type UsePowerListDataProps,
   type DailyWinWithTasks,
+  type ProjectOption,
 } from './usePowerListTypes';
 import { type PillarProjectBinding, type DirectionProjectSummary } from '../../lib/dailyPlanProposal';
 import type { LifeGoalDisplayRow } from '../../lib/projects/lifeGoals';
 
-export type { TaskSlot, UsePowerListDataProps } from './usePowerListTypes';
+export type { TaskSlot, UsePowerListDataProps, ProjectOption } from './usePowerListTypes';
 export { TIME_SLOT_LABELS } from './usePowerListTypes';
 
 function getPillarProjects(lifeGoalRows: LifeGoalDisplayRow[]): PillarProjectBinding[] {
@@ -33,12 +34,6 @@ function getPillarProjects(lifeGoalRows: LifeGoalDisplayRow[]): PillarProjectBin
         target: k.target,
       })),
     }));
-}
-
-interface ProjectOption {
-  id: string;
-  name: string;
-  kpis: { id: string; name: string; current: number | null; target: number | null }[];
 }
 
 function getAllProjectOptions(activeProjects: DirectionProjectSummary[] | undefined): ProjectOption[] {
