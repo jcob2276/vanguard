@@ -4,6 +4,7 @@ import { ClarificationRequestCard } from './ClarificationRequestCard';
 import { OracleChat } from './OracleChat';
 import { OracleInputPanel } from './OracleInputPanel';
 import { useOracleChat } from './useOracleChat';
+import { Card } from '../ui/Card';
 
 const MEDICAL_PROMPTS = [
   'Co warto badać / odświeżyć teraz — max 3 priorytety z moich danych',
@@ -55,7 +56,6 @@ export default function OracleCard({
 }: OracleCardProps) {
   const [open, setOpen] = useState(defaultOpen || embedded);
   const [btnPressed, setBtnPressed] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -127,9 +127,11 @@ export default function OracleCard({
           </div>
         </button>
       ) : open ? (
-        <section
-          ref={sectionRef}
-          className="rounded-[24px] border border-primary/15 bg-surface backdrop-blur-md shadow-sm overflow-hidden"
+        <Card
+          as="section"
+          variant="glass"
+          padding="0"
+          className="border border-primary/15 backdrop-blur-md"
           style={{
             animation: 'oracle-slide-up 500ms cubic-bezier(0.33, 1, 0.68, 1) both',
             transition: focused ? 'all 220ms ease-out' : 'all 0ms',
@@ -192,7 +194,7 @@ export default function OracleCard({
             onAttachImage={handleAttachImage}
             onSubmit={() => void ask()}
           />
-        </section>
+        </Card>
       ) : null}
     </>
   );
