@@ -1,4 +1,5 @@
 import { AlertTriangle, Info, RefreshCw } from 'lucide-react';
+import { Card } from '../ui/Card';
 
 // Tokens use CSS custom properties (--text-primary, --border, --surface) defined in index.css
 // for both light and dark mode — avoids the previous dark-only text-white/35 hardcoded values.
@@ -37,7 +38,12 @@ export default function DataStateNotice({ title, detail, tone = 'info' }: DataSt
   const Icon = state.icon;
 
   return (
-    <div className={`flex items-start gap-3 rounded-xl border ${state.border} ${state.bg} px-3 py-3`}>
+    <Card
+      variant="glass"
+      padding="0.75rem"
+      style={{ boxShadow: 'none' }}
+      className={`flex items-start gap-3 !bg-transparent !rounded-xl border ${state.border} ${state.bg}`}
+    >
       <Icon size={14} className={`${state.iconTone} mt-0.5 shrink-0 ${tone === 'loading' ? 'animate-spin' : ''}`} />
       <div className="min-w-0 space-y-1">
         <p className={`text-[10px] font-black uppercase tracking-[0.16em] ${state.titleTone}`}>
@@ -49,6 +55,6 @@ export default function DataStateNotice({ title, detail, tone = 'info' }: DataSt
           </p>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
