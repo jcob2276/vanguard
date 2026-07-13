@@ -4,6 +4,8 @@ import { getTodayWarsaw, shiftDateStr } from '../../../../lib/date';
 import { fetchOracleRecommendations } from '../../../../lib/recommendationsApi';
 import { OuraRow } from '../../desktopUtils';
 
+export type GeneralViewOura = OuraRow;
+
 export interface GeneralViewStrain {
   date: string;
   recovery_score: number | null;
@@ -14,11 +16,11 @@ export interface GeneralViewStrain {
 
 export interface GeneralViewPattern {
   pattern_type: string;
-  title: string;
+  title: string | null;
   evidence_text: string | null;
-  occurrence_count: number;
-  confidence: number;
-  status: string;
+  occurrence_count: number | null;
+  confidence: number | null;
+  status: string | null;
   last_seen: string | null;
 }
 
@@ -35,18 +37,18 @@ export interface GeneralViewWiki {
 export interface GeneralViewCuriosity {
   hypothesis: string;
   provocation: string | null;
-  confidence_score: number;
+  confidence_score: number | null;
   category: string | null;
-  evidence_count: number;
-  created_at: string;
+  evidence_count: number | null;
+  created_at: string | null;
 }
 
 export interface GeneralViewFriction {
-  occurred_at: string;
-  friction_type: string;
+  occurred_at: string | null;
+  friction_type: string | null;
   actual_behavior: string | null;
   immediate_cost: string | null;
-  deviation: number | null;
+  deviation: string | null;
   confidence: number | null;
 }
 
@@ -121,7 +123,7 @@ export function useGeneralViewData({ userId, ouraProp }: UseGeneralViewDataOptio
 
       return {
         strain: s.data || [],
-        oura: o.data || [],
+        oura: (o.data || []) as GeneralViewOura[],
         patterns: p.data || [],
         wiki: w.data || [],
         curiosity: c.data || [],

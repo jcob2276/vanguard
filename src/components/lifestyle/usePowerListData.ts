@@ -17,7 +17,7 @@ import {
 import { type PillarProjectBinding, type DirectionProjectSummary } from '../../lib/dailyPlanProposal';
 import type { LifeGoalDisplayRow } from '../../lib/projects/lifeGoals';
 
-export type { TaskSlot, UsePowerListDataProps, ProjectOption } from './usePowerListTypes';
+export type { TaskSlot, UsePowerListDataProps, ProjectOption, DailyWinWithTasks } from './usePowerListTypes';
 export { TIME_SLOT_LABELS } from './usePowerListTypes';
 
 function getPillarProjects(lifeGoalRows: LifeGoalDisplayRow[]): PillarProjectBinding[] {

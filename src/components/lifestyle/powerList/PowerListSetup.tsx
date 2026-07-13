@@ -1,11 +1,13 @@
 import { Sparkles, Link2, X, Upload } from 'lucide-react';
+import { Card } from '../../ui/Card';
+import Badge from '../../ui/Badge';
 import PlanningCheckpointsStrip from '../../shared/PlanningCheckpointsStrip';
 import TodoPicker from './TodoPicker';
 import { SPHERE_SLOTS, PRIORITY_DOT } from './powerListConstants';
 import { type TaskSlot, type DailyWinWithTasks } from '../usePowerListData';
 import type { Tables } from '../../../lib/database.types';
-import type { DirectionContextData } from '../../../lib/dailyPlanProposal';
 import type { TodoItemRow } from '../../../lib/todo/todo';
+import type { useDirectionContext } from '../direction/hooks/useDirectionContext';
 
 interface YesterdayRecapProps {
   yesterdayWin: DailyWinWithTasks | null;
@@ -22,7 +24,7 @@ function YesterdayRecap({
 }: YesterdayRecapProps) {
   if (!yesterdayWin) return null;
   return (
-    <div className="space-y-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3.5">
+    <Card variant="notice" padding="0.875rem" className="space-y-2.5">
       <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
         Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
       </p>
@@ -51,7 +53,7 @@ function YesterdayRecap({
           text-text-primary placeholder-text-muted resize-y min-h-[64px]
           focus:outline-none focus:border-primary/50 transition-colors"
       />
-    </div>
+    </Card>
   );
 }
 
@@ -63,7 +65,7 @@ interface AiHelperProps {
 
 function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) {
   return (
-    <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3.5 space-y-3">
+    <Card variant="accent" padding="0.875rem" className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-primary">
           <Sparkles size={12} className="animate-pulse" /> Asystent AI
@@ -86,7 +88,7 @@ function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) 
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -95,7 +97,7 @@ interface PowerListSetupProps {
   yesterdayNote: string;
   setYesterdayNote: (v: string) => void;
   yesterdayNoteRequired: boolean;
-  direction: DirectionContextData | null;
+  direction: ReturnType<typeof useDirectionContext>;
   fillSlotFromCheckpoint: (checkpoint: { title: string; checkpointId: string; projectId: string }) => void;
   occupiedSlots: boolean[];
   aiQuestions: string | null;
@@ -135,7 +137,7 @@ export default function PowerListSetup({
   const allFilled = filledCount === 5;
 
   return (
-    <div className="space-y-5 rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm">
+    <Card padding="1.25rem" className="space-y-5">
       <YesterdayRecap
         yesterdayWin={yesterdayWin}
         yesterdayNote={yesterdayNote}
@@ -182,9 +184,9 @@ export default function PowerListSetup({
               >
                 {/* Sphere badge for slots 0-2 */}
                 {sphere && SphereIcon && (
-                  <span className={`ml-3 flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${sphere.bg} ${sphere.text}`}>
+                  <Badge variant="tag" className="ml-3 shrink-0">
                     <SphereIcon size={8} /> {sphere.label}
-                  </span>
+                  </Badge>
                 )}
 
                 {slot.todoId ? (
@@ -246,6 +248,6 @@ export default function PowerListSetup({
       >
         <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
       </button>
-    </div>
+    </Card>
   );
 }

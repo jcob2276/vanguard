@@ -5,6 +5,7 @@ export interface OuraRow {
   readiness_score: number | null;
   total_sleep_hours: number | null;
   sleep_score?: number | null;
+  sleep_efficiency?: number | null;
 }
 
 export interface WorkoutSessionSummary {

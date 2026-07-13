@@ -61,7 +61,7 @@ export default function PowerListActive({
               key={t.id}
               index={t.slot - 1}
               task={t.title}
-              done={t.done}
+              done={t.done ?? false}
               completedAt={t.completed_at}
               linkedTodoId={t.todo_id}
               linkedProjectId={t.project_id}
@@ -69,7 +69,7 @@ export default function PowerListActive({
               toggleTask={toggleTask}
               sphere={sphere}
               targetValue={t.target_value}
-              timeSlot={t.time_slot}
+              timeSlot={t.time_slot as 'morning' | 'noon' | 'afternoon' | 'evening' | null}
             />
           );
         })}

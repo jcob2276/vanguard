@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { BarChart2, ChevronRight } from 'lucide-react';
 import { useGeneralViewData } from './hooks/useGeneralViewData';
+import Skeleton from '../../ui/Skeleton';
+import { Card } from '../../ui/Card';
 import {
   buildTimeline,
   buildSleepHrvScatter,
@@ -38,7 +40,7 @@ export default function GeneralView({
     return (
       <div className="grid grid-cols-3 gap-5">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-48 animate-pulse rounded-[20px] bg-surface border border-border-custom" />
+          <Skeleton key={i} variant="card" className="h-48 rounded-[20px]" />
         ))}
       </div>
     );
@@ -90,8 +92,9 @@ export default function GeneralView({
       <Link
         id="korelacje"
         to="/korelacje"
-        className="scroll-mt-28 flex items-center gap-4 rounded-[20px] border border-primary/20 bg-primary/[0.04] px-5 py-4 hover:bg-primary/[0.08] transition-colors group"
+        className="scroll-mt-28 block group"
       >
+        <Card variant="outline" padding="1.25rem" className="flex items-center gap-4 hover:bg-primary/[0.08] transition-colors" style={{ borderColor: 'rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.04)' }}>
         <div className="rounded-full border border-primary/25 bg-background p-2.5 text-primary">
           <BarChart2 size={18} />
         </div>
@@ -102,6 +105,7 @@ export default function GeneralView({
           </p>
         </div>
         <ChevronRight size={16} className="text-text-muted group-hover:text-primary shrink-0 transition-colors" />
+        </Card>
       </Link>
 
       {/* ── SEKCJA: ZDROWIE ── */}

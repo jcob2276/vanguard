@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Search } from 'lucide-react';
+import Badge from '../../ui/Badge';
 import { PRIORITY_DOT } from './powerListConstants';
 
 import { type TodoItemRow } from '../../../lib/todo/todo';
@@ -35,17 +36,17 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
         ) : (
           filtered.slice(0, 20).map((item) => (
             <button
-              key={item.key}
+              key={item.id}
               onClick={() => {
                 onSelect(item);
                 onClose();
               }}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-solid active:scale-[0.98]"
             >
-              {item.badge ? (
-                <span className="flex shrink-0 items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-primary">
-                  <BookOpen size={8} /> {item.badge}
-                </span>
+              {item.category ? (
+                <Badge variant="tag" className="shrink-0">
+                  <BookOpen size={8} /> {item.category}
+                </Badge>
               ) : (
                 <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[item.priority] || 'bg-blue-500'}`} />
               )}
