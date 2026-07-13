@@ -9,7 +9,6 @@ const LEGACY_FILES = [
   'src/components/core/DailyShutdownModal.tsx',
   'src/components/core/nutrition/FoodQuickCapture.tsx',
   'src/components/desktop/fitness/fitnessScoreUtils.ts',
-  'src/components/desktop/desktopUtils.ts',
   'src/components/medical/EndMyopiaCalculator.tsx',
   'src/components/notes/EditNoteModal.tsx',
   'src/components/notes/RichEditor.tsx',
