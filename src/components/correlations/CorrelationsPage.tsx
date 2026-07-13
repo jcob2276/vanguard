@@ -8,6 +8,7 @@ import CorrelationFilters from './CorrelationFilters';
 import CorrelationsSummary from './CorrelationsSummary';
 import CoverageFooter from './CoverageFooter';
 import { useCorrelationsData } from './hooks/useCorrelationsData';
+import { Card } from '../ui/Card';
 
 export default function CorrelationsPage() {
   const {
@@ -36,13 +37,13 @@ export default function CorrelationsPage() {
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16">
         {/* Epistemic guardrail */}
-        <div className="rounded-[18px] border border-primary/15 bg-primary/[0.03] px-4 py-3 flex gap-3">
+        <Card variant="accent" padding="0.75rem 1rem" className="flex gap-3" style={{ borderRadius: '18px' }}>
           <Info size={16} className="text-primary shrink-0 mt-0.5" />
           <p className="text-[11px] text-text-secondary leading-relaxed">
             To warstwa pomiarowa: system skanuje wszystkie metryki z logów (≥5 dni danych) i pokazuje pary,
             gdzie współwystępowanie jest czytelne — także te, których byś nie sprawdził ręcznie. N ≠ przyczyna.
           </p>
-        </div>
+        </Card>
 
         <CorrelationsSummary
           loading={loading}
@@ -127,9 +128,9 @@ export default function CorrelationsPage() {
             </p>
           </div>
           {behaviors.length === 0 ? (
-            <p className="text-[12px] text-text-muted py-4 text-center rounded-xl border border-dashed border-border-custom">
+            <Card as="p" variant="outline" padding="1rem" className="text-[12px] text-text-muted text-center border-dashed">
               Brak czytelnych efektów zachowań — loguj alkohol/stres/podróż albo włącz słabsze wyniki powyżej.
-            </p>
+            </Card>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {behaviors.map(b => (
