@@ -41,6 +41,35 @@ src/components/     UI. Nie woła supabase.from() bezpośrednio (patrz reguła 6
 
 Import w złą stronę (`lib` → `components`, `packages/domain` → cokolwiek z Reacta) to sygnał, że coś jest źle zaklasyfikowane — przenieś plik, nie dodawaj wyjątku.
 
+### 1.1 Mapa domen — co żyje w `src/components/<feature>/`
+
+Płaska lista ~20 katalogów bez nadrzędnego `features/`. To świadomy kompromis (patrz sekcja 9/10 niżej — każdy katalog to już samodzielny moduł), nie bałagan — ale bez czytania nazw plików nie zawsze widać, co gdzie mieszka. Jedno zdanie per katalog:
+
+| Katalog | Domena |
+|---|---|
+| `ai/` | Asystent „Oracle" — czat AI, karty klaryfikacji, panel wejścia. |
+| `biometrics/` | Trening i biometria: dzienny strain, zdrowie mózgu, mapa mięśni, sauna, logger treningów. |
+| `calendar/` | Pełny widok kalendarza: siatka, wydarzenia, pogoda, budżet, mini-kalendarz, powtarzalność. |
+| `cards/` | Uniwersalny system kart (factory + typy: encje, dane liczbowe, wizualne, tekstowe, czasowe). |
+| `core/` | Rdzeń appki: dashboard, autoryzacja, nawigacja, poranny plan, odżywianie, statystyki, error boundary. |
+| `correlations/` | Analiza korelacji między nawykami/zdarzeniami (np. sen a inne czynniki), filtry, podsumowanie. |
+| `desktop/` | Osobny "pulpit"/kokpit desktopowy: sekcje fitness/zdrowia, hero-banner, shell nawigacyjny. |
+| `growth/` | Kokpit rozwoju osobistego: cele, umiejętności (radar/drzewo), projekty, plan tygodniowy, media do nauki. |
+| `identity/` | Skarbiec tożsamości (fundament, dane osobiste użytkownika) oraz galeria zdjęć. |
+| `insights/` | Dashboard wniosków/wzorców i statystyk zadań generowanych z danych użytkownika. |
+| `integrations/` | Widżety integracji zewnętrznych (obecnie Strava). |
+| `lifestyle/` | Kierunek życia (sprint/miesiąc/radar), PowerList (5 zwycięstw dnia), skrzynka linków do triażu. |
+| `medical/` | Recepty, okulary, badania lab, kalkulator myopii (EndMyopia), dziennik wzroku. |
+| `notes/` | Notatnik w stylu Google Keep: notatki, edytor, siatka masonry, szybkie tworzenie. |
+| `projects/` | Zarządzanie projektami/celami życiowymi: karty, priorytety, KPI, retrospektywy. |
+| `settings/` | Widok ustawień aplikacji. |
+| `shared/` | Widgety współdzielone między modułami (oś czasu dnia, arkusz akcji, podsumowanie tygodnia) — max 6-8 elementów (patrz sekcja 1). |
+| `todo/` | Zadania: kanban/matryca Eisenhowera/oś czasu, sekcje, przypomnienia, przeglądy tygodniowe. |
+| `ui/` | Design primitives: Badge, Card, Modal, Tabs, Skeleton, Spinner. |
+| `widgets/` | Generyczne widżety wykresów (BarChart, TrendChart, TimelineWidget) + fabryka. |
+
+**Nie wiesz gdzie dodać nowy plik?** Szukaj domeny po *danych*, nie po warstwie UI — "nowy typ karty z KPI projektu" idzie do `projects/`, nie do `cards/` (chyba że to naprawdę generyczny renderer bez wiedzy o domenie, wzorzec B w sekcji 10).
+
 **Przykład na dziś:** `getSprintInfo()` mieszka w `src/lib/sprintUtils.ts` — czysta logika domenowa. `src/components/desktop/desktopUtils.ts` re-eksportuje ją przez `export { getSprintInfo } from '../../lib/sprintUtils'` — jeśli dotykasz plików które ją importują, importuj bezpośrednio z `lib/sprintUtils`.
 
 ---
