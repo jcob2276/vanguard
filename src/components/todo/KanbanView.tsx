@@ -1,5 +1,6 @@
 import { updateTodoItem } from '../../lib/todo/todo';
 import { PRIORITY, PRIORITY_ORDER } from './todoUtils';
+import { Card } from '../ui/Card';
 
 interface Item {
   id: string;
@@ -119,9 +120,9 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
               })}
 
               {colItems.length === 0 && (
-                <div className="rounded-xl border border-dashed border-border-custom/20 p-4 text-center">
+                <Card variant="glass" padding="1rem" style={{ boxShadow: 'none' }} className="!bg-transparent !rounded-xl border border-dashed border-border-custom/20 text-center">
                   <p className="text-[9px] text-text-muted/40">Przeciągnij tutaj</p>
-                </div>
+                </Card>
               )}
             </div>
           </div>
