@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { LearningSkill } from '../../lib/growth/growth';
 import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth/growth';
 import SkillRadarPanel from './SkillRadarPanel';
+import { Card } from '../ui/Card';
 
 function SubSkillRow({
   skill,
@@ -114,7 +115,7 @@ export default function SkillTreePanel({
             const subAvg = avgSubScore(parent.id);
 
             return (
-              <div key={parent.id} className="rounded-xl border border-border-custom overflow-hidden">
+              <Card key={parent.id} variant="outline" padding="0" className="!rounded-xl">
                 <button
                   type="button"
                   onClick={() => onExpandParent(open ? null : parent.id)}
@@ -175,7 +176,7 @@ export default function SkillTreePanel({
                     )}
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
