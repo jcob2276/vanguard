@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import { Save, MapPin, Watch, Calendar, ArrowLeft, User } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import {
+  fetchNutritionProfile,
+  upsertUserSettings,
+  upsertNutritionProfile,
+} from '../../lib/userSettingsApi';
 import { useStore } from '../../store/useStore';
 import { useSyncActions } from '../../hooks/useSyncActions';
 import { notify } from '../../lib/notify';
 import type { Tables } from '../../lib/database.types';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 export default function SettingsView({ session }: { session: Session }) {
   const { userSettings, fetchUserSettings } = useStore();
@@ -30,30 +36,29 @@ export default function SettingsView({ session }: { session: Session }) {
   }, [userSettings]);
 
   useEffect(() => {
-    async function fetchProfile() {
-      const { data } = await supabase
-        .from('nutrition_profile')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-      if (data) setProfile(data);
+    async function loadProfile() {
+      try {
+        const data = await fetchNutritionProfile(session.user.id);
+        if (data) setProfile(data);
+      } catch (err: unknown) {
+        console.error('[SettingsView] Failed to load profile:', err);
+      }
     }
-    void fetchProfile();
+    void loadProfile();
   }, [session.user.id]);
 
   const save = async () => {
     setSaving(true);
     try {
-      const { error: settingsErr } = await supabase.from('user_settings').upsert({
+      await upsertUserSettings({
         user_id: session.user.id,
         oura_token: form.oura_token || null,
         home_lat: form.home_lat ?? null,
         home_lng: form.home_lng ?? null,
         updated_at: new Date().toISOString(),
       });
-      if (settingsErr) throw settingsErr;
-
-      const { error: profileErr } = await supabase.from('nutrition_profile').upsert({
+ 
+      await upsertNutritionProfile({
         user_id: session.user.id,
         birth_date: profile.birth_date || null,
         sex: profile.sex || null,
@@ -63,8 +68,7 @@ export default function SettingsView({ session }: { session: Session }) {
         protein_g_per_kg: profile.protein_g_per_kg ? Number(profile.protein_g_per_kg) : 2.0,
         weekly_loss_kg: profile.weekly_loss_kg ? Number(profile.weekly_loss_kg) : 0.5,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-      if (profileErr) throw profileErr;
+      });
 
       await fetchUserSettings();
       notify('Ustawienia zapisane.', 'success');
@@ -84,7 +88,7 @@ export default function SettingsView({ session }: { session: Session }) {
         <h1 className="text-lg font-black font-display text-text-primary">Ustawienia</h1>
       </div>
 
-      <section className="card p-4 space-y-3">
+      <Card padding="1rem" className="space-y-3">
         <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-text-muted">
           <Watch size={13} /> Oura
         </div>
@@ -95,9 +99,9 @@ export default function SettingsView({ session }: { session: Session }) {
           onChange={(e) => setForm((f) => ({ ...f, oura_token: e.target.value }))}
           className="w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2.5 text-[13px]"
         />
-      </section>
+      </Card>
 
-      <section className="card p-4 space-y-3">
+      <Card padding="1rem" className="space-y-3">
         <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-text-muted">
           <MapPin size={13} /> Lokalizacja domu
         </div>
@@ -119,33 +123,35 @@ export default function SettingsView({ session }: { session: Session }) {
             className="rounded-xl border border-border-custom bg-surface-solid px-3 py-2.5 text-[13px]"
           />
         </div>
-      </section>
+      </Card>
 
       <NutritionProfileSettings profile={profile} onChange={setProfile} />
 
-      <section className="card p-4 space-y-3">
+      <Card padding="1rem" className="space-y-3">
         <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-text-muted">
           <Calendar size={13} /> Google Calendar
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={startGoogleAuth} className="flex-1 rounded-xl border border-border-custom py-2.5 text-[11px] font-bold cursor-pointer hover:bg-surface-solid">
+          <Button type="button" variant="outline" onClick={startGoogleAuth} className="flex-1">
             Połącz konto
-          </button>
-          <button type="button" onClick={() => syncCalendar().then(() => notify('Kalendarz zsynchronizowany', 'success'))} className="flex-1 rounded-xl bg-primary py-2.5 text-[11px] font-bold text-white cursor-pointer hover:bg-primary-hover">
+          </Button>
+          <Button type="button" variant="primary" onClick={() => syncCalendar().then(() => notify('Kalendarz zsynchronizowany', 'success'))} className="flex-1">
             Sync teraz
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
-      <button
+      <Button
         type="button"
-        disabled={saving}
+        variant="primary"
+        size="lg"
+        loading={saving}
         onClick={save}
-        className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 cursor-pointer"
+        icon={<Save size={14} />}
+        className="w-full uppercase tracking-wider"
       >
-        <Save size={14} />
         {saving ? 'Zapisuję…' : 'Zapisz ustawienia'}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -157,7 +163,7 @@ interface NutritionProfileSettingsProps {
 
 function NutritionProfileSettings({ profile, onChange }: NutritionProfileSettingsProps) {
   return (
-    <section className="card p-4 space-y-3">
+    <Card padding="1rem" className="space-y-3">
       <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-text-muted">
         <User size={13} /> Profil Żywieniowy & Biometria
       </div>
@@ -240,6 +246,6 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
           />
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
