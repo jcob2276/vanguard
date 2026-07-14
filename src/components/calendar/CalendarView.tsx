@@ -1,4 +1,3 @@
-import { Pressable } from '../ui/ControlPrimitives';
 import { useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
@@ -118,17 +117,12 @@ export default function CalendarView({
   return (
     <CalendarContext.Provider value={contextValue}>
       <div className="flex h-screen bg-background overflow-hidden relative font-sans">
-        {!calData.sidebarCollapsed && (
-          <CalendarSidebar onBack={onBack} onNavigateTo={onNavigateTo} />
-        )}
-
-        <Pressable
-          onClick={calData.toggleSidebar}
-          className="absolute left-0 top-1/2 z-[var(--z-overlay)] hidden h-20 w-3 -translate-y-1/2 cursor-pointer items-center justify-center rounded-r-lg border border-l-0 border-border-custom/50 bg-surface/80 text-text-muted shadow-md transition-all hover:bg-surface hover:text-text-primary focus:outline-none md:flex"
-          style={{ left: calData.sidebarCollapsed ? 0 : 'var(--sidebar-toggle-offset)' }}
-        >
-          <span className="text-2xs font-black">{calData.sidebarCollapsed ? '›' : '‹'}</span>
-        </Pressable>
+        <CalendarSidebar
+          onBack={onBack}
+          onNavigateTo={onNavigateTo}
+          collapsed={calData.sidebarCollapsed}
+          onToggleCollapse={calData.toggleSidebar}
+        />
 
         <div className="flex-1 flex flex-col min-w-0 bg-surface/5">
           <CalendarHeader onBack={onBack} />

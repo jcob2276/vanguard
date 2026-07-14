@@ -1,8 +1,9 @@
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Search, Inbox, CalendarDays, CalendarClock, ChevronDown, Pencil, Trash2, Bell, PanelLeft } from 'lucide-react';
 import WorkspaceNavigation from '../shared/WorkspaceNavigation';
 import WorkspaceSidebar from '../shared/WorkspaceSidebar';
+import SidebarSection from '../shared/SidebarSection';
 
 export type TodoNavDest = 'overview' | 'inbox' | 'today' | 'upcoming';
 
@@ -25,33 +26,6 @@ export interface TodoSidebarProps {
   onToggleCollapse: () => void;
 }
 
-function NavItem({
-  icon,
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  count?: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Pressable
-      onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors ${
-        active ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary'
-      }`}
-    >
-      <span className={active ? 'text-primary' : 'text-text-muted/60'}>{icon}</span>
-      <span className="flex-1 truncate text-left">{label}</span>
-      {!!count && <span className="text-xs font-semibold text-text-muted/50 tabular-nums">{count}</span>}
-    </Pressable>
-  );
-}
-
 export default function TodoSidebar({
   collapsed,
   onToggleCollapse,
@@ -70,7 +44,6 @@ export default function TodoSidebar({
   onFocusSearch,
   onNavigateTo,
 }: TodoSidebarProps) {
-  const [projectsOpen, setProjectsOpen] = useState(true);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -134,127 +107,109 @@ export default function TodoSidebar({
         Szukaj
       </Pressable>
 
-      <div className="border-t border-border-custom/30 pt-2 flex flex-col gap-0.5">
-        <NavItem
-          icon={<Inbox size={14} />}
-          label="Skrzynka"
-          count={inboxCount}
-          active={navDest === 'inbox'}
-          onClick={() => onNavDest('inbox')}
-        />
-        <NavItem
-          icon={<CalendarDays size={14} />}
-          label="Dziś"
-          count={todayCount}
-          active={navDest === 'today'}
-          onClick={() => onNavDest('today')}
-        />
-        <NavItem
-          icon={<CalendarClock size={14} />}
-          label="Nadchodzące"
-          count={upcomingCount}
-          active={navDest === 'upcoming'}
-          onClick={() => onNavDest('upcoming')}
-        />
-      </div>
+      <SidebarSection
+        bordered
+        items={[
+          {
+            id: 'inbox',
+            label: 'Skrzynka',
+            icon: <Inbox size={14} />,
+            count: inboxCount,
+            active: navDest === 'inbox',
+            onClick: () => onNavDest('inbox'),
+          },
+          {
+            id: 'today',
+            label: 'Dziś',
+            icon: <CalendarDays size={14} />,
+            count: todayCount,
+            active: navDest === 'today',
+            onClick: () => onNavDest('today'),
+          },
+          {
+            id: 'upcoming',
+            label: 'Nadchodzące',
+            icon: <CalendarClock size={14} />,
+            count: upcomingCount,
+            active: navDest === 'upcoming',
+            onClick: () => onNavDest('upcoming'),
+          },
+        ]}
+      />
 
-      <div className="border-t border-border-custom/30 pt-2 flex-1 min-h-0 flex flex-col">
-        <Pressable
-          onClick={() => setProjectsOpen((v) => !v)}
-          className="flex w-full items-center gap-1 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60 hover:text-text-primary transition-colors"
-        >
-          <ChevronDown size={11} className={`transition-transform ${projectsOpen ? '' : '-rotate-90'}`} />
-          Moje projekty
-          <span
-            role="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setProjectsOpen(true);
-              setAdding(true);
-            }}
-            className="ml-auto p-0.5 text-text-muted/40 hover:text-primary transition-colors"
-            title="Dodaj listę"
-          >
-            <Plus size={12} />
-          </span>
-        </Pressable>
-
-        {projectsOpen && (
-          <div className="mt-0.5 flex flex-col gap-0.5 overflow-y-auto">
-            {sections.map((s) => (
-              <div key={s.id} className="group/sec relative flex items-center">
-                {renamingId === s.id ? (
-                  <ControlInput
-                    autoFocus
-                    value={renameVal}
-                    onChange={(e) => setRenameVal(e.target.value)}
-                    onBlur={() => commitRename(s.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commitRename(s.id);
-                      if (e.key === 'Escape') setRenamingId(null);
-                    }}
-                    className="flex-1 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-sm font-semibold text-primary outline-none"
-                  />
-                ) : (
-                  <>
-                    <Pressable
-                      onClick={() => onSelectSection(s.id)}
-                      className={`flex-1 min-w-0 truncate rounded-xl px-2.5 py-1 text-left text-sm font-semibold transition-colors ${
-                        navDest === 'overview' && activeSectionId === s.id
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary'
-                      }`}
-                    >
-                      {s.name}
-                    </Pressable>
-                    <div className="absolute right-1 hidden items-center gap-0.5 group-hover/sec:flex bg-surface/20">
-                      <Pressable
-                        onClick={() => {
-                          setRenamingId(s.id);
-                          setRenameVal(s.name);
-                        }}
-                        className="p-1 text-text-muted/40 hover:text-primary transition-colors"
-                        title="Zmień nazwę"
-                      >
-                        <Pencil size={10} />
-                      </Pressable>
-                      <Pressable
-                        onClick={() => onDeleteSection(s.id)}
-                        className="p-1 text-text-muted/40 hover:text-danger transition-colors"
-                        title="Usuń listę"
-                      >
-                        <Trash2 size={10} />
-                      </Pressable>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-
-            {adding ? (
-              <ControlInput
-                autoFocus
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onBlur={commitAdd}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitAdd();
-                  if (e.key === 'Escape') { setAdding(false); setNewName(''); }
-                }}
-                placeholder="Nazwa listy…"
-                className="mt-0.5 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-sm font-semibold text-primary outline-none"
-              />
-            ) : (
+      <SidebarSection
+        key={adding ? 'projects-adding' : 'projects'}
+        label="Moje projekty"
+        collapsible
+        defaultOpen
+        onAdd={() => setAdding(true)}
+        addTitle="Dodaj listę"
+        bordered
+        className="flex-1 min-h-0"
+        items={sections.map((s) => ({
+          id: s.id,
+          label: s.name,
+          active: navDest === 'overview' && activeSectionId === s.id,
+          onClick: () => onSelectSection(s.id),
+          editing: renamingId === s.id ? (
+            <ControlInput
+              autoFocus
+              value={renameVal}
+              onChange={(e) => setRenameVal(e.target.value)}
+              onBlur={() => commitRename(s.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename(s.id);
+                if (e.key === 'Escape') setRenamingId(null);
+              }}
+              className="flex-1 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-sm font-semibold text-primary outline-none"
+            />
+          ) : undefined,
+          actions: renamingId === s.id ? undefined : (
+            <>
               <Pressable
-                onClick={() => setAdding(true)}
-                className="mt-0.5 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium text-text-muted/40 hover:text-text-primary transition-colors"
+                onClick={() => {
+                  setRenamingId(s.id);
+                  setRenameVal(s.name);
+                }}
+                className="p-1 text-text-muted/40 hover:text-primary transition-colors"
+                title="Zmień nazwę"
               >
-                <Plus size={12} /> Nowa lista
+                <Pencil size={10} />
               </Pressable>
-            )}
-          </div>
-        )}
-      </div>
+              <Pressable
+                onClick={() => onDeleteSection(s.id)}
+                className="p-1 text-text-muted/40 hover:text-danger transition-colors"
+                title="Usuń listę"
+              >
+                <Trash2 size={10} />
+              </Pressable>
+            </>
+          ),
+        }))}
+        trailingAdd={
+          adding ? (
+            <ControlInput
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onBlur={commitAdd}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitAdd();
+                if (e.key === 'Escape') { setAdding(false); setNewName(''); }
+              }}
+              placeholder="Nazwa listy…"
+              className="mt-0.5 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-sm font-semibold text-primary outline-none"
+            />
+          ) : (
+            <Pressable
+              onClick={() => setAdding(true)}
+              className="mt-0.5 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium text-text-muted/40 hover:text-text-primary transition-colors"
+            >
+              <Plus size={12} /> Nowa lista
+            </Pressable>
+          )
+        }
+      />
     </WorkspaceSidebar>
   );
 }

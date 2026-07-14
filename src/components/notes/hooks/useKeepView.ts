@@ -64,8 +64,7 @@ export function useKeepView({
     setActiveTag(t => (t === tagToDelete ? null : t));
   }, [handleDeleteTag]);
 
-  const handlePromptCreateTag = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePromptCreateTag = useCallback(async () => {
     const newTagRaw = window.prompt('Wpisz nazwę nowego tagu:');
     if (!newTagRaw) return;
     const newTag = newTagRaw.trim().toLowerCase().replace(/[\s#]/g, '_');

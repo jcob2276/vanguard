@@ -1,8 +1,7 @@
 import { Pressable } from '../../ui/ControlPrimitives';
 import { RefreshCw } from 'lucide-react';
 import { useCalendar } from '../context/CalendarContext';
-import Tabs from '../../ui/Tabs';
-import { WorkspaceHeader, WorkspaceSearch } from '../../shared/WorkspaceHeader';
+import { WorkspaceHeader } from '../../shared/WorkspaceHeader';
 
 const CALENDAR_TABS = [
   { key: 'dzien', label: 'Dzień' },
@@ -22,7 +21,7 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
       <WorkspaceHeader
         title="Kalendarz"
         onBack={onBack}
-        center={<WorkspaceSearch value={searchQuery} onChange={setSearchQuery} placeholder="Szukaj w kalendarzu…" />}
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: 'Szukaj w kalendarzu…' }}
         actions={
           <Pressable
             onClick={onSyncCalendar}
@@ -33,7 +32,7 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
             {isSyncing ? 'Synchronizuję…' : 'GCal'}
           </Pressable>
         }
-        navigation={<Tabs tabs={CALENDAR_TABS} active={calView} onChange={(key) => setCalView(key as typeof calView)} />}
+        tabs={{ items: CALENDAR_TABS, active: calView, onChange: (key) => setCalView(key as typeof calView) }}
       />
     </>
   );

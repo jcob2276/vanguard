@@ -14,9 +14,11 @@ import WorkspaceSidebar from '../../shared/WorkspaceSidebar';
 interface CalendarSidebarProps {
   onBack: () => void;
   onNavigateTo?: (dest: string) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSidebarProps) {
+export default function CalendarSidebar({ onBack, onNavigateTo, collapsed, onToggleCollapse }: CalendarSidebarProps) {
   const {
     calData: {
       selectedDay,
@@ -43,7 +45,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
   } = useCalendar();
 
   return (
-    <WorkspaceSidebar className="select-none">
+    <WorkspaceSidebar className="select-none" collapsed={collapsed} onCollapse={onToggleCollapse}>
       {/* Back Navigation header */}
       <div className="hidden">
         <Button

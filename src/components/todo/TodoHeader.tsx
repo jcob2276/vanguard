@@ -1,8 +1,7 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import type { RefObject } from 'react';
 import { Bell, Clock3, History, Kanban, LayoutGrid, ListTodo, PanelLeft } from 'lucide-react';
-import Tabs from '../ui/Tabs';
-import { WorkspaceHeader, WorkspaceSearch } from '../shared/WorkspaceHeader';
+import { WorkspaceHeader } from '../shared/WorkspaceHeader';
 import { useTodoContext } from './context/TodoContext';
 
 export type TodoViewMode = 'lista' | 'eisenhower' | 'kanban' | 'timeline';
@@ -36,14 +35,12 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
             <PanelLeft size={16} />
           </Pressable>
         )}
-        center={
-          <WorkspaceSearch
-            value={searchQuery}
-            onChange={(value) => { setSearchQuery(value); if (value) setActiveSmartListId(null); }}
-            placeholder="Szukaj zadań…"
-            inputRef={searchInputRef}
-          />
-        }
+        search={{
+          value: searchQuery,
+          onChange: (value) => { setSearchQuery(value); if (value) setActiveSmartListId(null); },
+          placeholder: 'Szukaj zadań…',
+          inputRef: searchInputRef,
+        }}
         actions={
           <>
             {push.isSupported && pushSubscribed === false && (
@@ -56,7 +53,7 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
             </Pressable>
           </>
         }
-        navigation={<Tabs tabs={VIEW_TABS} active={todoView} onChange={(key) => setTodoView(key as TodoViewMode)} />}
+        tabs={{ items: VIEW_TABS, active: todoView, onChange: (key) => setTodoView(key as TodoViewMode) }}
       />
     </>
   );

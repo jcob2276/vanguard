@@ -14,9 +14,9 @@ import { useLinksInboxData } from './links/useLinksInboxData';
 import { LinksTriagePanel } from './LinksTriagePanel';
 import { LinksInboxItem } from './links/LinksInboxItem';
 import WorkspaceNavigation from '../shared/WorkspaceNavigation';
-import { WorkspaceHeader, WorkspaceSearch } from '../shared/WorkspaceHeader';
-import Tabs from '../ui/Tabs';
+import { WorkspaceHeader } from '../shared/WorkspaceHeader';
 import WorkspaceSidebar from '../shared/WorkspaceSidebar';
+import SidebarSection from '../shared/SidebarSection';
 import Input from '../ui/Input';
 
 const CATEGORY_COLORS: Record<string, { pill: string }> = {
@@ -25,6 +25,14 @@ const CATEGORY_COLORS: Record<string, { pill: string }> = {
   Technologia:{ pill: 'bg-info/10 text-info dark:text-info' },
   Biznes:     { pill: 'bg-warning/10 text-warning dark:text-warning' },
   Inne:       { pill: 'bg-surface-2/10 text-text-muted dark:text-text-muted' },
+};
+
+const CATEGORY_DOTS: Record<string, string> = {
+  Kariera: 'var(--color-primary)',
+  Zdrowie: 'var(--color-success)',
+  Technologia: 'var(--color-info)',
+  Biznes: 'var(--color-warning)',
+  Inne: 'var(--color-surface-2)',
 };
 
 const STATUS_TABS: { id: 'unread' | 'read' | 'all'; label: string }[] = [
@@ -73,24 +81,16 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
         {CATEGORIES.length > 0 && (
           <>
             <div className="keep-sidebar-separator" />
-            <p className="keep-sidebar-section-label">Kategorie</p>
-            {CATEGORIES.map(cat => (
-              <Pressable
-                key={cat}
-                variant="ghost"
-                size="sm"
-                className={`keep-sidebar-item ${d.categoryFilter === cat ? 'active' : ''}`}
-                onClick={() => d.setCategoryFilter(p => p === cat ? null : cat)}
-              >
-                <span className={`h-2 w-2 rounded-full shrink-0 ${
-                  cat === 'Kariera' ? 'bg-primary' :
-                  cat === 'Zdrowie' ? 'bg-success' :
-                  cat === 'Technologia' ? 'bg-info' :
-                  cat === 'Biznes' ? 'bg-warning' : 'bg-surface-2'
-                }`} />
-                <span>{cat}</span>
-              </Pressable>
-            ))}
+            <SidebarSection
+              label="Kategorie"
+              items={CATEGORIES.map(cat => ({
+                id: cat,
+                label: cat,
+                active: d.categoryFilter === cat,
+                colorDot: CATEGORY_DOTS[cat] ?? CATEGORY_DOTS.Inne,
+                onClick: () => d.setCategoryFilter(p => p === cat ? null : cat),
+              }))}
+            />
           </>
         )}
       </WorkspaceSidebar>
@@ -102,7 +102,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
           title="Pocket"
           subtitle={d.unreadCount > 0 ? `${d.unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
           onBack={onBack}
-          center={<WorkspaceSearch value={d.search} onChange={d.setSearch} placeholder="Szukaj w Pocket…" />}
+          search={{ value: d.search, onChange: d.setSearch, placeholder: 'Szukaj w Pocket…' }}
           actions={
             <>
               <Pressable variant="ghost" size="sm" onClick={() => d.setViewMode(v => v === 'card' ? 'list' : 'card')} aria-label={d.viewMode === 'card' ? 'Widok listy' : 'Widok kart'}>
@@ -112,46 +112,44 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
               <Pressable variant="tonal" size="sm" onClick={() => { d.setShowAddForm(p => !p); d.setAddUrl(''); }} aria-label={d.showAddForm ? 'Zamknij formularz dodawania linku' : 'Dodaj link'} icon={d.showAddForm ? <X size={15} /> : <Plus size={15} />} />
             </>
           }
-          navigation={
-            <Tabs
-              tabs={STATUS_TABS.map((tab) => ({ key: tab.id, label: tab.label }))}
-              active={d.statusFilter}
-              onChange={(key) => { haptic([4]); d.setStatusFilter(key as 'unread' | 'read' | 'all'); }}
-            />
+          tabs={{
+            items: STATUS_TABS.map((tab) => ({ key: tab.id, label: tab.label })),
+            active: d.statusFilter,
+            onChange: (key) => { haptic([4]); d.setStatusFilter(key as 'unread' | 'read' | 'all'); },
+          }}
+          secondaryRow={
+            <div
+              className={`grid-expand-wrapper ${d.showAddForm ? 'expanded' : ''}`}
+            >
+              <div className="grid-expand-content border-b border-border-custom/60 bg-surface/60 backdrop-blur-[var(--blur-sm)]">
+                <div className="max-w-[var(--legacy-maxw-059)] mx-auto flex items-center gap-2 px-5 py-3.5">
+                  <Link2 size={14} className="shrink-0 text-text-muted" />
+                  <Input
+                    autoFocus
+                    type="url"
+                    value={d.addUrl}
+                    onChange={e => d.setAddUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') d.handleAddLink(); if (e.key === 'Escape') d.setShowAddForm(false); }}
+                    placeholder="Wklej URL i naciśnij Enter..."
+                    className="flex-1 border-0 bg-transparent text-sm shadow-none placeholder:text-text-muted/50"
+                  />
+                  {d.addLoading
+                    ? <Spinner size="sm" className="shrink-0" />
+                    : <Pressable
+                        variant="ghost"
+                        size="sm"
+                        onClick={d.handleAddLink}
+                        disabled={!d.addUrl.trim()}
+                        className="shrink-0 text-sm font-semibold text-primary disabled:opacity-[var(--opacity-30)] hover:opacity-[var(--opacity-70)] transition-opacity"
+                      >
+                        Zapisz
+                      </Pressable>
+                  }
+                </div>
+              </div>
+            </div>
           }
         />
-
-        {/* Inline add-link form */}
-        <div
-          className={`grid-expand-wrapper ${d.showAddForm ? 'expanded' : ''}`}
-        >
-          <div className="grid-expand-content border-b border-border-custom/60 bg-surface/60 backdrop-blur-[var(--blur-sm)]">
-            <div className="max-w-[var(--legacy-maxw-059)] mx-auto flex items-center gap-2 px-5 py-3.5">
-              <Link2 size={14} className="shrink-0 text-text-muted" />
-              <Input
-                autoFocus
-                type="url"
-                value={d.addUrl}
-                onChange={e => d.setAddUrl(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') d.handleAddLink(); if (e.key === 'Escape') d.setShowAddForm(false); }}
-                placeholder="Wklej URL i naciśnij Enter..."
-                className="flex-1 border-0 bg-transparent text-sm shadow-none placeholder:text-text-muted/50"
-              />
-              {d.addLoading
-                ? <Spinner size="sm" className="shrink-0" />
-                : <Pressable
-                    variant="ghost"
-                    size="sm"
-                    onClick={d.handleAddLink}
-                    disabled={!d.addUrl.trim()}
-                    className="shrink-0 text-sm font-semibold text-primary disabled:opacity-[var(--opacity-30)] hover:opacity-[var(--opacity-70)] transition-opacity"
-                  >
-                    Zapisz
-                  </Pressable>
-              }
-            </div>
-          </div>
-        </div>
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[var(--legacy-maxw-059)] mx-auto px-5 py-5 pb-24 space-y-4">

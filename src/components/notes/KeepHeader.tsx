@@ -1,7 +1,6 @@
-import Button from '../ui/Button';
+import { Pressable } from '../ui/ControlPrimitives';
 import { Grid3X3, LayoutList } from 'lucide-react';
-import Tabs from '../ui/Tabs';
-import { WorkspaceHeader, WorkspaceSearch } from '../shared/WorkspaceHeader';
+import { WorkspaceHeader } from '../shared/WorkspaceHeader';
 
 interface KeepHeaderProps {
   onBack: () => void;
@@ -18,9 +17,9 @@ export default function KeepHeader({ onBack, search, setSearch, viewMode, setVie
     <WorkspaceHeader
       title="Notatki"
       onBack={onBack}
-      center={<WorkspaceSearch value={search} onChange={setSearch} placeholder="Szukaj notatek…" />}
+      search={{ value: search, onChange: setSearch, placeholder: 'Szukaj notatek…' }}
       actions={
-        <Button
+        <Pressable
           variant="ghost"
           size="sm"
           onClick={() => setViewMode((value) => (value === 'grid' ? 'list' : 'grid'))}
@@ -28,9 +27,13 @@ export default function KeepHeader({ onBack, search, setSearch, viewMode, setVie
           aria-label={viewMode === 'grid' ? 'Pokaż listę' : 'Pokaż siatkę'}
         >
           {viewMode === 'grid' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
-        </Button>
+        </Pressable>
       }
-      navigation={<Tabs tabs={[{ key: 'notes', label: 'Notatki' }, { key: 'archive', label: 'Archiwum' }]} active={sidebarTab} onChange={(key) => onTabChange(key as 'notes' | 'archive')} />}
+      tabs={{
+        items: [{ key: 'notes', label: 'Notatki' }, { key: 'archive', label: 'Archiwum' }],
+        active: sidebarTab,
+        onChange: (key) => onTabChange(key as 'notes' | 'archive'),
+      }}
     />
   );
 }

@@ -3,34 +3,47 @@ import type { ReactNode, RefObject } from 'react';
 import { ChevronLeft, Search, X } from 'lucide-react';
 import Input from '../ui/Input';
 import PageToolbar from './PageToolbar';
+import Tabs from '../ui/Tabs';
+
+export interface WorkspaceHeaderTab { key: string; label: string; icon?: ReactNode }
 
 interface WorkspaceHeaderProps {
   title: string;
   subtitle?: string;
   onBack: () => void;
   leading?: ReactNode;
+  /** Escape hatch for a fully custom center slot. Prefer `search` below when it's just a search box. */
   center?: ReactNode;
+  /** Renders a WorkspaceSearch in the center slot — replaces hand-wiring it per module. */
+  search?: { value: string; onChange: (value: string) => void; placeholder: string; inputRef?: RefObject<HTMLInputElement | null> };
   actions?: ReactNode;
+  /** Renders a Tabs bar in the navigation slot — replaces hand-wiring <Tabs> per module. */
+  tabs?: { items: WorkspaceHeaderTab[]; active: string; onChange: (key: string) => void };
   navigation?: ReactNode;
+  /** Extra row below the header (e.g. Links' inline "add URL" expand form). */
+  secondaryRow?: ReactNode;
 }
 
-export function WorkspaceHeader({ title, subtitle, onBack, leading, center, actions, navigation }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ title, subtitle, onBack, leading, center, search, actions, tabs, navigation, secondaryRow }: WorkspaceHeaderProps) {
   return (
-    <PageToolbar
-      title={title}
-      description={subtitle}
-      leading={
-        <>
-      <Pressable variant="ghost" size="sm" onClick={onBack} className="shrink-0" aria-label="Wróć">
-        <ChevronLeft size={20} strokeWidth={2.5} />
-      </Pressable>
-      {leading}
-        </>
-      }
-      center={center}
-      actions={actions}
-      navigation={navigation}
-    />
+    <>
+      <PageToolbar
+        title={title}
+        description={subtitle}
+        leading={
+          <>
+        <Pressable variant="ghost" size="sm" onClick={onBack} className="shrink-0" aria-label="Wróć">
+          <ChevronLeft size={20} strokeWidth={2.5} />
+        </Pressable>
+        {leading}
+          </>
+        }
+        center={search ? <WorkspaceSearch {...search} /> : center}
+        actions={actions}
+        navigation={tabs ? <Tabs tabs={tabs.items} active={tabs.active} onChange={tabs.onChange} /> : navigation}
+      />
+      {secondaryRow}
+    </>
   );
 }
 
