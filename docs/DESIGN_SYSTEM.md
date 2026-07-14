@@ -1,133 +1,405 @@
 # Vanguard OS — Design System
 
-> Jeden spójny język wizualny: **iOS (Apple HIG) jako baza, Pixel/Material akcenty tam gdzie funkcjonalnie lepsze.**
+> **Cel tego pliku:** jedno miejsce które agent (AI lub człowiek) czyta PRZED dotknięciem kodu UI.
+> Zawiera twarde reguły, kompletną listę tokenów i komponentów z propami.
 >
-> **Dlaczego ten plik istnieje:** Vanguard ma już zbudowany token layer (`src/index.css`, kilka przeszłych sesji: `e26c7727`, `a655a400`, `3d3f5fb7`, `903a4a8d`), ale poprzedni `DESIGN_SYSTEM.md` który go dokumentował został usunięty przy konsolidacji dokumentacji (`ac0d06bd`) i nigdy nie odtworzony. Adopcja tokenów w realnym kodzie jest bliska zeru (patrz sekcja 6) — nie dlatego że system jest zły, tylko dlatego że nikt go nie egzekwował. Ten plik odtwarza dokumentację i staje się punktem odniesienia dla dalszej pracy nad spójnością.
->
-> Vanguard to appka jednego użytkownika z gęstymi danymi (KPI, kalendarz, treningi) — **spójność ważniejsza niż różnorodność per ekran.** To nie jest landing page.
+> **Visual preview:** `/dev/design-system` — żywa galeria wszystkich wariantów (uruchom dev server).
+
+---
+
+## 0. Twarde reguły (agent + reviewer)
+
+**Nigdy nie pisz:** `<button className="bg-primary text-white ...">`
+**Zawsze używaj:** `<Button variant="primary">`
+
+**Egzekucja:** ESLint `no-restricted-syntax` blokuje:
+- **Każdy `<button>` poza `ui/`** → `<Button variant="...">` (guard strukturalny)
+- `bg-rose-500`, `text-blue-400` itd. (hardkodowane kolory palety) → tokeny `bg-danger`, `text-info`
+- `shadow-primary` na dowolnym elemencie → `<Button variant="primary">`
+- `bg-primary + text-white + px/py` → `<Button variant="primary">`
+
+**Wyjątki (NO_BUTTON_GUARD_EXCEPTIONS):** pliki gdzie `<button>` jest jedynym sensownym wyborem — drag handle, przełącznik zakładek, złożony widget interaktywny. Każde wyłączenie musi być uzasadnione w komentarzu i trafia do listy w `eslint.config.js`.
+
+| ❌ Nie rób tego | ✅ Zamiast tego |
+|---|---|
+| `<button className="bg-rose-500 ...">` | `<Button variant="danger">` |
+| `<div className="rounded-2xl border ... shadow">` (karta) | `<Card variant="glass">` |
+| `<div className="fixed inset-0 z-50 ...">` (modal) | `<Modal isOpen={...} onClose={...}>` |
+| `<div className="animate-spin rounded-full ...">` | `<Spinner size="md" />` |
+| `<div className="animate-pulse ...">` (ładowanie) | `<Skeleton variant="text" />` |
+| `bg-blue-500`, `text-rose-400`, `border-emerald-200` w className | Tokeny: `bg-danger`, `text-success`, `bg-surface-2` |
+| `<span className="inline-flex items-center ... badge">` | `<Badge variant="count" count={5} />` |
+
+**Dlaczego:** komponenty zapewniają spójne rozmiary, animacje, dark mode, accessibility. Raw HTML powoduje regresje (brak scale-on-active, brak a11y, brak dark mode).
 
 ---
 
 ## 1. Filozofia
 
-- **iOS jako baza**: duże promienie, szklane/translucentne powierzchnie, spring animacje, dużo białej przestrzeni, subtelne cienie. Dominuje w kartach, panelach, modalach/sheetach, przyciskach.
-- **Pixel/Material jako akcent**: tam gdzie iOS nie ma dobrego wzorca — tonal surfaces (ikony w kolorowych kafelkach), FAB do szybkiego dodawania, uppercase metadata labels.
-- **Zero dekoracji dla dekoracji.** Gęstość danych > efekciarstwo. Noise textures, gradient mesh, custom cursory — nie tutaj (to pasuje do landing page, nie do dashboardu z KPI).
+- **iOS jako baza**: duże promienie, szklane/translucentne powierzchnie, spring animacje, dużo białej przestrzeni, subtelne cienie.
+- **Pixel/Material jako akcent**: tam gdzie iOS nie ma dobrego wzorca — tonal surfaces, uppercase metadata labels.
+- **Zero dekoracji dla dekoracji.** Gęstość danych > efekciarstwo.
 
 ---
 
-## 2. Fixed tokens (`src/index.css`)
+## 2. Tokeny (`src/index.css`)
 
-Nie wymyślamy nowych wartości — to już istnieje i jest źródłem prawdy:
+Źródło prawdy: `src/index.css` → `:root`, `.dark`, `@theme`. Nie twórz nowych tokenów bez uzasadnienia.
 
-```css
-/* ── Pixel + iOS Design Tokens ── (src/index.css:41-54) */
---radius-sm: 10px;   /* tagi, chipy, badge */
---radius-md: 16px;   /* przyciski, inputy */
---radius-lg: 24px;   /* karty, panele */
---radius-xl: 28px;   /* modale, sheety */
---radius-full: 9999px;
+### 2.1 Semantic status tokens
 
---tonal-primary: rgba(79, 70, 229, 0.08);        /* Pixel-style tonal surface */
---tonal-primary-strong: rgba(79, 70, 229, 0.14);
+Tailwind klasy: `bg-success`, `text-danger`, `border-warning`, `bg-info` itd.
 
---spring: cubic-bezier(0.34, 1.56, 0.64, 1);      /* iOS-style spring easing */
---ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+| Token (light) | Wartość | Kiedy używać |
+|---|---|---|
+| `--color-success` | `#10B981` | Pozytywny wynik, gotowe, OK |
+| `--color-success-hover` | `#059669` | Hover na success |
+| `--color-warning` | `#F59E0B` | Uwaga, pośredni stan, pending |
+| `--color-warning-hover` | `#d97706` | Hover na warning |
+| `--color-danger` | `#F43F5E` | Błąd, krytyczne, usuwanie |
+| `--color-danger-hover` | `#e11d48` | Hover na danger |
+| `--color-info` | `#3b82f6` | Inforamcja, neutralny akcent |
+| `--color-info-hover` | `#2563eb` | Hover na info |
+
+Dark mode: `info → #6366f1`, `success-hover → #34d399`, `warning-hover → #fbbf24`, `danger-hover → #fb7185`, `info-hover → #818cf8`.
+
+### 2.2 Surface tokens
+
+| Token (light) | Wartość | Kiedy używać |
+|---|---|---|
+| `--surface-1` | `var(--surface)` = `#ffffff` | Baza — karty, panele (to samo co `--surface`) |
+| `--surface-2` | `#f8fafc` | Lekko podniesiona — hover, inset sections |
+| `--surface-3` | `#f1f5f9` | Najbardziej podniesiona — aktywne/selected |
+
+Dark mode: `surface-2 → rgba(255,255,255,0.03)`, `surface-3 → rgba(255,255,255,0.06)`.
+
+Tailwind: `bg-surface-1`, `bg-surface-2`, `bg-surface-3`.
+
+### 2.3 Text tokens
+
+| Token | Wartość | Kiedy używać |
+|---|---|---|
+| `--text-primary` | light: `#0f172a`, dark: `#f9fafb` | Główny tekst, nagłówki |
+| `--text-secondary` | light: `#475569`, dark: `#9ca3af` | Opisy,wtórne info |
+| `--text-muted` | light: `#94a3b8`, dark: `#818999` | Metadata, hinty, timestampy |
+| `--text-tertiary` | `#99A1AF` | Najbardziej wyblakły tekst |
+
+Tailwind: `text-text-primary`, `text-text-secondary`, `text-text-muted`, `text-text-tertiary`.
+
+### 2.4 Radius tokens
+
+| Token | Wartość | Do czego |
+|---|---|---|
+| `--radius-sm` | `10px` | Tagi, chipy, badge |
+| `--radius-md` | `16px` | Przyciski, inputy |
+| `--radius-lg` | `24px` | Karty, panele |
+| `--radius-xl` | `28px` | Modale, sheety |
+| `--radius-full` | `9999px` | Pill shape |
+
+### 2.5 Shadow tokens
+
+| Token | Do czego |
+|---|---|
+| `--shadow-card` | Baza cienia kart |
+| `--shadow-card-hover` | Cień karty na hover |
+| `--shadow-card-accent` | Akcentowany cień karty |
+| `--shadow-event-card` | Karty wydarzeń |
+| `--shadow-float` | Unoszące się elementy (modale, FAB) |
+| `--shadow-nav` | Nawigacja (sticky headers) |
+| `--shadow-back-btn` | Przycisk wstecz |
+| `--shadow-focus` | Focus ring na inputach (0 0 0 3px primary) |
+| `--shadow-glow-primary` | Glow aktywnej zakładki/CTA |
+| `--shadow-accent-active` | Cień aktywnego panelu/strefy |
+
+### 2.6 Motion tokens
+
+| Token | Wartość | Kiedy |
+|---|---|---|
+| `--spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Wejścia modali, scale feedback |
+| `--ease-out` | `cubic-bezier(0.25, 1, 0.5, 1)` | Wyjścia, hover, transitions |
+
+### 2.7 Font stack
+
+| Token | Font | Do czego |
+|---|---|---|
+| `--font-sans` | Plus Jakarta Sans, Inter, system-ui | Body, UI tekst |
+| `--font-display` | Cabinet Grotesk, Outfit, system-ui | Nagłówki, labelki |
+| `--font-mono` | Geist Mono, JetBrains Mono | Dane liczbowe, timery |
+
+### 2.8 Typography scale
+
+Nigdy nie pisz `text-[10px]` — używaj tokenu. Skala poniżej definiuje **kiedy哪.rozmiar**:
+
+| Token | Size | Kiedy używać |
+|---|---|---|
+| `text-3xs` | 7px | Progress bar annotations, micro-labels |
+| `text-2xs` | 9px | Status badges, uppercase metadata, pixel-label, flagi |
+| `text-xs` | 11px | Labels, secondary metadata, list items, form labels |
+| `text-sm` | 13px | Form inputs, descriptions, body text |
+| `text-base` | 15px | Section headers, primary body |
+| `text-lg` | 18px | Headings, card titles |
+| `text-xl` | 20px | Large headings |
+| `text-2xl` | 24px | Display numbers, hero text |
+| `text-3xl` | 30px | Hero headings |
+| `text-4xl` | 36px | Hero large |
+| `text-5xl` | 48px | Splash |
+| `text-6xl` | 56px | Splash large |
+
+**Zasada:** 80% przypadków to `text-2xs`–`text-sm` (dane, dashboardy, KPI). Większe rozmiary tylko dla nagłówków i hero.
+
+---
+
+## 3. Komponenty `src/components/ui/`
+
+### Button
+
+```tsx
+import Button from '../ui/Button';
+
+<Button variant="primary" size="md" icon={<Icon />} loading={false}>
+  Tekst
+</Button>
 ```
 
-Font stack (`@theme` w `index.css`):
-- `--font-sans: 'Plus Jakarta Sans', 'Inter', system-ui` — body/UI tekst. Niezależnie potwierdzone jako trafny wybór przez bazę `ui-ux-pro-max` (jedyny wynik z tagiem moodu `ios dynamic type, android scaling`).
-- `--font-display: 'Cabinet Grotesk', 'Outfit', system-ui` — nagłówki, labelki.
-- `--font-mono: 'Geist Mono', 'JetBrains Mono'` — dane liczbowe, timery.
+| Prop | Typ | Default | Opcje |
+|---|---|---|---|
+| `variant` | string | `'primary'` | `primary`, `secondary`, `outline`, `ghost`, `danger`, `tonal` |
+| `size` | string | `'md'` | `sm`, `md`, `lg` |
+| `loading` | boolean | `false` | Pokazuje spinner, disable |
+| `icon` | ReactNode | — | Ikona obok tekstu |
+| `iconPosition` | string | `'left'` | `left`, `right` |
+| `disabled` | boolean | — | Native button attr |
 
-Spacing: brak osobnej skali tokenów — używamy standardowej skali Tailwind (4px bazowa jednostka), zgodnie z powszechną praktyką (Bencium Fixed Elements: 4/8/12/16/24/32/48/96px).
+**Kiedy哪.variant:**
+- `primary` — główna akcja na ekranie (1 na ekran)
+- `secondary` — drugorzędna akcja
+- `outline` — alternatywa, mniej wizualna
+- `ghost` — text-only, icon buttons, anulowanie
+- `danger` — usuwanie, niszczące akcje
+- `tonal` — delikatny fill z kolorowym tłem (empty state actions, tagi)
+
+### Card
+
+```tsx
+import { Card } from '../ui/Card';
+
+<Card variant="glass" padding="1rem" onClick={() => {}}>
+  {children}
+</Card>
+```
+
+| Prop | Typ | Default | Opcje |
+|---|---|---|---|
+| `variant` | CardVariant | `'glass'` | `glass`, `immersive`, `canvas`, `receipt`, `outline`, `notice`, `danger`, `accent` |
+| `padding` | string | `'1rem'` | Dowolny CSS padding |
+| `onClick` | function | — | Dodaje `cursor-pointer` + `active:scale-[0.98]` |
+| `as` | ElementType | `'div'` | Polimorficzny rendering |
+
+**Variant guide:**
+- `glass` — domyślna karta, bg-surface + border + shadow
+- `immersive` — ciemne tło (#0A0A0A), float shadow
+- `canvas` — kropkowane tło (dot-grid)
+- `receipt` — subtelna ramka, bez shadow
+- `outline` — tylko border, transparent bg
+- `notice` — amber tint + border (ostrzeżenia)
+- `danger` — rose tint + border (błędy, krytyczne)
+- `accent` — primary tint + border (wyróżnione)
+
+### Badge
+
+```tsx
+import Badge from '../ui/Badge';
+
+<Badge variant="count" count={5} />
+<Badge variant="dot" color="#10B981" />
+<Badge variant="tag">Pilne</Badge>
+```
+
+| Prop | Typ | Default | Opcje |
+|---|---|---|---|
+| `variant` | string | `'count'` | `count`, `dot`, `tag` |
+| `count` | number | — | Liczba (count variant), >99 → "99+" |
+| `color` | string | — | Override koloru (hex) |
+| `children` | ReactNode | — | Tekst (tag variant) |
+
+### Tabs
+
+```tsx
+import Tabs from '../ui/Tabs';
+
+<Tabs tabs={[{ key: 'a', label: 'Tab A' }]} active={active} onChange={setActive} />
+```
+
+| Prop | Typ | Default |
+|---|---|---|
+| `tabs` | `{ key: string; label: string; icon?: ReactNode }[]` | — |
+| `active` | string | — |
+| `onChange` | `(key: string) => void` | — |
+
+### Modal
+
+```tsx
+import Modal from '../ui/Modal';
+
+<Modal isOpen={show} onClose={() => setShow(false)} title="Tytuł" size="md">
+  {children}
+</Modal>
+```
+
+| Prop | Typ | Default | Opcje |
+|---|---|---|---|
+| `isOpen` | boolean | — | |
+| `onClose` | function | — | |
+| `title` | ReactNode | — | |
+| `subtitle` | ReactNode | — | Pixel-label nad tytułem |
+| `size` | string | `'md'` | `xs`, `sm`, `md`, `lg`, `xl`, `2xl`, `full` |
+| `showCloseButton` | boolean | `true` | |
+| `closeOnBackdropClick` | boolean | `true` | |
+| `padding` | string | `'p-5'` | |
+
+### Spinner
+
+```tsx
+import Spinner from '../ui/Spinner';
+
+<Spinner size="md" />
+```
+
+| Prop | Rozmiar | Wymiary |
+|---|---|---|
+| `sm` | 16×16px | border-2 |
+| `md` | 32×32px | border-2 |
+| `lg` | 48×48px | border-3 |
+
+### Skeleton
+
+```tsx
+import Skeleton from '../ui/Skeleton';
+
+<Skeleton variant="text" lines={3} />
+<Skeleton variant="avatar" />
+<Skeleton variant="card" lines={4} />
+```
+
+| Prop | Default | Opcje |
+|---|---|---|
+| `variant` | `'text'` | `text`, `avatar`, `card` |
+| `lines` | `3` | Liczba linii |
+
+### EmptyState
+
+```tsx
+import EmptyState from '../ui/EmptyState';
+
+<EmptyState icon="📭" label="Brak danych" action={{ label: 'Dodaj', onClick: () => {} }} />
+```
+
+### Input
+
+```tsx
+import Input from '../ui/Input';
+
+<Input placeholder="Tytuł..." size="md" icon={<Search size={14} />} error="Wymagane" />
+```
+
+| Prop | Typ | Default | Opcje |
+|---|---|---|---|
+| `size` | string | `'md'` | `sm`, `md`, `lg` |
+| `icon` | ReactNode | — | Ikona po lewej stronie |
+| `error` | string | — | Komunikat błędu pod inputem |
+| `disabled` | boolean | — | Native input attr |
+
+### Fab (Floating Action Button)
+
+```tsx
+import Fab from '../ui/Fab';
+
+<Fab onClick={handleAdd} size="md" position="bottom-right">
+  <Plus size={20} />
+</Fab>
+```
+
+| Prop | Default | Opcje |
+|---|---|---|
+| `size` | `'md'` | `sm`, `md`, `lg` |
+| `position` | `'bottom-right'` | `bottom-right`, `bottom-center`, `custom` |
+
+### CharacterAvatar
+
+```tsx
+import { CharacterAvatar } from '../ui/CharacterAvatar';
+
+<CharacterAvatar seed="Jakub" size={36} />
+```
+
+### BrandTitle
+
+```tsx
+import { BrandTitle } from '../ui/BrandTitle';
+
+<BrandTitle className="text-[15px]" />
+```
 
 ---
 
-## 3. Tabela decyzji: iOS vs Pixel per element
+## 4. CSS Classes (niekomponentowe)
 
-| Element | Język | Klasa/token | Adopcja dziś |
-|---|---|---|---|
-| Karty, panele | iOS (duży radius, glass) | `.card`, `.glass-panel` | `.card` 21/324 plików, `.glass-panel` 0 |
-| Sheets, modale | iOS (frosted, asymetryczny radius u góry) | `.ios-surface` | 0/324 |
-| Icon tiles | Pixel (tonal square) | `.pixel-tile` | 0/324 |
-| Metadata labels | Pixel (uppercase, tracked) | `.pixel-label` | nieliczone, sporadyczne |
-| Przyciski | iOS press-feedback (`scale(0.97)` na `:active`) | `.btn-primary`, `.btn-outline` | `.btn-primary` 4/324 |
-| Quick-add / akcja główna | Pixel FAB | *(gap — nie zbudowane, patrz sekcja 7)* | — |
+Te klasy CSS z `index.css` są używane bezpośrednio w JSX (nie przez `ui/` komponenty):
 
-**Zasada:** nowy komponent zawsze sprawdza czy pasujący token/klasa już istnieje, zanim napisze styl inline. Jeśli pasuje kilka klas na raz (np. karta ORAZ frosted) — łączymy klasy, nie duplikujemy stylu.
+| Klasa | Zastosowanie |
+|---|---|
+| `.card` | Prosty bordered container z hover-lift (21 konsumentów) |
+| `.surface-card` | Dwuwarstwowy cień + hover-lift |
+| `.glass-panel` | iOS frosted glass (backdrop-blur) |
+| `.ios-surface` | Sheet/modal surface (asymmetric radius) |
+| `.ios-nav-bar` | Sticky top bar (back/title/done) |
+| `.ios-modal-backdrop` | Ciemny backdrop blur |
+| `.pixel-tile` | Ikona w zaokrąglonym kwadracie (tonal bg) |
+| `.pixel-label` | Uppercase metadata (9px, bold, tracked) |
+| `.nav-pill-active` | Aktywna pozycja nawigacji |
+| `.btn-primary` | CSS button (legacy — preferuj `<Button>`) |
+| `.btn-outline` | CSS button outline (legacy) |
 
 ---
 
-## 4. Motion — tabela czasów i easingów
+## 5. Motion
 
-Połączenie Apple "Designing Fluid Interfaces" + Emil Kowalski (design-engineering) + Bencium `MOTION-SPEC.md` — wszystkie trzy źródła zgadzają się co do rzędu wielkości, różnice tylko kosmetyczne.
-
-| Interakcja | Czas | Easing | Źródło |
-|---|---|---|---|
-| Press/tap feedback (przycisk, karta) | 100-160ms | `scale(0.97)` na `:active`, transform only | Emil |
-| Dropdown/picker/menu | 150-250ms | `var(--ease-out)` | Emil |
-| Modal/sheet — otwarcie | 200-400ms (twardy limit <500ms) | `var(--spring)`, critically damped (damping ~1.0, response 0.3-0.4) | Apple + Emil |
-| Modal/sheet — zamknięcie | szybsze niż otwarcie (~60-70%) | `var(--ease-out)` | Emil/Bencium |
-| Gest z momentum (swipe-to-dismiss, flick) | zależne od prędkości | spring z bounce (damping ~0.8), velocity handoff | Apple |
-| Toast | ~300-400ms | `ease`, wejście/wyjście tą samą ścieżką | Emil |
+| Interakcja | Czas | Easing |
+|---|---|---|
+| Press/tap feedback | 100-160ms | `scale(0.97)` na `:active` |
+| Dropdown/picker | 150-250ms | `var(--ease-out)` |
+| Modal/sheet — otwarcie | 200-400ms | `var(--spring)` |
+| Modal/sheet — zamknięcie | ~60-70% otwarcia | `var(--ease-out)` |
+| Toast | ~300-400ms | `ease` |
 
 **Twarde zasady:**
-1. Animować tylko `transform`/`opacity` — nigdy `width`/`height`/`padding`/`top`/`left` (layout thrashing).
-2. Nigdy `scale(0)` na wejściu — start od `scale(0.95)` + `opacity: 0`. Nic w realnym świecie nie pojawia się z kompletnej nicości.
-3. **Rzeczy klikane >100×/dzień (checkboxy, skróty klawiszowe) — zero albo minimalna animacja.** Animacja należy się modalom/sheetom/toastom (occasional), nie codziennym mikro-interakcjom.
-4. CSS transitions (nie `@keyframes`) dla wszystkiego przerywalnego (toast, swipe) — keyframes restartują od zera przy przerwaniu, transitions retargetują płynnie.
-5. Popover skaluje się z punktu wyzwolenia (`transform-origin` = trigger). Modal zawsze z centrum/dołu (nie jest zakotwiczony do triggera).
-6. `prefers-reduced-motion: reduce` → crossfade zamiast slide/spring, zero transform-based motion.
+1. Animować tylko `transform`/`opacity`.
+2. Nigdy `scale(0)` — start od `scale(0.95)`.
+3. CSS transitions (nie `@keyframes`) dla przerywalnego.
+4. `prefers-reduced-motion` → crossfade.
 
 ---
 
-## 5. Baseline accessibility (niezależne od stylu iOS/Pixel)
+## 6. Accessibility
 
-Priorytet 1-3 z bazy `ui-ux-pro-max` (CRITICAL/HIGH) — obowiązują zawsze, niezależnie od tego czy dany komponent jest "bardziej iOS" czy "bardziej Pixel":
-
-- **Kontrast**: 4.5:1 dla normalnego tekstu, 3:1 dla dużego tekstu (WCAG AA).
-- **Touch targets**: min. 44×44px, min. 8px odstępu między nimi.
-- **Focus states**: widoczny ring 2-4px na elementach interaktywnych, nigdy nie usuwany.
-- **`aria-label`** na przyciskach ikonowych (bez widocznego tekstu).
-- **`prefers-reduced-motion`** respektowany wszędzie (patrz sekcja 4.6).
-- **CLS/performance**: rezerwacja miejsca dla asynchronicznego contentu, skeleton zamiast pustego layoutu przy ładowaniu >300ms.
-- **Escape routes**: każdy modal/multi-step flow ma jasny cancel/back.
+- **Kontrast**: 4.5:1 normalny tekst, 3:1 duży (WCAG AA).
+- **Touch targets**: min. 44×44px, min. 8px odstęp.
+- **Focus**: widoczny ring 2-4px.
+- **`aria-label`** na przyciskach ikonowych.
+- **Escape**: każdy modal ma cancel/back.
 
 ---
 
-## 6. Inwentarz `ui/` primitives
+## 7. Zasady dla agentów AI
 
-Stan na dziś (do naprawy w przyszłej sesji — Faza 1, patrz roadmapa w sekcji 8):
+Przed napisaniem/edytowaniem kodu UI:
 
-| Komponent | Obecny stan | Token który powinien konsumować |
-|---|---|---|
-| `Modal.tsx` | `rounded-[28px]` hardkod, `bg-surface shadow-xl` (brak glass), odwołuje się do **nieistniejącej** klasy `animate-scaleUp` (zepsuta animacja wejścia panelu) | `var(--radius-xl)`, `.ios-surface`, naprawiona animacja wejścia zgodna z sekcją 4 |
-| `Card.tsx` | `borderRadius: 20/24` hardkod w stylach inline, własny `active:scale-[0.985]` | `var(--radius-lg)`, `scale(0.98)` (zgodność z `.card` CSS class) |
-| `Spinner.tsx` | Minimalny, w miarę token-zgodny (`border-primary`) | Bez zmian pilnych — brak sparowanego Skeleton-usage-guidance |
-| `Badge.tsx` | Własna implementacja, nie używa `.pixel-tile`/`.pixel-label` | `var(--tonal-primary)` zamiast `bg-primary/10` |
-
-Dwa różne koncepty "card" współistnieją świadomie: CSS-owa klasa `.card` (21 konsumentów, prosty bordered container z hover-lift) i komponent `ui/Card.tsx` (5 wariantów, bardziej rozbudowany). **Nie scalać ich mechanicznie** — różne przypadki użycia. Token-source obie, ale zostają oddzielne.
+1. **Sprawdź czy komponent istnieje** w `src/components/ui/` zanim napiszesz nowy.
+2. **Używaj tokenów** (`bg-danger`, `text-success`, `bg-surface-2`) zamiast hardkodowanych kolorów (`bg-rose-500`, `text-emerald-400`).
+3. **Variant > boolean** — jeśli komponent ma warianty, używaj `variant="danger"` zamiast `isDanger={true}`.
+4. **Preview przed commit:** uruchom `/dev/design-system` żeby zobaczyć czy nowy wariant pasuje wizualnie.
+5. **Dark mode:** tokeny automatycznie się przełączają. Nie pisz `dark:bg-...` ręcznie — użyj tokena.
 
 ---
 
-## 7. Nota o kompozycji (Vercel `composition-patterns`)
-
-Przy przebudowie `ui/` primitives: **explicit variants, nie boolean-prop proliferation.** `Card`'s `variant: 'glass' | 'immersive' | 'canvas' | 'receipt' | 'outline'` to dobry wzorzec do utrzymania i naśladowania. Nie dokładać do `Modal`/`Button` booleanów typu `isCompact`/`showHeader`/`isDanger` — zamiast tego osobny wariant albo compound component.
-
-**Otwarty gap (nie budowany teraz):** Pixel-owy FAB do szybkiego dodawania (PowerList, Todo, Notes mają dużo "szybkiego dodawania" — naturalny kandydat na FAB zamiast przycisku w rogu). Do zaprojektowania w przyszłej sesji jako osobny `ui/` primitive, nie doklejać ad-hoc do istniejących ekranów.
-
----
-
-## 8. Roadmapa (kolejne sesje)
-
-Ten plik (Faza 0) jest docs-only. Kolejne fazy — każda z własnym checkpointem przed startem, zgodnie z regułą "jedna sesja = jeden temat = jeden commit":
-
-- **Faza 1** — wyrównanie `ui/Modal.tsx`, `ui/Card.tsx` do tokenów z sekcji 2 (w tym naprawa zepsutej `animate-scaleUp`).
-- **Faza 2** — migracja 9 plików z własnym `fixed inset-0` na `ui/Modal` (batchowane wg ryzyka).
-- **Faza 3** — migracja 28 plików z własnym `animate-spin` na `ui/Spinner`/`ui/Skeleton` (batchowane wg domeny).
-- **Faza 4** — audyt końcowy skillem `web-design-guidelines` (zainstalowany, `~/.claude/skills/web-design-guidelines`).
-
----
-
-*Powiązane: [`FRONTEND_GUIDE.md`](FRONTEND_GUIDE.md) (organizacja kodu, reguły ESLint, mapa domen), `lessons.md` (incydenty).*
+*Powiązane: [`FRONTEND_GUIDE.md`](FRONTEND_GUIDE.md) (organizacja kodu, ESLint, domeny), galeria: `/dev/design-system`*

@@ -114,7 +114,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
                 x={x}
                 y={y}
                 textAnchor={lbl.align}
-                className="text-[9px] font-black uppercase tracking-wider fill-text-primary"
+                className="text-2xs font-black uppercase tracking-wider fill-text-primary"
               >
                 {lbl.name}
               </text>
@@ -122,10 +122,10 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
                 x={x}
                 y={y + 12}
                 textAnchor={lbl.align}
-                className="text-[11px] font-black italic fill-primary font-display"
+                className="text-xs font-black italic fill-primary font-display"
               >
                 {score.toFixed(1)}
-                <tspan className="text-[8px] font-normal fill-text-muted not-italic">/10</tspan>
+                <tspan className="text-2xs font-normal fill-text-muted not-italic">/10</tspan>
               </text>
             </g>
           );

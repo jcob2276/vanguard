@@ -6,6 +6,7 @@ import { saveSaunaSession } from '../../lib/health/workoutSauna';
 import { numInput } from './workout/workoutUtils';
 import { useUserId } from '../../store/useStore';
 import SaunaRpePicker from './SaunaRpePicker';
+import Button from '../ui/Button';
 
 export default function SaunaLoggerModal({
   onBack,
@@ -64,13 +65,12 @@ export default function SaunaLoggerModal({
   return (
     <div className="flex-1 bg-background flex flex-col min-h-screen pb-32 transition-colors duration-300">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border-custom p-4 flex items-center gap-3">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={onBack}
-          className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-        >
-          <ChevronLeft size={20} />
-        </button>
+          icon={<ChevronLeft size={20} />}
+          className="p-2 -ml-2 min-w-0 text-text-secondary hover:text-text-primary hover:bg-transparent"
+        />
         <div className="flex items-center gap-2 flex-1">
           <Flame size={16} className="text-warning" />
           <h1 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary font-display">Sauna</h1>
@@ -78,13 +78,13 @@ export default function SaunaLoggerModal({
       </header>
 
       <main className="flex-1 p-5 space-y-8 max-w-md mx-auto w-full">
-        <p className="text-[12px] text-text-secondary leading-relaxed">
+        <p className="text-sm text-text-secondary leading-relaxed">
           Osobny log od treningu siłowego. Po zapisie: strain (wellness ~1,5 pkt/min) + wymiar Regeneracja w profilu hybrydowym.
         </p>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Minuty</label>
+            <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Minuty</label>
             <input
               type="number"
               min={1}
@@ -94,12 +94,12 @@ export default function SaunaLoggerModal({
               className={numInput}
             />
             <div className="flex gap-1 justify-center">
-              <button type="button" onClick={() => adjust('minutes', -5)} className="text-[11px] font-bold bg-surface border border-border-custom w-9 h-7 rounded-lg cursor-pointer">-5</button>
-              <button type="button" onClick={() => adjust('minutes', 5)} className="text-[11px] font-bold bg-surface border border-border-custom w-9 h-7 rounded-lg cursor-pointer">+5</button>
+              <Button variant="ghost" onClick={() => adjust('minutes', -5)} className="text-xs font-bold bg-surface border border-border-custom w-9 h-7 min-w-0 p-0 rounded-lg hover:bg-surface">-5</Button>
+              <Button variant="ghost" onClick={() => adjust('minutes', 5)} className="text-xs font-bold bg-surface border border-border-custom w-9 h-7 min-w-0 p-0 rounded-lg hover:bg-surface">+5</Button>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Temperatura °C</label>
+            <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Temperatura °C</label>
             <input
               type="number"
               min={1}
@@ -110,14 +110,14 @@ export default function SaunaLoggerModal({
               className={numInput}
             />
             <div className="flex gap-1 justify-center">
-              <button type="button" onClick={() => adjust('celsius', -5)} className="text-[11px] font-bold bg-surface border border-border-custom w-9 h-7 rounded-lg cursor-pointer">-5</button>
-              <button type="button" onClick={() => adjust('celsius', 5)} className="text-[11px] font-bold bg-surface border border-border-custom w-9 h-7 rounded-lg cursor-pointer">+5</button>
+              <Button variant="ghost" onClick={() => adjust('celsius', -5)} className="text-xs font-bold bg-surface border border-border-custom w-9 h-7 min-w-0 p-0 rounded-lg hover:bg-surface">-5</Button>
+              <Button variant="ghost" onClick={() => adjust('celsius', 5)} className="text-xs font-bold bg-surface border border-border-custom w-9 h-7 min-w-0 p-0 rounded-lg hover:bg-surface">+5</Button>
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Notatka</label>
+          <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Notatka</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -131,15 +131,15 @@ export default function SaunaLoggerModal({
 
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border-custom bg-background/90 backdrop-blur-md p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-md">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             onClick={() => void save()}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-warning py-3.5 text-xs font-black uppercase tracking-wider text-white hover:bg-warning-hover active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+            icon={<Save size={14} />}
+            className="w-full min-w-0 rounded-2xl bg-warning py-3.5 text-xs font-black uppercase tracking-wider text-white hover:bg-warning-hover hover:text-white disabled:opacity-50"
           >
-            <Save size={14} />
             {saving ? 'Zapisywanie…' : 'Zapisz saunę'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

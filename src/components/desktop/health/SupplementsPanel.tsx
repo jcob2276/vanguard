@@ -20,7 +20,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Pill size={14} className="text-success shrink-0" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-text-muted">Suplementy & Cykle</h3>
+          <h3 className="text-xs font-black uppercase tracking-[0.25em] text-text-muted">Suplementy & Cykle</h3>
         </div>
         <Button variant="outline" size="sm" type="button" onClick={() => {
           data.setShowAddForm(!data.showAddForm);
@@ -29,7 +29,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
             data.setEndDate(shiftDateStr(getTodayWarsaw(), 21));
           }
         }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border-custom hover:border-success/50 bg-surface-solid/40 text-[9px] font-black uppercase tracking-wider text-text-muted hover:text-success transition-colors cursor-pointer"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border-custom hover:border-success/50 bg-surface-solid/40 text-2xs font-black uppercase tracking-wider text-text-muted hover:text-success transition-colors cursor-pointer"
           icon={data.showAddForm ? <X size={10} /> : <Plus size={10} />}
         >
           <span>{data.showAddForm ? 'Anuluj' : 'Dodaj Cykl'}</span>
@@ -37,7 +37,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       </div>
 
       {data.error && (
-        <div className="flex items-center gap-2 p-2.5 rounded-lg border border-danger/20 bg-danger/5 text-danger text-[10px]">
+        <div className="flex items-center gap-2 p-2.5 rounded-lg border border-danger/20 bg-danger/5 text-danger text-xs">
           <AlertCircle size={12} /><span>{data.error}</span>
         </div>
       )}

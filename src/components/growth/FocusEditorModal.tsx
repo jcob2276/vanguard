@@ -46,11 +46,11 @@ export default function FocusEditorModal({
     >
       <div className="space-y-4">
         <div>
-          <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Główna umiejętność</label>
+          <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Główna umiejętność</label>
           <select
             value={skillId}
             onChange={(e) => setSkillId(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px] text-text-primary"
+            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm text-text-primary"
           >
             <option value="">-- Wybierz skill --</option>
             {parentSkills.map((s) => (
@@ -62,7 +62,7 @@ export default function FocusEditorModal({
         </div>
 
         <div>
-          <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">
+          <label className="text-2xs font-black uppercase tracking-wider text-text-muted">
             Cel / Dlaczego? (Intencja)
           </label>
           <textarea
@@ -70,12 +70,12 @@ export default function FocusEditorModal({
             onChange={(e) => setWhyText(e.target.value)}
             placeholder="Po co uczysz się tego skilla? Jaki problem rozwiąże?"
             rows={3}
-            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px] text-text-primary resize-none placeholder:text-text-muted"
+            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm text-text-primary resize-none placeholder:text-text-muted"
           />
         </div>
 
         <div>
-          <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">
+          <label className="text-2xs font-black uppercase tracking-wider text-text-muted">
             Drill / Ćwiczenie (Jak będziesz ćwiczyć w praktyce?)
           </label>
           <textarea
@@ -83,29 +83,25 @@ export default function FocusEditorModal({
             onChange={(e) => setDrillText(e.target.value)}
             placeholder="np. Napisanie 3 serwisów w TS, przebiegnięcie 2x5km, przeczytanie 2 rozdziałów o architekturze i wdrożenie ich..."
             rows={3}
-            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px] text-text-primary resize-none placeholder:text-text-muted"
+            className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm text-text-primary resize-none placeholder:text-text-muted"
           />
         </div>
 
         <div>
-          <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Docelowy poziom na ten tydzień</label>
+          <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Docelowy poziom na ten tydzień</label>
           <div className="flex gap-2 mt-1">
             {[1, 2, 3, 4, 5].map((lvl) => (
-              <button
+              <Button
                 key={lvl}
-                type="button"
+                variant={targetLevel === lvl ? 'primary' : 'outline'}
                 onClick={() => setTargetLevel(lvl)}
-                className={`flex-1 rounded-xl py-2 text-[11px] font-bold border transition-all cursor-pointer ${
-                  targetLevel === lvl
-                    ? 'bg-primary border-primary text-white'
-                    : 'border-border-custom bg-surface text-text-muted hover:border-primary/30'
-                }`}
+                className="flex-1 rounded-xl py-2 text-xs shadow-none hover:translate-y-0"
               >
                 Lvl {lvl}
-              </button>
+              </Button>
             ))}
           </div>
-          <p className="text-[9px] text-text-muted mt-1.5 leading-relaxed">
+          <p className="text-2xs text-text-muted mt-1.5 leading-relaxed">
             Lvl 1-2: Zrozumienie, poprawność. Lvl 3-4: Spójność, łatwość wykonania. Lvl 5: Biegłość/Mastery.
           </p>
         </div>

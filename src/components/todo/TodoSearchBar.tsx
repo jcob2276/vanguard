@@ -27,7 +27,7 @@ export default function TodoSearchBar({ searchInputRef }: TodoSearchBarProps) {
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) setActiveSmartListId(null); }}
           placeholder="Szukaj… tag:x priority:high due:week section:nazwa"
-          className="w-full rounded-xl border border-border-custom/50 bg-surface-solid/40 pl-8 pr-8 py-2 text-[12px] font-medium text-text-primary outline-none placeholder:text-text-muted/35 focus:border-primary/30"
+          className="w-full rounded-xl border border-border-custom/50 bg-surface-solid/40 pl-8 pr-8 py-2 text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/35 focus:border-primary/30"
         />
         {searchQuery && (
           <button
@@ -53,7 +53,7 @@ export default function TodoSearchBar({ searchInputRef }: TodoSearchBarProps) {
                   }
                 });
               }}
-              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold transition-all ${
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold transition-all ${
                 activeSmartListId === sl.id
                   ? 'bg-primary/15 border-primary/30 text-primary'
                   : 'border-border-custom/50 text-text-muted hover:text-text-primary hover:bg-surface-solid/40'
@@ -79,7 +79,7 @@ export default function TodoSearchBar({ searchInputRef }: TodoSearchBarProps) {
                     } else if (e.key === 'Escape') setShowSaveSmartList(false);
                   }}
                   placeholder="Nazwa Smart Listy…"
-                  className="rounded-full border border-primary/30 bg-surface-solid/60 px-2.5 py-1 text-[10px] font-semibold text-text-primary outline-none w-32"
+                  className="rounded-full border border-primary/30 bg-surface-solid/60 px-2.5 py-1 text-xs font-semibold text-text-primary outline-none w-32"
                 />
                 <button
                   onClick={() => {
@@ -89,7 +89,7 @@ export default function TodoSearchBar({ searchInputRef }: TodoSearchBarProps) {
                       setShowSaveSmartList(false);
                     }
                   }}
-                  className="text-primary text-[10px] font-black px-1.5"
+                  className="text-primary text-xs font-black px-1.5"
                 >
                   Zapisz
                 </button>
@@ -97,7 +97,7 @@ export default function TodoSearchBar({ searchInputRef }: TodoSearchBarProps) {
             ) : (
               <button
                 onClick={() => setShowSaveSmartList(true)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-border-custom/60 px-2.5 py-1 text-[10px] font-bold text-text-muted hover:text-primary hover:border-primary/40 transition-all"
+                className="flex items-center gap-1 rounded-full border border-dashed border-border-custom/60 px-2.5 py-1 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/40 transition-all"
               >
                 <Bookmark size={10} /> Zapisz jako Smart Listę
               </button>

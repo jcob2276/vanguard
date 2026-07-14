@@ -24,13 +24,20 @@ export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onE
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-black font-display uppercase tracking-tight">Rozwój</h1>
             <div className="flex items-center gap-1">
-              <button type="button" onClick={() => onShiftWeek(-1)} className="p-1 text-text-muted hover:text-primary cursor-pointer">
-                <ChevronLeft size={15} />
-              </button>
-              <span className="text-[11px] font-bold text-text-muted">{formatWeekRange(weekStart)}</span>
-              <button type="button" onClick={() => onShiftWeek(1)} disabled={isCurrentWeek(weekStart)} className="p-1 text-text-muted hover:text-primary disabled:opacity-30 cursor-pointer">
-                <ChevronRight size={15} />
-              </button>
+              <Button
+                variant="ghost"
+                onClick={() => onShiftWeek(-1)}
+                icon={<ChevronLeft size={15} />}
+                className="p-1 min-w-0 text-text-muted hover:text-primary hover:bg-transparent"
+              />
+              <span className="text-xs font-bold text-text-muted">{formatWeekRange(weekStart)}</span>
+              <Button
+                variant="ghost"
+                onClick={() => onShiftWeek(1)}
+                disabled={isCurrentWeek(weekStart)}
+                icon={<ChevronRight size={15} />}
+                className="p-1 min-w-0 text-text-muted hover:text-primary disabled:opacity-30 hover:bg-transparent"
+              />
             </div>
           </div>
         </div>

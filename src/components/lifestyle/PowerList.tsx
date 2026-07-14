@@ -70,11 +70,11 @@ export default function PowerList({
       <PowerListHeader today={today} />
 
       <div className="flex items-end justify-between">
-        <h3 className="flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-wider text-text-muted">
+        <h3 className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-wider text-text-muted">
           <Target size={13} className="text-primary" /> 5 zwycięstw
         </h3>
         {todayWin?.result === 'Z' ? (
-          <div className="rounded-full border border-dayC/15 bg-dayC/10 px-2.5 py-0.5 font-display text-[9px] font-bold text-dayC">
+          <div className="rounded-full border border-dayC/15 bg-dayC/10 px-2.5 py-0.5 font-display text-2xs font-bold text-dayC">
             Dzień wygrany
           </div>
         ) : todayWin && (() => {
@@ -93,7 +93,7 @@ export default function PowerList({
                   />
                 ))}
               </div>
-              <span className="font-display text-[9px] font-bold text-text-muted">
+              <span className="font-display text-2xs font-bold text-text-muted">
                 {doneCount}/{total}
               </span>
             </div>

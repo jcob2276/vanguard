@@ -125,7 +125,7 @@ export default function CalendarView({
           className="absolute top-1/2 -translate-y-1/2 left-0 z-50 h-20 w-3 rounded-r-lg border border-l-0 border-border-custom/50 bg-surface/80 hover:bg-surface flex items-center justify-center text-text-muted hover:text-text-primary transition-all shadow-md focus:outline-none cursor-pointer"
           style={{ left: calData.sidebarCollapsed ? 0 : 280 }}
         >
-          <span className="text-[9px] font-black">{calData.sidebarCollapsed ? '›' : '‹'}</span>
+          <span className="text-2xs font-black">{calData.sidebarCollapsed ? '›' : '‹'}</span>
         </button>
 
         <div className="flex-1 flex flex-col min-w-0 bg-surface/5">
@@ -151,7 +151,7 @@ export default function CalendarView({
         <CalendarTodoModal />
         <CalendarBudgetModal />
         {calData.toastMessage && (
-          <div className="fixed bottom-4 right-4 z-[9999] bg-text-primary text-background text-[11px] font-black uppercase tracking-wider px-4 py-3 rounded-xl shadow-lg animate-in slide-in-from-bottom duration-200">
+          <div className="fixed bottom-4 right-4 z-[9999] bg-text-primary text-background text-xs font-black uppercase tracking-wider px-4 py-3 rounded-xl shadow-lg animate-in slide-in-from-bottom duration-200">
             {calData.toastMessage}
           </div>
         )}

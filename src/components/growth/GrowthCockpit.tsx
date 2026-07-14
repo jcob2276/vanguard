@@ -46,11 +46,11 @@ export default function GrowthCockpit({
     <Card variant="glass" padding="1.25rem" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">Tydzień · podsumowanie</p>
+          <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted">Tydzień · podsumowanie</p>
           {intention ? (
-            <p className="text-[13px] font-bold text-text-primary mt-1 leading-snug line-clamp-2">{intention}</p>
+            <p className="text-sm font-bold text-text-primary mt-1 leading-snug line-clamp-2">{intention}</p>
           ) : (
-            <p className="text-[12px] text-text-muted mt-1">
+            <p className="text-sm text-text-muted mt-1">
               Brak intencji — uzupełnij w{' '}
               <Link to="/?view=tydzien" className="text-primary font-bold hover:underline">
                 podsumowaniu tygodnia
@@ -105,16 +105,16 @@ export default function GrowthCockpit({
           style={{ borderColor: 'rgba(79, 70, 229, 0.25)' }}
         >
           <div className="min-w-0">
-            <p className="text-[8px] font-black uppercase text-primary tracking-wider">
+            <p className="text-2xs font-black uppercase text-primary tracking-wider">
               {focusProposal.source === 'saved' ? 'Focus tygodnia' : 'Propozycja focusu'}
             </p>
-            <p className="text-[14px] font-black text-text-primary mt-0.5 leading-tight">
+            <p className="text-base font-black text-text-primary mt-0.5 leading-tight">
               {focusProposal.parentLabel}
               {focusProposal.subskillLabel && (
                 <span className="text-text-secondary font-bold"> → {focusProposal.subskillLabel}</span>
               )}
             </p>
-            <p className="text-[11px] text-primary font-bold mt-0.5 tabular-nums">
+            <p className="text-xs text-primary font-bold mt-0.5 tabular-nums">
               {weekFocusScore ?? focusProposal.score}/5
               {focusTarget != null && <span className="text-text-muted font-normal"> → cel {focusTarget}/5</span>}
             </p>
@@ -139,7 +139,7 @@ export default function GrowthCockpit({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-text-muted pt-1 border-t border-border-custom/60">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-muted pt-1 border-t border-border-custom/60">
         {balance.total > 0 && (
           <span>
             Praktyka:{' '}
@@ -158,7 +158,7 @@ export default function GrowthCockpit({
         {readOnly && <span className="text-warning dark:text-warning">Archiwum</span>}
       </div>
 
-      <p className="text-[10px] text-text-muted leading-relaxed border-t border-border-custom/60 pt-3">
+      <p className="text-xs text-text-muted leading-relaxed border-t border-border-custom/60 pt-3">
         Checkpointy i plan dnia ustawiasz na{' '}
         <Link to="/" className="font-bold text-primary hover:underline">
           Dziś
@@ -193,13 +193,13 @@ function StatChip({
 
   return (
     <div className="rounded-xl border border-border-custom bg-background/50 px-3 py-2.5 min-w-0">
-      <p className="flex items-center gap-1 text-[8px] font-black uppercase text-text-muted tracking-wider truncate">
+      <p className="flex items-center gap-1 text-2xs font-black uppercase text-text-muted tracking-wider truncate">
         {icon} {label}
       </p>
-      <p className={`text-[12px] font-black mt-1 truncate leading-snug ${colorMap[color]}`} title={value}>
+      <p className={`text-sm font-black mt-1 truncate leading-snug ${colorMap[color]}`} title={value}>
         {value}
       </p>
-      {sub && <p className="text-[9px] text-text-muted mt-0.5 truncate">{sub}</p>}
+      {sub && <p className="text-2xs text-text-muted mt-0.5 truncate">{sub}</p>}
       {bar && (
         <div className="mt-2 h-1 rounded-full bg-border-custom overflow-hidden">
           <div
@@ -215,8 +215,8 @@ function StatChip({
 function PillarLine({ emoji, label, text }: { emoji: string; label: string; text: string }) {
   return (
     <div className="flex items-start gap-1.5">
-      <span className="text-[10px] shrink-0 mt-0.5">{emoji}</span>
-      <p className="text-[10px] text-text-secondary leading-snug">
+      <span className="text-xs shrink-0 mt-0.5">{emoji}</span>
+      <p className="text-xs text-text-secondary leading-snug">
         <span className="font-black text-text-muted">{label}: </span>
         {text}
       </p>

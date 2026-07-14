@@ -128,11 +128,11 @@ export default function DailyStrainCard({
 
       {/* Explanation */}
       {strainExplanation && (
-        <p className="text-[11.5px] text-text-secondary leading-relaxed relative z-10">{strainExplanation}</p>
+        <p className="text-xs text-text-secondary leading-relaxed relative z-10">{strainExplanation}</p>
       )}
 
       {wellnessLoad != null && wellnessLoad > 0 && (
-        <p className="text-[9.5px] text-text-muted relative z-10">
+        <p className="text-2xs text-text-muted relative z-10">
           Wellness (sauna / zimno): <span className="font-bold text-warning">{wellnessLoad}</span> pkt w strain
         </p>
       )}
@@ -141,7 +141,7 @@ export default function DailyStrainCard({
       {readinessSignals && readinessSignals.length > 0 && (
         <div className="flex flex-wrap gap-1 relative z-10">
           {readinessSignals.map((s) => (
-            <span key={s.key} className={`inline-flex rounded-lg border px-1.5 py-0.5 text-[8.5px] font-bold ${SIGNAL_PILL[s.flag] ?? SIGNAL_PILL.neutral}`}>
+            <span key={s.key} className={`inline-flex rounded-lg border px-1.5 py-0.5 text-2xs font-bold ${SIGNAL_PILL[s.flag] ?? SIGNAL_PILL.neutral}`}>
               {s.detail}
             </span>
           ))}
@@ -173,7 +173,7 @@ export default function DailyStrainCard({
       {/* Correlations link */}
       <Link
         to="/korelacje"
-        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-[10px] font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[0.985] relative z-10"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[0.985] relative z-10"
       >
         <BarChart2 size={11} />
         Korelacje — kawa, sen, trening

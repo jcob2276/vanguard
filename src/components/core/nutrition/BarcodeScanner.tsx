@@ -50,7 +50,7 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
 
   return (
     <div className="space-y-3">
-      <button onClick={onClose} className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
+      <button onClick={onClose} className="text-xs font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
       {detectorSupported && !cameraError ? (
         <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
           <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
@@ -58,7 +58,7 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
           {loading && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><Spinner size="md" className="!border-white/30 !border-t-white" /></div>}
         </div>
       ) : (
-        <p className="text-[11px] text-text-muted text-center py-2">{cameraError || 'Skaner kamery niedostępny — wpisz kod ręcznie'}</p>
+        <p className="text-xs text-text-muted text-center py-2">{cameraError || 'Skaner kamery niedostępny — wpisz kod ręcznie'}</p>
       )}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -66,7 +66,7 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
           <input value={manualCode} onChange={(e) => setManualCode(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && manualCode.trim()) onDetected(manualCode.trim()); }}
             inputMode="numeric" placeholder="Wpisz kod kreskowy..."
-            className="w-full rounded-xl border border-border-custom bg-surface-solid/40 pl-9 pr-2 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
+            className="w-full rounded-xl border border-border-custom bg-surface-solid/40 pl-9 pr-2 py-2.5 text-sm text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
         </div>
         <Button onClick={() => manualCode.trim() && onDetected(manualCode.trim())} disabled={!manualCode.trim() || loading} size="sm">Szukaj</Button>
       </div>

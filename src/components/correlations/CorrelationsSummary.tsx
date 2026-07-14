@@ -28,28 +28,28 @@ export default function CorrelationsSummary({ loading, stats, includeWeak, error
             { label: 'Metryki', value: stats.metrics_tracked },
           ].map(s => (
             <div key={s.label} className="rounded-xl border border-border-custom bg-surface px-3 py-2.5 text-center">
-              <p className="text-[18px] font-black tabular-nums text-text-primary">{s.value}</p>
-              <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">{s.label}</p>
+              <p className="text-lg font-black tabular-nums text-text-primary">{s.value}</p>
+              <p className="text-2xs font-black uppercase tracking-widest text-text-muted">{s.label}</p>
             </div>
           ))}
         </div>
       )}
 
       {!loading && stats && stats.hidden_weak != null && stats.hidden_weak > 0 && !includeWeak && (
-        <p className="text-[10px] text-text-muted -mt-3">
+        <p className="text-xs text-text-muted -mt-3">
           Ukryto {stats.hidden_weak} słabszych par (|r|&lt;0.28 lub za małe N). Włącz poniżej, żeby zobaczyć resztę.
         </p>
       )}
 
       {!loading && stats && stats.spearman_primary > 0 && (
-        <p className="text-[10px] text-text-muted -mt-3">
+        <p className="text-xs text-text-muted -mt-3">
           {stats.spearman_primary} par używa Spearmana (ρ) — lepszy przy nieliniowych zależnościach (np. godzina kawy, dawki).
         </p>
       )}
 
       {error && (
         <Card variant="danger" padding="0.75rem 1rem">
-          <p className="text-[12px] text-danger">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
         </Card>
       )}
 
@@ -63,12 +63,12 @@ export default function CorrelationsSummary({ loading, stats, includeWeak, error
 
       {!loading && sparseMetrics.length > 0 && (
         <Card variant="notice" as="section" padding="1rem" className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-warning dark:text-warning">
+          <p className="text-xs font-black uppercase tracking-widest text-warning dark:text-warning">
             Zbieranie danych
           </p>
           <ul className="space-y-1">
             {sparseMetrics.map(m => (
-              <li key={m.key} className="text-[11px] text-text-secondary">
+              <li key={m.key} className="text-xs text-text-secondary">
                 <span className="font-semibold text-text-primary">{m.key}</span> — {m.n} dni · {m.hint}
               </li>
             ))}

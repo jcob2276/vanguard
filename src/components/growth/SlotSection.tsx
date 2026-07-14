@@ -86,7 +86,7 @@ export default function SlotSection({
   return (
     <div className="space-y-2">
       {!hideHeader && title && (
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">{title}</p>
+        <p className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">{title}</p>
       )}
       <div className="space-y-2">
         {slotPins.map(renderPin)}

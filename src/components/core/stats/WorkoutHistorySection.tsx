@@ -30,18 +30,18 @@ export function WorkoutHistorySection({
 }) {
   return (
     <section className="space-y-3">
-      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Siłownia</p>
-      <h2 className="mt-0.5 font-display text-[18px] font-black tracking-tight text-text-primary">Historia treningów</h2>
+      <p className="text-2xs font-bold uppercase tracking-[0.15em] text-text-muted font-display">Siłownia</p>
+      <h2 className="mt-0.5 font-display text-lg font-black tracking-tight text-text-primary">Historia treningów</h2>
       <div className="overflow-hidden card !p-0">
         <table className="w-full text-left">
           <thead>
-            <tr className="bg-text-primary/[0.02] text-[8px] font-black uppercase tracking-widest text-text-secondary">
+            <tr className="bg-text-primary/[0.02] text-2xs font-black uppercase tracking-widest text-text-secondary">
               <th className="p-3">Data</th>
               <th className="p-3 text-center">Dzień</th>
               <th className="p-3 text-right">Akcja</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border-custom text-[10px] font-semibold text-text-primary">
+          <tbody className="divide-y divide-border-custom text-xs font-semibold text-text-primary">
             {recentSessions.slice(0, showAllSessions ? 12 : 4).map((s) => (
               <tr key={s.id} className="transition-colors hover:bg-primary/[0.02] dark:hover:bg-white/[0.02]">
                 <td className="p-3">
@@ -50,7 +50,7 @@ export function WorkoutHistorySection({
                       type="date" 
                       value={editForm.date ?? ""} 
                       onChange={e => setEditForm({...editForm, date: e.target.value})} 
-                      className="bg-surface border border-border-custom rounded-lg p-1.5 text-[10px] text-text-primary outline-none focus:border-primary/50" 
+                      className="bg-surface border border-border-custom rounded-lg p-1.5 text-xs text-text-primary outline-none focus:border-primary/50" 
                     />
                   ) : (
                     format(parseISO(s.date ?? ""), 'dd.MM')
@@ -64,7 +64,7 @@ export function WorkoutHistorySection({
                         value={editForm.workout_day ?? ''}
                         onChange={e => setEditForm({...editForm, workout_day: e.target.value})}
                         placeholder="Nazwa treningu..."
-                        className="w-full bg-surface border border-border-custom rounded-lg p-1.5 text-[10px] font-bold text-text-primary outline-none focus:border-primary/50"
+                        className="w-full bg-surface border border-border-custom rounded-lg p-1.5 text-xs font-bold text-text-primary outline-none focus:border-primary/50"
                       />
                       {editForm.logs.map((log, idx) => {
                         const isWellness = log.muscle_tags?.includes('wellness') ||
@@ -78,23 +78,23 @@ export function WorkoutHistorySection({
                         };
                         return (
                         <div key={log.id} className="flex items-center gap-2 bg-surface/50 p-2 rounded-lg border border-border-custom">
-                          <span className="text-[8px] w-12 truncate text-text-secondary">{log.exercise_name}</span>
+                          <span className="text-2xs w-12 truncate text-text-secondary">{log.exercise_name}</span>
                           {isWellness ? (
                             <>
                               <input
                                 type="number"
                                 value={log.reps ?? ""}
                                 onChange={e => updateLog('reps', e.target.value)}
-                                className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                                className="w-12 bg-surface border border-border-custom rounded p-1 text-xs text-text-primary outline-none focus:border-primary/50"
                               />
-                              <span className="text-[8px] text-text-muted">min</span>
+                              <span className="text-2xs text-text-muted">min</span>
                               <input
                                 type="number"
                                 value={log.weight ?? ""}
                                 onChange={e => updateLog('weight', e.target.value)}
-                                className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                                className="w-10 bg-surface border border-border-custom rounded p-1 text-xs text-text-primary outline-none focus:border-primary/50"
                               />
-                              <span className="text-[8px] text-text-muted">°C</span>
+                              <span className="text-2xs text-text-muted">°C</span>
                             </>
                           ) : (
                             <>
@@ -103,14 +103,14 @@ export function WorkoutHistorySection({
                                 step="0.5"
                                 value={log.weight ?? ""}
                                 onChange={e => updateLog('weight', e.target.value)}
-                                className="w-12 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                                className="w-12 bg-surface border border-border-custom rounded p-1 text-xs text-text-primary outline-none focus:border-primary/50"
                               />
-                              <span className="text-[8px] text-text-muted">kg x</span>
+                              <span className="text-2xs text-text-muted">kg x</span>
                               <input
                                 type="number"
                                 value={log.reps ?? ""}
                                 onChange={e => updateLog('reps', e.target.value)}
-                                className="w-10 bg-surface border border-border-custom rounded p-1 text-[10px] text-text-primary outline-none focus:border-primary/50"
+                                className="w-10 bg-surface border border-border-custom rounded p-1 text-xs text-text-primary outline-none focus:border-primary/50"
                               />
                             </>
                           )}
@@ -177,7 +177,7 @@ export function WorkoutHistorySection({
             variant="ghost"
             size="sm"
             onClick={() => setShowAllSessions(v => !v)}
-            className="w-full py-3 rounded-none border-t border-border-custom text-[9px]"
+            className="w-full py-3 rounded-none border-t border-border-custom text-2xs"
           >
             {showAllSessions ? 'Zwiń ↑' : `Pokaż więcej (${recentSessions.length - 4}) ↓`}
           </Button>

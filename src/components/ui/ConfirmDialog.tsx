@@ -16,7 +16,7 @@ export default function ConfirmDialog() {
       size="sm"
       padding="p-5"
     >
-      <p className="text-[13px] font-semibold text-text-primary leading-relaxed">{confirm.message}</p>
+      <p className="text-sm font-semibold text-text-primary leading-relaxed">{confirm.message}</p>
       <div className="mt-4 flex justify-end gap-2">
         <Button
           variant="outline"

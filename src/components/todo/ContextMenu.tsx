@@ -74,7 +74,7 @@ export default function ContextMenu({
     <div
       ref={ref}
       style={{ position: 'fixed', left, top, zIndex: 10000, minWidth: 230 }}
-      className="max-h-[420px] w-60 overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 p-1.5 shadow-2xl backdrop-blur-xl flex flex-col gap-0.5 text-[12px] text-text-secondary select-none"
+      className="max-h-[420px] w-60 overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 p-1.5 shadow-2xl backdrop-blur-xl flex flex-col gap-0.5 text-sm text-text-secondary select-none"
     >
       {/* 1. Edytuj */}
       <button
@@ -88,14 +88,14 @@ export default function ContextMenu({
           <Pencil size={14} className="text-text-muted/60" />
           <span>Edytuj</span>
         </div>
-        <span className="text-[9px] text-text-muted/40 font-mono tracking-wider">Ctrl E</span>
+        <span className="text-2xs text-text-muted/40 font-mono tracking-wider">Ctrl E</span>
       </button>
 
       <div className="mx-2 my-0.5 border-t border-border-custom/40" />
 
       {/* 2. Termin picker container */}
       <div className="px-3 py-1.5 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-text-muted/50">
+        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-text-muted/50">
           <span>Termin</span>
           <span className="font-mono">T</span>
         </div>
@@ -151,7 +151,7 @@ export default function ContextMenu({
 
       {/* 3. Priorytet picker container */}
       <div className="px-3 py-1.5 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-text-muted/50">
+        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-text-muted/50">
           <span>Priorytet</span>
           <span className="font-mono">Y</span>
         </div>
@@ -187,7 +187,7 @@ export default function ContextMenu({
             <span>Przenieś do...</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-[9px] text-text-muted/40 font-mono tracking-wider">V</span>
+            <span className="text-2xs text-text-muted/40 font-mono tracking-wider">V</span>
             <ChevronRight size={11} className="text-text-muted/45" />
           </div>
         </button>
@@ -199,7 +199,7 @@ export default function ContextMenu({
               onMoveSection(null);
               onClose();
             }}
-            className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[11px] font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
           >
             <span>📥 Skrzynka</span>
           </button>
@@ -210,7 +210,7 @@ export default function ContextMenu({
                 onMoveSection(s.id);
                 onClose();
               }}
-              className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[11px] font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
+              className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
             >
               <span>📂 {s.name}</span>
             </button>
@@ -245,7 +245,7 @@ export default function ContextMenu({
           <Trash2 size={14} className="text-danger" />
           <span>Usuń</span>
         </div>
-        <span className="text-[9px] text-danger/40 font-mono tracking-wider">↑ Usuń</span>
+        <span className="text-2xs text-danger/40 font-mono tracking-wider">↑ Usuń</span>
       </button>
     </div>
   );

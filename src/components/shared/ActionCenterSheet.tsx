@@ -92,7 +92,7 @@ export function ActionCenterSheet({
       className="bg-surface-solid border border-border-custom rounded-t-[24px] sm:rounded-b-[24px] max-h-[80vh]"
     >
       <div className="flex items-center justify-between mb-4">
-        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-text-muted">
+        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-text-muted">
           <HelpCircle size={14} /> Oczekujące
         </p>
         <Button
@@ -105,10 +105,10 @@ export function ActionCenterSheet({
         </Button>
       </div>
 
-      {loading && <p className="text-center text-[12px] text-text-muted py-6">Ładuję…</p>}
+      {loading && <p className="text-center text-sm text-text-muted py-6">Ładuję…</p>}
 
       {empty && (
-        <p className="text-center text-[12px] text-text-tertiary py-8">Brak propozycji ani pytań.</p>
+        <p className="text-center text-sm text-text-tertiary py-8">Brak propozycji ani pytań.</p>
       )}
 
       <div className="space-y-4">

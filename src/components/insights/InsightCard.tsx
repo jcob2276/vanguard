@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pin, SortAsc, Trash2, X } from 'lucide-react';
 import Spinner from '../ui/Spinner';
+import Button from '../ui/Button';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { WidgetFactory, type WidgetType } from '../widgets/WidgetFactory';
 import type { InsightCardData } from '../../lib/insightsApi';
@@ -60,15 +61,15 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
         {card.isPinned && (
           <div className="flex items-center gap-1 mb-1.5 px-1">
             <Pin size={9} style={{ color: 'var(--color-primary)' }} />
-            <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Przypięte</span>
+            <span className="text-2xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Przypięte</span>
           </div>
         )}
         {!widgetType && card.title && expanded && (
-          <p className="text-[15px] font-bold text-text-primary mb-2">{card.title}</p>
+          <p className="text-base font-bold text-text-primary mb-2">{card.title}</p>
         )}
         {body}
         {card.insight && (
-          <p className="mt-1.5 px-1 text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>{card.insight}</p>
+          <p className="mt-1.5 px-1 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>{card.insight}</p>
         )}
       </div>
 
@@ -83,43 +84,39 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
         >
           <div className="flex gap-5 items-center" onClick={e => e.stopPropagation()}>
             {onPin && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => { onPin(card.id); setOverlayOpen(false); }}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                icon={<Pin size={20} color="white" />}
+                className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
                 style={{ background: 'var(--color-primary)', boxShadow: '0 0 20px rgba(91,108,255,0.4)' }}
-              >
-                <Pin size={20} color="white" />
-              </button>
+              />
             )}
             {onSort && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => { onSort(card.id); setOverlayOpen(false); }}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                icon={<SortAsc size={20} color="white" />}
+                className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
                 style={{ background: 'var(--color-warning)', boxShadow: '0 0 20px rgba(245,158,11,0.4)' }}
-              >
-                <SortAsc size={20} color="white" />
-              </button>
+              />
             )}
             {onDelete && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={handleDelete}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                icon={deleting ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
+                className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
                 style={{ background: 'var(--color-danger)', boxShadow: '0 0 20px rgba(244,63,94,0.4)' }}
-              >
-                {deleting ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
-              </button>
+              />
             )}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => setOverlayOpen(false)}
-              className="w-10 h-10 rounded-full flex items-center justify-center"
+              icon={<X size={16} color="#0A0A0A" />}
+              className="w-10 h-10 min-w-0 p-0 rounded-full hover:bg-transparent"
               style={{ background: 'white' }}
-            >
-              <X size={16} color="#0A0A0A" />
-            </button>
+            />
           </div>
         </div>
       )}

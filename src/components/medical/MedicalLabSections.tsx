@@ -26,22 +26,22 @@ export function ValueCell({ row }: { row: MedicalLabRow }) {
   return (
     <span className={`font-black tabular-nums ${tone}`}>
       {row.value}
-      {row.unit ? <span className="text-[10px] font-semibold text-text-muted ml-0.5">{row.unit}</span> : null}
+      {row.unit ? <span className="text-xs font-semibold text-text-muted ml-0.5">{row.unit}</span> : null}
     </span>
   );
 }
 
 function TrendBadge({ series }: { series: MarkerSeries }) {
-  if (!series.prior) return <span className="text-[9px] text-text-muted">—</span>;
+  if (!series.prior) return <span className="text-2xs text-text-muted">—</span>;
   const delta = computeTrendPct(series.latest.value, series.prior.value);
-  if (delta == null) return <span className="text-[9px] text-text-muted">—</span>;
+  if (delta == null) return <span className="text-2xs text-text-muted">—</span>;
   const rising = delta > 0;
   const stable = Math.abs(delta) < 5;
-  if (stable) return <span className="text-[9px] text-text-muted">≈0%</span>;
+  if (stable) return <span className="text-2xs text-text-muted">≈0%</span>;
   const Icon = rising ? TrendingUp : TrendingDown;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[9px] font-bold tabular-nums ${rising ? 'text-warning dark:text-warning' : 'text-info dark:text-info'}`}
+      className={`inline-flex items-center gap-0.5 text-2xs font-bold tabular-nums ${rising ? 'text-warning dark:text-warning' : 'text-info dark:text-info'}`}
     >
       <Icon size={10} />
       {rising ? '+' : ''}
@@ -55,7 +55,7 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
     <div className="overflow-x-auto -mx-1">
       <table className="w-full min-w-[520px] text-left border-collapse">
         <thead>
-          <tr className="text-[8px] font-black uppercase tracking-wider text-text-muted border-b border-border-custom">
+          <tr className="text-2xs font-black uppercase tracking-wider text-text-muted border-b border-border-custom">
             <th className="py-2 pr-2 font-black">Marker</th>
             <th className="py-2 px-2 font-black">Wynik</th>
             <th className="py-2 px-2 font-black">Norma lab</th>
@@ -72,14 +72,14 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
             return (
               <tr key={s.marker_key} className="border-b border-border-custom/50 last:border-0">
                 <td className="py-2.5 pr-2">
-                  <p className="text-[11px] font-bold text-text-primary leading-tight">{s.marker_name}</p>
-                  {s.latest.flag && <p className="text-[9px] text-text-muted mt-0.5">{s.latest.flag}</p>}
+                  <p className="text-xs font-bold text-text-primary leading-tight">{s.marker_name}</p>
+                  {s.latest.flag && <p className="text-2xs text-text-muted mt-0.5">{s.latest.flag}</p>}
                 </td>
                 <td className="py-2.5 px-2">
                   <ValueCell row={s.latest} />
                 </td>
-                <td className="py-2.5 px-2 text-[10px] text-text-muted max-w-[120px]">{formatRef(s.latest)}</td>
-                <td className="py-2.5 px-2 text-[10px] max-w-[100px]">
+                <td className="py-2.5 px-2 text-xs text-text-muted max-w-[120px]">{formatRef(s.latest)}</td>
+                <td className="py-2.5 px-2 text-xs max-w-[100px]">
                   {opt ? (
                     <span
                       className={
@@ -99,9 +99,9 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
                 <td className="py-2.5 px-2">
                   <TrendBadge series={s} />
                 </td>
-                <td className="py-2.5 pl-2 text-[10px] text-text-muted whitespace-nowrap">
+                <td className="py-2.5 pl-2 text-xs text-text-muted whitespace-nowrap">
                   {formatMedicalDate(s.latest.result_date)}
-                  {age != null && <span className="block text-[9px]">{age} dni temu</span>}
+                  {age != null && <span className="block text-2xs">{age} dni temu</span>}
                 </td>
               </tr>
             );
@@ -122,10 +122,10 @@ export function CategorySection({ catKey, series }: { catKey: string; series: Ma
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left cursor-pointer hover:bg-surface/50"
       >
         <div>
-          <p className="text-[11px] font-black uppercase tracking-wider text-text-primary">
+          <p className="text-xs font-black uppercase tracking-wider text-text-primary">
             {categoryLabel(catKey)}
           </p>
-          <p className="text-[10px] text-text-muted mt-0.5">{series.length} markerów</p>
+          <p className="text-xs text-text-muted mt-0.5">{series.length} markerów</p>
         </div>
         {open ? (
           <ChevronDown size={16} className="text-text-muted shrink-0" />
@@ -161,20 +161,20 @@ export function PanelTimeline({ byDate }: { byDate: Map<string, MedicalLabRow[]>
               className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left cursor-pointer"
             >
               <div className="min-w-0">
-                <p className="text-[12px] font-bold text-text-primary">{formatMedicalDate(date)}</p>
-                <p className="text-[10px] text-text-muted truncate">
+                <p className="text-sm font-bold text-text-primary">{formatMedicalDate(date)}</p>
+                <p className="text-xs text-text-muted truncate">
                   {rows.length} markerów · {source}
                   {provider ? ` · ${provider}` : ''}
                 </p>
               </div>
-              <span className="shrink-0 text-[9px] font-black uppercase text-text-muted">
+              <span className="shrink-0 text-2xs font-black uppercase text-text-muted">
                 {freshnessLabel(fresh)}
               </span>
             </button>
             {open && (
               <div className="border-t border-border-custom/60 px-3 py-2 space-y-1.5 max-h-64 overflow-y-auto">
                 {rows.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-2 text-[11px]">
+                  <div key={r.id} className="flex items-center justify-between gap-2 text-xs">
                     <span className="text-text-secondary truncate flex-1">{r.marker_name}</span>
                     <ValueCell row={r} />
                   </div>
@@ -197,15 +197,15 @@ export function BodyCompositionSection({ rows }: { rows: BodyCompositionRow[] })
         return (
           <li key={row.id} className="rounded-xl border border-border-custom bg-background/40 px-3 py-2.5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="text-[12px] font-bold text-text-primary">{formatMedicalDate(date)}</p>
-              <span className="text-[9px] font-black uppercase text-text-muted">
+              <p className="text-sm font-bold text-text-primary">{formatMedicalDate(date)}</p>
+              <span className="text-2xs font-black uppercase text-text-muted">
                 {freshnessLabel(labFreshness(age))} · {row.reliability}
               </span>
             </div>
-            <p className="text-[10px] text-text-muted mt-0.5">
+            <p className="text-xs text-text-muted mt-0.5">
               {row.source} · {row.method}
             </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] tabular-nums">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs tabular-nums">
               {row.weight_kg != null && (
                 <span>
                   Masa <strong>{row.weight_kg}</strong> kg
@@ -232,7 +232,7 @@ export function BodyCompositionSection({ rows }: { rows: BodyCompositionRow[] })
                 </span>
               )}
             </div>
-            {row.notes && <p className="text-[10px] text-text-muted mt-2 leading-relaxed">{row.notes}</p>}
+            {row.notes && <p className="text-xs text-text-muted mt-2 leading-relaxed">{row.notes}</p>}
           </li>
         );
       })}
@@ -248,11 +248,11 @@ export function KeyMarkerCards({ series, limit = 6 }: { series: MarkerSeries[]; 
         const age = diffDaysFromToday(s.latest.result_date);
         return (
           <div key={s.marker_key} className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5">
-            <p className="text-[10px] font-bold text-text-secondary line-clamp-2 leading-tight">{s.marker_name}</p>
+            <p className="text-xs font-bold text-text-secondary line-clamp-2 leading-tight">{s.marker_name}</p>
             <div className="mt-1.5">
               <ValueCell row={s.latest} />
             </div>
-            <p className="text-[9px] text-text-muted mt-1">
+            <p className="text-2xs text-text-muted mt-1">
               {formatMedicalDate(s.latest.result_date)}
               {age != null ? ` · ${age}d` : ''}
             </p>
@@ -281,8 +281,8 @@ export function SectionShell({
       <div className="flex items-start gap-2">
         {icon}
         <div>
-          <h2 className="text-[11px] font-black uppercase tracking-[0.15em] text-text-primary">{title}</h2>
-          {subtitle && <p className="text-[10px] text-text-muted mt-0.5">{subtitle}</p>}
+          <h2 className="text-xs font-black uppercase tracking-[0.15em] text-text-primary">{title}</h2>
+          {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
         </div>
       </div>
       {children}

@@ -27,7 +27,7 @@ export default function SmartAlerts({ alerts }: SmartAlertsProps) {
         const icon = { warn: '⚠', info: 'ℹ', ok: '✓' }[a.type];
 
         return (
-          <div key={a.msg} className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold ${cfg}`}>
+          <div key={a.msg} className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${cfg}`}>
             <span>{icon}</span>
             <span>{a.msg}</span>
             <Button
@@ -38,7 +38,7 @@ export default function SmartAlerts({ alerts }: SmartAlertsProps) {
                 next.add(a.msg);
                 return next;
               })}
-              className="ml-1 opacity-40 hover:opacity-100 transition-opacity cursor-pointer text-[13px] leading-none"
+              className="ml-1 opacity-40 hover:opacity-100 transition-opacity cursor-pointer text-sm leading-none"
             >
               ×
             </Button>

@@ -47,7 +47,7 @@ export function DashboardHeader({
   handleLogoPressEnd,
 }: DashboardHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/70 px-5 py-4.5 backdrop-blur-md shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)]">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/70 px-5 py-4.5 backdrop-blur-md shadow-[var(--shadow-nav)]">
       <div className="min-w-0 shrink-0">
         <h1
           className="font-display text-sm text-primary select-none cursor-pointer flex items-center gap-1.5"
@@ -60,7 +60,7 @@ export function DashboardHeader({
           <BrandTitle />
           <span className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_var(--color-success)] animate-pulse" title="System Online" />
         </h1>
-        <p className="mt-1 text-[8.5px] font-black uppercase tracking-wider text-text-muted/65">
+        <p className="mt-1 text-2xs font-black uppercase tracking-wider text-text-muted/65">
           {formatDashboardDate()}
         </p>
       </div>
@@ -87,7 +87,7 @@ export function DashboardHeader({
               onClick={() => onShortcutClick('todo')}
               className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
                 view === 'todo'
-                  ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                  ? 'bg-primary border-primary text-white shadow-[var(--shadow-glow-primary)] scale-105'
                   : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
               }`}
               title="Zadania"
@@ -98,7 +98,7 @@ export function DashboardHeader({
               onClick={() => onShortcutClick('kalendarz')}
               className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
                 view === 'kalendarz'
-                  ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                  ? 'bg-primary border-primary text-white shadow-[var(--shadow-glow-primary)] scale-105'
                   : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
               }`}
               title="Kalendarz"
@@ -109,7 +109,7 @@ export function DashboardHeader({
               onClick={() => onShortcutClick('keep')}
               className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
                 view === 'keep'
-                  ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                  ? 'bg-primary border-primary text-white shadow-[var(--shadow-glow-primary)] scale-105'
                   : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
               }`}
               title="Notatki"
@@ -125,7 +125,7 @@ export function DashboardHeader({
               onClick={() => onShortcutClick('links')}
               className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center ${
                 view === 'links'
-                  ? 'bg-primary border-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.4)] scale-105'
+                  ? 'bg-primary border-primary text-white shadow-[var(--shadow-glow-primary)] scale-105'
                   : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
               }`}
               title="Zapisane linki"

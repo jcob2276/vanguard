@@ -60,7 +60,7 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
       <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
         <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
-          <span className="text-[12px] font-bold text-text-muted">Wczytywanie rytuału planowania...</span>
+          <span className="text-sm font-bold text-text-muted">Wczytywanie rytuału planowania...</span>
         </div>
       </Modal>
     );
@@ -82,12 +82,12 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
         {/* Header */}
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">
+            <h2 className="text-base font-black text-text-primary uppercase tracking-wider">
               {isPlanningTomorrow ? 'Zaplanuj Jutro' : 'Planowanie Poranne'}
             </h2>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] font-semibold text-text-muted">{planningDate}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">Krok {step} z 3</span>
+              <span className="text-xs font-semibold text-text-muted">{planningDate}</span>
+              <span className="text-2xs font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">Krok {step} z 3</span>
             </div>
           </div>
           <Button onClick={onClose} variant="ghost" icon={<X size={18} />} className="p-1.5" />

@@ -7,9 +7,9 @@ export function LinkCard({ data }: { data: LinkCardData }) {
         {data.favicon ? <img src={data.favicon} className="w-4 h-4 rounded" alt="" /> : <ExternalLink size={13} style={{ color: 'var(--color-primary)' }} />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{data.title || data.url}</p>
-        {data.description && <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>}
-        <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--color-text-tertiary)' }}>{data.url}</p>
+        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{data.title || data.url}</p>
+        {data.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>}
+        <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-tertiary)' }}>{data.url}</p>
       </div>
     </a>
   );

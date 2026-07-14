@@ -25,33 +25,33 @@ export default function RetroModal({ retroProject, retroForm, setRetroForm, onSu
       <div className="space-y-4">
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co poszło dobrze?</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-1">Co poszło dobrze?</label>
             <textarea
               value={retroForm.good}
               onChange={e => setRetroForm(f => ({ ...f, good: e.target.value }))}
               rows={2}
               placeholder="Najlepszy moment, decyzja, wynik..."
-              className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
+              className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1">Co zrobić inaczej?</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-1">Co zrobić inaczej?</label>
             <textarea
               value={retroForm.improve}
               onChange={e => setRetroForm(f => ({ ...f, improve: e.target.value }))}
               rows={2}
               placeholder="Błąd, bloker, coś czego uniknąć..."
-              className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
+              className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-1.5">Ocena projektu</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-1.5">Ocena projektu</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map(n => (
                 <button
                   key={n}
                   onClick={() => setRetroForm(f => ({ ...f, rating: f.rating === n ? 0 : n }))}
-                  className={`flex-1 rounded-xl py-2 text-[13px] font-black transition-all cursor-pointer ${
+                  className={`flex-1 rounded-xl py-2 text-sm font-black transition-all cursor-pointer ${
                     retroForm.rating >= n ? 'bg-primary text-white shadow-sm' : 'bg-surface-solid text-text-muted hover:bg-primary/10'
                   }`}
                 >
@@ -62,10 +62,10 @@ export default function RetroModal({ retroProject, retroForm, setRetroForm, onSu
           </div>
         </div>
         <div className="flex gap-2 pt-1">
-          <Button variant="outline" onClick={() => onSubmit(true)} className="flex-1 py-3 text-[12px]">
+          <Button variant="outline" onClick={() => onSubmit(true)} className="flex-1 py-3 text-sm">
             Pomiń
           </Button>
-          <Button onClick={() => onSubmit(false)} disabled={busy} loading={busy} className="flex-1 py-3 text-[12px]">
+          <Button onClick={() => onSubmit(false)} disabled={busy} loading={busy} className="flex-1 py-3 text-sm">
             Zapisz i zamknij
           </Button>
         </div>

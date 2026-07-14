@@ -6,7 +6,7 @@ function Divider({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-px flex-1 bg-border-custom" />
-      <span className="text-[9px] uppercase tracking-widest text-text-muted font-black">{title}</span>
+      <span className="text-2xs uppercase tracking-widest text-text-muted font-black">{title}</span>
       <div className="h-px flex-1 bg-border-custom" />
     </div>
   );
@@ -16,7 +16,7 @@ function StatCard({ value, label }: { value: string; label: string }) {
   return (
     <Card padding="0.625rem 0.75rem">
       <div className="text-xl font-bold text-text-primary">{value}</div>
-      <div className="text-[10px] text-text-muted mt-0.5">{label}</div>
+      <div className="text-xs text-text-muted mt-0.5">{label}</div>
     </Card>
   );
 }
@@ -73,11 +73,11 @@ export default function DirectionSprintMode({
   return (
     <div className="space-y-6 pb-6 border-b border-border-custom mb-6">
       <div className="rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-warning">Zamknięcie sprintu</p>
+        <p className="text-2xs font-black uppercase tracking-[0.2em] text-warning">Zamknięcie sprintu</p>
         <p className="mt-1 text-sm font-semibold text-text-primary">
           {sprintFacts.sprintLabel} · tydzień 12/12
         </p>
-        <p className="mt-1 text-[11px] text-text-secondary">
+        <p className="mt-1 text-xs text-text-secondary">
           {sprintFacts.sprintStart} – {sprintFacts.sprintEnd}
           {sprintFacts.currentGoal ? ` · ${sprintFacts.currentGoal}` : ''}
         </p>
@@ -95,7 +95,7 @@ export default function DirectionSprintMode({
           <StatCard value={String(sprintFacts.kpiWeeksLogged)} label="tygodni z KPI" />
         </div>
         {pillarLine && (
-          <p className="text-[11px] text-text-secondary">
+          <p className="text-xs text-text-secondary">
             <span className="font-black text-text-muted">Śr. oceny filarów: </span>
             {pillarLine}
           </p>
@@ -109,7 +109,7 @@ export default function DirectionSprintMode({
             {sprintFacts.kpiSummaries.slice(0, 8).map((k) => (
               <li
                 key={`${k.name}-${k.projectName}`}
-                className="rounded-xl border border-border-custom bg-surface/50 px-3 py-2 text-[11px] text-text-secondary"
+                className="rounded-xl border border-border-custom bg-surface/50 px-3 py-2 text-xs text-text-secondary"
               >
                 <span className="font-semibold text-text-primary">{k.name}</span>
                 {k.projectName ? ` · ${k.projectName}` : ''}
@@ -129,8 +129,8 @@ export default function DirectionSprintMode({
           <Divider title="Tygodnie — jedna linia" />
           <ul className="space-y-1">
             {sprintFacts.weekHighlights.map((w) => (
-              <li key={w.weekStart} className="text-[11px] text-text-secondary leading-snug">
-                <span className="font-mono text-[9px] text-text-muted">{w.weekStart}</span>
+              <li key={w.weekStart} className="text-xs text-text-secondary leading-snug">
+                <span className="font-mono text-2xs text-text-muted">{w.weekStart}</span>
                 {' — '}
                 {w.label}
               </li>
@@ -142,7 +142,7 @@ export default function DirectionSprintMode({
       {sprintFacts.activeProjects.length > 0 && (
         <div className="space-y-2">
           <Divider title="Projekty na następny sprint" />
-          <p className="text-[10px] text-text-muted">Kontynuuj aktywne albo odłóż (pauza).</p>
+          <p className="text-xs text-text-muted">Kontynuuj aktywne albo odłóż (pauza).</p>
           <ul className="space-y-2">
             {sprintFacts.activeProjects.map((p) => {
               const decision = projectDecisions[p.id] ?? 'continue';
@@ -153,14 +153,14 @@ export default function DirectionSprintMode({
                   className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2 space-y-1.5"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-semibold text-text-primary truncate">{p.name}</span>
+                    <span className="text-sm font-semibold text-text-primary truncate">{p.name}</span>
                     <div className="flex shrink-0 gap-1">
                     {(['continue', 'defer'] as const).map((d) => (
                       <button
                         key={d}
                         type="button"
                         onClick={() => setProject(p.id, d)}
-                        className={`rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wide transition-colors ${
+                        className={`rounded-lg px-2 py-1 text-2xs font-black uppercase tracking-wide transition-colors ${
                           decision === d
                             ? d === 'continue'
                               ? 'bg-primary text-white'
@@ -174,7 +174,7 @@ export default function DirectionSprintMode({
                   </div>
                   </div>
                   {projectKpis.length > 0 && (
-                    <ul className="text-[10px] text-text-muted space-y-0.5 pl-0.5">
+                    <ul className="text-xs text-text-muted space-y-0.5 pl-0.5">
                       {projectKpis.map((k) => (
                         <li key={k.name}>
                           {k.name}: {k.lastValue ?? '—'}/{k.target ?? '?'}
@@ -184,7 +184,7 @@ export default function DirectionSprintMode({
                     </ul>
                   )}
                   {decision === 'continue' && (
-                    <p className="text-[9px] font-semibold text-primary">→ wchodzi w sprint {sprintFacts.sprintNumber + 1}</p>
+                    <p className="text-2xs font-semibold text-primary">→ wchodzi w sprint {sprintFacts.sprintNumber + 1}</p>
                   )}
                 </li>
               );
@@ -195,7 +195,7 @@ export default function DirectionSprintMode({
 
       <div className="space-y-2">
         <Divider title="Jedna decyzja" />
-        <p className="text-[11px] text-text-muted">
+        <p className="text-xs text-text-muted">
           Cel na sprint {sprintFacts.sprintNumber + 1} — jedna linia. Projekty „Kontynuuj” zapiszą się jako focus sprintu.
         </p>
         <Textarea
@@ -204,7 +204,7 @@ export default function DirectionSprintMode({
           placeholder="Np. „Pipeline 3 rozmowy/tydz.” albo „Fundament ciała przed Q4”"
           rows={2}
         />
-        <p className="text-[10px] text-text-muted">Opcjonalnie — notatka z zamknięcia:</p>
+        <p className="text-xs text-text-muted">Opcjonalnie — notatka z zamknięcia:</p>
         <Textarea
           value={reflection}
           onChange={setReflection}

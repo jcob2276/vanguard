@@ -7,9 +7,9 @@ export function PlaceCard({ data }: { data: PlaceCardData }) {
         <MapPin size={13} style={{ color: 'var(--color-success)' }} />
       </div>
       <div>
-        <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{data.name}</p>
-        {data.address && <p className="text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>{data.address}</p>}
-        {data.notes && <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>{data.notes}</p>}
+        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{data.name}</p>
+        {data.address && <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>{data.address}</p>}
+        {data.notes && <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{data.notes}</p>}
       </div>
     </div>
   );

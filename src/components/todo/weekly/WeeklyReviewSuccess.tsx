@@ -8,10 +8,10 @@ export default function WeeklyReviewSuccess() {
         <Sparkles />
       </div>
       <div className="space-y-1">
-        <h2 className="text-[16px] font-black text-text-primary uppercase tracking-wider">
+        <h2 className="text-lg font-black text-text-primary uppercase tracking-wider">
           System oczyszczony!
         </h2>
-        <p className="text-[12px] text-text-muted">
+        <p className="text-sm text-text-muted">
           Twój Tygodniowy Przegląd Zadań został zakończony. Masz teraz pełną jasność umysłu oraz zdefiniowane prognozy.
         </p>
       </div>

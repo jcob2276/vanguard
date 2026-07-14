@@ -1,4 +1,5 @@
 import type { RefObject } from 'react';
+import Button from '../ui/Button';
 import {
   ChatItem,
   TimeDivider,
@@ -34,15 +35,16 @@ export function OracleChat({
     <div className="max-h-72 overflow-y-auto px-4 py-3 space-y-3">
       {items.length === 0 && (
         <div className="py-2 space-y-2">
-          <p className="text-[10px] text-text-muted text-center mb-3">{emptyStateHint}</p>
+          <p className="text-xs text-text-muted text-center mb-3">{emptyStateHint}</p>
           {promptSuggestions.map((q) => (
-            <button
+            <Button
               key={q}
+              variant="ghost"
               onClick={() => onSuggestionClick(q)}
-              className="w-full text-left rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-[11px] text-text-secondary hover:text-text-primary hover:border-primary/20 hover:bg-surface-solid transition-all cursor-pointer"
+              className="w-full justify-start text-left rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:border-primary/20 hover:bg-surface-solid"
             >
               {q}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -66,21 +68,25 @@ export function OracleChat({
             {item.type === 'error' && <ErrorItem text={item.text} />}
             {item.type === 'action' && (
               <div className="space-y-2 my-2 p-3 rounded-xl border border-primary/25 bg-primary/5">
-                <p className="text-[11px] font-bold text-primary">{item.text}</p>
+                <p className="text-xs font-bold text-primary">{item.text}</p>
                 {item.status === 'pending' && (
                   <div className="flex gap-2">
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => onPendingAction(i, item.pendingActionId ?? '', item.pendingActionType ?? '', item.pendingActionPayload, true)}
-                      className="rounded-lg bg-primary text-white px-3 py-1.5 text-[10px] font-bold hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
+                      className="rounded-lg"
                     >
                       Zatwierdź
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => onPendingAction(i, item.pendingActionId ?? '', item.pendingActionType ?? '', item.pendingActionPayload, false)}
-                      className="rounded-lg bg-surface border border-border-custom text-text-secondary px-3 py-1.5 text-[10px] font-bold hover:bg-surface-solid active:scale-95 transition-all cursor-pointer"
+                      className="rounded-lg bg-surface border border-border-custom text-text-secondary hover:bg-surface-solid hover:text-text-secondary"
                     >
                       Odrzuć
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

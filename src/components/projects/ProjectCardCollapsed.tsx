@@ -50,7 +50,7 @@ function KpiRows({
           <div key={kpi.id} className="space-y-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${col.dot}`} />
-              <span className="text-[10px] text-text-muted truncate flex-1">{kpi.name}</span>
+              <span className="text-xs text-text-muted truncate flex-1">{kpi.name}</span>
               {isEditing ? (
                 <input
                   autoFocus
@@ -63,12 +63,12 @@ function KpiRows({
                     }
                     if (e.key === 'Escape') setEditingKpiId(null);
                   }}
-                  className="w-16 rounded-lg border border-primary/40 bg-background/80 px-2 py-0.5 text-[11px] font-bold text-primary outline-none text-center"
+                  className="w-16 rounded-lg border border-primary/40 bg-background/80 px-2 py-0.5 text-xs font-bold text-primary outline-none text-center"
                 />
               ) : (
                 <button
                   onClick={() => setEditingKpiId(kpi.id)}
-                  className={`text-[11px] font-black ${col.text} hover:underline cursor-pointer`}
+                  className={`text-xs font-black ${col.text} hover:underline cursor-pointer`}
                   title="Kliknij żeby edytować"
                 >
                   {kpi.current_value != null ? kpi.current_value : '—'}
@@ -79,7 +79,7 @@ function KpiRows({
                 </button>
               )}
               {pct !== null && !isEditing && (
-                <span className="text-[9px] font-bold text-text-muted/60 shrink-0">{pct}%</span>
+                <span className="text-2xs font-bold text-text-muted/60 shrink-0">{pct}%</span>
               )}
             </div>
             {isExpanded && (
@@ -142,7 +142,7 @@ export default function ProjectCardCollapsed({
               <Badge
                 variant="tag"
                 color={PILLAR_HEX_COLORS[pm.color] || '#3b82f6'}
-                className="gap-1 text-[9px] font-black uppercase tracking-widest"
+                className="gap-1 text-2xs font-black uppercase tracking-widest"
               >
                 <pm.icon size={9} />
                 {pm.label}
@@ -156,20 +156,20 @@ export default function ProjectCardCollapsed({
             <Badge
               variant="tag"
               color={momentumMeta.color}
-              className="text-[9px] font-bold"
+              className="text-2xs font-bold"
             >
               {momentumMeta.label}
             </Badge>
           </div>
 
           {/* Project name */}
-          <span className="text-[15px] font-bold text-text-primary leading-tight">
+          <span className="text-base font-bold text-text-primary leading-tight">
             {project.name}
           </span>
 
           {/* Goal / identity */}
           {project.goal && (
-            <p className="mt-0.5 text-[11px] text-text-muted/70 line-clamp-1 italic">
+            <p className="mt-0.5 text-xs text-text-muted/70 line-clamp-1 italic">
               {project.goal}
             </p>
           )}
@@ -190,10 +190,10 @@ export default function ProjectCardCollapsed({
       {s.total > 0 && (
         <div className="mt-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-text-muted">
+            <span className="text-xs text-text-muted">
               {s.doneItems.length}/{s.total} zadań
             </span>
-            <span className={`text-[10px] font-bold ${col.text}`}>{s.progress}%</span>
+            <span className={`text-xs font-bold ${col.text}`}>{s.progress}%</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-border-custom/40">
             <div
@@ -230,7 +230,7 @@ export default function ProjectCardCollapsed({
               )}
             </div>
           ))}
-          <span className="ml-1.5 text-[10px] text-text-muted">
+          <span className="ml-1.5 text-xs text-text-muted">
             {doneCheckpoints}/{projectCheckpoints.length}
           </span>
         </div>
@@ -240,7 +240,7 @@ export default function ProjectCardCollapsed({
       {nextAction && !isExpanded && (
         <div className="mt-2.5 flex items-center gap-1.5">
           <ArrowRight size={10} className={col.text} />
-          <span className="text-[11px] text-text-muted truncate">{nextAction}</span>
+          <span className="text-xs text-text-muted truncate">{nextAction}</span>
         </div>
       )}
 
@@ -248,7 +248,7 @@ export default function ProjectCardCollapsed({
       {s.daysLeft !== null && (
         <div className="mt-2 flex items-center gap-1">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
               s.daysLeft < 0
                 ? 'bg-danger/10 text-danger'
                 : s.daysLeft <= 7

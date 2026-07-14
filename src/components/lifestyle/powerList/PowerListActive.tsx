@@ -29,7 +29,7 @@ export default function PowerListActive({
     <div className="space-y-2.5">
       {checkpointPrompt && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-success/25 bg-success/[0.06] px-3.5 py-2.5 animate-fadeIn">
-          <p className="text-[11px] font-semibold text-text-primary leading-snug min-w-0">
+          <p className="text-xs font-semibold text-text-primary leading-snug min-w-0">
             Checkpoint: <span className="font-bold">{checkpointPrompt.title}</span> — oznaczyć jako done?
           </p>
           <div className="flex shrink-0 gap-1.5">
@@ -37,14 +37,14 @@ export default function PowerListActive({
               type="button"
               onClick={() => void confirmCheckpointDone()}
               disabled={markingCheckpoint}
-              className="rounded-lg bg-success px-2.5 py-1 text-[9px] font-black uppercase text-white hover:bg-success-hover disabled:opacity-50 cursor-pointer"
+              className="rounded-lg bg-success px-2.5 py-1 text-2xs font-black uppercase text-white hover:bg-success-hover disabled:opacity-50 cursor-pointer"
             >
               Tak
             </button>
             <button
               type="button"
               onClick={() => setCheckpointPrompt(null)}
-              className="rounded-lg border border-border-custom px-2.5 py-1 text-[9px] font-black uppercase text-text-muted hover:text-text-primary cursor-pointer"
+              className="rounded-lg border border-border-custom px-2.5 py-1 text-2xs font-black uppercase text-text-muted hover:text-text-primary cursor-pointer"
             >
               Nie
             </button>
@@ -75,7 +75,7 @@ export default function PowerListActive({
         })}
 
       {todayWin?.day_note?.trim() && !eveningCloseDue && (
-        <p className="text-[10px] text-text-muted px-1">
+        <p className="text-xs text-text-muted px-1">
           Domknięcie: „{todayWin.day_note.trim().slice(0, 80)}
           {todayWin.day_note.trim().length > 80 ? '…' : ''}”
         </p>

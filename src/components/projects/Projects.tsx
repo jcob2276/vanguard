@@ -56,8 +56,8 @@ function ProjectsInner({
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[20px] font-bold tracking-tight text-text-primary">Projekty</h2>
-          <p className="text-[12px] text-text-muted">{activeProjects.length} aktywnych · {directionalGoalCount} kierunki</p>
+          <h2 className="text-xl font-bold tracking-tight text-text-primary">Projekty</h2>
+          <p className="text-sm text-text-muted">{activeProjects.length} aktywnych · {directionalGoalCount} kierunki</p>
         </div>
         <div className="flex items-center gap-2">
           {onNavigateTo && !(reviewOverdueDays !== undefined && reviewOverdueDays !== null && reviewOverdueDays >= 7) && (
@@ -103,8 +103,8 @@ function ProjectsInner({
       {activeFiltered.length === 0 ? (
         <Card variant="glass" padding="4rem 2rem" className="flex flex-col items-center justify-center text-center">
           <FolderKanban size={28} className="text-text-muted/30 mb-3" />
-          <p className="text-[14px] font-semibold text-text-secondary">Brak aktywnych projektów</p>
-          <p className="text-[12px] text-text-muted mt-1">Kliknij „Nowy cel&quot; żeby zacząć.</p>
+          <p className="text-base font-semibold text-text-secondary">Brak aktywnych projektów</p>
+          <p className="text-sm text-text-muted mt-1">Kliknij „Nowy cel&quot; żeby zacząć.</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -116,7 +116,7 @@ function ProjectsInner({
         <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
           <button onClick={() => setPausedOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
             {pausedOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
-            <span className="text-[12px] font-semibold text-text-secondary">Pauza ({pausedFiltered.length})</span>
+            <span className="text-sm font-semibold text-text-secondary">Pauza ({pausedFiltered.length})</span>
           </button>
           {pausedOpen && (
             <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
@@ -130,7 +130,7 @@ function ProjectsInner({
         <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
           <button onClick={() => setDoneOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
             {doneOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
-            <span className="text-[12px] font-semibold text-text-secondary">Zakończone ({doneFiltered.length})</span>
+            <span className="text-sm font-semibold text-text-secondary">Zakończone ({doneFiltered.length})</span>
           </button>
           {doneOpen && (
             <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">

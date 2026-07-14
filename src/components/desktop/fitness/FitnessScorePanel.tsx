@@ -44,30 +44,30 @@ export default function FitnessScorePanel({
         <div className="flex flex-col items-center justify-center py-4 xl:py-8 xl:min-h-[280px] border-b xl:border-b-0 xl:border-r border-border-custom">
           <div className="flex items-center gap-1.5 mb-3 text-primary">
             <Activity size={16} className="animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-text-secondary">
               Hybrydowy profil
             </span>
           </div>
           <div className="flex items-stretch gap-6">
             <div className="flex flex-col items-center">
-              <p className="text-[56px] xl:text-[64px] font-black italic tracking-tighter leading-none text-primary font-display">
+              <p className="text-6xl xl:text-6xl font-black italic tracking-tighter leading-none text-primary font-display">
                 {profile.capabilityScore}
               </p>
-              <p className="text-[9px] font-bold text-text-muted mt-2 uppercase tracking-widest text-center">
+              <p className="text-2xs font-bold text-text-muted mt-2 uppercase tracking-widest text-center">
                 Capability /100
               </p>
             </div>
             <div className="w-px bg-border-custom" />
             <div className="flex flex-col items-center">
-              <p className="text-[56px] xl:text-[64px] font-black italic tracking-tighter leading-none text-text-primary font-display">
+              <p className="text-6xl xl:text-6xl font-black italic tracking-tighter leading-none text-text-primary font-display">
                 {profile.processScore}
               </p>
-              <p className="text-[9px] font-bold text-text-muted mt-2 uppercase tracking-widest text-center">
+              <p className="text-2xs font-bold text-text-muted mt-2 uppercase tracking-widest text-center">
                 Process /100
               </p>
             </div>
           </div>
-          <p className="text-[11px] text-text-secondary mt-5 max-w-[280px] text-center leading-relaxed">
+          <p className="text-xs text-text-secondary mt-5 max-w-[280px] text-center leading-relaxed">
             Capability = siła + wydolność (realna zdolność). Process = regularność + regeneracja + adaptacja + obciążenie (dyscyplina, nie zdolność) — liczone osobno, żeby jedno nie maskowało drugiego.
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function FitnessScorePanel({
       </div>
 
       <div className="mt-5 pt-5 border-t border-border-custom">
-        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted mb-3">
+        <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted mb-3">
           Skąd te oceny?
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -87,20 +87,20 @@ export default function FitnessScorePanel({
               padding="0.75rem 0.875rem"
             >
               <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className="text-[11px] font-black text-text-primary">{item.label}</span>
+                <span className="text-xs font-black text-text-primary">{item.label}</span>
                 <span
-                  className={`text-[12px] font-black italic font-display shrink-0 ${
+                  className={`text-sm font-black italic font-display shrink-0 ${
                     item.group === 'capability' ? 'text-primary' : 'text-text-secondary'
                   }`}
                 >
                   {item.score.toFixed(1)}/10
                 </span>
               </div>
-              <p className="text-[11px] leading-relaxed text-text-secondary">{item.detail}</p>
+              <p className="text-xs leading-relaxed text-text-secondary">{item.detail}</p>
             </Card>
           ))}
         </div>
-        <p className="text-[10px] text-text-muted mt-3 leading-relaxed">
+        <p className="text-xs text-text-muted mt-3 leading-relaxed">
           Niebieskie wyniki (Wydolność, Siła) wchodzą do Capability. Szare (Regularność, Regeneracja, Adaptacja, Obciążenie) wchodzą do Process. Siła i wydolność łączą ostatnią pracę z maxami (wycisk / przysiad / martwy, Cooper) względem masy ciała — PR starsze niż ~3 lata wypadają. Regeneracja uwzględnia BMI, WHR i BF%.
         </p>
       </div>

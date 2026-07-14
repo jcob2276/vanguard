@@ -90,7 +90,7 @@ export default function KeepSidebar({
         </div>
       ))}
       {allTags.length === 0 && (
-        <p className="text-[10.5px] text-text-muted/40 px-3 py-1.5 italic">brak tagów</p>
+        <p className="text-xs text-text-muted/40 px-3 py-1.5 italic">brak tagów</p>
       )}
     </aside>
   );

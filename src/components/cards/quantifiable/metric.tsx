@@ -14,17 +14,17 @@ export function MetricCard({ data }: { data: MetricCardData }) {
   const trend = data.change == null ? null : data.change > 0 ? 'up' : data.change < 0 ? 'down' : 'flat';
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[12px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{data.label}</p>
+      <p className="text-sm font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{data.label}</p>
       <div className="flex items-end gap-1.5">
-        <span className="font-data text-[24px]" style={{ color }}>{data.value}</span>
-        {data.unit && <span className="text-[13px] font-medium mb-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{data.unit}</span>}
+        <span className="font-data text-2xl" style={{ color }}>{data.value}</span>
+        {data.unit && <span className="text-sm font-medium mb-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{data.unit}</span>}
       </div>
       {trend && (
         <div className="flex items-center gap-1">
           {trend === 'up' && <TrendingUp size={11} style={{ color: 'var(--color-success)' }} />}
           {trend === 'down' && <TrendingDown size={11} style={{ color: 'var(--color-danger)' }} />}
           {trend === 'flat' && <Minus size={11} style={{ color: 'var(--color-text-tertiary)' }} />}
-          <span className="text-[11px] font-medium" style={{ color: trend === 'up' ? 'var(--color-success)' : trend === 'down' ? 'var(--color-danger)' : 'var(--color-text-tertiary)' }}>
+          <span className="text-xs font-medium" style={{ color: trend === 'up' ? 'var(--color-success)' : trend === 'down' ? 'var(--color-danger)' : 'var(--color-text-tertiary)' }}>
             {data.changeLabel ?? `${data.change! > 0 ? '+' : ''}${data.change}`}
           </span>
         </div>

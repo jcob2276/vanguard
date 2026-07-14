@@ -14,7 +14,7 @@ function MiniTip({ active, payload }: { active?: boolean; payload?: { payload: {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
-    <div className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-[10px] shadow-md">
+    <div className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-xs shadow-md">
       <p className="text-text-muted">{p.day}</p>
       <p className="font-semibold text-text-primary">{p.x.toFixed(1)} → {p.y.toFixed(1)}</p>
     </div>
@@ -35,23 +35,23 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
-            <span className="text-[8px] font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid">
+            <span className="text-2xs font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid">
               {CATEGORY_LABELS[item.category] ?? item.category}
             </span>
             {item.cross_domain && (
-              <span className="text-[8px] font-black uppercase tracking-widest text-success px-1.5 py-0.5 rounded bg-success/10">
+              <span className="text-2xs font-black uppercase tracking-widest text-success px-1.5 py-0.5 rounded bg-success/10">
                 Cross
               </span>
             )}
             {item.discovered && !item.cross_domain && (
-              <span className="text-[8px] font-black uppercase tracking-widest text-primary px-1.5 py-0.5 rounded bg-primary/10">
+              <span className="text-2xs font-black uppercase tracking-widest text-primary px-1.5 py-0.5 rounded bg-primary/10">
                 Odkryte
               </span>
             )}
-            <span className="text-[8px] font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid" title={METHOD_LABELS[method]}>
+            <span className="text-2xs font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid" title={METHOD_LABELS[method]}>
               {method === 'spearman' ? 'ρ' : 'r'}
             </span>
-            <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
+            <span className={`text-2xs font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
               item.confidence === 'solid' ? 'bg-success/10 text-success' :
               item.confidence === 'building' ? 'bg-warning/10 text-warning' :
               'bg-slate-500/10 text-text-muted'
@@ -59,21 +59,21 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
               {CONFIDENCE_LABELS[item.confidence]} · N={item.n}
             </span>
           </div>
-          <h3 className="text-[13px] font-bold text-text-primary leading-snug">{item.label}</h3>
-          <p className="text-[10px] text-text-muted mt-0.5">Lag: {formatLag(item.lag_days)}</p>
+          <h3 className="text-sm font-bold text-text-primary leading-snug">{item.label}</h3>
+          <p className="text-xs text-text-muted mt-0.5">Lag: {formatLag(item.lag_days)}</p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[22px] font-black tabular-nums leading-none" style={{ color }}>
+          <p className="text-2xl font-black tabular-nums leading-none" style={{ color }}>
             {item.r > 0 ? '+' : ''}{item.r.toFixed(2)}
           </p>
-          <p className="text-[9px] font-semibold text-text-muted mt-0.5">{item.interpretation}</p>
+          <p className="text-2xs font-semibold text-text-muted mt-0.5">{item.interpretation}</p>
         </div>
       </div>
 
-      <p className="text-[11px] text-text-secondary leading-relaxed mb-3">{item.note}</p>
+      <p className="text-xs text-text-secondary leading-relaxed mb-3">{item.note}</p>
 
       {!item.has_enough_data && (
-        <p className="text-[10px] font-medium text-warning dark:text-warning mb-2">
+        <p className="text-xs font-medium text-warning dark:text-warning mb-2">
           Za mało par danych — loguj regularnie, sygnał pojawi się po kilku dniach.
         </p>
       )}
@@ -104,7 +104,7 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3 mt-2 pt-2 border-t border-border-custom/60 text-[9px] text-text-muted">
+      <div className="flex flex-wrap gap-3 mt-2 pt-2 border-t border-border-custom/60 text-2xs text-text-muted">
         <span>{item.x_label} ↔ {item.y_label}</span>
         {item.r_pearson != null && item.r_spearman != null && method === 'spearman' && (
           <span title="Pearson r">r={item.r_pearson.toFixed(2)}</span>

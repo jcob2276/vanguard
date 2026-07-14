@@ -74,7 +74,7 @@ export default function ProjectWeekKpis({
 
   return (
     <section className="space-y-2">
-      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-text-muted">
+      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-text-muted">
         <TrendingUp size={12} /> Projekty tego tygodnia ({projects.length})
       </p>
       <div className="space-y-2.5">
@@ -82,10 +82,10 @@ export default function ProjectWeekKpis({
           const kpis = byProject[project.id] ?? [];
           return (
             <Card key={project.id} padding="0.75rem 0.875rem" className="space-y-2">
-              <p className="text-[13px] font-bold text-text-primary flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-bold text-text-primary flex items-center gap-2 flex-wrap">
                 {project.name}
                 {focusProjectIds.includes(project.id) && (
-                  <span className="text-[8px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                  <span className="text-2xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                     Focus sprintu
                   </span>
                 )}
@@ -96,8 +96,8 @@ export default function ProjectWeekKpis({
                 return (
                   <div key={kpi.id} className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-text-secondary">{kpi.name}</span>
-                      <span className="text-[11px] font-bold text-text-primary">
+                      <span className="text-xs font-semibold text-text-secondary">{kpi.name}</span>
+                      <span className="text-xs font-bold text-text-primary">
                         {thisWeekValue ?? 0}
                         {kpi.unit ? ` ${kpi.unit}` : ''} /{' '}
                         {readOnly ? (
@@ -109,7 +109,7 @@ export default function ProjectWeekKpis({
                             defaultValue={kpi.target ?? ''}
                             placeholder="cel?"
                             onBlur={(e) => saveTarget(kpi.id, e.target.value)}
-                            className="w-14 rounded-md border border-border-custom bg-surface-solid px-1.5 py-0.5 text-[11px] font-bold text-text-primary outline-none focus:border-primary/40"
+                            className="w-14 rounded-md border border-border-custom bg-surface-solid px-1.5 py-0.5 text-xs font-bold text-text-primary outline-none focus:border-primary/40"
                           />
                         )}
                       </span>
@@ -143,14 +143,14 @@ export default function ProjectWeekKpis({
                     value={newKpi.name}
                     onChange={(e) => setNewKpi((f) => ({ ...f, name: e.target.value }))}
                     placeholder="Nazwa (np. diale, nowi klienci)"
-                    className="w-full bg-transparent text-[12px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
+                    className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
                   />
                   <div className="flex items-center gap-1.5">
                     <input
                       value={newKpi.unit}
                       onChange={(e) => setNewKpi((f) => ({ ...f, unit: e.target.value }))}
                       placeholder="jednostka"
-                      className="min-w-0 flex-1 bg-transparent text-[11px] text-text-secondary outline-none placeholder:text-text-muted/40 border-b border-border-custom/50 pb-0.5"
+                      className="min-w-0 flex-1 bg-transparent text-xs text-text-secondary outline-none placeholder:text-text-muted/40 border-b border-border-custom/50 pb-0.5"
                     />
                     <input
                       type="number"
@@ -158,7 +158,7 @@ export default function ProjectWeekKpis({
                       value={newKpi.target}
                       onChange={(e) => setNewKpi((f) => ({ ...f, target: e.target.value }))}
                       placeholder="cel"
-                      className="w-16 bg-transparent text-[11px] text-text-secondary outline-none placeholder:text-text-muted/40 border-b border-border-custom/50 pb-0.5"
+                      className="w-16 bg-transparent text-xs text-text-secondary outline-none placeholder:text-text-muted/40 border-b border-border-custom/50 pb-0.5"
                     />
                   </div>
                   <div className="flex items-center gap-1">
@@ -167,7 +167,7 @@ export default function ProjectWeekKpis({
                         key={p.id}
                         type="button"
                         onClick={() => setNewKpi((f) => ({ ...f, pillar: p.id }))}
-                        className={`rounded-md px-2 py-0.5 text-[9px] font-black uppercase cursor-pointer transition-colors ${
+                        className={`rounded-md px-2 py-0.5 text-2xs font-black uppercase cursor-pointer transition-colors ${
                           newKpi.pillar === p.id ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'
                         }`}
                       >

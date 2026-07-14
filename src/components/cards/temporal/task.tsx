@@ -22,8 +22,8 @@ export function TaskCard({ data }: { data: TaskCardData }) {
     <div className="space-y-2">
       {data.title && (
         <div className="flex items-center justify-between">
-          <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
-          <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{done}/{total}</span>
+          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{done}/{total}</span>
         </div>
       )}
       <div className="space-y-1.5">
@@ -36,7 +36,7 @@ export function TaskCard({ data }: { data: TaskCardData }) {
                 : <Circle size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />
             }
             <span
-              className="text-[12px] leading-snug"
+              className="text-sm leading-snug"
               style={{ color: task.done ? 'var(--color-text-tertiary)' : 'var(--text-secondary)', textDecoration: task.done ? 'line-through' : 'none' }}
             >
               {task.text}

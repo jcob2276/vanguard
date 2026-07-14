@@ -110,12 +110,12 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
 
         {/* Header */}
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-5 py-4 backdrop-blur-xl">
-          <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-[16px]">
+          <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-lg">
             <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Pocket</h1>
-            <p className="text-[12px] text-text-muted">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Pocket</h1>
+            <p className="text-sm text-text-muted">
               {d.unreadCount > 0 ? `${d.unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
             </p>
           </div>
@@ -158,7 +158,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
                 onChange={e => d.setAddUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') d.handleAddLink(); if (e.key === 'Escape') d.setShowAddForm(false); }}
                 placeholder="Wklej URL i naciśnij Enter..."
-                className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/50 outline-none"
+                className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted/50 outline-none"
               />
               {d.addLoading
                 ? <Spinner size="sm" className="shrink-0" />
@@ -167,7 +167,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
                     size="sm"
                     onClick={d.handleAddLink}
                     disabled={!d.addUrl.trim()}
-                    className="shrink-0 text-[12px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-opacity"
+                    className="shrink-0 text-sm font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-opacity"
                   >
                     Zapisz
                   </Button>
@@ -186,7 +186,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
                 value={d.search}
                 onChange={e => d.setSearch(e.target.value)}
                 placeholder="Szukaj po tytule, domenie lub kategorii..."
-                className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/40 outline-none w-full"
+                className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted/40 outline-none w-full"
               />
               {d.search && (
                 <Button variant="ghost" size="sm" onClick={() => d.setSearch('')} className="p-1 text-text-muted/50 hover:text-text-primary" icon={<X size={15} />} />
@@ -199,7 +199,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
                 <button
                   key={tab.id}
                   onClick={() => { haptic([4]); d.setStatusFilter(tab.id); }}
-                  className={`btn-press flex-1 py-1.5 text-[12px] font-semibold rounded-[10px] transition-all duration-150 active:scale-[0.93] ${
+                  className={`btn-press flex-1 py-1.5 text-sm font-semibold rounded-[10px] transition-all duration-150 active:scale-[0.93] ${
                     d.statusFilter === tab.id
                       ? 'bg-background text-text-primary shadow-sm'
                       : 'text-text-muted hover:text-text-secondary'
@@ -211,7 +211,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
             </div>
 
             {d.sharingStatus && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary text-[12px] font-semibold rounded-[14px] animate-pulse">
+              <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary text-sm font-semibold rounded-[14px] animate-pulse">
                 <Spinner size="sm" className="shrink-0" />
                 {d.sharingStatus}
               </div>
@@ -224,8 +224,8 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
             ) : d.filteredLinks.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[280px] text-center rounded-[24px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
                 <Inbox size={28} className="text-text-muted/40 mb-3" />
-                <p className="text-[14px] font-semibold text-text-secondary">Brak linków</p>
-                <p className="text-[12px] text-text-muted mt-1 max-w-[200px] leading-relaxed">
+                <p className="text-base font-semibold text-text-secondary">Brak linków</p>
+                <p className="text-sm text-text-muted mt-1 max-w-[200px] leading-relaxed">
                   Wyślij link na Telegramie — pojawi się tutaj automatycznie.
                 </p>
               </div>
@@ -251,15 +251,15 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
         <button onClick={() => { haptic([4]); onNavigateTo?.('keep'); }} className="btn-press flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted transition-transform duration-75 active:scale-[0.88]">
           <StickyNote size={22} />
-          <span className="text-[11px] font-semibold">Notatki</span>
+          <span className="text-xs font-semibold">Notatki</span>
         </button>
         <button onClick={() => { haptic([4]); onNavigateTo?.('todo'); }} className="btn-press flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted transition-transform duration-75 active:scale-[0.88]">
           <ListTodo size={22} />
-          <span className="text-[11px] font-semibold">Zadania</span>
+          <span className="text-xs font-semibold">Zadania</span>
         </button>
         <button className="btn-press flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary transition-transform duration-75 active:scale-[0.88]">
           <BookOpen size={22} />
-          <span className="text-[11px] font-semibold">Pocket</span>
+          <span className="text-xs font-semibold">Pocket</span>
         </button>
       </nav>
 

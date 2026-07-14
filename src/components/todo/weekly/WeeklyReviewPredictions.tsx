@@ -36,11 +36,11 @@ export default function WeeklyReviewPredictions() {
   return (
     <div className="space-y-5 animate-fadeIn">
       <div>
-        <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
+        <h3 className="text-sm font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
           <Target size={15} className="text-primary" />
           Krok 4: Prognozy i Kalibracja
         </h3>
-        <p className="text-[10px] text-text-muted mt-0.5">
+        <p className="text-xs text-text-muted mt-0.5">
           Zweryfikuj swoje prognozy z ubiegłego tygodnia i zobacz wyniki kalibracji.
         </p>
       </div>
@@ -48,31 +48,31 @@ export default function WeeklyReviewPredictions() {
       {/* Calibration Rollup Grid */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+          <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
             Prognoza Snu
           </span>
-          <span className="text-[15px] font-black text-primary">
+          <span className="text-base font-black text-primary">
             {sleepMae ? `±${sleepMae}h` : 'brak'}
           </span>
-          <span className="text-[8px] font-medium text-text-muted">Średni błąd (MAE)</span>
+          <span className="text-2xs font-medium text-text-muted">Średni błąd (MAE)</span>
         </div>
         <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+          <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
             Wykonanie
           </span>
-          <span className="text-[15px] font-black text-primary">
+          <span className="text-base font-black text-primary">
             {executionMae ? `±${executionMae}%` : 'brak'}
           </span>
-          <span className="text-[8px] font-medium text-text-muted">Średni błąd (MAE)</span>
+          <span className="text-2xs font-medium text-text-muted">Średni błąd (MAE)</span>
         </div>
         <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+          <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
             Brier Wzorców
           </span>
-          <span className="text-[15px] font-black text-primary">
+          <span className="text-base font-black text-primary">
             {patternBrier ? patternBrier : 'brak'}
           </span>
-          <span className="text-[8px] font-medium text-text-muted">Brier (0 = idealny)</span>
+          <span className="text-2xs font-medium text-text-muted">Brier (0 = idealny)</span>
         </div>
       </div>
 
@@ -82,25 +82,25 @@ export default function WeeklyReviewPredictions() {
           <div className="flex items-center gap-2">
             <TrendingUp size={16} className="text-success" />
             <div className="flex flex-col">
-              <span className="text-[11px] font-black text-text-primary">
+              <span className="text-xs font-black text-text-primary">
                 Brier Score Twoich Prognoz
               </span>
-              <span className="text-[9px] text-text-muted">
+              <span className="text-2xs text-text-muted">
                 Na podstawie {resolvedCustom.length} rozstrzygniętych prognoz
               </span>
             </div>
           </div>
-          <span className="text-[16px] font-black text-success">{customBrier}</span>
+          <span className="text-lg font-black text-success">{customBrier}</span>
         </div>
       )}
 
       {/* Pending resolutions */}
       <div className="space-y-2.5">
-        <span className="text-[11px] font-bold text-text-primary block uppercase tracking-wider">
+        <span className="text-xs font-bold text-text-primary block uppercase tracking-wider">
           Rozstrzygnij prognozy własne ({pendingCustom.length})
         </span>
         {pendingCustom.length === 0 ? (
-          <div className="text-center py-4 bg-slate-50 dark:bg-white/[0.01] border border-dashed border-border-custom/60 rounded-xl text-text-muted text-[11px] font-semibold">
+          <div className="text-center py-4 bg-slate-50 dark:bg-white/[0.01] border border-dashed border-border-custom/60 rounded-xl text-text-muted text-xs font-semibold">
             Brak prognoz własnych do rozstrzygnięcia w tym tygodniu.
           </div>
         ) : (
@@ -111,8 +111,8 @@ export default function WeeklyReviewPredictions() {
                 className="bg-slate-50 dark:bg-white/[0.01] border border-border-custom/50 rounded-xl p-3 flex items-center justify-between"
               >
                 <div className="space-y-0.5 border-none">
-                  <p className="text-[11px] font-black text-text-primary">{pred.metric}</p>
-                  <div className="flex items-center gap-2 text-[9px] text-text-muted">
+                  <p className="text-xs font-black text-text-primary">{pred.metric}</p>
+                  <div className="flex items-center gap-2 text-2xs text-text-muted">
                     <span>Data: {pred.prediction_date}</span>
                     <span>•</span>
                     <span>Pewność: {(pred.predicted_value * 100).toFixed(0)}%</span>

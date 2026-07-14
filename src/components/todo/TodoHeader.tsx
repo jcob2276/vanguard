@@ -1,4 +1,5 @@
 import { Bell, ChevronLeft, Clock3, History, Kanban, LayoutGrid, ListTodo, PanelLeft } from 'lucide-react';
+import Button from '../ui/Button';
 import { useTodoContext } from './context/TodoContext';
 
 export type TodoViewMode = 'lista' | 'eisenhower' | 'kanban' | 'timeline';
@@ -16,32 +17,36 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
 
   return (
     <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-5 py-4 backdrop-blur-xl">
-      <button onClick={onBack} className="flex items-center gap-1 text-primary font-medium text-[16px] shrink-0">
+      <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
         <ChevronLeft size={22} strokeWidth={2.5} />
-      </button>
+      </Button>
       {sidebarCollapsed && (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setSidebarCollapsed(false)}
-          className="p-1.5 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer shrink-0"
           title="Rozwiń panel boczny"
+          className="shrink-0"
         >
           <PanelLeft size={16} />
-        </button>
+        </Button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="text-[20px] font-bold text-text-primary tracking-tight">Zadania</h1>
+        <h1 className="text-xl font-bold text-text-primary tracking-tight">Zadania</h1>
       </div>
       {push.isSupported && pushSubscribed === false && (
-        <button
+        <Button
+          variant="tonal"
+          size="sm"
           onClick={async () => {
             const ok = await push.subscribe();
             if (ok) setPushSubscribed(true);
           }}
           title="Włącz powiadomienia push"
-          className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-colors"
+          icon={<Bell size={12} />}
         >
-          <Bell size={12} /> Powiadomienia
-        </button>
+          Powiadomienia
+        </Button>
       )}
       {/* View switcher */}
       <div className="flex items-center rounded-xl border border-border-custom/50 bg-surface/40 p-0.5 gap-0.5">
@@ -74,13 +79,15 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
           <Clock3 size={15} />
         </button>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setShowDone((v) => !v)}
-        className={`rounded-full p-2 transition-colors ${showDone ? 'text-primary bg-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-surface'}`}
+        className={showDone ? 'text-primary bg-primary/10' : ''}
         title="Historia"
       >
         <History size={17} />
-      </button>
+      </Button>
     </header>
   );
 }

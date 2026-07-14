@@ -118,11 +118,11 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-[11px] font-black text-text-primary tracking-tight">{q.label}</p>
-                  <p className="text-[9px] text-text-muted font-medium mt-0.5">{q.sub}</p>
+                  <p className="text-xs font-black text-text-primary tracking-tight">{q.label}</p>
+                  <p className="text-2xs text-text-muted font-medium mt-0.5">{q.sub}</p>
                 </div>
                 {qItems.length > 0 && (
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${q.badge}`}>
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-full ${q.badge}`}>
                     {qItems.length}
                   </span>
                 )}
@@ -139,13 +139,13 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                   >
                     <span className={`mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full ${q.dot}`} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-2">{item.title}</p>
+                      <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">{item.title}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {item.due_date && (
-                          <span className="text-[9px] text-text-muted">{item.due_date}</span>
+                          <span className="text-2xs text-text-muted">{item.due_date}</span>
                         )}
                         {item.duration_minutes && (
-                          <span className="text-[9px] text-warning font-semibold">
+                          <span className="text-2xs text-warning font-semibold">
                             {item.duration_minutes < 60
                               ? `${item.duration_minutes}min`
                               : `${Math.floor(item.duration_minutes / 60)}h${item.duration_minutes % 60 ? item.duration_minutes % 60 + 'min' : ''}`}
@@ -159,7 +159,7 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                         <button
                           key={qq.key}
                           onClick={(e) => { e.stopPropagation(); moveToQuadrant(item, qq); }}
-                          className={`text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black shadow-sm active:scale-90 transition-transform ${qq.badge}`}
+                          className={`text-xs w-5 h-5 flex items-center justify-center rounded-full font-black shadow-sm active:scale-90 transition-transform ${qq.badge}`}
                           title={`Przenieś do: ${qq.label}`}
                         >
                           {qq.label.charAt(0)}
@@ -170,7 +170,7 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                 ))}
 
                 {qItems.length === 0 && (
-                  <p className="text-[10px] text-text-muted/50 text-center py-4">Przeciągnij tu zadanie</p>
+                  <p className="text-xs text-text-muted/50 text-center py-4">Przeciągnij tu zadanie</p>
                 )}
               </div>
             </div>

@@ -55,18 +55,18 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
     <Panel title={formattedDate ? `${raceName} — ${formattedDate}` : raceName}>
       <div className="flex items-start justify-between mb-5">
         <div>
-          <p className="font-display text-[40px] font-black leading-none text-text-primary">
+          <p className="font-display text-4xl font-black leading-none text-text-primary">
             {daysLeft !== null ? (daysLeft >= 0 ? daysLeft : 0) : '—'}
           </p>
-          <p className="text-[10px] font-bold text-text-muted mt-1">
+          <p className="text-xs font-bold text-text-muted mt-1">
             {daysLeft !== null
               ? (daysLeft >= 0 ? `dni do startu · ${weeksLeft} tygodni` : 'Wydarzenie zakończone')
               : 'Skonfiguruj nadchodzący maraton w bazie danych'}
           </p>
           {targetTime && (
             <div className="mt-2.5">
-              <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Cel czasowy</p>
-              <p className="font-display text-[15px] font-black text-warning leading-none mt-0.5">
+              <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Cel czasowy</p>
+              <p className="font-display text-base font-black text-warning leading-none mt-0.5">
                 {targetTime}
               </p>
             </div>
@@ -75,17 +75,17 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
         <div className="text-right space-y-2">
           {avgKm !== null && (
             <div>
-              <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Avg 4 tygodnie</p>
-              <p className="font-display text-[22px] font-black text-warning leading-none">
-                {avgKm} <span className="text-[11px] text-text-muted">km/tyg</span>
+              <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Avg 4 tygodnie</p>
+              <p className="font-display text-2xl font-black text-warning leading-none">
+                {avgKm} <span className="text-xs text-text-muted">km/tyg</span>
               </p>
             </div>
           )}
           {bestKm !== null && (
             <div>
-              <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Rekord tyg.</p>
-              <p className="font-display text-[18px] font-black text-text-primary leading-none">
-                {bestKm} <span className="text-[11px] text-text-muted">km</span>
+              <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Rekord tyg.</p>
+              <p className="font-display text-lg font-black text-text-primary leading-none">
+                {bestKm} <span className="text-xs text-text-muted">km</span>
               </p>
             </div>
           )}
@@ -108,7 +108,7 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
           </AreaChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex items-center justify-center h-24 text-[11px] text-text-muted">
+        <div className="flex items-center justify-center h-24 text-xs text-text-muted">
           Brak danych — zsynchronizuj Stravę
         </div>
       )}

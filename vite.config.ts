@@ -25,8 +25,10 @@ export default defineConfig({
         name: 'Vanguard',
         short_name: 'Vanguard',
         description: 'Elite performance, discipline and identity tracking system',
-        theme_color: '#000000',
-        background_color: '#000000',
+        // Must match .dark --background in src/index.css — manifest.json/build config
+        // can't read CSS custom properties, so this is kept in sync by hand.
+        theme_color: '#030712',
+        background_color: '#030712',
         start_url: '/',
         display: 'standalone',
         icons: [

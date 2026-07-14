@@ -29,7 +29,7 @@ export default function TodoDoneHistory() {
           <button
             type="button"
             onClick={() => setVisibleDoneCount(prev => prev + 30)}
-            className="px-4 py-2 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[10.5px] font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+            className="px-4 py-2 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-xs font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center"
           >
             Pokaż więcej ukończonych ({doneItems.length - visibleDoneCount} pozostało)
           </button>

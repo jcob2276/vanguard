@@ -137,6 +137,26 @@ const LEGACY_REFACTORED_FILES = [
 const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
 ]
 
+const NO_BUTTON_GUARD_EXCEPTIONS = [
+  'src/components/calendar/grid/CalendarAgendaView.tsx', // grid cell click targets
+  'src/components/calendar/grid/CalendarGridBlocks.tsx', // event block interactions
+  'src/components/calendar/grid/CalendarGridColumns.tsx', // time slot grid cells
+  'src/components/calendar/grid/CalendarWeekView.tsx', // week view grid cells
+  'src/components/calendar/CalendarView.tsx', // sidebar toggle positioned widget
+  'src/components/calendar/MiniCalendar.tsx', // day cell selection grid
+  'src/components/calendar/RecurrencePicker.tsx', // recurrence/day-of-week toggle segmented control
+  'src/components/calendar/components/CalendarHeader.tsx', // view switcher segmented control
+  'src/components/core/nutrition/BarcodeScanner.tsx',
+  'src/components/core/nutrition/FoodRow.tsx',
+  'src/components/core/stats/BodyMetricsSection.tsx',
+  'src/components/notes/FloatingToolbar.tsx', // tightly-packed 28px rich-text toolbar icon buttons driven by fixed CSS (.keep-toolbar-btn); Button's padding/rounded/shadow utilities would fight the custom sizing
+  'src/components/projects/PillarFilterTabs.tsx', // segmented tab-switcher control; Button's hover-lift/shadow styling doesn't fit a tab bar
+  'src/components/todo/TodoDoneHistory.tsx',
+  'src/components/todo/TodoHeader.tsx', // view switcher segmented control
+  'src/components/todo/TodoReminderPopover.tsx',
+  'src/components/todo/TodoSearchBar.tsx',
+]
+
 const NO_COLOR_GUARD_EXCEPTIONS = [
   'src/components/biometrics/BrainHealth.tsx',
   'src/components/biometrics/DailyStrainCard.tsx',
@@ -145,16 +165,7 @@ const NO_COLOR_GUARD_EXCEPTIONS = [
   'src/components/biometrics/workout/ExerciseStrengthSets.tsx',
   'src/components/biometrics/workout/ExerciseWellnessSets.tsx',
   'src/components/calendar/CalendarWeather.tsx',
-  'src/components/calendar/EditEventModal.tsx',
-  'src/components/calendar/MiniCalendar.tsx',
-  'src/components/calendar/QuickCreateEventModal.tsx',
-  'src/components/calendar/RecurrencePicker.tsx',
   'src/components/calendar/SolarDayWidget.tsx',
-  'src/components/calendar/components/CalendarHeader.tsx',
-  'src/components/calendar/components/CalendarTodoModal.tsx',
-  'src/components/calendar/grid/CalendarAgendaView.tsx',
-  'src/components/calendar/grid/CalendarGridBlocks.tsx',
-  'src/components/calendar/grid/CalendarGridColumns.tsx',
   'src/components/core/Auth.tsx',
   'src/components/core/DashboardDzisTab.tsx',
   'src/components/core/DashboardFastCapture.tsx',
@@ -367,6 +378,7 @@ export default defineConfig([
       ...LEGACY_REFACTORED_FILES,
       ...NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS,
       ...NO_COLOR_GUARD_EXCEPTIONS,
+      ...NO_BUTTON_GUARD_EXCEPTIONS,
       ...CANONICAL_DATE_FORMATTERS,
       'src/components/**/hooks/**',
       'src/components/ui/**', // UI components are exempt from hardcoded Tailwind color check
@@ -387,6 +399,47 @@ export default defineConfig([
       }, {
         selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\b(bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke)-(red|blue|green|amber|rose|emerald|indigo|slate)-\\d{3}\\b/]",
         message: 'No hardcoded Tailwind palette colors (red/blue/green/amber/rose/emerald/indigo/slate) in className. Use CSS variables or theme tokens. See docs/FRONTEND_GUIDE.md.',
+      }, {
+        // Button structural guard: catch hand-rolled buttons with primary-button styling.
+        // shadow-primary is the strongest signal (progress bars/badges never use it).
+        // bg-primary + text-white + px/py is the specific "filled button" signature.
+        // NOTE: AST selectors can't filter by parent element, so some <div>/<span> false
+        // positives are possible — add them to NO_COLOR_GUARD_EXCEPTIONS if needed.
+        selector: "JSXAttribute[name.name='className'] Literal[value=/\\bshadow-primary\\b/]",
+        message: 'shadow-primary in className — likely a hand-rolled button. Use <Button variant="primary"> from ui/Button. See docs/DESIGN_SYSTEM.md.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\bshadow-primary\\b/]",
+        message: 'shadow-primary in className — likely a hand-rolled button. Use <Button variant="primary"> from ui/Button. See docs/DESIGN_SYSTEM.md.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] Literal[value=/\\bbg-primary\\b.*\\btext-white\\b.*\\b(p[xy])-/]",
+        message: 'bg-primary + text-white + px/py — hand-rolled filled button. Use <Button variant="primary"> from ui/Button. See docs/DESIGN_SYSTEM.md.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\bbg-primary\\b.*\\btext-white\\b.*\\b(p[xy])-/]",
+        message: 'bg-primary + text-white + px/py — hand-rolled filled button. Use <Button variant="primary"> from ui/Button. See docs/DESIGN_SYSTEM.md.',
+      }, {
+        // Typography guard: catch arbitrary text-[Npx] — use typography tokens instead.
+        selector: "JSXAttribute[name.name='className'] Literal[value=/\\btext-\\[\\d+\\.?\\d*px\\]/]",
+        message: 'Arbitrary text-[Npx] — use a typography token (text-3xs through text-6xl). See docs/DESIGN_SYSTEM.md §2.8.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\btext-\\[\\d+\\.?\\d*px\\]/]",
+        message: 'Arbitrary text-[Npx] — use a typography token (text-3xs through text-6xl). See docs/DESIGN_SYSTEM.md §2.8.',
+      }, {
+        // Button structural guard: block raw <button> outside ui/ — use <Button> instead.
+        // Exemptions: files where <button> is semantically correct (drag handles, complex
+        // interactive widgets, tab-like controls) or where migration is tracked separately.
+        selector: "JSXOpeningElement[name.name='button']",
+        message: 'Raw <button> — use <Button variant="..."> from ui/Button. See docs/DESIGN_SYSTEM.md §0. If this <button> is a drag handle, tab switcher, or complex widget, add the file to NO_BUTTON_GUARD_EXCEPTIONS.',
+      }, {
+        // Arbitrary-value escape hatch: bg-[#hex] etc. bypasses the named-palette guard above.
+        selector: "JSXAttribute[name.name='className'] Literal[value=/\\b(bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke|shadow)-\\[#[0-9a-fA-F]{3,8}\\]/]",
+        message: 'No arbitrary hex Tailwind values (bg-[#hex] etc.) in className — use a CSS variable or theme token. See docs/DESIGN_SYSTEM.md.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\b(bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke|shadow)-\\[#[0-9a-fA-F]{3,8}\\]/]",
+        message: 'No arbitrary hex Tailwind values (bg-[#hex] etc.) in className — use a CSS variable or theme token. See docs/DESIGN_SYSTEM.md.',
+      }, {
+        // Inline style hex: the className guards above can't see style={{...}} objects.
+        selector: "JSXAttribute[name.name='style'] Property[value.type='Literal'][value.value=/^#[0-9a-fA-F]{3,8}$/]",
+        message: "No hardcoded hex color in inline style={{...}} — use style={{color: 'var(--color-token)'}} instead. See docs/DESIGN_SYSTEM.md.",
       }],
     },
   },

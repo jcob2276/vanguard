@@ -62,21 +62,21 @@ export default function PowerListTask({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             {sphere && SphereIcon && (
-              <span className={`flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[7px] font-black uppercase tracking-widest ${sphere.bg} ${sphere.text}`}>
+              <span className={`flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-3xs font-black uppercase tracking-widest ${sphere.bg} ${sphere.text}`}>
                 <SphereIcon size={7} /> {sphere.label}
               </span>
             )}
-            <p className={`text-[13px] font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
+            <p className={`text-sm font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
               {task}
             </p>
             {targetValueLabel && (
-              <span className="shrink-0 rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-text-muted/70 bg-text-primary/5">
+              <span className="shrink-0 rounded px-1 py-0.5 text-2xs font-black uppercase tracking-widest text-text-muted/70 bg-text-primary/5">
                 {targetValueLabel}
               </span>
             )}
           </div>
           {done && completedAt && (
-            <p className="mt-0.5 text-[9px] font-semibold text-dayC/80">
+            <p className="mt-0.5 text-2xs font-semibold text-dayC/80">
               Zrobione o {new Date(completedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
@@ -86,18 +86,18 @@ export default function PowerListTask({
       {linkedTodoId && (() => {
         const proj = projectMap[linkedTodoId];
         return proj ? (
-          <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
+          <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-black text-primary">
             <span className={`h-1.5 w-1.5 rounded-full ${COLOR_DOT[proj.color || ''] || 'bg-primary'}`} />
             {proj.name}
           </span>
         ) : !done ? (
-          <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
+          <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-black text-primary">
             <Link2 size={8} /> Zadanie
           </span>
         ) : null;
       })()}
       {!linkedTodoId && linkedProjectId && projectMap[`task_project_${index + 1}`] && (
-        <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] font-black text-primary">
+        <span className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-black text-primary">
           <span className={`h-1.5 w-1.5 rounded-full ${COLOR_DOT[projectMap[`task_project_${index + 1}`].color || ''] || 'bg-primary'}`} />
           {projectMap[`task_project_${index + 1}`].name}
         </span>

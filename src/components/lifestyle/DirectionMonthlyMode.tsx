@@ -33,7 +33,7 @@ function Divider({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-px flex-1 bg-border-custom" />
-      <span className="text-[9px] uppercase tracking-widest text-text-muted font-black">{title}</span>
+      <span className="text-2xs uppercase tracking-widest text-text-muted font-black">{title}</span>
       <div className="h-px flex-1 bg-border-custom" />
     </div>
   );
@@ -43,7 +43,7 @@ function StatCard({ value, label }: { value: string; label: string }) {
   return (
     <Card padding="0.625rem 0.75rem">
       <div className="text-xl font-bold text-text-primary">{value}</div>
-      <div className="text-[10px] text-text-muted mt-0.5">{label}</div>
+      <div className="text-xs text-text-muted mt-0.5">{label}</div>
     </Card>
   );
 }
@@ -105,9 +105,9 @@ export default function DirectionMonthlyMode({
   return (
     <div className="space-y-6 pb-6 border-b border-border-custom mb-6">
       <Card padding="0.75rem 1rem" style={{ background: 'rgba(245, 158, 11, 0.05)' }}>
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-warning">Przegląd miesiąca</p>
+        <p className="text-2xs font-black uppercase tracking-[0.2em] text-warning">Przegląd miesiąca</p>
         <p className="mt-1 text-sm font-semibold text-text-primary capitalize">{monthFacts.monthLabel}</p>
-        <p className="mt-1 text-[11px] text-text-secondary">
+        <p className="mt-1 text-xs text-text-secondary">
           Warstwa między sprintem a tygodniem — zamknij miesiąc, potem planuj tydzień.
         </p>
       </Card>
@@ -130,7 +130,7 @@ export default function DirectionMonthlyMode({
           <StatCard value={String(monthFacts.activeProjectCount)} label="aktywnych projektów" />
         </div>
         {pillarLine && (
-          <p className="text-[11px] text-text-muted">Średnie filarów z tygodni: {pillarLine}</p>
+          <p className="text-xs text-text-muted">Średnie filarów z tygodni: {pillarLine}</p>
         )}
       </div>
 
@@ -148,7 +148,7 @@ export default function DirectionMonthlyMode({
             <p className="text-sm text-text-primary leading-relaxed">{recap.narrative}</p>
             {recap.longterm_motif && (
               <div className="border-l-2 border-warning pl-3 py-1">
-                <p className="text-[10px] text-warning font-bold uppercase tracking-wider mb-1">
+                <p className="text-xs text-warning font-bold uppercase tracking-wider mb-1">
                   Motyw powtarzający się
                 </p>
                 <p className="text-sm text-text-primary leading-relaxed">{recap.longterm_motif}</p>
@@ -156,7 +156,7 @@ export default function DirectionMonthlyMode({
             )}
             {recap.question && (
               <div className="bg-surface border border-border-custom rounded-xl px-3 py-2.5">
-                <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider mb-1">
+                <p className="text-xs text-text-muted font-bold uppercase tracking-wider mb-1">
                   Pytanie otwierające
                 </p>
                 <p className="text-sm text-text-secondary italic">„{recap.question}"</p>
@@ -198,7 +198,7 @@ export default function DirectionMonthlyMode({
       {/* Blok 3: temat miesiąca */}
       <div className="space-y-2">
         <Divider title="Temat miesiąca" />
-        <p className="text-[11px] text-text-muted">
+        <p className="text-xs text-text-muted">
           Jedna linia — horyzont na 4 tygodnie. Szczegóły zostają w planowaniu tygodniowym.
         </p>
         <Textarea

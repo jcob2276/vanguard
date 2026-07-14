@@ -55,14 +55,14 @@ export default function GrowthWeekPlan({
     <section className="space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-text-muted">Plan tygodnia</p>
-          <p className="text-[13px] font-bold text-text-primary mt-1">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-text-muted">Plan tygodnia</p>
+          <p className="text-sm font-bold text-text-primary mt-1">
             {doneCount}/{pins.length} zamknięte
             <span className="text-text-muted font-semibold ml-2">
               · MUST {mustPins.filter((p) => p.done).length}/{mustPins.length || MAX_MUST}
             </span>
           </p>
-          <p className="text-[10px] text-text-muted mt-0.5">
+          <p className="text-xs text-text-muted mt-0.5">
             Max 3 micro-misje · 70% czasu na weak link, nie na to co już umiesz
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function GrowthWeekPlan({
 
       {!readOnly && mustOpen > 0 && (suggestedTodos.length > 0 || suggestedLinks.length > 0) && (
         <Card variant="accent" padding="0.75rem" className="border-dashed space-y-2">
-          <p className="text-[9px] font-black uppercase tracking-wider text-primary">
+          <p className="text-2xs font-black uppercase tracking-wider text-primary">
             Szybka akcja (praktyka &gt; teoria)
           </p>
           <div className="flex flex-wrap gap-2">
@@ -133,7 +133,7 @@ export default function GrowthWeekPlan({
             )}
           </div>
           {balance && balance.theory > balance.practice && (
-            <p className="text-[10px] text-warning dark:text-warning">
+            <p className="text-xs text-warning dark:text-warning">
               Masz więcej teorii niż praktyki — priorytet: zadanie / ćwiczenie, nie kolejne wideo.
             </p>
           )}

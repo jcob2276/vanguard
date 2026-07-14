@@ -22,7 +22,7 @@ export function HtmlCard({ data }: HtmlCardProps) {
 
   return (
     <div
-      className="text-[12px] leading-relaxed text-text-primary"
+      className="text-sm leading-relaxed text-text-primary"
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );

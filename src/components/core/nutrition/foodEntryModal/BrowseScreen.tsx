@@ -57,7 +57,7 @@ export default function BrowseScreen({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Szukaj produktu..."
-            className="w-full bg-transparent pl-10 pr-2 py-3 text-[14px] font-medium text-text-primary outline-none placeholder:text-text-muted/45 placeholder:font-normal"
+            className="w-full bg-transparent pl-10 pr-2 py-3 text-base font-medium text-text-primary outline-none placeholder:text-text-muted/45 placeholder:font-normal"
           />
         </div>
         {query && !searching && (
@@ -80,7 +80,7 @@ export default function BrowseScreen({
         )}
       </div>
 
-      {error && <p className="mb-3 text-[11px] text-danger">{error}</p>}
+      {error && <p className="mb-3 text-xs text-danger">{error}</p>}
 
       {scannerOpen ? (
         <BarcodeScanner onDetected={lookupBarcode} onClose={() => setScannerOpen(false)} loading={scanLookingUp} />
@@ -113,7 +113,7 @@ export default function BrowseScreen({
           <div className="flex gap-0.5 mb-3.5 rounded-full bg-surface-solid/50 p-1">
             {(['favorites', 'recent'] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 rounded-full py-2 text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex-1 rounded-full py-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   activeTab === tab
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-text-muted hover:text-text-primary'
@@ -181,12 +181,12 @@ function SearchResultsList({
 }: SearchResultsListProps) {
   return (
     <div className="space-y-1.5">
-      <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">
+      <p className="text-2xs font-black uppercase tracking-wider text-text-muted mb-2">
         Wyniki — ✚ dodaje w sugerowanej porcji, nazwa otwiera porcję
       </p>
       {searchResults.length === 0 && !searching && (
         <div className="py-4 text-center space-y-3">
-          <p className="text-[12px] text-text-muted">Brak wyników dla &quot;{query}&quot;</p>
+          <p className="text-sm text-text-muted">Brak wyników dla &quot;{query}&quot;</p>
           <Button
             variant="tonal"
             size="sm"
@@ -234,7 +234,7 @@ function FavoritesList({
   quickAddFavorite,
 }: FavoritesListProps) {
   if (favorites.length === 0) {
-    return <p className="text-[12px] text-text-muted py-4 text-center">Brak częstych — zacznij od wyszukania produktu</p>;
+    return <p className="text-sm text-text-muted py-4 text-center">Brak częstych — zacznij od wyszukania produktu</p>;
   }
   return (
     <div className="space-y-1.5">
@@ -270,14 +270,14 @@ function RecentList({
   yesterdayStr,
 }: RecentListProps) {
   if (recent.length === 0) {
-    return <p className="text-[12px] text-text-muted py-4 text-center">Brak ostatnich wpisów</p>;
+    return <p className="text-sm text-text-muted py-4 text-center">Brak ostatnich wpisów</p>;
   }
   const grouped = recent.reduce<Record<string, RecentEntry[]>>((acc, r) => { (acc[r.date] ||= []).push(r); return acc; }, {});
   return (
     <div className="space-y-3">
       {Object.entries(grouped).map(([date, entries]) => (
         <div key={date}>
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1.5">{dayLabel(date, todayStr, yesterdayStr)}</p>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5">{dayLabel(date, todayStr, yesterdayStr)}</p>
           <div className="space-y-1.5">
             {entries.map((e) => (
               <FoodRow key={e.id} name={e.name}

@@ -19,8 +19,8 @@ function NeedRow({ item, primary }: { item: LearningNeedItem; primary?: boolean 
         primary ? 'border-primary/30 bg-primary/[0.05]' : 'border-border-custom bg-background/30'
       }`}
     >
-      <p className="text-[12px] font-bold text-text-primary">{item.label}</p>
-      <p className="text-[10px] text-text-muted mt-0.5 tabular-nums">
+      <p className="text-sm font-bold text-text-primary">{item.label}</p>
+      <p className="text-xs text-text-muted mt-0.5 tabular-nums">
         {item.score}/5
         {item.target != null && item.score < item.target ? ` · cel ${item.target}` : ''}
       </p>
@@ -50,7 +50,7 @@ export default function GrowthLearningPanel({
       <Card variant="glass" padding="1rem">
         <div className="flex items-center gap-1.5 mb-2">
           <BookOpen size={12} className="text-text-muted" />
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-wider text-text-muted">
             Czego się uczyć {readOnly ? '(archiwum)' : 'teraz'}
           </p>
         </div>
@@ -60,27 +60,27 @@ export default function GrowthLearningPanel({
             <NeedRow item={primary} primary />
           </ul>
         ) : (
-          <p className="text-[12px] text-text-muted">Ustaw focus w Todo albo oceń skilli — wtedy widać priorytet.</p>
+          <p className="text-sm text-text-muted">Ustaw focus w Todo albo oceń skilli — wtedy widać priorytet.</p>
         )}
 
         {drill && (
           <div className="mt-3 rounded-lg border border-border-custom bg-background/40 px-3 py-2">
-            <p className="text-[8px] font-black uppercase text-text-muted">Drill / ćwiczenie</p>
-            <p className="text-[11px] text-text-secondary mt-0.5 leading-relaxed">{drill}</p>
+            <p className="text-2xs font-black uppercase text-text-muted">Drill / ćwiczenie</p>
+            <p className="text-xs text-text-secondary mt-0.5 leading-relaxed">{drill}</p>
           </div>
         )}
 
         {focusLinks && focusLinks.length > 0 && (
           <div className="mt-3">
-            <p className="text-[8px] font-black uppercase text-text-muted mb-1.5">Materiały z Keep dla focusu</p>
+            <p className="text-2xs font-black uppercase text-text-muted mb-1.5">Materiały z Keep dla focusu</p>
             <ul className="space-y-1.5">
               {focusLinks.map((link) => (
                 <li key={link.id} className="flex items-center justify-between gap-2 rounded-lg border border-border-custom bg-background/40 px-2.5 py-1.5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-text-primary truncate" title={link.title}>
+                    <p className="text-xs font-semibold text-text-primary truncate" title={link.title}>
                       {link.title || link.domain}
                     </p>
-                    <p className="text-[9px] text-text-muted">{link.domain}</p>
+                    <p className="text-2xs text-text-muted">{link.domain}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <a
@@ -96,7 +96,7 @@ export default function GrowthLearningPanel({
                       <Button
                         variant="tonal"
                         onClick={() => onQuickPinLink(link.id, 'must')}
-                        className="px-2 py-0.5 text-[9px] rounded font-black uppercase"
+                        className="px-2 py-0.5 text-2xs rounded font-black uppercase"
                         title="Dodaj jako MUST"
                         size="sm"
                       >
@@ -112,7 +112,7 @@ export default function GrowthLearningPanel({
 
         {alsoWeak.length > 0 && (
           <div className="mt-3">
-            <p className="text-[8px] font-black uppercase text-text-muted mb-1.5">Słabsze linki (&lt;3)</p>
+            <p className="text-2xs font-black uppercase text-text-muted mb-1.5">Słabsze linki (&lt;3)</p>
             <ul className="space-y-1.5">
               {alsoWeak.map((w) => (
                 <NeedRow key={w.label} item={w} />
@@ -123,11 +123,11 @@ export default function GrowthLearningPanel({
       </Card>
 
       <Card variant="glass" padding="1rem" className="flex-1 flex flex-col min-h-[200px]">
-        <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">
+        <p className="text-2xs font-black uppercase tracking-wider text-text-muted mb-2">
           Nauczyłem się w tym tygodniu
         </p>
         {weekItems.length === 0 ? (
-          <p className="text-[12px] text-text-muted leading-relaxed">
+          <p className="text-sm text-text-muted leading-relaxed">
             Puste — zamknij MUST, przeczytaj link, zapisz notatkę #rozwoj albo podnieś ocenę skilli.
           </p>
         ) : (
@@ -141,9 +141,9 @@ export default function GrowthLearningPanel({
                 >
                   <Icon size={14} className="text-primary shrink-0 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-text-primary truncate">{item.label}</p>
+                    <p className="text-xs font-semibold text-text-primary truncate">{item.label}</p>
                     {item.detail && (
-                      <p className="text-[10px] text-text-muted truncate">{item.detail}</p>
+                      <p className="text-xs text-text-muted truncate">{item.detail}</p>
                     )}
                   </div>
                 </li>

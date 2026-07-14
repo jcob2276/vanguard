@@ -57,7 +57,7 @@ export default function BucketHeader({
     >
       {renaming ? (
         <div className="flex flex-1 min-w-0 items-center gap-1.5">
-          {icon && <span className="text-[13px] leading-none shrink-0 select-none">{icon}</span>}
+          {icon && <span className="text-sm leading-none shrink-0 select-none">{icon}</span>}
           <input
             autoFocus
             value={draft}
@@ -67,7 +67,7 @@ export default function BucketHeader({
               if (e.key === 'Escape') setRenaming(false);
             }}
             onClick={(e) => e.stopPropagation()}
-            className="min-w-0 flex-1 rounded-md border border-primary/40 bg-surface-solid px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary outline-none"
+            className="min-w-0 flex-1 rounded-md border border-primary/40 bg-surface-solid px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary outline-none"
           />
           <button onClick={commitRename} className="p-1 text-success hover:text-success-hover shrink-0" title="Zapisz">
             <Check size={12} />
@@ -87,9 +87,9 @@ export default function BucketHeader({
               collapsed ? '' : 'rotate-90'
             }`}
           />
-          {icon && <span className="text-[16px] leading-none shrink-0 select-none">{icon}</span>}
+          {icon && <span className="text-lg leading-none shrink-0 select-none">{icon}</span>}
           <span
-            className={`text-[16px] font-bold text-text-primary tracking-tight truncate transition-colors ${
+            className={`text-lg font-bold text-text-primary tracking-tight truncate transition-colors ${
               isDropTarget ? 'text-primary' : ''
             }`}
           >
@@ -97,7 +97,7 @@ export default function BucketHeader({
           </span>
           {count > 0 && (
             <span
-              className="text-[10px] font-semibold text-text-muted/60 tabular-nums shrink-0 ml-1.5"
+              className="text-xs font-semibold text-text-muted/60 tabular-nums shrink-0 ml-1.5"
             >
               {count}
             </span>
@@ -141,14 +141,14 @@ export default function BucketHeader({
           onClick={(e) => e.stopPropagation()}
           className="absolute right-0 top-full z-20 mt-1 w-64 rounded-2xl border border-border-custom bg-surface/95 p-3 shadow-2xl backdrop-blur-xl"
         >
-          <p className="text-[11px] font-semibold text-text-primary leading-snug">
+          <p className="text-xs font-semibold text-text-primary leading-snug">
             Usunąć sekcję <span className="font-black">„{title}”</span>?
           </p>
-          <p className="mt-0.5 text-[10px] text-text-muted">Zadania w niej wrócą do skrzynki.</p>
+          <p className="mt-0.5 text-xs text-text-muted">Zadania w niej wrócą do skrzynki.</p>
           <div className="mt-2.5 flex justify-end gap-2">
             <button
               onClick={() => setConfirmingDelete(false)}
-              className="rounded-lg px-3 py-1.5 text-[11px] font-bold text-text-muted hover:bg-surface-solid/80 transition-colors"
+              className="rounded-lg px-3 py-1.5 text-xs font-bold text-text-muted hover:bg-surface-solid/80 transition-colors"
             >
               Anuluj
             </button>
@@ -157,7 +157,7 @@ export default function BucketHeader({
                 setConfirmingDelete(false);
                 onDelete?.();
               }}
-              className="rounded-lg bg-danger/10 px-3 py-1.5 text-[11px] font-bold text-danger hover:bg-danger/20 transition-colors"
+              className="rounded-lg bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger hover:bg-danger/20 transition-colors"
             >
               Usuń
             </button>

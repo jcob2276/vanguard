@@ -59,7 +59,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <MapPin size={12} className="text-primary shrink-0" />
-          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-[0.25em] text-text-muted">
             Gdzie co logować
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
         />
       </div>
 
-      <p className="text-[10px] text-text-secondary leading-relaxed">
+      <p className="text-xs text-text-secondary leading-relaxed">
         Jedna mapa pamięci behawioralnej — unikaj duplikatów w złych tabelach. Lenie, sauna i stream mają osobne,
         kanoniczne ścieżki.
       </p>
@@ -84,30 +84,30 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
             className="rounded-xl border border-border-custom/80 bg-surface/40 px-3 py-2.5"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-              <p className="text-[10px] font-black uppercase text-text-primary">{entry.label}</p>
-              <span className="text-[8px] font-bold uppercase tracking-wider text-primary/80">
+              <p className="text-xs font-black uppercase text-text-primary">{entry.label}</p>
+              <span className="text-2xs font-bold uppercase tracking-wider text-primary/80">
                 {storeLabel(entry.store)}
               </span>
             </div>
-            <p className="mt-1 text-[9px] text-text-secondary">
+            <p className="mt-1 text-2xs text-text-secondary">
               <span className="font-bold text-text-muted">Loguj:</span> {entry.logVia}
             </p>
-            <p className="text-[9px] text-text-muted">
+            <p className="text-2xs text-text-muted">
               <span className="font-bold">Używa:</span> {entry.usedBy}
             </p>
             {entry.note ? (
-              <p className="mt-1 text-[9px] text-warning/90 leading-snug">{entry.note}</p>
+              <p className="mt-1 text-2xs text-warning/90 leading-snug">{entry.note}</p>
             ) : null}
           </div>
         ))}
       </div>
 
       <div className="rounded-xl border border-primary/15 bg-primary/[0.04] p-3 space-y-2">
-        <p className="text-[9px] font-black uppercase tracking-widest text-text-primary">
+        <p className="text-2xs font-black uppercase tracking-widest text-text-primary">
           Sygnały dnia ({today})
         </p>
-        <p className="text-[9px] text-text-muted leading-relaxed">
-          Confoundery na dziś — trafiają do <code className="text-[8px]">behavior_log</code> (illness, strain,
+        <p className="text-2xs text-text-muted leading-relaxed">
+          Confoundery na dziś — trafiają do <code className="text-2xs">behavior_log</code> (illness, strain,
           korelacje). Nie mylić z nawykami ani sauną.
         </p>
         <div className="grid grid-cols-2 gap-2">
@@ -125,8 +125,8 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
                     : 'border-border-custom bg-surface text-text-muted hover:text-text-secondary'
                 }`}
               >
-                <span className="text-[11px] mr-1">{icon}</span>
-                <span className="text-[9px] font-black uppercase tracking-wide">{label}</span>
+                <span className="text-xs mr-1">{icon}</span>
+                <span className="text-2xs font-black uppercase tracking-wide">{label}</span>
               </button>
             );
           })}

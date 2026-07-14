@@ -27,9 +27,9 @@ export default function DailyStrainHeader({
     <>
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-1.5">
-          <span className="pixel-label text-[10px]">Stan gotowości</span>
+          <span className="pixel-label text-xs">Stan gotowości</span>
           {isStale && (
-            <span className="text-[8px] font-bold text-warning uppercase tracking-wider">
+            <span className="text-2xs font-bold text-warning uppercase tracking-wider">
               (Dane z {date})
             </span>
           )}
@@ -39,17 +39,17 @@ export default function DailyStrainHeader({
 
       <div className="flex items-center gap-1.5 flex-wrap relative z-10">
         {readinessInfo && (
-          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-black ${readinessInfo.bg} ${readinessInfo.color}`}>
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-black ${readinessInfo.bg} ${readinessInfo.color}`}>
             {readinessInfo.label}
           </span>
         )}
         {strConf && (
-          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${CONF_PILL[strConf]}`}>
+          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wider ${CONF_PILL[strConf]}`}>
             Strain · {CONF_LABEL[strConf]}
           </span>
         )}
         {recConf && (
-          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${CONF_PILL[recConf]}`}>
+          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wider ${CONF_PILL[recConf]}`}>
             Recovery · {CONF_LABEL[recConf]}
           </span>
         )}

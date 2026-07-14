@@ -6,9 +6,9 @@ export function ScheduleBriefingCard({ data }: { data: ScheduleBriefingData }) {
     <div>
       <div className="flex items-center gap-2 mb-3">
         <CalendarDays size={13} style={{ color: 'var(--color-primary)' }} />
-        <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{data.date}</p>
+        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{data.date}</p>
       </div>
-      {data.summary && <p className="text-[12px] mb-2" style={{ color: 'var(--text-secondary)' }}>{data.summary}</p>}
+      {data.summary && <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{data.summary}</p>}
       <div className="space-y-2">
         {data.events.map((ev, i) => {
           const color = ev.color ?? 'var(--color-primary)';
@@ -16,10 +16,10 @@ export function ScheduleBriefingCard({ data }: { data: ScheduleBriefingData }) {
             <div key={i} className="flex items-start gap-2.5 pl-2 border-l-2" style={{ borderColor: color }}>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono" style={{ color: 'var(--color-text-tertiary)' }}>{ev.time}</span>
-                  {ev.duration && <span className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>{ev.duration}</span>}
+                  <span className="text-xs font-mono" style={{ color: 'var(--color-text-tertiary)' }}>{ev.time}</span>
+                  {ev.duration && <span className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>{ev.duration}</span>}
                 </div>
-                <p className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{ev.title}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{ev.title}</p>
               </div>
             </div>
           );

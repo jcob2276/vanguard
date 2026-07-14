@@ -84,7 +84,7 @@ export function FoodAnalysisSection({
               setAnalyzePeriod(p);
               setAnalyzeResult(null);
             }}
-            className={`flex-1 rounded-xl border py-2 text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+            className={`flex-1 rounded-xl border py-2 text-2xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
               analyzePeriod === p
                 ? 'border-primary/30 dark:border-primary/40 bg-primary/[0.06] text-primary font-bold shadow-none'
                 : 'border-border-custom bg-surface-solid/40 text-text-muted hover:text-text-primary'
@@ -104,11 +104,11 @@ export function FoodAnalysisSection({
               setAnalyzeDate(e.target.value);
               setAnalyzeResult(null);
             }}
-            className="flex-1 rounded-xl border border-border-custom bg-surface px-3 py-2 text-[10px] font-bold uppercase text-text-secondary focus:outline-none focus:border-primary/45"
+            className="flex-1 rounded-xl border border-border-custom bg-surface px-3 py-2 text-xs font-bold uppercase text-text-secondary focus:outline-none focus:border-primary/45"
           />
         )}
         {analyzePeriod > 1 && (
-          <p className="flex-1 text-[10px] font-bold uppercase text-text-muted">
+          <p className="flex-1 text-xs font-bold uppercase text-text-muted">
             Ostatnie {analyzePeriod} dni
           </p>
         )}

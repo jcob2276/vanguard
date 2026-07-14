@@ -21,7 +21,7 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
 
   return (
     <Card variant="glass" padding="1.25rem" className="space-y-3">
-      <h3 className="flex items-center gap-2 font-display text-[10px] font-black uppercase tracking-wider text-text-muted">
+      <h3 className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-wider text-text-muted">
         <Zap size={12} className="text-warning" /> Priorytetowe Zadania
       </h3>
       <div className="space-y-2">
@@ -33,11 +33,11 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
             title="Kliknij, aby oznaczyć jako wykonane"
           >
             <span className={`h-2 w-2 rounded-full ${task.priority === 'urgent' ? 'bg-danger' : 'bg-primary'}`} />
-            <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary hover:line-through">
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary hover:line-through">
               {task.title}
             </span>
             {task.due_date && (
-              <span className="shrink-0 text-[9px] font-bold text-text-muted">{task.due_date}</span>
+              <span className="shrink-0 text-2xs font-bold text-text-muted">{task.due_date}</span>
             )}
           </div>
         ))}

@@ -122,19 +122,19 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
         <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
           <CheckSquare size={22} />
-          <span className="text-[11px] font-semibold">Notatki</span>
+          <span className="text-xs font-semibold">Notatki</span>
         </button>
         <button onClick={() => goTo('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <ListTodo size={22} />
-          <span className="text-[11px] font-semibold">Zadania</span>
+          <span className="text-xs font-semibold">Zadania</span>
         </button>
         <button onClick={() => goTo('kalendarz')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <Calendar size={22} />
-          <span className="text-[11px] font-semibold">Kalendarz</span>
+          <span className="text-xs font-semibold">Kalendarz</span>
         </button>
         <button onClick={() => goTo('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
           <BookOpen size={22} />
-          <span className="text-[11px] font-semibold">Pocket</span>
+          <span className="text-xs font-semibold">Pocket</span>
         </button>
       </nav>
     </div>

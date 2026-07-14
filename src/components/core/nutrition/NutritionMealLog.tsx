@@ -73,19 +73,19 @@ export default function NutritionMealLog({
         >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-text-secondary font-display flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-[0.12em] text-text-secondary font-display flex items-center gap-2">
               {isExpanded ? 'Ukryj dzisiejsze posiłki' : 'Pokaż dzisiejsze posiłki'}
-              <span className={`text-[10px] transition-transform duration-300 text-text-muted ${isExpanded ? 'rotate-180' : ''}`}>
+              <span className={`text-xs transition-transform duration-300 text-text-muted ${isExpanded ? 'rotate-180' : ''}`}>
                 ▼
               </span>
             </span>
             {todayQualityScore != null && (
-              <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${qualityColor(todayQualityScore)}`}>
+              <span className={`rounded-full border px-2 py-0.5 text-2xs font-black uppercase tracking-wider ${qualityColor(todayQualityScore)}`}>
                 Jakość {todayQualityScore}
               </span>
             )}
           </div>
-          <span className={`text-[12px] font-black font-display ${
+          <span className={`text-sm font-black font-display ${
             todayMissingData ? 'text-text-muted'
             : remainingKcalToday >= -75 ? 'text-success'
             : 'text-danger'
@@ -102,11 +102,11 @@ export default function NutritionMealLog({
         {!isExpanded && (
           <div className="mt-2 border-t border-border-custom/20 pt-2">
             {todayEntries.length === 0 ? (
-              <p className="text-[9.5px] text-text-muted italic">Brak wpisów — kliknij, by rozwinąć lub dodać szybki posiłek</p>
+              <p className="text-2xs text-text-muted italic">Brak wpisów — kliknij, by rozwinąć lub dodać szybki posiłek</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {mealGroupsWithEntries.map((g) => (
-                  <span key={g.key} className="inline-flex items-center gap-1 rounded-lg bg-surface-solid border border-border-custom/40 px-2 py-0.5 text-[9px] font-bold text-text-secondary shadow-sm">
+                  <span key={g.key} className="inline-flex items-center gap-1 rounded-lg bg-surface-solid border border-border-custom/40 px-2 py-0.5 text-2xs font-bold text-text-secondary shadow-sm">
                     <span>{MEAL_ICON[g.key] || '🍽️'}</span>
                     <span>{g.label}</span>
                     <span className="text-text-primary font-black ml-0.5">{g.totalKcal} kcal</span>

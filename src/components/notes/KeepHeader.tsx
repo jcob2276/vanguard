@@ -1,4 +1,5 @@
 import { ArrowLeft, CheckSquare, Grid3X3, LayoutList, Search, X } from 'lucide-react';
+import Button from '../ui/Button';
 
 interface KeepHeaderProps {
   onBack: () => void;
@@ -12,9 +13,9 @@ export default function KeepHeader({ onBack, search, setSearch, viewMode, setVie
   return (
     <header className="keep-header">
       <div className="keep-header-left">
-        <button onClick={onBack} className="keep-back-btn" title="Wróć">
+        <Button variant="ghost" size="sm" onClick={onBack} className="keep-back-btn" title="Wróć">
           <ArrowLeft size={16} />
-        </button>
+        </Button>
         <div className="keep-logo">
           <CheckSquare size={18} className="keep-logo-icon" />
           <span>Notatki</span>
@@ -30,21 +31,22 @@ export default function KeepHeader({ onBack, search, setSearch, viewMode, setVie
           className="keep-search"
         />
         {search && (
-          <button type="button" onClick={() => setSearch('')} className="keep-search-clear">
+          <Button variant="ghost" size="sm" onClick={() => setSearch('')} className="keep-search-clear">
             <X size={13} />
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="keep-header-right">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
           className="keep-icon-btn"
           title={viewMode === 'grid' ? 'Lista' : 'Siatka'}
         >
           {viewMode === 'grid' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
-        </button>
+        </Button>
       </div>
     </header>
   );

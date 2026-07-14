@@ -45,14 +45,14 @@ function Section({ title, icon: Icon, value, onChange, placeholder, description,
         </div>
         <div>
           <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">{title}</h3>
-          <p className="text-[10px] text-text-muted uppercase tracking-widest">{description}</p>
+          <p className="text-xs text-text-muted uppercase tracking-widest">{description}</p>
         </div>
       </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-[12.5px] font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] outline-none transition-all placeholder:text-text-muted/40"
+        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-sm font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-focus outline-none transition-all placeholder:text-text-muted/40"
       />
     </Card>
   );
@@ -146,7 +146,7 @@ export default function IdentityVault() {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <Shield size={16} className="text-primary animate-pulse" />
-            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Identity Vault v3.1</span>
+            <span className="text-xs font-black text-primary uppercase tracking-[0.3em]">Identity Vault v3.1</span>
           </div>
           <h1 className="text-3xl font-display font-black text-text-primary tracking-tight uppercase">Pełny Profil Bliźniaka</h1>
           <p className="text-text-secondary text-xs mt-1 font-semibold leading-relaxed">Wpisz tu wszystko, co Wyrocznia powinna o Tobie wiedzieć.</p>
@@ -155,7 +155,7 @@ export default function IdentityVault() {
         <button
           onClick={handleSave}
           disabled={loading}
-          className={`px-8 py-3.5 rounded-2xl font-bold text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md disabled:opacity-50 font-display cursor-pointer ${
+          className={`px-8 py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md disabled:opacity-50 font-display cursor-pointer ${
             saveStatus === 'success' 
               ? 'bg-success text-white shadow-success/20' 
               : 'bg-primary text-white hover:bg-primary-hover shadow-primary/20'
@@ -166,7 +166,7 @@ export default function IdentityVault() {
       </div>
 
       {saveStatus === 'success' && (
-        <div className="bg-success/5 dark:bg-success/10 border border-success/25 text-success dark:text-success p-4 rounded-2xl text-[11px] font-bold uppercase tracking-wider text-center animate-in zoom-in-95">
+        <div className="bg-success/5 dark:bg-success/10 border border-success/25 text-success dark:text-success p-4 rounded-2xl text-xs font-bold uppercase tracking-wider text-center animate-in zoom-in-95">
           Fundament Zaktualizowany. Bliźniak właśnie stał się mądrzejszy.
         </div>
       )}

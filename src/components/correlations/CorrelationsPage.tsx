@@ -39,7 +39,7 @@ export default function CorrelationsPage() {
         {/* Epistemic guardrail */}
         <Card variant="accent" padding="0.75rem 1rem" className="flex gap-3" style={{ borderRadius: '18px' }}>
           <Info size={16} className="text-primary shrink-0 mt-0.5" />
-          <p className="text-[11px] text-text-secondary leading-relaxed">
+          <p className="text-xs text-text-secondary leading-relaxed">
             To warstwa pomiarowa: system skanuje wszystkie metryki z logów (≥5 dni danych) i pokazuje pary,
             gdzie współwystępowanie jest czytelne — także te, których byś nie sprawdził ręcznie. N ≠ przyczyna.
           </p>
@@ -56,7 +56,7 @@ export default function CorrelationsPage() {
 
         {highlights.length > 0 && (
           <section className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-text-muted">
               Najsilniejsze obserwacje (p&lt;0.05, N≥10)
             </p>
             <div className="space-y-3">
@@ -87,7 +87,7 @@ export default function CorrelationsPage() {
 
         <CorrelationFilters filter={filter} setFilter={setFilter} />
 
-        <label className="flex items-center gap-2 text-[11px] text-text-muted cursor-pointer">
+        <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
           <input
             type="checkbox"
             checked={includeWeak}
@@ -99,11 +99,11 @@ export default function CorrelationsPage() {
 
         {/* Correlation grid */}
         <section className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-text-muted">
             {filter === 'all' ? 'Odkryte pary' : CATEGORY_LABELS[filter]} ({filteredWithoutSleepStages.length})
           </p>
           {filteredWithoutSleepStages.length === 0 ? (
-            <p className="text-center text-[12px] text-text-muted py-8">
+            <p className="text-center text-sm text-text-muted py-8">
               {includeWeak
                 ? 'Brak wyników w tej kategorii — loguj dane kilka dni z rzędu.'
                 : 'Brak mocnych sygnałów w tej kategorii. Włącz słabsze korelacje albo loguj regularniej (kawa z godziną, Oura, treningi).'}
@@ -120,15 +120,15 @@ export default function CorrelationsPage() {
         {/* Behavior effects */}
         <section className="space-y-3 pt-4 border-t border-border-custom">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-text-muted">
               Zachowania vs recovery (behavior_log)
             </p>
-            <p className="text-[11px] text-text-muted mt-1">
+            <p className="text-xs text-text-muted mt-1">
               Alkohol, podróż, stres — tylko gdy efekt na recovery jest czytelny (p&lt;0.05 lub duży Cohen&apos;s d).
             </p>
           </div>
           {behaviors.length === 0 ? (
-            <Card as="p" variant="outline" padding="1rem" className="text-[12px] text-text-muted text-center border-dashed">
+            <Card as="p" variant="outline" padding="1rem" className="text-sm text-text-muted text-center border-dashed">
               Brak czytelnych efektów zachowań — loguj alkohol/stres/podróż albo włącz słabsze wyniki powyżej.
             </Card>
           ) : (

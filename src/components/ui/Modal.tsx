@@ -98,7 +98,7 @@ export default function Modal({
                 </p>
               )}
               {title && (
-                <h3 className="text-[17px] font-black text-text-primary leading-tight">
+                <h3 className="text-lg font-black text-text-primary leading-tight">
                   {title}
                 </h3>
               )}

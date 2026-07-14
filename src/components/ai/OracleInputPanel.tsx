@@ -1,5 +1,6 @@
 import { Camera, Send, X } from 'lucide-react';
 import type { RefObject } from 'react';
+import Button from '../ui/Button';
 
 interface OracleInputPanelProps {
   input: string;
@@ -38,12 +39,12 @@ export function OracleInputPanel({
           {pendingImages.map((file, idx) => (
             <div key={`${file.name}-${idx}`} className="relative h-10 w-10 rounded-lg overflow-hidden border border-border-custom group">
               <img src={previewUrls[idx]} alt="" className="h-full w-full object-cover" />
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
-                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-white cursor-pointer"
-              >
-                <X size={10} />
-              </button>
+                icon={<X size={10} />}
+                className="absolute inset-0 rounded-none p-0 min-w-0 bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-white hover:bg-black/40 hover:text-white"
+              />
             </div>
           ))}
         </div>
@@ -80,15 +81,15 @@ export function OracleInputPanel({
               : 'Jak wygląda mój sen w tym tygodniu?'
           }
           disabled={loading}
-          className="flex-1 bg-transparent text-[16px] font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
+          className="flex-1 bg-transparent text-lg font-medium text-text-primary placeholder:text-text-muted/40 outline-none"
         />
-        <button
+        <Button
+          variant="primary"
           onClick={onSubmit}
           disabled={(!input.trim() && pendingImages.length === 0) || loading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white disabled:opacity-30 hover:bg-primary-hover transition-all active:scale-95 cursor-pointer"
-        >
-          <Send size={13} />
-        </button>
+          icon={<Send size={13} />}
+          className="h-8 w-8 shrink-0 rounded-full p-0 min-w-0 shadow-none hover:translate-y-0 disabled:opacity-30"
+        />
       </div>
     </>
   );

@@ -46,7 +46,7 @@ export default function NutritionChart({
       <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-solid/15 border border-border-custom/50 mb-3">
         <button
           onClick={() => { haptics.light(); setActiveChartTab('calories'); }}
-          className={`flex-1 text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`flex-1 text-center py-1 rounded-lg text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeChartTab === 'calories'
               ? 'bg-surface-solid shadow-sm text-text-primary border border-border-custom/30'
               : 'text-text-muted hover:text-text-secondary'
@@ -56,7 +56,7 @@ export default function NutritionChart({
         </button>
         <button
           onClick={() => { haptics.light(); setActiveChartTab('protein'); }}
-          className={`flex-1 text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`flex-1 text-center py-1 rounded-lg text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeChartTab === 'protein'
               ? 'bg-surface-solid shadow-sm text-text-primary border border-border-custom/30'
               : 'text-text-muted hover:text-text-secondary'
@@ -93,7 +93,7 @@ export default function NutritionChart({
                     }`}
                     style={{ height: `${Math.max(pct, 5)}%` }}
                   />
-                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-[8px] font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
+                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-2xs font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
                     {weekday}: {d.calories} kcal
                   </div>
                 </div>
@@ -105,7 +105,7 @@ export default function NutritionChart({
               const isToday = d.key === todayRaw;
               const weekday = getWeekdayAbbr(d.key);
               return (
-                <span key={d.key} className={`flex-1 text-center text-[7.5px] font-black ${isToday ? 'text-primary' : 'text-text-muted'}`}>
+                <span key={d.key} className={`flex-1 text-center text-3xs font-black ${isToday ? 'text-primary' : 'text-text-muted'}`}>
                   {isToday ? 'Dziś' : weekday}
                 </span>
               );
@@ -139,7 +139,7 @@ export default function NutritionChart({
                     }`}
                     style={{ height: `${Math.max(pct, 5)}%` }}
                   />
-                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-[8px] font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
+                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-2xs font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
                     {weekday}: {d.protein}g B
                   </div>
                 </div>
@@ -151,7 +151,7 @@ export default function NutritionChart({
               const isToday = d.key === todayRaw;
               const weekday = getWeekdayAbbr(d.key);
               return (
-                <span key={d.key} className={`flex-1 text-center text-[7.5px] font-black ${isToday ? 'text-primary' : 'text-text-muted'}`}>
+                <span key={d.key} className={`flex-1 text-center text-3xs font-black ${isToday ? 'text-primary' : 'text-text-muted'}`}>
                   {isToday ? 'Dziś' : weekday}
                 </span>
               );

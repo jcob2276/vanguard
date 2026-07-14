@@ -1,6 +1,7 @@
 import { Check, Zap } from 'lucide-react'
 import { useHaptics } from '../../../hooks/useHaptics'
 import { Card } from '../../ui/Card'
+import Button from '../../ui/Button'
 import type { PlyoExercisePrescription, PlyoSessionPlan } from '../../../lib/health/plyoMarathonProgram'
 import { formatPlyoPrescription } from '../../../lib/health/plyoMarathonProgram'
 
@@ -21,21 +22,22 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Zap size={14} className="text-lime-500 shrink-0" />
-            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-lime-600 dark:text-lime-400">
+            <span className="text-2xs font-black uppercase tracking-[0.16em] text-lime-600 dark:text-lime-400">
               Plajometria
             </span>
           </div>
-          <h2 className="text-[11px] font-black uppercase tracking-wide text-text-primary leading-snug">
+          <h2 className="text-xs font-black uppercase tracking-wide text-text-primary leading-snug">
             {session.label}
           </h2>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onSkip}
-          className="shrink-0 text-[8px] font-black uppercase tracking-widest text-text-muted hover:text-text-secondary cursor-pointer"
+          className="shrink-0 px-0 py-0 text-2xs font-black uppercase tracking-widest text-text-muted hover:bg-transparent hover:text-text-secondary"
         >
           Pomiń
-        </button>
+        </Button>
       </div>
 
       <div className="h-1.5 rounded-full bg-surface-solid overflow-hidden">
@@ -82,18 +84,19 @@ function PlyoExerciseRow({
       }`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className={`text-[12px] font-black tracking-tight ${allSetsDone ? 'text-lime-700 dark:text-lime-300' : 'text-text-primary'}`}>
+        <span className={`text-sm font-black tracking-tight ${allSetsDone ? 'text-lime-700 dark:text-lime-300' : 'text-text-primary'}`}>
           {ex.name}
         </span>
-        <span className="text-[10px] font-bold text-text-muted tabular-nums">{formatPlyoPrescription(ex)}</span>
+        <span className="text-xs font-bold text-text-muted tabular-nums">{formatPlyoPrescription(ex)}</span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {setsDone.map((isDone, setIdx) => (
-          <button
+          <Button
             key={setIdx}
             type="button"
+            variant="ghost"
             onClick={() => onToggle(setIdx)}
-            className={`flex h-9 min-w-[2.25rem] items-center justify-center gap-1 rounded-xl border px-2 text-[10px] font-black transition-all cursor-pointer ${
+            className={`h-9 min-w-[2.25rem] gap-1 rounded-xl border px-2 text-xs font-black ${
               isDone
                 ? 'border-lime-500 bg-lime-500 text-white shadow-sm'
                 : 'border-border-custom bg-surface-solid text-text-muted hover:border-lime-500/40 hover:text-text-primary'
@@ -101,7 +104,7 @@ function PlyoExerciseRow({
             aria-label={`Seria ${setIdx + 1}`}
           >
             {isDone ? <Check size={12} strokeWidth={3} /> : setIdx + 1}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

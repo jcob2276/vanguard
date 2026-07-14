@@ -52,10 +52,10 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-          <h2 className="text-[16px] font-black text-text-primary mb-2 font-display uppercase tracking-wide">
+          <h2 className="text-lg font-black text-text-primary mb-2 font-display uppercase tracking-wide">
             Coś poszło nie tak
           </h2>
-          <p className="text-[12px] font-semibold text-text-muted mb-4 max-w-sm">
+          <p className="text-sm font-semibold text-text-muted mb-4 max-w-sm">
             {this.state.chunkFailed
               ? 'Nowa wersja aplikacji — odśwież stronę (Ctrl+F5), jeśli problem wraca.'
               : 'Wystąpił nieoczekiwany błąd aplikacji.'}

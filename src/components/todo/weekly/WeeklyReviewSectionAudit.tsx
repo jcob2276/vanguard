@@ -19,11 +19,11 @@ export default function WeeklyReviewSectionAudit() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
+        <h3 className="text-sm font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
           <Folder size={15} className="text-primary" />
           Krok 2: Audyt Sekcji i Projektów
         </h3>
-        <p className="text-[10px] text-text-muted mt-0.5">
+        <p className="text-xs text-text-muted mt-0.5">
           Zweryfikuj zadania przypisane do poszczególnych sekcji.
         </p>
       </div>
@@ -38,7 +38,7 @@ export default function WeeklyReviewSectionAudit() {
               <button
                 key={sec.id}
                 onClick={() => setCurrentSectionIdx(idx)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
                   idx === currentSectionIdx
                     ? 'bg-primary border-transparent text-white'
                     : 'border-border-custom/60 text-text-muted bg-surface-solid/20'
@@ -63,16 +63,16 @@ export default function WeeklyReviewSectionAudit() {
             return (
               <div className="space-y-2.5">
                 <div className="p-3 bg-slate-50 dark:bg-white/[0.01] rounded-xl border border-border-custom/30">
-                  <span className="text-[11px] font-black text-primary uppercase tracking-wider block">
+                  <span className="text-xs font-black text-primary uppercase tracking-wider block">
                     Bieżący Projekt:
                   </span>
-                  <span className="text-[13px] font-bold text-text-primary mt-0.5 block">
+                  <span className="text-sm font-bold text-text-primary mt-0.5 block">
                     {currentSec.name}
                   </span>
                 </div>
 
                 {openTasks.length === 0 ? (
-                  <p className="text-[11px] text-text-muted/50 italic py-6 text-center">
+                  <p className="text-xs text-text-muted/50 italic py-6 text-center">
                     Brak otwartych zadań w tej sekcji.
                   </p>
                 ) : (
@@ -85,11 +85,11 @@ export default function WeeklyReviewSectionAudit() {
                           className="p-3 rounded-xl border border-border-custom/50 bg-surface-solid/30 flex items-center justify-between gap-3"
                         >
                           <div className="min-w-0 flex-1">
-                            <span className="text-[12px] font-bold text-text-primary block truncate">
+                            <span className="text-sm font-bold text-text-primary block truncate">
                               {item.title}
                             </span>
                             {staged.due_date && (
-                              <span className="text-[9px] text-text-muted font-semibold mt-0.5 block">
+                              <span className="text-2xs text-text-muted font-semibold mt-0.5 block">
                                 Termin: {staged.due_date}
                               </span>
                             )}
@@ -97,7 +97,7 @@ export default function WeeklyReviewSectionAudit() {
 
                           <div className="flex items-center gap-1.5 shrink-0">
                             {/* Datepicker */}
-                            <div className="relative flex items-center gap-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-[10px] font-semibold text-text-secondary">
+                            <div className="relative flex items-center gap-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-xs font-semibold text-text-secondary">
                               <Calendar size={11} className="text-text-muted" />
                               <input
                                 type="date"

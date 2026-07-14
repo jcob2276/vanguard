@@ -80,7 +80,7 @@ export default function HexagonChart({ scores, theme, grid }: { scores: HexagonS
             x={x}
             y={y}
             textAnchor={lbl.align as 'start' | 'middle' | 'end'}
-            className="text-[9px] font-black uppercase tracking-wider fill-text-primary"
+            className="text-2xs font-black uppercase tracking-wider fill-text-primary"
           >
             {lbl.label}
           </text>

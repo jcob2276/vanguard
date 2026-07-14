@@ -81,19 +81,19 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
       style={{ borderRadius: 'var(--radius-md)' }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-black text-text-primary tracking-wide">
+        <span className="text-sm font-black text-text-primary tracking-wide">
           {monthNames[month]} {year}
         </span>
         <div className="flex gap-1">
           <button
             onClick={handlePrevMonth}
-            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
+            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
           >
             <ChevronLeft size={13} className="text-text-muted hover:text-text-primary" />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
+            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
           >
             <ChevronRight size={13} className="text-text-muted hover:text-text-primary" />
           </button>
@@ -102,7 +102,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
 
       <div className="grid grid-cols-7 gap-y-1.5 text-center">
         {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
-          <span key={idx} className="text-[9px] font-bold text-text-muted/50 uppercase tracking-wider">
+          <span key={idx} className="text-2xs font-bold text-text-muted/50 uppercase tracking-wider">
             {d}
           </span>
         ))}
@@ -118,7 +118,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
               <button
                 onClick={() => onSelectDay(item.dayStr)}
                 title={showMoon ? moon.name : undefined}
-                className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-[10.5px] transition-all duration-150 active:scale-90 ${
+                className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-xs transition-all duration-150 active:scale-90 ${
                   isSelected
                     ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
                     : isToday
@@ -133,7 +133,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
               {/* Ikona fazy księżyca — tylko główne fazy */}
               {showMoon && (
                 <span
-                  className="text-[7px] leading-none mt-[1px] opacity-80"
+                  className="text-3xs leading-none mt-[1px] opacity-80"
                   title={moon.name}
                 >
                   {moon.emoji}

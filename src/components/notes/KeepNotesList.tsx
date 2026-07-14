@@ -69,9 +69,9 @@ export default function KeepNotesList({
       ) : (
         <div className="keep-sections pb-20 md:pb-0">
           {search && (
-            <div className="text-[10.5px] font-bold text-text-muted px-4 py-2 bg-slate-500/5 border border-border-custom/20 rounded-xl mb-4 flex items-center justify-between">
+            <div className="text-xs font-bold text-text-muted px-4 py-2 bg-slate-500/5 border border-border-custom/20 rounded-xl mb-4 flex items-center justify-between">
               <span>Wyniki wyszukiwania dla "{search}":</span>
-              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[9.5px]">
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-2xs">
                 {filtered.length} {filtered.length === 1 ? 'notatka' : [2, 3, 4].includes(filtered.length % 10) && ![12, 13, 14].includes(filtered.length % 100) ? 'notatki' : 'notatek'}
               </span>
             </div>
@@ -148,7 +148,7 @@ export default function KeepNotesList({
                   <button
                     type="button"
                     onClick={() => setVisibleCount(prev => prev + 30)}
-                    className="px-6 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-[11px] font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                    className="px-6 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-xs font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     Pokaż więcej notatek ({others.length - visibleCount} pozostało)
                   </button>

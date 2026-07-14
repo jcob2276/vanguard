@@ -166,15 +166,15 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Mapa mięśni</p>
-            <h2 className="mt-1 font-display text-[18px] font-black tracking-tight text-text-primary">Co trenowałeś</h2>
+            <p className="text-2xs font-bold uppercase tracking-[0.15em] text-text-muted font-display">Mapa mięśni</p>
+            <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">Co trenowałeś</h2>
           </div>
           <div className="flex shrink-0 gap-1">
             {PERIODS.map((p) => (
               <button
                 key={p.days}
                 onClick={() => setPeriod(p.days)}
-                className={`h-9 min-w-12 rounded-xl border px-3 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                className={`h-9 min-w-12 rounded-xl border px-3 text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
                   period === p.days
                     ? 'border-info/40 bg-info/15 text-info dark:text-info shadow-[0_0_12px_rgba(56,189,248,0.1)]'
                     : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'
@@ -193,13 +193,13 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                 className="h-2 w-2 rounded-full shadow-[0_0_10px_currentColor]"
                 style={{ color: topTag ? tagColor(topTag) : 'rgba(150,150,150,0.3)', backgroundColor: 'currentColor' }}
               />
-              <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Top</span>
-              <span className="text-[11px] font-black capitalize text-text-primary">{topTag ?? 'brak'}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-text-muted">Top</span>
+              <span className="text-xs font-black capitalize text-text-primary">{topTag ?? 'brak'}</span>
             </div>
             {neglected.length > 0 && (
               <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border-custom bg-surface px-3 py-2 shadow-sm">
-                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Zaniedbane</span>
-                <span className="truncate text-[11px] font-bold capitalize text-text-secondary">{neglected.join(', ')}</span>
+                <span className="text-xs font-black uppercase tracking-widest text-text-muted">Zaniedbane</span>
+                <span className="truncate text-xs font-bold capitalize text-text-secondary">{neglected.join(', ')}</span>
               </div>
             )}
           </div>
@@ -217,7 +217,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
               { label: 'Tył', view: 'posterior' as const },
             ]).map(({ label, view }) => (
               <div key={view} className="relative flex flex-col items-center gap-2">
-                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
+                <span className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
                 <div className="muscle-map-model w-full max-w-[168px]">
                   <BodyModel view={view} loadByTag={loadByTag} onMuscleClick={handleMuscleClick} />
                 </div>
@@ -229,7 +229,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
             <div className="space-y-3 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
               {ranked.map(([tag, count]) => (
                 <div key={tag} className="grid grid-cols-[90px_1fr_72px] items-center gap-3">
-                  <span className="flex min-w-0 items-center gap-2 text-[11px] font-black capitalize text-text-secondary">
+                  <span className="flex min-w-0 items-center gap-2 text-xs font-black capitalize text-text-secondary">
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: tagColor(tag), boxShadow: `0 0 8px ${tagColor(tag)}` }}
@@ -247,10 +247,10 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                     />
                   </div>
                   <div className="text-right">
-                    <div className="text-[11px] font-black tabular-nums text-text-secondary">
+                    <div className="text-xs font-black tabular-nums text-text-secondary">
                       {formatSetCount(setsByTag[tag] ?? 0)} eff
                     </div>
-                    <div className="text-[9px] font-bold tabular-nums text-text-muted/70">
+                    <div className="text-2xs font-bold tabular-nums text-text-muted/70">
                       {formatSetCount(directByTag[tag] ?? 0)}b · {formatSetCount(indirectByTag[tag] ?? 0)}p
                     </div>
                   </div>
@@ -258,9 +258,9 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
               ))}
               {neglected.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 border-t border-border-custom pt-3">
-                  <span className="mr-1 text-[9px] font-black uppercase tracking-widest text-text-muted">Bez bodźca</span>
+                  <span className="mr-1 text-2xs font-black uppercase tracking-widest text-text-muted">Bez bodźca</span>
                   {neglected.map((tag) => (
-                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-[10px] font-bold capitalize text-text-secondary shadow-sm">
+                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-xs font-bold capitalize text-text-secondary shadow-sm">
                       {tag}
                     </span>
                   ))}

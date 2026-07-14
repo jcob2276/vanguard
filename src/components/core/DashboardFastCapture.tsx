@@ -46,9 +46,9 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
               style={{ backgroundColor: item.color }}
               className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg active:scale-90 transition-transform cursor-pointer"
             >
-              <span className="text-[20px]">{item.emoji}</span>
+              <span className="text-xl">{item.emoji}</span>
             </button>
-            <span className="rounded-lg bg-slate-900/90 border border-slate-800 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-md">
+            <span className="rounded-lg bg-slate-900/90 border border-slate-800 px-2 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
               {item.label}
             </span>
           </div>

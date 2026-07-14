@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Paperclip, X, Calendar, Flag, Bell, Tag, Folder, ChevronDown } from 'lucide-react';
+import Button from '../ui/Button';
 import NlpHighlightInput from './NlpHighlightInput';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
@@ -58,14 +59,14 @@ export default function TodoCardExpandedPanel({
           onBlur={onEditSave}
           onFocus={() => onEditStart(item.title)}
           placeholder="Nazwa zadania"
-          className="w-full bg-transparent text-[13px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
+          className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
         />
         <textarea
           value={item.notes || ''}
           onChange={(e) => onSetNotes?.(e.target.value || null)}
           rows={2}
           placeholder="Opis"
-          className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+          className="w-full resize-none bg-transparent text-sm font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
         />
       </div>
 
@@ -75,7 +76,7 @@ export default function TodoCardExpandedPanel({
           {attachments.map((att) => (
             <div
               key={att.id}
-              className="flex items-center gap-1.5 rounded-lg border border-border-custom/50 bg-surface-solid/40 px-2 py-0.5 text-[10px]"
+              className="flex items-center gap-1.5 rounded-lg border border-border-custom/50 bg-surface-solid/40 px-2 py-0.5 text-xs"
             >
               <Paperclip size={10} className="text-text-muted/50" />
               <a
@@ -111,7 +112,7 @@ export default function TodoCardExpandedPanel({
           <button
             type="button"
             onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.due_date ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.due_date ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
           >
             <Calendar size={12} className={item.due_date ? 'text-primary' : 'text-text-muted/60'} />
             <span>{item.due_date ? `${item.due_date}${item.scheduled_time ? ` ${item.scheduled_time.slice(11, 16)}` : ''}` : 'Termin'}</span>
@@ -149,7 +150,7 @@ export default function TodoCardExpandedPanel({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingFile}
-            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all disabled:opacity-40"
           >
             <Paperclip size={12} className="text-text-muted/60" />
             <span>{uploadingFile ? 'Wysyłanie…' : 'Załącznik'}</span>
@@ -170,7 +171,7 @@ export default function TodoCardExpandedPanel({
           </select>
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
           >
             <Flag size={12} className={item.priority === 'urgent' ? 'text-danger' : item.priority === 'high' ? 'text-warning' : item.priority === 'normal' ? 'text-info' : 'text-text-muted/60'} />
             <span>
@@ -184,7 +185,7 @@ export default function TodoCardExpandedPanel({
           <button
             type="button"
             onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
           >
             <Bell size={12} className={item.reminder_at ? 'text-primary' : 'text-text-muted/60'} />
             <span>
@@ -217,7 +218,7 @@ export default function TodoCardExpandedPanel({
                 setTagInput('');
               }
             }}
-            className="bg-transparent text-[11px] font-semibold text-text-secondary outline-none w-full placeholder:text-text-muted/30"
+            className="bg-transparent text-xs font-semibold text-text-secondary outline-none w-full placeholder:text-text-muted/30"
           />
         </div>
 
@@ -225,7 +226,7 @@ export default function TodoCardExpandedPanel({
         {(item.tags || []).length > 0 && (
           <div className="flex flex-wrap gap-1">
             {(item.tags || []).map((tag: string) => (
-              <span key={tag} className="flex items-center gap-1 rounded-full border border-border-custom/50 bg-surface-solid/60 px-2 py-0.5 text-[9.5px] font-medium text-text-secondary">
+              <span key={tag} className="flex items-center gap-1 rounded-full border border-border-custom/50 bg-surface-solid/60 px-2 py-0.5 text-2xs font-medium text-text-secondary">
                 #{tag}
                 <button
                   onClick={() => onSetTags((item.tags || []).filter((t: string) => t !== tag))}
@@ -255,7 +256,7 @@ export default function TodoCardExpandedPanel({
           </select>
           <button
             type="button"
-            className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
           >
             <Folder size={13} className="text-text-muted/60" />
             <span>
@@ -270,17 +271,17 @@ export default function TodoCardExpandedPanel({
           <button
             type="button"
             onClick={onDrop}
-            className="rounded-xl border border-danger/15 bg-danger/5 px-3 py-1.5 text-[11px] font-black text-danger hover:bg-danger/10 transition-colors btn-press"
+            className="rounded-xl border border-danger/15 bg-danger/5 px-3 py-1.5 text-xs font-black text-danger hover:bg-danger/10 transition-colors btn-press"
           >
             Odpuść zadanie
           </button>
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => onToggleExpand(item.id)}
-            className="todoist-btn-primary"
           >
             Zamknij
-          </button>
+          </Button>
         </div>
       </div>
     </Card>

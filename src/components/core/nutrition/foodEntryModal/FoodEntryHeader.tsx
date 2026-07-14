@@ -28,7 +28,7 @@ export default function FoodEntryHeader({
     <>
       <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-border-custom shrink-0">
         <div className="flex items-center gap-2">
-          <span className={`text-[15px] font-black transition-colors ${savedFlash && screen === 'browse' ? 'text-success' : 'text-text-primary'}`}>
+          <span className={`text-base font-black transition-colors ${savedFlash && screen === 'browse' ? 'text-success' : 'text-text-primary'}`}>
             {headerTitle}
           </span>
           {screen === 'browse' && (
@@ -36,11 +36,11 @@ export default function FoodEntryHeader({
               <select
                 value={mealType}
                 onChange={(e) => setMealType(e.target.value)}
-                className="appearance-none rounded-full border border-border-custom bg-surface-solid/40 pl-3 pr-6 py-1 text-[10px] font-bold text-text-secondary cursor-pointer outline-none"
+                className="appearance-none rounded-full border border-border-custom bg-surface-solid/40 pl-3 pr-6 py-1 text-xs font-bold text-text-secondary cursor-pointer outline-none"
               >
                 {MEAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
-              <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none text-[11px]">▾</span>
+              <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none text-xs">▾</span>
             </div>
           )}
         </div>
@@ -51,7 +51,7 @@ export default function FoodEntryHeader({
 
       {todayTotals && (
         <div className="px-5 py-2.5 border-b border-border-custom/60 bg-surface-solid/20 shrink-0">
-          <div className="flex items-center justify-between text-[10px] font-bold text-text-muted mb-1.5">
+          <div className="flex items-center justify-between text-xs font-bold text-text-muted mb-1.5">
             <span>
               <span className="text-text-primary">{todayTotals.calories}</span>
               {targets?.target_kcal ? ` / ${targets.target_kcal}` : ''} kcal dziś

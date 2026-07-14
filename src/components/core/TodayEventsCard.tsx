@@ -13,9 +13,9 @@ export default function TodayEventsCard() {
       <section className="animate-fadeIn card p-4">
         <div className="flex items-center gap-2 mb-2">
           <CalendarDays size={12} className="text-text-muted" />
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Dziś w kalendarzu</p>
+          <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted font-display">Dziś w kalendarzu</p>
         </div>
-        <p className="text-[12px] text-text-muted">Brak wydarzeń — sync kalendarza w ustawieniach / Fundament.</p>
+        <p className="text-sm text-text-muted">Brak wydarzeń — sync kalendarza w ustawieniach / Fundament.</p>
       </section>
     );
   }
@@ -27,7 +27,7 @@ export default function TodayEventsCard() {
     <section className="animate-fadeIn card p-4 space-y-2.5">
       <div className="flex items-center gap-2">
         <CalendarDays size={12} className="text-text-muted" />
-        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display">Dziś w kalendarzu</p>
+        <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted font-display">Dziś w kalendarzu</p>
       </div>
       <div className="space-y-1.5">
         {events.map((e) => {
@@ -41,14 +41,14 @@ export default function TodayEventsCard() {
                 ? 'opacity-40 border-l-2 border-l-text-muted/30 border-y border-r border-border-custom/50' 
                 : 'bg-surface-solid/40 border-l-2 border-l-text-muted/50 border-y border-r border-border-custom/30'
             }`}>
-              <div className={`shrink-0 text-[10px] font-black tabular-nums ${active ? 'text-primary' : 'text-text-muted'}`}>
+              <div className={`shrink-0 text-xs font-black tabular-nums ${active ? 'text-primary' : 'text-text-muted'}`}>
                 {fmt(e.start_time)}
               </div>
-              <div className={`min-w-0 flex-1 text-[12px] font-semibold truncate ${active ? 'text-text-primary' : 'text-text-secondary'}`}>
+              <div className={`min-w-0 flex-1 text-sm font-semibold truncate ${active ? 'text-text-primary' : 'text-text-secondary'}`}>
                 {e.summary}
               </div>
               {active && (
-                <Badge variant="tag" className="shrink-0 flex items-center gap-1 text-[9px] font-black">
+                <Badge variant="tag" className="shrink-0 flex items-center gap-1 text-2xs font-black">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                   teraz
                 </Badge>

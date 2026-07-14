@@ -57,21 +57,21 @@ export default function PinPickerModal({
       showCloseButton={false}
     >
       <div>
-        <h2 className="text-[13px] font-black uppercase tracking-wider text-text-primary">
+        <h2 className="text-sm font-black uppercase tracking-wider text-text-primary">
           Przypnij — {slot === 'must' ? 'MUST' : 'W toku'}
         </h2>
-        <p className="text-[10px] text-text-muted mt-0.5">
+        <p className="text-xs text-text-muted mt-0.5">
           Max {slot === 'must' ? MAX_MUST : MAX_ACTIVE} w slocie
         </p>
       </div>
 
       <div className="px-0 pt-3 grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Skill</label>
+            <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Skill</label>
             <select
               value={skillId}
               onChange={(e) => setSkillId(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px]"
+              className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm"
             >
               {skills.map((s) => (
                 <option key={s.id} value={s.id}>{s.label}</option>
@@ -79,11 +79,11 @@ export default function PinPickerModal({
             </select>
           </div>
           <div>
-            <label className="text-[9px] font-black uppercase tracking-wider text-text-muted">Projekt</label>
+            <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Projekt</label>
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-[12px]"
+              className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm"
             >
               <option value="">— bez projektu —</option>
               {projects.map((p) => (
@@ -103,7 +103,7 @@ export default function PinPickerModal({
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`flex-1 flex items-center justify-center gap-1 rounded-lg py-2 text-[10px] font-black uppercase cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-1 rounded-lg py-2 text-xs font-black uppercase cursor-pointer ${
                 tab === id ? 'bg-primary/10 text-primary' : 'text-text-muted'
               }`}
             >
@@ -115,7 +115,7 @@ export default function PinPickerModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {tab === 'pocket' &&
             (availableLinks.length === 0 ? (
-              <p className="text-[12px] text-text-muted text-center py-6">Brak nieprzeczytanych linków</p>
+              <p className="text-sm text-text-muted text-center py-6">Brak nieprzeczytanych linków</p>
             ) : (
               availableLinks.map((link) => (
                 <Button
@@ -125,8 +125,8 @@ export default function PinPickerModal({
                   className="w-full text-left justify-start p-3 h-auto"
                 >
                   <div>
-                    <p className="text-[12px] font-bold text-text-primary line-clamp-2">{link.title || link.url}</p>
-                    <p className="text-[9px] text-text-muted mt-1">{link.category}</p>
+                    <p className="text-sm font-bold text-text-primary line-clamp-2">{link.title || link.url}</p>
+                    <p className="text-2xs text-text-muted mt-1">{link.category}</p>
                   </div>
                 </Button>
               ))
@@ -134,7 +134,7 @@ export default function PinPickerModal({
 
           {tab === 'todo' &&
             (availableTodos.length === 0 ? (
-              <p className="text-[12px] text-text-muted text-center py-6">Brak otwartych zadań</p>
+              <p className="text-sm text-text-muted text-center py-6">Brak otwartych zadań</p>
             ) : (
               availableTodos.map((todo) => (
                 <Button
@@ -143,7 +143,7 @@ export default function PinPickerModal({
                   onClick={() => onPickTodo(todo.id, skillId || null, projectId || null)}
                   className="w-full text-left justify-start p-3 h-auto"
                 >
-                  <p className="text-[12px] font-bold text-text-primary">{todo.title}</p>
+                  <p className="text-sm font-bold text-text-primary">{todo.title}</p>
                 </Button>
               ))
             ))}
@@ -154,7 +154,7 @@ export default function PinPickerModal({
                 value={manualTitle}
                 onChange={(e) => setManualTitle(e.target.value)}
                 placeholder="Tytuł (książka, ćwiczenie…)"
-                className="w-full rounded-xl border border-border-custom px-3 py-2.5 text-[13px]"
+                className="w-full rounded-xl border border-border-custom px-3 py-2.5 text-sm"
               />
               <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(RESOURCE_TYPE_META) as GrowthResourceType[]).map((t) => (
@@ -162,7 +162,7 @@ export default function PinPickerModal({
                     key={t}
                     type="button"
                     onClick={() => setManualType(t)}
-                    className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold cursor-pointer ${
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-bold cursor-pointer ${
                       manualType === t ? 'bg-primary/15 text-primary' : 'bg-surface text-text-muted'
                     }`}
                   >

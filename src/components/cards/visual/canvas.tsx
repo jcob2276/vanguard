@@ -3,8 +3,8 @@ export function CanvasCard({ data }: { data: CanvasCardData }) {
   return (
     <div>
       {data.imageUrl && <img src={data.imageUrl} alt={data.title} className="w-full rounded-xl object-cover" style={{ maxHeight: 200 }} />}
-      {data.title && <p className="text-[13px] font-semibold mt-2" style={{ color: 'var(--text-primary)' }}>{data.title}</p>}
-      {data.description && <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>}
+      {data.title && <p className="text-sm font-semibold mt-2" style={{ color: 'var(--text-primary)' }}>{data.title}</p>}
+      {data.description && <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>}
     </div>
   );
 }

@@ -21,7 +21,7 @@ export default function CorrelationsHeader({ loading, onRefresh }: CorrelationsH
           <h1 className="font-display text-base font-black tracking-tight text-text-primary">
             Korelacje
           </h1>
-          <p className="text-[10px] text-text-muted truncate">
+          <p className="text-xs text-text-muted truncate">
             Skan odkrywczy · 90 dni · obserwacje, nie diagnozy
           </p>
         </div>

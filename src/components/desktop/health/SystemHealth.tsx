@@ -35,13 +35,13 @@ export default function SystemHealth({ userId }: { userId: string }) {
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
       case 'critical':
-        return <span className="bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">CRITICAL</span>;
+        return <span className="bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded text-2xs font-black uppercase">CRITICAL</span>;
       case 'error':
-        return <span className="bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">ERROR</span>;
+        return <span className="bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded text-2xs font-black uppercase">ERROR</span>;
       case 'warning':
-        return <span className="bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">WARNING</span>;
+        return <span className="bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded text-2xs font-black uppercase">WARNING</span>;
       default:
-        return <span className="bg-info/10 text-info border border-info/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">INFO</span>;
+        return <span className="bg-info/10 text-info border border-info/20 px-1.5 py-0.5 rounded text-2xs font-black uppercase">INFO</span>;
     }
   };
 
@@ -70,14 +70,14 @@ export default function SystemHealth({ userId }: { userId: string }) {
     return (
       <Card padding="1rem" className="space-y-3.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
         <div className="flex items-center justify-between">
-          <span className="text-[12px] font-black text-text-secondary">{title}</span>
+          <span className="text-sm font-black text-text-secondary">{title}</span>
           <div className={`${colorClass} opacity-80`}>{icon}</div>
         </div>
 
         <div className="space-y-2">
           {/* 30 Days */}
           <div className="space-y-1">
-            <div className="flex justify-between text-[11px] font-bold">
+            <div className="flex justify-between text-xs font-bold">
               <span className="text-text-muted">30 dni</span>
               <span className={getStatusColor(pct30)}>{pct30}%</span>
             </div>
@@ -88,7 +88,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
 
           {/* 90 Days */}
           <div className="space-y-1">
-            <div className="flex justify-between text-[11px] font-bold">
+            <div className="flex justify-between text-xs font-bold">
               <span className="text-text-muted">90 dni</span>
               <span className={getStatusColor(pct90)}>{pct90}%</span>
             </div>
@@ -107,11 +107,11 @@ export default function SystemHealth({ userId }: { userId: string }) {
       {coverage && (
         <div className="space-y-3.5">
           <div>
-            <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
+            <h2 className="text-base font-black text-text-primary flex items-center gap-2">
               <Zap className="text-warning fill-warning/20" size={18} />
               Pokrycie Danych (Logging Hygiene)
             </h2>
-            <p className="text-[11px] text-text-muted mt-0.5">Kompletność danych wejściowych w oknach czasowych 30 i 90 dni.</p>
+            <p className="text-xs text-text-muted mt-0.5">Kompletność danych wejściowych w oknach czasowych 30 i 90 dni.</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -129,57 +129,57 @@ export default function SystemHealth({ userId }: { userId: string }) {
       {healthQuery.data && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
+            <h2 className="text-base font-black text-text-primary flex items-center gap-2">
               <Target className="text-primary" size={18} />
               Kalibracja Modelu (Prediction Accuracy)
             </h2>
-            <p className="text-[11px] text-text-muted mt-0.5">
+            <p className="text-xs text-text-muted mt-0.5">
               Średni błąd bezwzględny (MAE) prognoz parametrów dobowych (łącznie {healthQuery.data.calibrationSummary.total_resolved} prognoz).
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
-              <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Snu</span>
-              <span className="text-[18px] font-black text-primary">
+              <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Snu</span>
+              <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.sleep_mae !== null
                   ? `±${healthQuery.data.calibrationSummary.sleep_mae} h`
                   : 'brak'}
               </span>
-              <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) snu</span>
+              <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) snu</span>
             </Card>
 
             <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
-              <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Gotowości</span>
-              <span className="text-[18px] font-black text-primary">
+              <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Gotowości</span>
+              <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.readiness_mae !== null
                   ? `±${healthQuery.data.calibrationSummary.readiness_mae} pkt`
                   : 'brak'}
               </span>
-              <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) gotowości</span>
+              <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) gotowości</span>
             </Card>
 
             <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
-              <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Wykonania</span>
-              <span className="text-[18px] font-black text-primary">
+              <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Wykonania</span>
+              <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.execution_mae !== null
                   ? `±${healthQuery.data.calibrationSummary.execution_mae}%`
                   : 'brak'}
               </span>
-              <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) zadań</span>
+              <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) zadań</span>
             </Card>
           </div>
 
           {healthQuery.data.calibrationHistory.length > 0 && (
             <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                <span className="text-xs font-black text-text-secondary uppercase tracking-wider flex items-center gap-1">
                   <TrendingUp size={12} className="text-success" />
                   Trend błędu predykcji
                 </span>
-                <span className="text-[9px] text-text-muted">Chronologicznie</span>
+                <span className="text-2xs text-text-muted">Chronologicznie</span>
               </div>
-              <div className="h-[200px] w-full text-[10px]">
+              <div className="h-[200px] w-full text-xs">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={healthQuery.data.calibrationHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100 dark:stroke-white/[0.04]" />
@@ -187,14 +187,14 @@ export default function SystemHealth({ userId }: { userId: string }) {
                     <YAxis stroke="currentColor" className="text-text-muted" fontSize={9} tickLine={false} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'var(--color-bg-surface, #1e293b)',
-                        borderColor: 'var(--color-border-custom, #334155)',
+                        backgroundColor: 'var(--color-surface-solid)',
+                        borderColor: 'var(--color-border-custom)',
                         fontSize: '11px',
                         borderRadius: '12px'
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: '10px' }} />
-                    <Line type="monotone" name="Błąd Snu (h)" dataKey="sleep_error" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" name="Błąd Snu (h)" dataKey="sleep_error" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
                     <Line type="monotone" name="Błąd Gotowości" dataKey="readiness_error" stroke="var(--color-success)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
                     <Line type="monotone" name="Błąd Wykonania (%)" dataKey="execution_error" stroke="var(--color-warning)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
                   </LineChart>
@@ -209,17 +209,17 @@ export default function SystemHealth({ userId }: { userId: string }) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
+          <h2 className="text-base font-black text-text-primary flex items-center gap-2">
             <ShieldCheck className="text-primary" size={18} />
             Dziennik Audytu (System Logs)
           </h2>
-          <p className="text-[11px] text-text-muted mt-0.5">Ostatnie 50 zarejestrowanych operacji, błędów i potoków synchronizacji.</p>
+          <p className="text-xs text-text-muted mt-0.5">Ostatnie 50 zarejestrowanych operacji, błędów i potoków synchronizacji.</p>
         </div>
         <Button
           onClick={() => void healthQuery.refetch()}
           variant="secondary"
           icon={<RefreshCw size={12} className={loading ? 'animate-spin' : ''} />}
-          className="rounded-xl px-3.5 py-2 text-[11px]"
+          className="rounded-xl px-3.5 py-2 text-xs"
         >
           Odśwież
         </Button>
@@ -228,15 +228,15 @@ export default function SystemHealth({ userId }: { userId: string }) {
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 text-text-muted">
           <Spinner size="md" />
-          <p className="text-[12px] font-bold mt-2">Ładowanie zdarzeń audytowych...</p>
+          <p className="text-sm font-bold mt-2">Ładowanie zdarzeń audytowych...</p>
         </div>
       )}
 
       {!loading && events.length === 0 && (
         <div className="text-center py-20 border border-dashed border-border-custom/60 rounded-2xl bg-surface/20">
           <ShieldCheck className="mx-auto mb-2 text-success" size={32} />
-          <p className="text-[12px] font-bold text-text-primary">System w pełni zdrowy!</p>
-          <p className="text-[10px] text-text-muted mt-1">Brak zapisanych zdarzeń w dzienniku audytu.</p>
+          <p className="text-sm font-bold text-text-primary">System w pełni zdrowy!</p>
+          <p className="text-xs text-text-muted mt-1">Brak zapisanych zdarzeń w dzienniku audytu.</p>
         </div>
       )}
 
@@ -261,19 +261,19 @@ export default function SystemHealth({ userId }: { userId: string }) {
                     {getSeverityIcon(ev.severity)}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-black text-text-primary px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.04]">
+                        <span className="text-xs font-black text-text-primary px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.04]">
                           {ev.event_type}
                         </span>
                         {getSeverityBadge(ev.severity)}
-                        <span className="text-[10px] text-text-muted font-medium">
+                        <span className="text-xs text-text-muted font-medium">
                           {new Date(ev.created_at).toLocaleString('pl-PL')}
                         </span>
                       </div>
-                      <p className="text-[12.5px] text-text-secondary font-medium leading-relaxed">
+                      <p className="text-sm text-text-secondary font-medium leading-relaxed">
                         {ev.message || '—'}
                       </p>
                       {ev.related_table && (
-                        <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
+                        <p className="text-xs text-text-muted font-bold uppercase tracking-wider">
                           Tabela: {ev.related_table} {ev.related_id ? `(${ev.related_id})` : ''}
                         </p>
                       )}
@@ -289,7 +289,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
 
                 {/* Metadata JSON Drawer */}
                 {isExpanded && hasMeta && (
-                  <div className="border-t border-border-custom/40 bg-slate-950/20 px-4 py-3 text-[11px] font-mono overflow-x-auto text-text-secondary select-text">
+                  <div className="border-t border-border-custom/40 bg-slate-950/20 px-4 py-3 text-xs font-mono overflow-x-auto text-text-secondary select-text">
                     <pre className="whitespace-pre">{JSON.stringify(ev.metadata, null, 2)}</pre>
                   </div>
                 )}

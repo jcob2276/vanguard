@@ -40,7 +40,7 @@ export default function FloatingToolbar({
         className={`keep-toolbar-btn ${activeState.bold ? 'active' : ''}`}
         title="Pogrubienie"
       >
-        <span className="font-bold text-[11px]">B</span>
+        <span className="font-bold text-xs">B</span>
       </button>
       <button
         type="button"
@@ -48,7 +48,7 @@ export default function FloatingToolbar({
         className={`keep-toolbar-btn ${activeState.italic ? 'active' : ''}`}
         title="Kursywa"
       >
-        <span className="italic text-[11px]">I</span>
+        <span className="italic text-xs">I</span>
       </button>
       <button
         type="button"
@@ -56,7 +56,7 @@ export default function FloatingToolbar({
         className={`keep-toolbar-btn ${activeState.h1 ? 'active' : ''}`}
         title="Nagłówek"
       >
-        <span className="font-black text-[10px]">H</span>
+        <span className="font-black text-xs">H</span>
       </button>
       <button
         type="button"

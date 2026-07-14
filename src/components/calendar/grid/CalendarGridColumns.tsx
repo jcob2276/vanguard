@@ -62,12 +62,12 @@ export const renderTimeGutter = ({
                 title={`${WMO_WEATHER_DESC[hw.weatherCode]}${hw.precipProb > 0 ? ` · opady ${hw.precipProb}%` : ''}`}
               >
                 {getWMOWeatherIcon(hw.weatherCode, 9, absoluteHour < 6 || absoluteHour >= 20)}
-                <span className={`text-[8.5px] font-black leading-none tabular-nums ${hw.precipProb >= 50 ? 'text-info' : 'text-text-muted/70'}`}>
+                <span className={`text-2xs font-black leading-none tabular-nums ${hw.precipProb >= 50 ? 'text-info' : 'text-text-muted/70'}`}>
                   {hw.temp}°
                 </span>
               </div>
             )}
-            <span className="text-[10.5px] font-black text-text-secondary/80 text-right pr-2">
+            <span className="text-xs font-black text-text-secondary/80 text-right pr-2">
               {String(absoluteHour).padStart(2, '0')}:00
             </span>
           </div>
@@ -155,7 +155,7 @@ export const renderDayColumn = ({
           className="absolute left-0 right-0 bg-primary/20 border border-primary/50 rounded-md pointer-events-none z-30 flex items-center justify-center shadow-lg"
           style={{ top: selectionTop, height: selectionHeight }}
         >
-          <span className="text-[9px] font-black text-primary bg-background border border-border-custom/40 px-1.5 py-0.5 rounded shadow-md tabular-nums">
+          <span className="text-2xs font-black text-primary bg-background border border-border-custom/40 px-1.5 py-0.5 rounded shadow-md tabular-nums">
             {Math.floor(startMin / 60)}:{String(startMin % 60).padStart(2, '0')} - {Math.floor(endMin / 60)}:{String(endMin % 60).padStart(2, '0')}
           </span>
         </div>
@@ -185,7 +185,7 @@ export const renderDayColumn = ({
                 title={`Wschód: ${formatTimeWarsaw(sun.sunrise)}`}
               >
                 <div className="w-full h-[1px] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
-                <span className="absolute right-1 text-[7px] font-bold text-warning/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
+                <span className="absolute right-1 text-3xs font-bold text-warning/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
               </div>
             )}
             {sunsetVisible && (
@@ -195,7 +195,7 @@ export const renderDayColumn = ({
                 title={`Zachód: ${formatTimeWarsaw(sun.sunset)}`}
               >
                 <div className="w-full h-[1px] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
-                <span className="absolute right-1 text-[7px] font-bold text-warning/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
+                <span className="absolute right-1 text-3xs font-bold text-warning/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
               </div>
             )}
           </>
@@ -234,7 +234,7 @@ export const renderAllDayTodos = ({
               <div
                 key={todo.id}
                 title={todo.title}
-                className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-[9px] font-bold text-primary transition-colors cursor-pointer hover:bg-primary/15 ${isCompleting ? 'opacity-50' : ''}`}
+                className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-2xs font-bold text-primary transition-colors cursor-pointer hover:bg-primary/15 ${isCompleting ? 'opacity-50' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingTodo(todo);

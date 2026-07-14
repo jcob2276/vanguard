@@ -47,7 +47,7 @@ export default function HexagonPanel({
   return (
     <Panel title="Heksagon życia — koło sfer (Morita)">
       <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-3 border-b border-border-custom/60 mb-4">
-        <p className="text-[10px] text-text-muted">
+        <p className="text-xs text-text-muted">
           {savedLabel ? (
             <>Ostatni zapis: <span className="font-bold text-text-secondary">{savedLabel}</span></>
           ) : (
@@ -61,7 +61,7 @@ export default function HexagonPanel({
             type="button"
             onClick={startEdit}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-xs font-black uppercase tracking-wider text-primary hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-40"
             icon={<Pencil size={11} />}
           >
             Edytuj
@@ -136,7 +136,7 @@ export default function HexagonPanel({
           )}
 
           {editing && (
-            <p className="text-[9px] text-text-muted leading-relaxed">
+            <p className="text-2xs text-text-muted leading-relaxed">
               Suwaki nie zapisują się same — dopiero <span className="font-bold">Zapisz</span> ustawia nowy punkt odniesienia ({getTodayWarsaw()}).
             </p>
           )}

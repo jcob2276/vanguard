@@ -147,8 +147,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
     <Card padding="1rem" className="space-y-4" style={{ background: 'rgba(17, 24, 39, 0.2)' }}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-wider text-text-primary">Architektura Tygodnia</p>
-          <p className="text-[10px] text-text-muted">Budżet (kontur) vs realny czas (wypełnienie) per sfera</p>
+          <p className="text-xs font-black uppercase tracking-wider text-text-primary">Architektura Tygodnia</p>
+          <p className="text-xs text-text-muted">Budżet (kontur) vs realny czas (wypełnienie) per sfera</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -158,7 +158,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
           >
             <ChevronLeft size={14} />
           </button>
-          <span className="text-[10px] font-bold text-text-secondary min-w-[80px] text-center">
+          <span className="text-xs font-bold text-text-secondary min-w-[80px] text-center">
             {formatWeekRange(weekStart)}{isCurrentWeek(weekStart) ? ' • dziś' : ''}
           </span>
           <button
@@ -203,7 +203,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
                   x={p.x}
                   y={p.y}
                   textAnchor="middle"
-                  className="text-[8px] font-black uppercase tracking-wider fill-text-primary cursor-pointer"
+                  className="text-2xs font-black uppercase tracking-wider fill-text-primary cursor-pointer"
                   onClick={() => (selectedTaskId ? assignSelectedTask(s.id) : startEditing(s.id))}
                 >
                   {s.label}
@@ -220,7 +220,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             key={s.id}
             type="button"
             onClick={() => (selectedTaskId ? assignSelectedTask(s.id) : startEditing(s.id))}
-            className={`flex items-center justify-between gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px] font-semibold transition-colors btn-press ${
+            className={`flex items-center justify-between gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-colors btn-press ${
               selectedTaskId ? `${s.border} ${s.bgSoft} ${s.text}` : 'border-border-custom/40 text-text-secondary hover:text-text-primary'
             }`}
           >
@@ -237,7 +237,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
 
       {editingSphere && (
         <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2.5">
-          <span className="text-[10px] font-bold text-text-primary flex-1">
+          <span className="text-xs font-bold text-text-primary flex-1">
             Cel godzin/tydzień: {LIFE_SPHERES.find((s) => s.id === editingSphere)?.label}
           </span>
           <input
@@ -248,7 +248,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             value={draftHours}
             onChange={(e) => setDraftHours(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') void saveTarget(); }}
-            className="w-16 rounded-lg border border-border-custom/50 bg-surface-solid/60 px-2 py-1 text-[11px] text-text-primary outline-none focus:border-primary/30"
+            className="w-16 rounded-lg border border-border-custom/50 bg-surface-solid/60 px-2 py-1 text-xs text-text-primary outline-none focus:border-primary/30"
           />
           <Button
             variant="primary"
@@ -257,7 +257,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             onClick={() => void saveTarget()}
             disabled={saving}
             loading={saving}
-            className="rounded-lg px-2.5 py-1 text-[10px] font-black btn-press"
+            className="rounded-lg px-2.5 py-1 text-xs font-black btn-press"
           >
             Zapisz
           </Button>
@@ -266,7 +266,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             size="sm"
             type="button"
             onClick={() => setEditingSphere(null)}
-            className="text-[10px] font-semibold text-text-muted hover:text-text-primary"
+            className="text-xs font-semibold text-text-muted hover:text-text-primary"
           >
             Anuluj
           </Button>
@@ -275,7 +275,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
 
       {tasks.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-text-muted">
+          <p className="text-xs font-semibold text-text-muted">
             {selectedTaskId ? 'Wybierz sferę powyżej, żeby przypisać zadanie ↑' : 'Priorytetowe zadania — dotknij, potem wybierz sferę'}
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -287,7 +287,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedTaskId(isSelected ? null : t.id)}
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors btn-press ${
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors btn-press ${
                     isSelected
                       ? 'border-primary bg-primary/15 text-primary'
                       : 'border-border-custom/50 text-text-secondary hover:text-text-primary'

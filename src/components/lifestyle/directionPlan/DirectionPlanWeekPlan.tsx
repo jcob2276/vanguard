@@ -11,7 +11,7 @@ function Divider({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-px flex-1 bg-border-custom" />
-      <span className="text-[9px] uppercase tracking-widest text-text-muted font-black">{title}</span>
+      <span className="text-2xs uppercase tracking-widest text-text-muted font-black">{title}</span>
       <div className="h-px flex-1 bg-border-custom" />
     </div>
   );
@@ -63,28 +63,28 @@ export default function DirectionPlanWeekPlan({
     <div className={`space-y-4 transition-opacity duration-300 ${deepeningComplete ? "" : "opacity-30 pointer-events-none"}`}>
       <Divider title="Plan tygodnia" />
       {planWeekStart !== weekStart && (
-        <p className="text-[10px] font-semibold text-text-muted">Cele zapiszą się na tydzień od {planWeekStart}</p>
+        <p className="text-xs font-semibold text-text-muted">Cele zapiszą się na tydzień od {planWeekStart}</p>
       )}
 
       {block5material && (
         <div className="space-y-2">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Sugestie AI</p>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Sugestie AI</p>
           {(direction.monthTheme || sprintBridge || longTermBridge) && (
             <div className="rounded-xl border border-primary/15 bg-primary/[0.03] px-3 py-2.5 space-y-1.5">
-              {longTermBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
+              {longTermBridge && <p className="text-xs font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
               {direction.monthTheme && (
-                <p className="text-[11px] text-text-secondary leading-relaxed">
-                  <span className="font-black uppercase tracking-wider text-primary text-[9px]">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  <span className="font-black uppercase tracking-wider text-primary text-2xs">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
                   {direction.monthTheme}
                 </p>
               )}
-              {sprintBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>}
+              {sprintBridge && <p className="text-xs font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>}
             </div>
           )}
           {(["cialo", "duch", "konto"] as const).map((p) =>
             block5material[p] ? (
               <div key={p} className="bg-surface border border-border-custom rounded-xl px-3 py-2.5">
-                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">{p === "cialo" ? "Ciało" : p === "duch" ? "Duch" : "Konto"}</p>
+                <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-0.5">{p === "cialo" ? "Ciało" : p === "duch" ? "Duch" : "Konto"}</p>
                 <p className="text-xs text-text-secondary leading-relaxed">{block5material[p]}</p>
               </div>
             ) : null
@@ -95,29 +95,29 @@ export default function DirectionPlanWeekPlan({
       <div className="space-y-4">
         {(direction.monthTheme || direction.sprintGoal || direction.bhagLine) && (
           <Card padding="0.625rem 0.75rem" className="space-y-1.5" style={{ background: 'rgba(11, 15, 25, 0.5)' }}>
-            {longTermBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
+            {longTermBridge && <p className="text-xs font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
             {direction.monthTheme && (
-              <p className="text-[11px] text-text-secondary leading-relaxed">
-                <span className="font-black uppercase tracking-wider text-primary text-[9px]">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                <span className="font-black uppercase tracking-wider text-primary text-2xs">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
                 {direction.monthTheme}
               </p>
             )}
-            {sprintBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>}
+            {sprintBridge && <p className="text-xs font-semibold text-text-primary leading-relaxed">{sprintBridge}</p>}
           </Card>
         )}
         <div className="space-y-1">
           <p className="text-xs text-text-muted font-medium">Intencja tygodnia — jaki chcę być?</p>
-          {intentionFromMonth && weekIntention.trim() && <p className="text-[10px] font-semibold text-primary">Wstępnie z tematu miesiąca — doprecyzuj pod ten tydzień.</p>}
+          {intentionFromMonth && weekIntention.trim() && <p className="text-xs font-semibold text-primary">Wstępnie z tematu miesiąca — doprecyzuj pod ten tydzień.</p>}
           <Textarea value={weekIntention} onChange={setWeekIntention} placeholder="Np. konsekwentny, spokojny, zdecydowany…" rows={2} />
         </div>
         <div className="space-y-1">
           <p className="text-xs text-text-muted font-medium">Zobowiązanie — co jest bezwzględne?</p>
-          {planCarriedFromMonth && weekCommitment.trim() && <p className="text-[10px] font-semibold text-primary">Z korekty miesiąca — jedna rzecz do poprawy w tym tygodniu.</p>}
+          {planCarriedFromMonth && weekCommitment.trim() && <p className="text-xs font-semibold text-primary">Z korekty miesiąca — jedna rzecz do poprawy w tym tygodniu.</p>}
           <Textarea value={weekCommitment} onChange={setWeekCommitment} placeholder="Jedna rzecz której nie odpuszczę bez względu na wszystko…" rows={2} />
         </div>
         <div className="pt-3 space-y-3 border-t border-border-custom">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">3 duże cele na ten tydzień</p>
-          {planCarriedFromMonth && <p className="text-[10px] font-semibold text-primary">Cele filarów wstępnie z przeglądu miesiąca (korekta / dźwignia).</p>}
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted">3 duże cele na ten tydzień</p>
+          {planCarriedFromMonth && <p className="text-xs font-semibold text-primary">Cele filarów wstępnie z przeglądu miesiąca (korekta / dźwignia).</p>}
           <div className="space-y-1">
             <p className="text-xs text-text-muted font-medium">Ciało</p>
             <Textarea value={weekGoalCialo} onChange={setWeekGoalCialo} placeholder="Jeden konkretny cel fizyczny…" rows={2} />

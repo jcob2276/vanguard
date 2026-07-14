@@ -14,8 +14,8 @@ export interface EmptyStateProps {
 export default function EmptyState({ icon, label, action }: EmptyStateProps) {
   return (
     <div className="mx-1 my-2 rounded-[var(--radius-lg)] border border-dashed border-border-custom/25 bg-surface-solid/10 p-6 text-center">
-      <span className="block text-[24px] mb-1">{icon}</span>
-      <span className="block text-[11px] font-bold tracking-wide text-text-muted/60">{label}</span>
+      <span className="block text-2xl mb-1">{icon}</span>
+      <span className="block text-xs font-bold tracking-wide text-text-muted/60">{label}</span>
       {action && (
         <Button
           variant="tonal"

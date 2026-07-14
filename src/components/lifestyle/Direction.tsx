@@ -14,10 +14,10 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
   return (
     <header className="flex items-end justify-between gap-4">
       <div>
-        <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
+        <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[0.22em] text-text-muted">
           <Icon size={12} /> {title}
         </p>
-        {detail && <p className="mt-1 text-[11px] font-semibold leading-relaxed text-text-secondary">{detail}</p>}
+        {detail && <p className="mt-1 text-xs font-semibold leading-relaxed text-text-secondary">{detail}</p>}
       </div>
       {action}
     </header>
@@ -253,7 +253,7 @@ export default function Direction({
               onStartWeeklyReview={() => setForceWeeklyReview(true)}
             />
             <Card padding="0" style={{ background: 'rgba(11, 15, 25, 0.3)' }}>
-              <p className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-text-muted">
+              <p className="px-4 py-3 text-xs font-black uppercase tracking-widest text-text-muted">
                 Radar szczegóły
               </p>
               <div className="px-1 pb-4 pt-1">

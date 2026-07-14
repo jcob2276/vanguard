@@ -20,11 +20,11 @@ export default function WeeklyReviewStreamReview() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
+        <h3 className="text-sm font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
           <Mic size={15} className="text-primary" />
           Krok 3: Kontrola Wpisów Strumienia
         </h3>
-        <p className="text-[10px] text-text-muted mt-0.5">
+        <p className="text-xs text-text-muted mt-0.5">
           Popraw literówki z transkrypcji, dopowiedz kontekst albo usuń wpisy, które trafiły do strumienia przez przypadek. To jest dokładnie to, co przeczyta tygodniowa synteza AI.
         </p>
       </div>
@@ -41,7 +41,7 @@ export default function WeeklyReviewStreamReview() {
                 key={entry.id}
                 className="p-3 rounded-xl border border-border-custom/50 bg-surface-solid/30 space-y-2"
               >
-                <div className="flex items-center gap-1.5 text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 text-2xs font-bold text-text-muted uppercase tracking-wider">
                   {voice && <Mic size={10} className="text-primary shrink-0" />}
                   <span>{formatStreamEntryDate(entry.created_at)}</span>
                 </div>
@@ -52,18 +52,18 @@ export default function WeeklyReviewStreamReview() {
                       value={editingStreamText}
                       onChange={(e) => setEditingStreamText(e.target.value)}
                       rows={3}
-                      className="w-full bg-slate-50 dark:bg-white/[0.02] border border-primary/40 rounded-lg px-2.5 py-2 text-[12px] font-medium text-text-primary outline-none resize-none"
+                      className="w-full bg-slate-50 dark:bg-white/[0.02] border border-primary/40 rounded-lg px-2.5 py-2 text-sm font-medium text-text-primary outline-none resize-none"
                     />
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => setEditingStreamId(null)}
-                        className="text-[10px] font-bold text-text-muted px-2 py-1"
+                        className="text-xs font-bold text-text-muted px-2 py-1"
                       >
                         Anuluj
                       </button>
                       <button
                         onClick={saveEditStream}
-                        className="text-[10px] font-black text-white bg-primary rounded-lg px-3 py-1"
+                        className="text-xs font-black text-white bg-primary rounded-lg px-3 py-1"
                       >
                         Zapisz
                       </button>
@@ -71,7 +71,7 @@ export default function WeeklyReviewStreamReview() {
                   </div>
                 ) : (
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[12px] font-medium text-text-primary break-words flex-1">
+                    <p className="text-sm font-medium text-text-primary break-words flex-1">
                       {entry.content || '(pusty wpis)'}
                     </p>
                     <div className="flex items-center gap-1 shrink-0">

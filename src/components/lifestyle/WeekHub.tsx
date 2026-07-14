@@ -91,10 +91,10 @@ export default function WeekHub({
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3.5 text-left transition-colors hover:bg-primary/15 active:scale-[0.99]"
         >
           <div className="min-w-0">
-            <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-primary">
+            <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[0.18em] text-primary">
               <CalendarDays size={12} /> Zamknięcie tygodnia
             </p>
-            <p className="mt-1 text-[13px] font-semibold text-text-primary leading-snug">
+            <p className="mt-1 text-sm font-semibold text-text-primary leading-snug">
               Niedziela — refleksja + plan następnego tygodnia
             </p>
           </div>
@@ -111,8 +111,8 @@ export default function WeekHub({
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-warning/25 bg-warning/[0.06] px-4 py-3.5 text-left transition-colors hover:bg-warning/10 active:scale-[0.99]"
         >
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-warning">Refleksja tygodnia</p>
-            <p className="mt-1 text-[12px] text-text-secondary leading-relaxed">
+            <p className="text-2xs font-black uppercase tracking-widest text-warning">Refleksja tygodnia</p>
+            <p className="mt-1 text-sm text-text-secondary leading-relaxed">
               {guidance?.primaryCue?.includes('refleksji')
                 ? guidance.primaryCue
                 : 'Zamknij tydzień tutaj — refleksja + plan następnego tygodnia.'}
@@ -124,7 +124,7 @@ export default function WeekHub({
 
       {proposals.length > 0 && (
         <section className="space-y-3">
-          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-warning">
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-warning">
             <AlertCircle size={12} /> Do decyzji ({proposals.length})
           </p>
           {proposals.slice(0, 2).map((p) => (
@@ -143,7 +143,7 @@ export default function WeekHub({
               size="sm"
               type="button"
               onClick={onOpenActionCenter}
-              className="text-[11px] font-semibold text-primary"
+              className="text-xs font-semibold text-primary"
             >
               +{proposals.length - 2} więcej w Action Center
             </Button>
@@ -186,14 +186,14 @@ export default function WeekHub({
 
       {openMust.length > 0 && (
         <section className="space-y-2">
-          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-text-muted">
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-text-muted">
             <Target size={12} /> Must tygodnia ({openMust.length})
           </p>
           <ul className="space-y-2">
             {openMust.map((pin) => (
               <li
                 key={pin.id}
-                className="rounded-xl border border-primary/20 bg-primary/[0.04] px-3 py-2.5 text-[13px] font-semibold text-text-primary"
+                className="rounded-xl border border-primary/20 bg-primary/[0.04] px-3 py-2.5 text-sm font-semibold text-text-primary"
               >
                 {pin.title}
               </li>

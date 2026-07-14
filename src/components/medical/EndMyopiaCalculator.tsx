@@ -211,7 +211,7 @@ export default function EndMyopiaCalculator() {
               {autoCapture ? (
                 <div className="flex flex-col items-center text-center">
                   <p className="text-xs text-gray-400 font-medium">Stój na krawędzi rozmycia</p>
-                  <p className="text-[10px] text-gray-300 mt-0.5">Kółko wypełni się samo i zapisze</p>
+                  <p className="text-xs text-gray-300 mt-0.5">Kółko wypełni się samo i zapisze</p>
                 </div>
               ) : (
                 <button
@@ -234,7 +234,7 @@ export default function EndMyopiaCalculator() {
             {/* Auto/manual toggle */}
             <button
               onClick={toggleAutoCapture}
-              className={`text-[10px] font-black px-3 py-1.5 rounded-full transition-all ${
+              className={`text-xs font-black px-3 py-1.5 rounded-full transition-all ${
                 autoCapture
                   ? 'bg-info text-info border border-info'
                   : 'bg-gray-100 text-gray-400 border border-gray-200'
@@ -253,7 +253,7 @@ export default function EndMyopiaCalculator() {
         // NOTE: custom overlay — see 'measure' phase comment above.
         <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6 gap-8">
           <div className="w-full max-w-xs rounded-3xl bg-surface border-2 border-primary/30 p-8 text-center shadow-2xl">
-            <p className="text-[10px] uppercase tracking-widest text-text-muted mb-5 font-bold">
+            <p className="text-xs uppercase tracking-widest text-text-muted mb-5 font-bold">
               {selectedEye === 'left' ? '👁 Lewe oko' : 'Prawe oko 👁'}
             </p>
             <div className="flex items-end justify-center gap-4">
@@ -323,7 +323,7 @@ export default function EndMyopiaCalculator() {
             </Link>
             <div>
               <h1 className="text-base font-black uppercase tracking-tight leading-none">Vanguard Optics</h1>
-              <p className="text-[10px] text-text-muted mt-0.5">
+              <p className="text-xs text-text-muted mt-0.5">
                 {phase === 'calibrate' ? 'Kalibracja wymagana' : 'Wybierz oko do pomiaru'}
               </p>
             </div>

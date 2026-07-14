@@ -67,26 +67,26 @@ export default function SlotPinCard({
         )}
         <span className="text-lg leading-none mt-0.5">{meta.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className={`text-[13px] font-bold leading-snug ${pin.done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+          <p className={`text-sm font-bold leading-snug ${pin.done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
             {titleText}
           </p>
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             {skill && (
-              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-2xs font-bold text-primary">
                 {skill.label}
               </span>
             )}
             {project && (
-              <span className="inline-flex items-center gap-0.5 rounded-md bg-success/10 px-1.5 py-0.5 text-[9px] font-bold text-success dark:text-success">
+              <span className="inline-flex items-center gap-0.5 rounded-md bg-success/10 px-1.5 py-0.5 text-2xs font-bold text-success dark:text-success">
                 <FolderKanban size={9} /> {project.name}
               </span>
             )}
             {isFocusPin && (
-              <span className="rounded-md bg-warning/15 px-1.5 py-0.5 text-[9px] font-black text-warning dark:text-warning">
+              <span className="rounded-md bg-warning/15 px-1.5 py-0.5 text-2xs font-black text-warning dark:text-warning">
                 → Lvl {focusTargetLevel}
               </span>
             )}
-            <span className="text-[9px] text-text-muted">{meta.label}</span>
+            <span className="text-2xs text-text-muted">{meta.label}</span>
           </div>
         </div>
         {!readOnly && (

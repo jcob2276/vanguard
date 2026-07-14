@@ -35,7 +35,7 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
       className={`rounded-2xl p-2 transition-all duration-200 ${
         draggingItem !== null
           ? dragTarget === 'today'
-            ? 'border border-warning/40 bg-warning/10 scale-[1.01] shadow-[0_4px_25px_rgba(249,115,22,0.12)]'
+            ? 'border border-warning/40 bg-warning/10 scale-[1.01] shadow-[var(--shadow-accent-active)]'
             : 'border border-dashed border-warning/20 bg-warning/5'
           : 'border border-transparent bg-transparent'
       }`}
@@ -51,8 +51,8 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
       {totalMin > 0 && (
         <div className="mb-2 -mt-1 px-0.5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted/40">Zaplanowane</span>
-            <span className={`text-[9px] font-bold tabular-nums ${over ? 'text-danger' : 'text-text-muted/50'}`}>{label} / 8h</span>
+            <span className="text-2xs font-semibold uppercase tracking-wider text-text-muted/40">Zaplanowane</span>
+            <span className={`text-2xs font-bold tabular-nums ${over ? 'text-danger' : 'text-text-muted/50'}`}>{label} / 8h</span>
           </div>
           <div className="h-[3px] rounded-full bg-surface-solid overflow-hidden">
             <div
@@ -78,12 +78,12 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
                   onClick={() => toggleExpand(focus.id)}
                   className="w-full mb-2 flex items-center gap-2.5 rounded-xl border border-warning/20 bg-warning/6 px-3 py-2.5 text-left hover:bg-warning/10 transition-all btn-press"
                 >
-                  <span className="text-[16px] leading-none shrink-0">{focusEmoji || '🎯'}</span>
+                  <span className="text-lg leading-none shrink-0">{focusEmoji || '🎯'}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-warning/70 mb-0.5">Co teraz?</p>
-                    <p className="text-[13px] font-semibold text-text-primary leading-snug truncate">{focusLabel}</p>
+                    <p className="text-2xs font-black uppercase tracking-widest text-warning/70 mb-0.5">Co teraz?</p>
+                    <p className="text-sm font-semibold text-text-primary leading-snug truncate">{focusLabel}</p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-warning/15 px-2 py-1 text-[10px] font-bold text-warning">Zacznij →</span>
+                  <span className="shrink-0 rounded-lg bg-warning/15 px-2 py-1 text-xs font-bold text-warning">Zacznij →</span>
                 </button>
               )}
               {todayItems.map((i) => (

@@ -44,17 +44,17 @@ export default function VisionBoardPanel({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-text-muted">Wizualizacja</p>
-            <p className="mt-0.5 font-display text-[15px] font-black tracking-tight text-text-primary leading-none">
+            <p className="text-2xs font-black uppercase tracking-[0.25em] text-text-muted">Wizualizacja</p>
+            <p className="mt-0.5 font-display text-base font-black tracking-tight text-text-primary leading-none">
               Vision Board
-              <span className="ml-2 text-[11px] font-bold text-text-muted">{visionItems.length} elementów</span>
+              <span className="ml-2 text-xs font-bold text-text-muted">{visionItems.length} elementów</span>
             </p>
           </div>
           <Button
             variant="tonal"
             size="sm"
             onClick={() => setIsAddingVision(p => !p)}
-            className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-2xs font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
             icon={<Plus size={11} />}
           >
             Dodaj
@@ -74,7 +74,7 @@ export default function VisionBoardPanel({
                 <button
                   key={v}
                   onClick={() => setNewVisionType(v)}
-                  className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                     newVisionType === v ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom text-text-muted hover:text-text-secondary'
                   }`}
                 >
@@ -84,7 +84,7 @@ export default function VisionBoardPanel({
             </div>
             {/* Color selector */}
             <div className="flex gap-1.5 items-center">
-              <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">Kolor:</span>
+              <span className="text-2xs font-black uppercase tracking-widest text-text-muted">Kolor:</span>
               {Object.keys(VB_COLORS).map(c => (
                 <button
                   key={c}
@@ -100,9 +100,9 @@ export default function VisionBoardPanel({
                 onChange={e => setNewVisionContent(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addVisionItem()}
                 placeholder={newVisionType === 'image' ? 'URL obrazka...' : newVisionType === 'word' ? 'Jedno słowo...' : 'Afirmacja: Jestem...'}
-                className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
+                className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
               />
-              <Button variant="primary" size="sm" onClick={addVisionItem} className="rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
+              <Button variant="primary" size="sm" onClick={addVisionItem} className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
                 Dodaj
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={13} />} />
@@ -114,7 +114,7 @@ export default function VisionBoardPanel({
         {visionItems.length === 0 ? (
           <div className="py-8 text-center space-y-2">
             <Sparkles size={20} className="mx-auto text-text-muted/30" />
-            <p className="text-[11px] text-text-muted/50">Dodaj afirmacje, obrazy i słowa które cię inspirują</p>
+            <p className="text-xs text-text-muted/50">Dodaj afirmacje, obrazy i słowa które cię inspirują</p>
           </div>
         ) : (
           <div className="columns-2 gap-2 space-y-0">
@@ -140,7 +140,7 @@ export default function VisionBoardPanel({
                     </Card>
                   ) : item.type === 'word' ? (
                     <Card variant="glass" padding="1.25rem 1rem" className={`relative flex items-center justify-center ${c.border} ${c.bg}`} style={{ borderRadius: '14px' }}>
-                      <p className={`font-display text-[22px] font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
+                      <p className={`font-display text-2xl font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -151,7 +151,7 @@ export default function VisionBoardPanel({
                     </Card>
                   ) : (
                     <Card variant="glass" padding="1rem 0.875rem" className={`relative ${c.border} ${c.bg}`} style={{ borderRadius: '14px' }}>
-                      <p className={`text-[12px] font-bold leading-snug ${c.text}`}>{item.content}</p>
+                      <p className={`text-sm font-bold leading-snug ${c.text}`}>{item.content}</p>
                       <Button
                         variant="ghost"
                         size="sm"

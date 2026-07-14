@@ -19,20 +19,20 @@ export function EventCard({ data }: { data: EventCardData }) {
           <Calendar size={14} style={{ color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
+          <p className="text-base font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
           <div className="flex flex-wrap gap-3 mt-1">
             {data.date && (
-              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
+              <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
                 <Calendar size={10} />{data.date}
               </span>
             )}
             {data.time && (
-              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
+              <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
                 <Clock size={10} />{data.time}
               </span>
             )}
             {data.location && (
-              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
+              <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
                 <MapPin size={10} />{data.location}
               </span>
             )}
@@ -40,12 +40,12 @@ export function EventCard({ data }: { data: EventCardData }) {
         </div>
       </div>
       {data.description && (
-        <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>
       )}
       {data.tags && data.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {data.tags.map(tag => (
-            <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: `${color}10`, color }}>#{tag}</span>
+            <span key={tag} className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: `${color}10`, color }}>#{tag}</span>
           ))}
         </div>
       )}

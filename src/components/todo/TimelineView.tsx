@@ -87,7 +87,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
             {Array.from({ length: HOURS + 1 }, (_, i) => (
               <div
                 key={i}
-                className="absolute right-2 text-[9px] font-bold text-text-muted/40 tabular-nums"
+                className="absolute right-2 text-2xs font-bold text-text-muted/40 tabular-nums"
                 style={{ top: i * 60 * PX_PER_MIN - 6 }}
               >
                 {String(HOUR_START + i).padStart(2, '0')}:00
@@ -136,11 +136,11 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                   <div className="flex items-start gap-1.5 h-full overflow-hidden">
                     <div className={`shrink-0 w-1.5 h-1.5 rounded-full mt-1 ${color.dot}`} />
                     <div className="min-w-0 flex-1 overflow-hidden">
-                      <p className={`text-[11px] font-semibold leading-snug text-text-primary ${tooShort ? 'truncate' : 'line-clamp-2'}`}>
+                      <p className={`text-xs font-semibold leading-snug text-text-primary ${tooShort ? 'truncate' : 'line-clamp-2'}`}>
                         {icon ? `${icon} ${label}` : label}
                       </p>
                       {!tooShort && (end - start) >= 30 && (
-                        <p className="text-[9px] text-text-muted/50 mt-0.5 tabular-nums">
+                        <p className="text-2xs text-text-muted/50 mt-0.5 tabular-nums">
                           {`${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')} – ${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`}
                         </p>
                       )}
@@ -159,12 +159,12 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
         {/* Done tasks */}
         {done.length > 0 && (
           <div className="px-4 pt-4 pb-2">
-            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted/35 mb-2">Ukończone dziś</p>
+            <p className="text-2xs font-black uppercase tracking-widest text-text-muted/35 mb-2">Ukończone dziś</p>
             <div className="space-y-1">
               {done.map((item) => {
                 const { icon, label } = splitEmoji(item.title);
                 return (
-                  <div key={item.id} className="flex items-center gap-2 text-[11px] text-text-muted/40 line-through">
+                  <div key={item.id} className="flex items-center gap-2 text-xs text-text-muted/40 line-through">
                     <div className="w-3 h-3 rounded-full bg-success/40 shrink-0" />
                     {icon && <span className="opacity-60">{icon}</span>}
                     <span>{label}</span>

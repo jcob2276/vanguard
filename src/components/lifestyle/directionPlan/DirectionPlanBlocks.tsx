@@ -19,7 +19,7 @@ function Divider({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-px flex-1 bg-border-custom" />
-      <span className="text-[9px] uppercase tracking-widest text-text-muted font-black">{title}</span>
+      <span className="text-2xs uppercase tracking-widest text-text-muted font-black">{title}</span>
       <div className="h-px flex-1 bg-border-custom" />
     </div>
   );
@@ -29,7 +29,7 @@ function StatCard({ value, label }: { value: string; label: string }) {
   return (
     <Card padding="0.625rem 0.75rem">
       <div className="text-xl font-bold text-text-primary">{value}</div>
-      <div className="text-[10px] text-text-muted mt-0.5">{label}</div>
+      <div className="text-xs text-text-muted mt-0.5">{label}</div>
     </Card>
   );
 }
@@ -49,13 +49,13 @@ export function Block1Narrative({ phase1, phase1Loading }: { phase1: Phase1Recap
           <p className="text-sm text-text-primary leading-relaxed">{phase1.narrative}</p>
           {phase1.longterm_motif && (
             <div className="border-l-2 border-warning pl-3 py-1">
-              <p className="text-[10px] text-warning font-bold uppercase tracking-wider mb-1">Długoterminowy motyw</p>
+              <p className="text-xs text-warning font-bold uppercase tracking-wider mb-1">Długoterminowy motyw</p>
               <p className="text-sm text-text-primary leading-relaxed">{phase1.longterm_motif}</p>
             </div>
           )}
           {phase1.question && (
             <div className="bg-surface border border-border-custom rounded-xl px-3 py-2.5">
-              <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider mb-1">Pytanie otwierające</p>
+              <p className="text-xs text-text-muted font-bold uppercase tracking-wider mb-1">Pytanie otwierające</p>
               <p className="text-sm text-text-secondary italic">„{phase1.question}"</p>
             </div>
           )}

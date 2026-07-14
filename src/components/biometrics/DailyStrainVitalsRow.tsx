@@ -32,9 +32,9 @@ export default function DailyStrainVitalsRow({ oura, hrvZ, rhrZ, sleepZ, sleepSc
           <div key={label} className={`flex-1 flex flex-col items-center text-center ${idx > 0 ? 'border-l border-border-custom/30' : ''}`}>
             <div className="flex items-center gap-0.5">
               <Icon size={9} className={color} />
-              <span className="text-[8px] font-bold tracking-wider text-text-muted uppercase">{label}</span>
+              <span className="text-2xs font-bold tracking-wider text-text-muted uppercase">{label}</span>
             </div>
-            <span className={`text-[10px] font-black font-mono mt-0.5 ${color}`}>{value}</span>
+            <span className={`text-xs font-black font-mono mt-0.5 ${color}`}>{value}</span>
           </div>
         ))}
       </div>

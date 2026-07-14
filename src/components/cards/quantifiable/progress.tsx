@@ -6,13 +6,13 @@ export function ProgressCard({ data }: { data: ProgressData }) {
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{data.label}</p>
-        <span className="text-[12px] font-bold" style={{ color }}>{data.value}{data.unit ? ` ${data.unit}` : ''}</span>
+        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{data.label}</p>
+        <span className="text-sm font-bold" style={{ color }}>{data.value}{data.unit ? ` ${data.unit}` : ''}</span>
       </div>
       <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(153,161,175,0.15)' }}>
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <p className="text-[10px] text-right" style={{ color: 'var(--color-text-tertiary)' }}>{Math.round(pct)}% z {max}{data.unit ? ` ${data.unit}` : ''}</p>
+      <p className="text-xs text-right" style={{ color: 'var(--color-text-tertiary)' }}>{Math.round(pct)}% z {max}{data.unit ? ` ${data.unit}` : ''}</p>
     </div>
   );
 }

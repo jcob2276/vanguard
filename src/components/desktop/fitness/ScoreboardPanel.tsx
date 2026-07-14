@@ -36,9 +36,9 @@ function barTone(s: number | null) {
 function Delta({ cur, prev }: { cur: number | null; prev: number | null }) {
   if (cur == null || prev == null) return null;
   const d = cur - prev;
-  if (Math.abs(d) < 2) return <span className="text-[9px] font-bold text-text-muted/40 tabular-nums">→</span>;
+  if (Math.abs(d) < 2) return <span className="text-2xs font-bold text-text-muted/40 tabular-nums">→</span>;
   return (
-    <span className={`text-[9px] font-black tabular-nums ${d > 0 ? 'text-success' : 'text-danger'}`}>
+    <span className={`text-2xs font-black tabular-nums ${d > 0 ? 'text-success' : 'text-danger'}`}>
       {d > 0 ? '▲' : '▼'}{Math.abs(Math.round(d))}
     </span>
   );
@@ -48,18 +48,18 @@ function SphereRow({ s }: { s: SphereScore }) {
   return (
     <div className="py-2 border-b border-border-custom/20 last:border-0 rounded-lg px-1.5 -mx-1.5 hover:bg-surface-solid/40 transition-all duration-150">
       <div className="flex items-center gap-2">
-        <span className="w-20 shrink-0 text-[10px] font-black uppercase tracking-wider text-text-secondary">{s.label}</span>
+        <span className="w-20 shrink-0 text-xs font-black uppercase tracking-wider text-text-secondary">{s.label}</span>
         <div className="flex-1 h-[4px] rounded-full bg-surface-solid overflow-hidden">
           <div className={`h-full rounded-full transition-all duration-700 ${barTone(s.score)}`} style={{ width: `${s.score ?? 0}%` }} />
         </div>
-        <span className={`w-8 text-right text-[13px] font-black tabular-nums ${scoreTone(s.score)}`}>
+        <span className={`w-8 text-right text-sm font-black tabular-nums ${scoreTone(s.score)}`}>
           {s.score ?? '—'}
         </span>
         <span className="w-7 text-right"><Delta cur={s.score} prev={s.prev} /></span>
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 pl-[88px]">
         {s.subs.map(sub => (
-          <span key={sub.label} className="text-[9px] text-text-muted/60">
+          <span key={sub.label} className="text-2xs text-text-muted/60">
             {sub.label}: <span className={`font-bold ${scoreTone(sub.score)}`}>{sub.value}</span>
           </span>
         ))}
@@ -115,9 +115,9 @@ export default function ScoreboardPanel({ userId }: { userId: string | undefined
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingBottom: 8 }}>
-            <span className={`text-[30px] font-black leading-none tabular-nums ${scoreTone(lifeScore)}`}>{lifeScore ?? '—'}</span>
+            <span className={`text-3xl font-black leading-none tabular-nums ${scoreTone(lifeScore)}`}>{lifeScore ?? '—'}</span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted/60">Life Score</span>
+              <span className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted/60">Life Score</span>
               <Delta cur={lifeScore} prev={lifeScorePrev} />
             </div>
           </div>

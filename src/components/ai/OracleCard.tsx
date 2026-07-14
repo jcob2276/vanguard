@@ -119,10 +119,10 @@ export default function OracleCard({
             <Sparkles size={16} />
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">Oracle</p>
-            <p className="text-[13px] font-black text-text-primary mt-0.5">{collapsedTitle}</p>
+            <p className="text-2xs font-black uppercase tracking-[0.2em] text-primary/60">Oracle</p>
+            <p className="text-sm font-black text-text-primary mt-0.5">{collapsedTitle}</p>
             {collapsedSubtitle && (
-              <p className="text-[10px] text-text-muted mt-0.5">{collapsedSubtitle}</p>
+              <p className="text-xs text-text-muted mt-0.5">{collapsedSubtitle}</p>
             )}
           </div>
         </button>
@@ -147,7 +147,7 @@ export default function OracleCard({
           <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border-custom">
             <div className="flex items-center gap-2">
               <Sparkles size={13} className="text-primary" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-primary">
+              <span className="text-xs font-black uppercase tracking-wider text-primary">
                 {storageScope === 'medical' ? 'Oracle · Badania' : 'Oracle'}
               </span>
             </div>

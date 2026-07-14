@@ -28,11 +28,11 @@ export default function CalendarTodoModal() {
         onChange={(e) => setEditingTodoTitle(e.target.value)}
         onBlur={saveTodoTitle}
         onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-        className="w-full rounded-xl border border-border-custom/60 bg-surface-solid px-3 py-2 text-[13px] font-semibold text-text-primary outline-none focus:border-primary/40"
+        className="w-full rounded-xl border border-border-custom/60 bg-surface-solid px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40"
       />
 
       <div className="space-y-2">
-        <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
+        <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
         <div className="grid grid-cols-2 gap-2">
           <input
             type="date"
@@ -46,7 +46,7 @@ export default function CalendarTodoModal() {
               await updateTodoItem(editingTodo.id, { due_date, scheduled_time });
               await fetchAllTodos();
             }}
-            className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+            className="bg-surface-solid border border-border-custom/60 rounded-xl px-2 py-2.5 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
           <input
             type="time"
@@ -60,7 +60,7 @@ export default function CalendarTodoModal() {
               await updateTodoItem(editingTodo.id, { scheduled_time });
               await fetchAllTodos();
             }}
-            className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2 py-2.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+            className="bg-surface-solid border border-border-custom/60 rounded-xl px-2 py-2.5 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
         </div>
       </div>
@@ -74,19 +74,19 @@ export default function CalendarTodoModal() {
           setToastMessage(isDone ? `Ukończono: "${editingTodo.title}" ✅` : `Cofnięto ukończenie: "${editingTodo.title}"`);
           closeEditTodoModal();
         }}
-        className={`w-full py-3 text-[12px] uppercase ${completedTodoIds.has(editingTodo.id) ? 'text-warning border-warning/20 hover:bg-warning/15' : ''}`}
+        className={`w-full py-3 text-sm uppercase ${completedTodoIds.has(editingTodo.id) ? 'text-warning border-warning/20 hover:bg-warning/15' : ''}`}
       >
         {completedTodoIds.has(editingTodo.id) ? 'Oznacz jako nieukończone' : 'Oznacz jako ukończone'}
       </Button>
 
       {!completedTodoIds.has(editingTodo.id) && (
         <Card variant="glass" padding="0.875rem" className="space-y-2.5">
-          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
+          <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
           <textarea
             placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
             value={editingTodo.notes || ''}
             onChange={(e) => setEditingTodo({ ...editingTodo, notes: e.target.value })}
-            className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-[11px] font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
+            className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-xs font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
           />
           <Button
             variant="tonal"
@@ -103,7 +103,7 @@ export default function CalendarTodoModal() {
               setToastMessage(`Przełożono na jutro: "${editingTodo.title}" ➡️`);
               closeEditTodoModal();
             }}
-            className="w-full py-2 text-[11px] uppercase"
+            className="w-full py-2 text-xs uppercase"
           >
             Przełóż na jutro
           </Button>
@@ -111,7 +111,7 @@ export default function CalendarTodoModal() {
       )}
 
       <div className="flex gap-2 pt-1">
-        <Button variant="outline" onClick={deleteTodo} icon={<Trash2 size={13} />} className="flex-1 py-2.5 text-[12px] text-danger border-danger/20 bg-danger/5 hover:bg-danger/10">
+        <Button variant="outline" onClick={deleteTodo} icon={<Trash2 size={13} />} className="flex-1 py-2.5 text-sm text-danger border-danger/20 bg-danger/5 hover:bg-danger/10">
           Usuń
         </Button>
       </div>

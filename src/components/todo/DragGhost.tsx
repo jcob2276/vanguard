@@ -41,11 +41,11 @@ export default function DragGhost({ item, posRef }: DragGhostProps) {
     >
       <div className="flex items-center gap-3">
         {icon ? (
-          <span className="text-[20px] leading-none">{icon}</span>
+          <span className="text-xl leading-none">{icon}</span>
         ) : (
           <div className={`h-4 w-4 rounded-full border-2 shrink-0 ${PRIORITY[item.priority]?.ring ?? 'border-info'}`} />
         )}
-        <p className="text-[13px] font-semibold text-text-primary truncate">{label}</p>
+        <p className="text-sm font-semibold text-text-primary truncate">{label}</p>
       </div>
     </div>
   );

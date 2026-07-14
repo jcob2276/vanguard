@@ -82,7 +82,7 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
     <Card variant="outline" className="border-primary/20 bg-primary/[0.04] mb-3" padding="1rem">
       <div className="flex items-start gap-2 mb-3">
         <HelpCircle size={14} className="text-primary mt-0.5 flex-shrink-0" />
-        <p className="text-[13px] font-semibold leading-snug text-text-primary">
+        <p className="text-sm font-semibold leading-snug text-text-primary">
           {request.question}
         </p>
       </div>
@@ -92,14 +92,14 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
           <button
             onClick={() => submit({ option_ids: ['yes'], is_uncertain: false })}
             disabled={submitting}
-            className="flex-1 rounded-xl bg-primary py-2 text-[12px] font-bold text-white transition-all active:scale-95 disabled:opacity-40"
+            className="flex-1 rounded-xl bg-primary py-2 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-40"
           >
             Tak
           </button>
           <button
             onClick={() => submit({ option_ids: ['no'], is_uncertain: false })}
             disabled={submitting}
-            className="flex-1 rounded-xl border border-border-custom/30 py-2 text-[12px] font-semibold text-text-secondary transition-all active:scale-95 disabled:opacity-40"
+            className="flex-1 rounded-xl border border-border-custom/30 py-2 text-sm font-semibold text-text-secondary transition-all active:scale-95 disabled:opacity-40"
           >
             Nie
           </button>
@@ -114,7 +114,7 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
               <button
                 key={opt.id}
                 onClick={() => toggleId(opt.id)}
-                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[12px] font-medium transition-all active:scale-[0.98] ${
+                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all active:scale-[0.98] ${
                   selected
                     ? 'bg-primary/10 text-primary border border-primary/30'
                     : 'bg-background border border-border-custom/20 text-text-secondary'
@@ -136,14 +136,14 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
               onChange={e => setCustomText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') submit(); }}
               placeholder="Twoja odpowiedź..."
-              className="w-full rounded-xl border border-primary/30 bg-background px-3 py-2 text-[12px] outline-none focus:border-primary"
+              className="w-full rounded-xl border border-primary/30 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           )}
           {selectedIds.length > 0 && (
             <button
               onClick={() => submit()}
               disabled={submitting}
-              className="w-full rounded-xl bg-primary py-2 text-[12px] font-bold text-white transition-all active:scale-95 disabled:opacity-40 mt-1"
+              className="w-full rounded-xl bg-primary py-2 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-40 mt-1"
             >
               {submitting ? '...' : 'Potwierdź'}
             </button>
@@ -159,20 +159,20 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
             onChange={e => setCustomText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && customText.trim()) submit(); }}
             placeholder="Twoja odpowiedź..."
-            className="w-full rounded-xl border border-border-custom/20 bg-background px-3 py-2 text-[12px] outline-none focus:border-primary"
+            className="w-full rounded-xl border border-border-custom/20 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
           <div className="flex gap-2">
             <button
               onClick={() => submit({ text: customText, option_ids: [], is_uncertain: false })}
               disabled={!customText.trim() || submitting}
-              className="flex-1 rounded-xl bg-primary py-2 text-[12px] font-bold text-white transition-all active:scale-95 disabled:opacity-40"
+              className="flex-1 rounded-xl bg-primary py-2 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-40"
             >
               {submitting ? '...' : 'Wyślij'}
             </button>
             <button
               onClick={() => submit({ option_ids: ['__uncertain__'], is_uncertain: true })}
               disabled={submitting}
-              className="rounded-xl border border-border-custom/30 px-3 py-2 text-[11px] text-text-muted transition-all active:scale-95"
+              className="rounded-xl border border-border-custom/30 px-3 py-2 text-xs text-text-muted transition-all active:scale-95"
             >
               Nie wiem
             </button>
@@ -182,7 +182,7 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
 
       <button
         onClick={dismiss}
-        className="w-full mt-2 text-[10px] text-text-tertiary hover:text-text-muted transition-colors"
+        className="w-full mt-2 text-xs text-text-tertiary hover:text-text-muted transition-colors"
       >
         Pomiń
       </button>

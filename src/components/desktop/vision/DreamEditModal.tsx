@@ -51,7 +51,7 @@ export default function DreamEditModal({
       showCloseButton={false}
     >
         <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Marzenie</label>
+          <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Marzenie</label>
           <input
             value={editDreamTitle}
             onChange={e => setEditDreamTitle(e.target.value)}
@@ -61,7 +61,7 @@ export default function DreamEditModal({
 
         <div className="flex gap-3">
           <div className="space-y-1.5 flex-1">
-            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
+            <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
             <select
               value={editDreamCat}
               onChange={e => setEditDreamCat(e.target.value)}
@@ -73,11 +73,11 @@ export default function DreamEditModal({
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Cel życiowy</label>
+            <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Cel życiowy</label>
             <div className="flex gap-1.5">
               {([['cialo', 'Ciało', 'border-success/40 bg-success/10 text-success'], ['duch', 'Duch', 'border-primary/40 bg-primary/10 text-primary'], ['konto', 'Konto', 'border-warning/40 bg-warning/10 text-warning']] as [string, string, string][]).map(([val, label, active]) => (
                 <button key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
-                  className={`rounded-xl border px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${editDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
+                  className={`rounded-xl border px-3 py-2.5 text-2xs font-black uppercase tracking-widest transition-all cursor-pointer ${editDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
                   {label}
                 </button>
               ))}
@@ -86,7 +86,7 @@ export default function DreamEditModal({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">
+          <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">
             Wizja — jak się czujesz gdy to osiągasz?
           </label>
           <textarea
@@ -105,7 +105,7 @@ export default function DreamEditModal({
             onClick={saveDreamEdit}
             disabled={savingDream || !editDreamTitle.trim()}
             loading={savingDream}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer"
             icon={<Check size={11} strokeWidth={2.5} />}
           >
             Zapisz wizję
@@ -114,7 +114,7 @@ export default function DreamEditModal({
             variant={editingDream.is_top5 ? 'tonal' : 'outline'}
             size="lg"
             onClick={() => { toggleTop5(editingDream); setEditingDream((prev) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
-            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
               editingDream.is_top5
                 ? 'border-warning/30 bg-warning/10 text-warning hover:bg-warning/20'
                 : 'border-border-custom text-text-muted hover:border-warning/30 hover:text-warning'

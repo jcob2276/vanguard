@@ -80,11 +80,11 @@ export default function DesktopHero({
               <div className={`absolute w-3 h-3 rounded-full ${cfg.pulse} opacity-40 animate-ping`} />
               <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-text-muted">{cfg.tag}</span>
+            <span className="text-2xs font-black uppercase tracking-[0.3em] text-text-muted">{cfg.tag}</span>
           </div>
-          <p className="font-display text-[24px] font-black leading-tight text-text-primary">{msg}</p>
+          <p className="font-display text-2xl font-black leading-tight text-text-primary">{msg}</p>
           {limiter && (
-            <p className="text-[11px] text-text-secondary mt-1">
+            <p className="text-xs text-text-secondary mt-1">
               Limiter: <span className="font-black">{limiter}</span>
             </p>
           )}
@@ -96,10 +96,10 @@ export default function DesktopHero({
             { label: 'Sen', val: latest?.total_sleep_hours ? +latest.total_sleep_hours.toFixed(1) : null, unit: 'h' },
           ].map(({ label, val, unit, color }) => (
             <div key={label} className="text-center">
-              <p className="text-[8px] font-black uppercase tracking-widest text-text-muted mb-1">{label}</p>
-              <p className={`font-display text-[18px] font-black leading-none ${color || 'text-text-primary'}`}>
+              <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1">{label}</p>
+              <p className={`font-display text-lg font-black leading-none ${color || 'text-text-primary'}`}>
                 {val ?? '—'}
-                <span className="text-[10px] text-text-muted font-semibold ml-0.5">{unit}</span>
+                <span className="text-xs text-text-muted font-semibold ml-0.5">{unit}</span>
               </p>
             </div>
           ))}
@@ -108,35 +108,35 @@ export default function DesktopHero({
 
       <div className="px-8 py-4 border-t border-primary/10 bg-primary/[0.02]">
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-text-muted">
+          <span className="text-2xs font-black uppercase tracking-[0.3em] text-text-muted">
             Sprint scorecard
           </span>
           <span className="text-text-muted/40">·</span>
-          <span className="text-[9px] font-bold text-text-muted">
+          <span className="text-2xs font-bold text-text-muted">
             {sprint.sprintStart} → {sprint.sprintEnd}
           </span>
           <span className="text-text-muted/40 hidden sm:inline">·</span>
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-text-muted hidden sm:inline">
+          <span className="text-2xs font-black uppercase tracking-[0.3em] text-text-muted hidden sm:inline">
             PY{sprint.personalYear}
           </span>
           <span className="text-text-muted/40 hidden sm:inline">→</span>
-          <span className="rounded-full border border-primary/20 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider px-2.5 py-0.5 hidden sm:inline">
+          <span className="rounded-full border border-primary/20 bg-primary/10 text-primary text-2xs font-black uppercase tracking-wider px-2.5 py-0.5 hidden sm:inline">
             Sprint {sprint.sprintNumber} · {SPRINT_SEASON[sprint.sprintNumber] || `S${sprint.sprintNumber}`}
           </span>
-          <span className="text-[9px] font-bold text-text-muted ml-auto">
+          <span className="text-2xs font-bold text-text-muted ml-auto">
             Tydzień {sprint.weekInSprint}/12 · {sprint.daysLeft} dni · {sprint.pct}%
           </span>
         </div>
 
         <div>
           {sprintGoal?.goal_text ? (
-            <p className="text-[17px] font-black text-text-primary leading-snug">
+            <p className="text-lg font-black text-text-primary leading-snug">
               {sprintGoal.goal_text}
             </p>
           ) : (
-            <p className="text-[13px] font-semibold text-text-muted italic">Brak celu sprintu</p>
+            <p className="text-sm font-semibold text-text-muted italic">Brak celu sprintu</p>
           )}
-          <a href="/?view=tydzien" className="text-[10px] font-black uppercase text-primary hover:underline">
+          <a href="/?view=tydzien" className="text-xs font-black uppercase text-primary hover:underline">
             Edytuj w Tygodniu →
           </a>
         </div>
@@ -147,19 +147,19 @@ export default function DesktopHero({
 
         {closingWeek && !sprintReview?.completed_at && (
           <div className="mt-4 pt-4 border-t border-primary/10 space-y-2">
-            <p className="text-[11px] text-text-secondary leading-relaxed">
+            <p className="text-xs text-text-secondary leading-relaxed">
               Zamknięcie sprintu jest w zakładce <span className="font-bold text-primary">Tydzień</span> — agregat 12 tyg. + cel następnego sprintu.
             </p>
             <a
               href="/?view=tydzien"
-              className="inline-flex rounded-[10px] bg-primary/10 px-3 py-2 text-[10px] font-black uppercase text-primary"
+              className="inline-flex rounded-[10px] bg-primary/10 px-3 py-2 text-xs font-black uppercase text-primary"
             >
               Otwórz Tydzień → zamknij sprint
             </a>
           </div>
         )}
         {closingWeek && sprintReview?.completed_at && (
-          <p className="mt-3 text-[10px] font-bold text-success">Sprint zamknięty w Tygodniu</p>
+          <p className="mt-3 text-xs font-bold text-success">Sprint zamknięty w Tygodniu</p>
         )}
 
         <SprintMetricsGrid

@@ -9,7 +9,7 @@ export interface TimelineWidgetData {
 
 export function TimelineWidget({ data }: { data: TimelineWidgetData }) {
   if (!data.events?.length) {
-    return <p className="text-[11px] text-text-tertiary py-4 text-center">Brak zdarzeń</p>;
+    return <p className="text-xs text-text-tertiary py-4 text-center">Brak zdarzeń</p>;
   }
 
   return (
@@ -21,10 +21,10 @@ export function TimelineWidget({ data }: { data: TimelineWidgetData }) {
             style={{ background: ev.color ?? 'var(--color-primary)' }}
           />
           {ev.time && (
-            <p className="text-[10px] font-mono text-text-muted">{ev.time}</p>
+            <p className="text-xs font-mono text-text-muted">{ev.time}</p>
           )}
-          <p className="text-[13px] font-semibold text-text-primary">{ev.title}</p>
-          {ev.subtitle && <p className="text-[11px] text-text-tertiary">{ev.subtitle}</p>}
+          <p className="text-sm font-semibold text-text-primary">{ev.title}</p>
+          {ev.subtitle && <p className="text-xs text-text-tertiary">{ev.subtitle}</p>}
         </li>
       ))}
     </ol>

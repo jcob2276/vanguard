@@ -85,7 +85,7 @@ export default function IntelligencePanel({
   if (!visibleCards.length) {
     return (
       <Panel title="Intelligence — za mało danych">
-        <p className="text-[11px] text-text-muted text-center py-8">Wnioski pojawią się po kilku tygodniach danych.</p>
+        <p className="text-xs text-text-muted text-center py-8">Wnioski pojawią się po kilku tygodniach danych.</p>
       </Panel>
     );
   }
@@ -101,15 +101,15 @@ export default function IntelligencePanel({
               <div className="flex items-center gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot[urgency]}`} />
                 <span
-                  className={`text-[7px] font-black uppercase tracking-[0.2em] border rounded-md px-1.5 py-0.5 ${cfg.badge}`}
+                  className={`text-3xs font-black uppercase tracking-[0.2em] border rounded-md px-1.5 py-0.5 ${cfg.badge}`}
                 >
                   {cfg.label}
                 </span>
-                {card.meta && <span className="text-[7px] text-text-muted ml-auto truncate max-w-[100px]">{card.meta}</span>}
+                {card.meta && <span className="text-3xs text-text-muted ml-auto truncate max-w-[100px]">{card.meta}</span>}
               </div>
-              <p className="text-[13px] font-bold text-text-primary leading-snug">{card.headline}</p>
+              <p className="text-sm font-bold text-text-primary leading-snug">{card.headline}</p>
               {card.evidence && (
-                <p className="text-[11px] text-text-secondary leading-relaxed line-clamp-4">{card.evidence}</p>
+                <p className="text-xs text-text-secondary leading-relaxed line-clamp-4">{card.evidence}</p>
               )}
             </Card>
           );

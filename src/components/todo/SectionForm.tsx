@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from '../ui/Card';
+import Button from '../ui/Button';
 
 interface SectionFormProps {
   name: string;
@@ -25,31 +26,31 @@ export default function SectionForm({
         value={name}
         onChange={(e) => onChangeName(e.target.value)}
         placeholder="Nazwij tę sekcję"
-        className="w-full bg-transparent text-[14px] font-bold text-text-primary outline-none placeholder:text-text-muted/40"
+        className="w-full bg-transparent text-base font-bold text-text-primary outline-none placeholder:text-text-muted/40"
       />
       <textarea
         value={notes}
         onChange={(e) => onChangeNotes(e.target.value)}
         rows={2}
         placeholder="Dodaj opis"
-        className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+        className="w-full resize-none bg-transparent text-sm font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
       />
       <div className="flex gap-2 justify-start mt-1">
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="sm"
           onClick={onSave}
           disabled={!name.trim()}
-          className="todoist-btn-primary"
         >
           Dodaj sekcję
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onCancel}
-          className="todoist-btn-secondary"
         >
           Anuluj
-        </button>
+        </Button>
       </div>
     </Card>
   );

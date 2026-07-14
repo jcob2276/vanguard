@@ -22,12 +22,12 @@ function SubSkillRow({
   const delta = prev != null && showPrev ? val - prev : null;
   return (
     <div className="space-y-1 pl-3 border-l-2 border-primary/15">
-      <div className="flex justify-between items-center gap-2 text-[10px]">
+      <div className="flex justify-between items-center gap-2 text-xs">
         <span className="font-semibold text-text-secondary truncate">{skill.label}</span>
         <span className="shrink-0 font-black text-primary tabular-nums">
           {val}/5
           {delta != null && delta !== 0 && (
-            <span className={`ml-1 text-[8px] ${delta > 0 ? 'text-success' : 'text-danger'}`}>
+            <span className={`ml-1 text-2xs ${delta > 0 ? 'text-success' : 'text-danger'}`}>
               {delta > 0 ? `+${delta}` : delta}
             </span>
           )}
@@ -103,8 +103,8 @@ export default function SkillTreePanel({
 
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Pod-skilli</p>
-          <p className="text-[9px] text-text-muted">Kliknij skill · skala 0–5</p>
+          <p className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Pod-skilli</p>
+          <p className="text-2xs text-text-muted">Kliknij skill · skala 0–5</p>
         </div>
 
         <div className="space-y-2">
@@ -122,19 +122,19 @@ export default function SkillTreePanel({
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface/50 cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-bold text-text-primary truncate">{parent.label}</p>
-                    <p className="text-[9px] text-text-muted mt-0.5">
+                    <p className="text-sm font-bold text-text-primary truncate">{parent.label}</p>
+                    <p className="text-2xs text-text-muted mt-0.5">
                       {subs.length} pod-skilli
                       {subAvg != null && ` · śr. pod ${subAvg}/5`}
                     </p>
                   </div>
-                  <span className="shrink-0 text-[13px] font-black text-primary tabular-nums">{parentVal}/5</span>
+                  <span className="shrink-0 text-sm font-black text-primary tabular-nums">{parentVal}/5</span>
                 </button>
 
                 {open && (
                   <div className="border-t border-border-custom bg-surface/30 px-3 py-3 space-y-3">
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[10px]">
+                      <div className="flex justify-between text-xs">
                         <span className="font-black uppercase text-text-muted">Skill ogólny</span>
                         <span className="font-black text-primary tabular-nums">{parentVal}/5</span>
                       </div>
@@ -155,12 +155,12 @@ export default function SkillTreePanel({
                           />
                         </div>
                       )}
-                      <p className="text-[9px] text-text-muted">{SCORE_RUBRICS[parentVal] ?? SCORE_LABELS[parentVal]}</p>
+                      <p className="text-2xs text-text-muted">{SCORE_RUBRICS[parentVal] ?? SCORE_LABELS[parentVal]}</p>
                     </div>
 
                     {subs.length > 0 && (
                       <div className="space-y-2.5 pt-1">
-                        <p className="text-[8px] font-black uppercase tracking-wider text-text-muted">Szczegóły</p>
+                        <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Szczegóły</p>
                         {subs.map((sub) => (
                           <SubSkillRow
                             key={sub.id}

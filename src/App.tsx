@@ -14,6 +14,7 @@ const GrowthView = lazy(() => import('./components/growth/GrowthView'));
 const MedicalStudiesPage = lazy(() => import('./components/medical/MedicalStudiesPage'));
 const CorrelationsPage = lazy(() => import('./components/correlations/CorrelationsPage'));
 const EndMyopiaCalculator = lazy(() => import('./components/medical/EndMyopiaCalculator'));
+const DesignSystemPage = lazy(() => import('./components/dev/DesignSystemPage'));
 
 const FALLBACK_SPINNER = (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -98,6 +99,11 @@ function AppRoutes() {
       <Route path="/optics" element={
         <Suspense fallback={FALLBACK_SPINNER}>
           <EndMyopiaCalculator />
+        </Suspense>
+      } />
+      <Route path="/dev/design-system" element={
+        <Suspense fallback={FALLBACK_SPINNER}>
+          <DesignSystemPage />
         </Suspense>
       } />
       <Route path="*" element={<Navigate to="/dzis" replace />} />

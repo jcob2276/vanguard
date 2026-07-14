@@ -28,28 +28,28 @@ function getOutcomeBadge(outcome: string | null) {
   switch (outcome) {
     case 'success':
       return (
-        <span className="flex items-center gap-1 bg-success/10 text-success border border-success/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-success/10 text-success border border-success/20 px-2 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider">
           <CheckCircle2 size={10} />
           Sukces
         </span>
       );
     case 'fail':
       return (
-        <span className="flex items-center gap-1 bg-danger/10 text-danger border border-danger/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-danger/10 text-danger border border-danger/20 px-2 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider">
           <XCircle size={10} />
           Porażka
         </span>
       );
     case 'no_data':
       return (
-        <span className="flex items-center gap-1 bg-slate-500/10 text-text-muted border border-border-custom px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-slate-500/10 text-text-muted border border-border-custom px-2 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider">
           <HelpCircle size={10} />
           Brak Danych
         </span>
       );
     default:
       return (
-        <span className="flex items-center gap-1 bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider">
           Ewaluacja
         </span>
       );
@@ -60,10 +60,10 @@ function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendatio
   const daysLeft = getDaysRemaining(rec.created_at, rec.evaluation_window_days, todayStr);
   return (
     <Card padding="0.75rem" className="hover:border-primary/20 hover:shadow-sm transition-all duration-150 space-y-2">
-      <p className="text-[11px] font-bold text-text-primary leading-relaxed">
+      <p className="text-xs font-bold text-text-primary leading-relaxed">
         {rec.recommendation_text}
       </p>
-      <div className="flex flex-wrap items-center gap-3 text-[9px] text-text-muted pt-1 border-t border-border-custom/30">
+      <div className="flex flex-wrap items-center gap-3 text-2xs text-text-muted pt-1 border-t border-border-custom/30">
         <span className="flex items-center gap-1 bg-primary/5 text-primary border border-primary/10 px-1.5 py-0.5 rounded-md font-bold">
           <Target size={10} />
           {METRIC_LABELS[rec.related_metric] || rec.related_metric}
@@ -73,7 +73,7 @@ function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendatio
           <Calendar size={10} />
           {daysLeft > 0 ? `${daysLeft} dni do końca` : 'Dziś ewaluacja'}
         </span>
-        <span className="ml-auto text-[8px] font-medium opacity-60">
+        <span className="ml-auto text-2xs font-medium opacity-60">
           Dodano: {rec.created_at.slice(0, 10)}
         </span>
       </div>
@@ -86,10 +86,10 @@ function RecommendationHistoryCard({ rec }: { rec: OracleRecommendation }) {
   const actualVal = rec.actual_value !== null ? rec.actual_value.toFixed(1) : '—';
   return (
     <Card padding="0.75rem" className="flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-150">
-      <p className="text-[10px] text-text-secondary leading-relaxed font-medium">
+      <p className="text-xs text-text-secondary leading-relaxed font-medium">
         {rec.recommendation_text}
       </p>
-      <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 text-[9px] text-text-muted">
+      <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 text-2xs text-text-muted">
         <div className="flex justify-between items-center">
           <span>Status:</span>
           {getOutcomeBadge(rec.outcome)}
@@ -136,7 +136,7 @@ export default function GeneralRecommendationsPanel({
                 <RecommendationPendingCard key={rec.id} rec={rec} todayStr={todayStr} />
               ))}
               {pending.length === 0 && (
-                <div className="text-center py-8 text-text-muted text-[11px] font-semibold border border-dashed border-border-custom/60 rounded-xl bg-surface/20">
+                <div className="text-center py-8 text-text-muted text-xs font-semibold border border-dashed border-border-custom/60 rounded-xl bg-surface/20">
                   Brak aktywnych zaleceń. Zapytaj Wyrocznię o radę, aby wyznaczyć nowe zalecenia.
                 </div>
               )}
@@ -150,30 +150,30 @@ export default function GeneralRecommendationsPanel({
             <div className="space-y-4 py-1">
               <div className="flex items-center justify-between bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-2xl p-4">
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-text-muted uppercase tracking-wider">
+                  <span className="text-xs font-black text-text-muted uppercase tracking-wider">
                     Współczynnik Sukcesu
                   </span>
-                  <span className="text-[9px] text-text-muted mt-0.5">
+                  <span className="text-2xs text-text-muted mt-0.5">
                     Na podstawie {totalEvaluated} rozstrzygnięć
                   </span>
                 </div>
-                <span className="text-[22px] font-black text-success">
+                <span className="text-2xl font-black text-success">
                   {successRate !== null ? `${successRate}%` : '—'}
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="bg-success/5 border border-success/10 rounded-xl p-2 flex flex-col justify-between">
                   <span className="text-success font-black">{successes}</span>
-                  <span className="text-[8px] text-text-muted font-bold uppercase tracking-wide mt-0.5">Sukcesy</span>
+                  <span className="text-2xs text-text-muted font-bold uppercase tracking-wide mt-0.5">Sukcesy</span>
                 </div>
                 <div className="bg-danger/5 border border-danger/10 rounded-xl p-2 flex flex-col justify-between">
                   <span className="text-danger font-black">{fails}</span>
-                  <span className="text-[8px] text-text-muted font-bold uppercase tracking-wide mt-0.5">Błędy</span>
+                  <span className="text-2xs text-text-muted font-bold uppercase tracking-wide mt-0.5">Błędy</span>
                 </div>
                 <div className="bg-slate-500/5 border border-border-custom rounded-xl p-2 flex flex-col justify-between">
                   <span className="text-text-muted font-black">{noData}</span>
-                  <span className="text-[8px] text-text-muted font-bold uppercase tracking-wide mt-0.5">Brak info</span>
+                  <span className="text-2xs text-text-muted font-bold uppercase tracking-wide mt-0.5">Brak info</span>
                 </div>
               </div>
             </div>

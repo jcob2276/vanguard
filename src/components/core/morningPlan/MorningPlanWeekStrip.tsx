@@ -35,11 +35,11 @@ export default function MorningPlanWeekStrip({
             key={d}
             className={`flex-1 flex flex-col items-center gap-1 rounded-xl py-1.5 transition-colors ${isTarget ? 'bg-primary/10' : ''}`}
           >
-            <span className={`text-[8px] font-black uppercase tracking-wide ${isTarget ? 'text-primary' : 'text-text-muted/70'}`}>
+            <span className={`text-2xs font-black uppercase tracking-wide ${isTarget ? 'text-primary' : 'text-text-muted/70'}`}>
               {weekdayLabel}
             </span>
             <span
-              className={`text-[11px] font-black ${
+              className={`text-xs font-black ${
                 isTarget ? 'text-primary' : isRealToday ? 'text-text-primary' : 'text-text-secondary'
               }`}
             >
@@ -48,7 +48,7 @@ export default function MorningPlanWeekStrip({
             <div className="w-4 h-1 rounded-full bg-border-custom/30 overflow-hidden">
               <div className="h-full bg-primary/50" style={{ width: `${loadPct}%` }} />
             </div>
-            <span className="text-[7px] font-bold text-text-muted/60 h-2.5">{taskCount > 0 ? `${taskCount}z` : ''}</span>
+            <span className="text-3xs font-bold text-text-muted/60 h-2.5">{taskCount > 0 ? `${taskCount}z` : ''}</span>
           </div>
         );
       })}

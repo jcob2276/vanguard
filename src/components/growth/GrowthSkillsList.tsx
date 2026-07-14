@@ -10,7 +10,7 @@ function scoreBar(val: number) {
       <div className="flex-1 h-1.5 rounded-full bg-border-custom overflow-hidden">
         <div className="h-full bg-primary/70 rounded-full" style={{ width: `${(val / 5) * 100}%` }} />
       </div>
-      <span className="text-[11px] font-black text-primary tabular-nums w-8 text-right">{val}/5</span>
+      <span className="text-xs font-black text-primary tabular-nums w-8 text-right">{val}/5</span>
     </div>
   );
 }
@@ -45,8 +45,8 @@ export default function GrowthSkillsList({
   if (rows.length === 0) {
     return (
       <section className="rounded-2xl border border-dashed border-border-custom p-4">
-        <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Umiejętności</p>
-        <p className="text-[12px] text-text-muted mt-2">Brak skilli — przywróć domyślne drzewo.</p>
+        <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Umiejętności</p>
+        <p className="text-sm text-text-muted mt-2">Brak skilli — przywróć domyślne drzewo.</p>
       </section>
     );
   }
@@ -55,8 +55,8 @@ export default function GrowthSkillsList({
     <Card variant="glass" padding="1rem" className="h-full flex flex-col">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Umiejętności</p>
-          <p className="text-[10px] text-text-muted mt-0.5">Twoja ocena 0–5 · pod-skilli po rozwinięciu</p>
+          <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Umiejętności</p>
+          <p className="text-xs text-text-muted mt-0.5">Twoja ocena 0–5 · pod-skilli po rozwinięciu</p>
         </div>
         {!readOnly && onEditScores && (
           <Button
@@ -64,7 +64,7 @@ export default function GrowthSkillsList({
             onClick={onEditScores}
             variant="ghost"
             size="sm"
-            className="shrink-0 text-[9px] font-black uppercase text-primary hover:underline"
+            className="shrink-0 text-2xs font-black uppercase text-primary hover:underline"
           >
             Oceń →
           </Button>
@@ -100,7 +100,7 @@ export default function GrowthSkillsList({
                 )}
                 <span className="flex-1 min-w-0">
                   <span className="flex items-center gap-1.5">
-                    <span className="text-[12px] font-bold text-text-primary truncate">{row.parent.label}</span>
+                    <span className="text-sm font-bold text-text-primary truncate">{row.parent.label}</span>
                     {row.isFocus && (
                       <Target size={11} className="text-primary shrink-0" aria-label="Focus tygodnia" />
                     )}
@@ -117,7 +117,7 @@ export default function GrowthSkillsList({
                           key={sub.skill.id}
                           className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-border-custom/30 last:border-0"
                         >
-                          <span className="flex-1 text-[11px] font-semibold text-text-secondary truncate">
+                          <span className="flex-1 text-xs font-semibold text-text-secondary truncate">
                             {sub.skill.label}
                           </span>
                           {scoreBar(sub.score)}
@@ -127,18 +127,18 @@ export default function GrowthSkillsList({
                   )}
                   {matchedLinks.length > 0 && (
                     <div className="mt-2 px-3 pt-2 border-t border-border-custom/30">
-                      <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-1 flex items-center gap-1">
+                      <p className="text-2xs font-black uppercase tracking-wider text-text-muted mb-1 flex items-center gap-1">
                         <span>📚 Materiały z Keep</span>
-                        <span className="rounded-full bg-primary/10 px-1 py-0.2 text-[8px] font-bold text-primary">{matchedLinks.length}</span>
+                        <span className="rounded-full bg-primary/10 px-1 py-0.2 text-2xs font-bold text-primary">{matchedLinks.length}</span>
                       </p>
                       <ul className="space-y-1">
                         {matchedLinks.map((link) => (
                           <li key={link.id} className="flex items-center justify-between gap-2 rounded-lg border border-border-custom bg-background/20 px-2 py-1">
                             <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-semibold text-text-primary truncate" title={link.title}>
+                              <p className="text-xs font-semibold text-text-primary truncate" title={link.title}>
                                 {link.title || link.domain}
                               </p>
-                              <p className="text-[8px] text-text-muted">{link.domain}</p>
+                              <p className="text-2xs text-text-muted">{link.domain}</p>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <a href={link.url} target="_blank" rel="noopener noreferrer" className="p-1 text-text-muted hover:text-text-primary">
@@ -150,7 +150,7 @@ export default function GrowthSkillsList({
                                   onClick={(e) => { e.stopPropagation(); onQuickPinLink(link.id, 'active'); }}
                                   variant="tonal"
                                   size="sm"
-                                  className="rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase"
+                                  className="rounded px-1.5 py-0.5 text-2xs font-black uppercase"
                                 >
                                   Przypnij
                                 </Button>

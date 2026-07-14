@@ -57,20 +57,20 @@ export default function NutritionTrainingBar({
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <Target size={12} className="text-primary shrink-0" />
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-primary truncate">
+          <p className="text-2xs font-black uppercase tracking-wider text-text-primary truncate">
             Cel {goalLine || (ctx.goalBodyFat != null ? `${ctx.goalBodyFat}% BF` : 'redukcja')}
             {ctx.eventName ? ` · ${ctx.eventName}` : ''}
           </p>
         </div>
         {ctx.daysToMarathon != null && ctx.daysToMarathon >= 0 ? (
-          <span className="text-[9px] font-bold text-text-muted shrink-0">
+          <span className="text-2xs font-bold text-text-muted shrink-0">
             <Flag size={10} className="inline -mt-0.5 mr-0.5" />
             {ctx.daysToMarathon} dni
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-[10px]">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="inline-flex items-center gap-1 rounded-full border border-border-custom/80 bg-surface/60 px-2 py-0.5 font-semibold text-text-secondary">
           <Activity size={10} />
           {ctx.trainingLabel}
@@ -78,20 +78,20 @@ export default function NutritionTrainingBar({
         {ctx.inTaper ? (
           <Badge variant="tag" color="var(--color-warning)">Taper — bez deficytu</Badge>
         ) : ctx.addBackKcal > 0 ? (
-          <span className="text-[9px] text-text-muted">
+          <span className="text-2xs text-text-muted">
             +{ctx.addBackKcal} kcal pod trening
           </span>
         ) : ctx.deficitKcal > 0 ? (
-          <span className="text-[9px] text-text-muted">−{ctx.deficitKcal} kcal plan</span>
+          <span className="text-2xs text-text-muted">−{ctx.deficitKcal} kcal plan</span>
         ) : null}
         {trajLabel ? (
-          <span className={`text-[9px] font-bold ${traj}`}>{trajLabel}</span>
+          <span className={`text-2xs font-bold ${traj}`}>{trajLabel}</span>
         ) : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-[10px]">
+      <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
-          <p className="text-text-muted text-[8px] font-black uppercase tracking-wider">Kalorie</p>
+          <p className="text-text-muted text-2xs font-black uppercase tracking-wider">Kalorie</p>
           <p className="font-bold text-text-primary">
             {Math.round(ctx.calories)}
             {ctx.targetKcal != null ? (
@@ -108,7 +108,7 @@ export default function NutritionTrainingBar({
           </p>
         </div>
         <div>
-          <p className="text-text-muted text-[8px] font-black uppercase tracking-wider">Białko floor</p>
+          <p className="text-text-muted text-2xs font-black uppercase tracking-wider">Białko floor</p>
           <p className="font-bold text-text-primary">
             {Math.round(ctx.protein)}
             {ctx.targetProtein != null ? (
@@ -126,13 +126,13 @@ export default function NutritionTrainingBar({
       </div>
 
       {ctx.todayFocus ? (
-        <p className="text-[10px] leading-snug text-text-secondary border-t border-border-custom/40 pt-2">
+        <p className="text-xs leading-snug text-text-secondary border-t border-border-custom/40 pt-2">
           {ctx.todayFocus}
         </p>
       ) : null}
 
       <div className="flex items-center justify-between gap-2 border-t border-border-custom/40 pt-2">
-        <div className="min-w-0 space-y-1 text-[9px] text-text-muted leading-snug">
+        <div className="min-w-0 space-y-1 text-2xs text-text-muted leading-snug">
           {ctx.currentWeightKg != null ? (
             <p>
               Waga dziś <span className="font-bold text-text-primary">{ctx.currentWeightKg} kg</span>

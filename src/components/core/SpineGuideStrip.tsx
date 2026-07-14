@@ -58,13 +58,13 @@ export function SpineGuideStrip({
       padding="0.875rem 1rem"
     >
 
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 mb-1.5">
+      <p className="text-2xs font-black uppercase tracking-[0.2em] text-primary/70 mb-1.5">
 
         {readyForDay ? 'Dziś w kontekście tygodnia' : 'Następny krok'}
 
       </p>
 
-      <p className="text-[13px] font-semibold text-text-primary leading-snug">{primaryCue}</p>
+      <p className="text-sm font-semibold text-text-primary leading-snug">{primaryCue}</p>
 
 
 
@@ -72,7 +72,7 @@ export function SpineGuideStrip({
 
         <div className="mt-3 space-y-1.5">
 
-          <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-text-muted">
+          <div className="flex items-center justify-between text-2xs font-bold uppercase tracking-wider text-text-muted">
 
             <span>Zwycięstwa dziś</span>
 
@@ -176,7 +176,7 @@ export function SpineGuideStrip({
 
       {!readyForDay && pending.length > 1 && (
 
-        <p className="mt-2.5 text-[10px] text-text-muted leading-relaxed">
+        <p className="mt-2.5 text-xs text-text-muted leading-relaxed">
 
           Potem: {pending.filter((s) => s.status !== 'now').slice(0, 2).map((s) => s.label).join(' → ')}
 

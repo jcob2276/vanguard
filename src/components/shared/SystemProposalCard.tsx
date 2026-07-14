@@ -28,11 +28,11 @@ export function SystemProposalCard({
   return (
     <Card className="space-y-3" padding="1rem">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-warning">
+        <p className="text-xs font-bold uppercase tracking-wider text-warning">
           {proposal.proposal_type === 'friction_cluster' ? 'Tarcie — N×' : proposal.proposal_type}
         </p>
-        <h3 className="mt-1 text-[14px] font-bold text-text-primary">{proposal.title}</h3>
-        <p className="mt-1 text-[12px] leading-relaxed text-text-secondary">{proposal.body}</p>
+        <h3 className="mt-1 text-base font-bold text-text-primary">{proposal.title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-text-secondary">{proposal.body}</p>
       </div>
 
       {snippets.length > 0 && (
@@ -50,7 +50,7 @@ export function SystemProposalCard({
           {open && (
             <ul className="mt-2 space-y-1.5">
               {snippets.map((s, i) => (
-                <li key={i} className="text-[11px] text-text-tertiary border-l-2 border-primary/30 pl-2">
+                <li key={i} className="text-xs text-text-tertiary border-l-2 border-primary/30 pl-2">
                   {s}
                 </li>
               ))}

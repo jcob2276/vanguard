@@ -101,10 +101,10 @@ export default function ExerciseCard({
       {/* Ostatnio + sugestia */}
       {lastSession && !isSaunaMode && (
         <div className="px-4 py-1.5 border-t border-border-custom bg-text-primary/[0.01] flex items-center gap-1.5">
-          <span className="text-[9px] font-black uppercase tracking-widest text-text-muted">Ostatnio</span>
-          <span className="text-[10px] font-bold text-text-secondary">{formatLastSession(lastSession)}</span>
+          <span className="text-2xs font-black uppercase tracking-widest text-text-muted">Ostatnio</span>
+          <span className="text-xs font-bold text-text-secondary">{formatLastSession(lastSession)}</span>
           {daysAgo != null && (
-            <span className="text-[8px] font-bold text-text-muted/50">
+            <span className="text-2xs font-bold text-text-muted/50">
               {daysAgo === 0 ? '(dziś)' : daysAgo === 1 ? '(1d temu)' : `(${daysAgo}d temu)`}
             </span>
           )}
@@ -114,7 +114,7 @@ export default function ExerciseCard({
             const progressed = s !== null && s > lastW;
             return s ? (
               <span
-                className={`ml-auto text-[10px] font-black ${
+                className={`ml-auto text-xs font-black ${
                   progressed ? 'text-success' : 'text-text-secondary'
                 }`}
               >
@@ -136,21 +136,21 @@ export default function ExerciseCard({
 
           <button
             onClick={addSet}
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-custom bg-surface/30 py-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-custom bg-surface/30 py-2 text-xs font-black uppercase tracking-widest text-text-muted hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
           >
             <Plus size={11} /> Dodaj serię
           </button>
 
           {!isSaunaMode && current1RM > 0 && (
             <div className="flex justify-between items-center pt-1.5 border-t border-border-custom mt-2">
-              <span className="text-[9px] font-black text-text-secondary uppercase tracking-wider">
+              <span className="text-2xs font-black text-text-secondary uppercase tracking-wider">
                 Objętość:{' '}
                 {sets
                   .reduce((sum, s) => sum + (parseFloat(s.kg) || 0) * (parseInt(s.reps) || 0), 0)
                   .toLocaleString()}{' '}
                 kg
               </span>
-              <span className="text-[9px] font-black text-text-muted tabular-nums">
+              <span className="text-2xs font-black text-text-muted tabular-nums">
                 ~{current1RM.toFixed(1)} kg 1RM
               </span>
             </div>

@@ -23,10 +23,10 @@ import Button from '../ui/Button';
 function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail?: string | null }) {
   return (
     <header className="space-y-1">
-      <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">
+      <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[0.22em] text-text-muted">
         <Icon size={12} /> {title}
       </p>
-      {detail && <p className="text-[11px] font-semibold leading-relaxed text-text-secondary">{detail}</p>}
+      {detail && <p className="text-xs font-semibold leading-relaxed text-text-secondary">{detail}</p>}
     </header>
   );
 }
@@ -34,16 +34,16 @@ function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title:
 function TextAreaBlock({ label, value, onChange, placeholder, danger = false, rows = 4 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; danger?: boolean; rows?: number }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
+      <span className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className={`w-full resize-none rounded-2xl border bg-surface p-4 text-[12px] font-bold leading-relaxed text-text-primary outline-none transition-colors placeholder:text-text-muted/40 ${
+        className={`w-full resize-none rounded-2xl border bg-surface p-4 text-sm font-bold leading-relaxed text-text-primary outline-none transition-colors placeholder:text-text-muted/40 ${
           danger 
             ? 'border-dayB/30 focus:border-dayB/60 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(244,63,94,0.1)]' 
-            : 'border-border-custom focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)]'
+            : 'border-border-custom focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus'
         }`}
       />
     </label>
@@ -131,8 +131,8 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
             title="Wróć"
           />
           <div className="min-w-0">
-            <h1 className="truncate text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Identity Fundament</h1>
-            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-primary">Core context</p>
+            <h1 className="truncate text-lg font-black uppercase tracking-tight text-text-primary font-display">Identity Fundament</h1>
+            <p className="text-2xs font-black uppercase tracking-[0.22em] text-primary">Core context</p>
           </div>
         </header>
 
@@ -140,8 +140,8 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           <section className="card bg-gradient-to-br from-primary/[0.04] to-danger/[0.02] border-border-custom p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-primary">Fundament</p>
-                <h2 className="mt-2 font-display text-[24px] font-black uppercase leading-none tracking-tight text-text-primary">
+                <p className="text-2xs font-black uppercase tracking-[0.24em] text-primary">Fundament</p>
+                <h2 className="mt-2 font-display text-2xl font-black uppercase leading-none tracking-tight text-text-primary">
                   Prawda systemu
                 </h2>
               </div>
@@ -149,7 +149,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
                 <Fingerprint size={20} />
               </div>
             </div>
-            <p className="mt-4 text-[12px] font-semibold leading-relaxed text-text-secondary">
+            <p className="mt-4 text-sm font-semibold leading-relaxed text-text-secondary">
               To nie jest dashboard. To baza kontekstu, która ma ustawić interpretację Mirror, Kierunku i raportów.
             </p>
           </section>
@@ -178,7 +178,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
                     setIdentity({ ...identity, pillars: next });
                   }}
                   placeholder={`Filar ${index + 1}`}
-                  className="w-full rounded-2xl border border-border-custom bg-surface p-3.5 text-[12.5px] font-bold text-text-primary outline-none transition-all placeholder:text-text-muted/40 focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)]"
+                  className="w-full rounded-2xl border border-border-custom bg-surface p-3.5 text-sm font-bold text-text-primary outline-none transition-all placeholder:text-text-muted/40 focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus"
                 />
               ))}
             </div>
@@ -209,8 +209,8 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
                     <Calendar size={18} />
                   </div>
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">Calendar</p>
-                    <p className="text-[12.5px] font-black uppercase tracking-[0.08em] text-text-primary mt-0.5">Synchronizuj kalendarz</p>
+                    <p className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">Calendar</p>
+                    <p className="text-sm font-black uppercase tracking-[0.08em] text-text-primary mt-0.5">Synchronizuj kalendarz</p>
                   </div>
                 </div>
                 <RefreshCw size={15} className={`text-primary ${isSyncing ? 'animate-spin' : ''}`} />
@@ -232,7 +232,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
               onChange={(event) => setIdentity({ ...identity, behavioral_baseline: event.target.value })}
               placeholder='{"baselineMode": "THE_BUILDER"}'
               rows={8}
-              className="w-full resize-none rounded-2xl border border-border-custom bg-surface p-4 font-mono text-[10.5px] font-bold leading-relaxed text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)]"
+              className="w-full resize-none rounded-2xl border border-border-custom bg-surface p-4 font-mono text-xs font-bold leading-relaxed text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus"
             />
           </section>
 
@@ -240,13 +240,13 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
             onClick={saveIdentity}
             loading={saving}
             icon={<Save size={16} />}
-            className="w-full rounded-2xl px-4 py-4 text-[12px] font-bold tracking-wider shadow-lg shadow-primary/25 font-display"
+            className="w-full rounded-2xl px-4 py-4 text-sm font-bold tracking-wider shadow-lg shadow-primary/25 font-display"
           >
             Zapisz fundament
           </Button>
 
           <section className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
-            <p className="text-[10px] font-bold uppercase leading-relaxed text-text-secondary">
+            <p className="text-xs font-bold uppercase leading-relaxed text-text-secondary">
               Te dane są warstwą deklaracji i kontekstu. System nadal powinien konfrontować je z zachowaniem, nie traktować jako automatycznej prawdy o wykonaniu.
             </p>
           </section>

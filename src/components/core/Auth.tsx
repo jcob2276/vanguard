@@ -71,30 +71,30 @@ export default function Auth() {
             <h1 className="text-3xl font-display font-black tracking-tight text-text-primary uppercase italic">
               Vanguard OS <span className="text-primary not-italic text-sm align-top ml-1">v{SYSTEM_VERSION}</span>
             </h1>
-            <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.4em] mt-2">Identity Verification Required</p>
+            <p className="text-text-muted text-xs font-black uppercase tracking-[0.4em] mt-2">Identity Verification Required</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-6">
             {message && (
-              <div className="bg-success/10 border border-success/20 text-success p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center">
+              <div className="bg-success/10 border border-success/20 text-success p-4 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
                 {message}
               </div>
             )}
             {error && (
-              <div className="bg-danger/10 border border-danger/20 text-danger p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
+              <div className="bg-danger/10 border border-danger/20 text-danger p-4 rounded-2xl text-xs font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
                 {error}
               </div>
             )}
             
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-text-muted uppercase tracking-widest ml-4">Access ID</label>
+              <label className="text-xs font-black text-text-muted uppercase tracking-widest ml-4">Access ID</label>
               <div className="relative">
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-2xl py-4 px-6 text-sm text-text-primary focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all outline-none placeholder:text-text-muted/40 font-bold"
+                  className="w-full bg-surface border border-border-custom rounded-2xl py-4 px-6 text-sm text-text-primary focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus transition-all outline-none placeholder:text-text-muted/40 font-bold"
                   placeholder="name@vanguard.sys"
                 />
               </div>
@@ -102,14 +102,14 @@ export default function Auth() {
 
             {mode !== 'reset' && (
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-text-muted uppercase tracking-widest ml-4">Secure Key</label>
+              <label className="text-xs font-black text-text-muted uppercase tracking-widest ml-4">Secure Key</label>
               <div className="relative">
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-2xl py-4 px-6 text-sm text-text-primary focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all outline-none placeholder:text-text-muted/40 font-bold"
+                  className="w-full bg-surface border border-border-custom rounded-2xl py-4 px-6 text-sm text-text-primary focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus transition-all outline-none placeholder:text-text-muted/40 font-bold"
                   placeholder="••••••••"
                 />
               </div>
@@ -126,7 +126,7 @@ export default function Auth() {
             </Button>
           </form>
 
-          <div className="mt-6 flex flex-wrap justify-center gap-3 text-[10px] font-bold text-text-muted">
+          <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs font-bold text-text-muted">
             {mode !== 'signin' && (
               <button type="button" onClick={() => { setMode('signin'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Logowanie</button>
             )}
@@ -141,12 +141,12 @@ export default function Auth() {
           <div className="mt-10 pt-8 border-t border-border-custom text-center">
             <div className="flex items-center justify-center gap-2 text-text-muted">
               <Shield size={12} />
-              <p className="text-[9px] font-black uppercase tracking-[0.2em]">Encrypted Connection Active</p>
+              <p className="text-2xs font-black uppercase tracking-[0.2em]">Encrypted Connection Active</p>
             </div>
           </div>
         </div>
 
-        <p className="text-center mt-8 text-[8px] font-black text-text-muted/50 uppercase tracking-[0.5em]">
+        <p className="text-center mt-8 text-2xs font-black text-text-muted/50 uppercase tracking-[0.5em]">
           Authorized Personnel Only • Neural Link {NEURAL_LINK_VERSION}
         </p>
       </div>

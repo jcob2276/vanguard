@@ -40,15 +40,15 @@ export default function MorningPlanStep3TimeBox({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-[13px] font-black text-text-primary">Time-boxing w kalendarzu</h3>
-        <p className="text-[10px] text-text-muted mt-0.5">Zaplanuj dokładny czas na wykonanie zadań ({dayWord}).</p>
+        <h3 className="text-sm font-black text-text-primary">Time-boxing w kalendarzu</h3>
+        <p className="text-xs text-text-muted mt-0.5">Zaplanuj dokładny czas na wykonanie zadań ({dayWord}).</p>
       </div>
 
       {/* Workload Capacity indicator */}
       <div className="p-3.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-2xl space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zapełnienie {dayWordGen} dnia</span>
-          <span className={`text-[11px] font-black ${isOverloaded ? 'text-danger' : 'text-primary'}`}>
+          <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Zapełnienie {dayWordGen} dnia</span>
+          <span className={`text-xs font-black ${isOverloaded ? 'text-danger' : 'text-primary'}`}>
             {capacityHoursPlanned}h / {CAPACITY_HOURS}h
           </span>
         </div>
@@ -59,12 +59,12 @@ export default function MorningPlanStep3TimeBox({
           />
         </div>
         {isOverloaded && (
-          <div className="flex items-start gap-1.5 p-2 bg-danger/10 border border-danger/20 rounded-xl text-danger text-[10px] font-semibold">
+          <div className="flex items-start gap-1.5 p-2 bg-danger/10 border border-danger/20 rounded-xl text-danger text-xs font-semibold">
             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
             <span>Ostrzeżenie przed przeładowaniem! Zaplanowany czas przekracza 8h. Rozważ odłożenie części zadań na inny dzień, by zapobiec wypaleniu.</span>
           </div>
         )}
-        <div className="text-[9px] text-text-muted/60 font-semibold flex items-center justify-between">
+        <div className="text-2xs text-text-muted/60 font-semibold flex items-center justify-between">
           <span>Czas spotkań w kalendarzu: {Math.round(calendarMeetingMinutes / 60 * 10) / 10}h</span>
           <span>Czas zaplanowanych zadań: {Math.round((totalMinutesPlanned - calendarMeetingMinutes) / 60 * 10) / 10}h</span>
         </div>
@@ -72,13 +72,13 @@ export default function MorningPlanStep3TimeBox({
 
       {/* Visual day timeline */}
       <div className="space-y-1.5">
-        <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block">Podgląd kalendarza {dayWordGen} dnia</span>
+        <span className="text-2xs font-bold text-text-muted uppercase tracking-wider block">Podgląd kalendarza {dayWordGen} dnia</span>
         <DayTimeline blocks={timelineBlocks} />
       </div>
 
       {/* Today's Tasks scheduling list */}
       <div className="space-y-2">
-        <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider block">Zaplanuj godziny dla zadań</span>
+        <span className="text-2xs font-bold text-text-muted uppercase tracking-wider block">Zaplanuj godziny dla zadań</span>
         <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
           {[...powerList.filter(Boolean), ...todayTasks].filter((t, idx, self) => self.findIndex((x) => x?.id === t?.id) === idx).map((task) => (
             <div
@@ -86,9 +86,9 @@ export default function MorningPlanStep3TimeBox({
               className="p-3 bg-slate-50 dark:bg-white/[0.01] border border-border-custom/30 rounded-xl flex items-center justify-between gap-3"
             >
               <div className="min-w-0 flex-1">
-                <span className="text-[12px] font-semibold text-text-primary block truncate">{task!.title}</span>
+                <span className="text-sm font-semibold text-text-primary block truncate">{task!.title}</span>
                 {powerList.some((s) => s?.id === task!.id) && (
-                  <span className="inline-block mt-0.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/10 text-warning tracking-wider">
+                  <span className="inline-block mt-0.5 text-2xs font-bold uppercase px-1.5 py-0.5 rounded bg-warning/10 text-warning tracking-wider">
                     Power List
                   </span>
                 )}
@@ -99,7 +99,7 @@ export default function MorningPlanStep3TimeBox({
                   type="time"
                   value={times[task!.id] || ''}
                   onChange={(e) => setTimes((prev) => ({ ...prev, [task!.id]: e.target.value }))}
-                  className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2 py-1.5 text-[11px] font-bold text-text-primary outline-none focus:border-primary/40 cursor-pointer"
+                  className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2 py-1.5 text-xs font-bold text-text-primary outline-none focus:border-primary/40 cursor-pointer"
                   style={{ width: 85 }}
                 />
                 <div className="flex items-center gap-1 bg-surface-solid/40 border border-border-custom/40 rounded-xl px-2 py-1">
@@ -109,9 +109,9 @@ export default function MorningPlanStep3TimeBox({
                     step="5"
                     value={durations[task!.id] || 30}
                     onChange={(e) => setDurations((prev) => ({ ...prev, [task!.id]: Math.max(5, Number(e.target.value)) }))}
-                    className="bg-transparent text-[11px] font-bold text-text-primary w-8 text-center outline-none"
+                    className="bg-transparent text-xs font-bold text-text-primary w-8 text-center outline-none"
                   />
-                  <span className="text-[9px] text-text-muted font-bold">m</span>
+                  <span className="text-2xs text-text-muted font-bold">m</span>
                 </div>
               </div>
             </div>

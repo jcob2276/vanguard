@@ -51,7 +51,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
     <Card
       variant="glass"
       padding="0"
-      className={`overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10)] ${
+      className={`overflow-hidden hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] ${
         healthLevel === 'critical' && project.status === 'active'
           ? 'border-danger/30 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]'
           : 'border-border-custom'

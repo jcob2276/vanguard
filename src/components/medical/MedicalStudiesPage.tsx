@@ -87,7 +87,7 @@ export default function MedicalStudiesPage() {
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-black font-display uppercase tracking-tight">Badania</h1>
-            <p className="text-[11px] text-text-muted mt-0.5 truncate">
+            <p className="text-xs text-text-muted mt-0.5 truncate">
               {fullPanel
                 ? `Ostatni pełny panel: ${formatMedicalDate(fullPanel.date)} · ${fullPanel.ageDays ?? '?'} dni temu`
                 : 'Laboratoryjne wyniki · biology scores · trendy'}
@@ -100,7 +100,7 @@ export default function MedicalStudiesPage() {
               <a
                 key={id}
                 href={`#${id}`}
-                className="shrink-0 rounded-full border border-border-custom px-3 py-1.5 text-[9px] font-black uppercase text-text-muted hover:text-primary hover:border-primary/30 transition-colors"
+                className="shrink-0 rounded-full border border-border-custom px-3 py-1.5 text-2xs font-black uppercase text-text-muted hover:text-primary hover:border-primary/30 transition-colors"
               >
                 {label}
               </a>
@@ -113,7 +113,7 @@ export default function MedicalStudiesPage() {
         {loading ? (
           <Skeleton variant="card" className="h-64 rounded-2xl" />
         ) : error ? (
-          <Card variant="danger" padding="0.75rem 1rem" className="text-[12px] text-danger dark:text-danger">
+          <Card variant="danger" padding="0.75rem 1rem" className="text-sm text-danger dark:text-danger">
             Nie udało się wczytać badań: {error}
           </Card>
         ) : labs.length === 0 && bodyComposition.length === 0 ? (
@@ -123,7 +123,7 @@ export default function MedicalStudiesPage() {
           />
         ) : (
           <>
-            <Card variant="notice" padding="0.75rem 1rem" className="text-[11px] text-text-secondary leading-relaxed">
+            <Card variant="notice" padding="0.75rem 1rem" className="text-xs text-text-secondary leading-relaxed">
               Kontekst z datą — nie diagnoza. Stary wynik nie opisuje automatycznie dzisiejszego stanu.
             </Card>
 
@@ -132,35 +132,35 @@ export default function MedicalStudiesPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
                   {fullPanel && (
                     <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5 col-span-2 sm:col-span-1">
-                      <p className="text-[8px] font-black uppercase text-text-muted">Ostatni pełny panel</p>
-                      <p className="text-[12px] font-bold text-text-primary mt-0.5">
+                      <p className="text-2xs font-black uppercase text-text-muted">Ostatni pełny panel</p>
+                      <p className="text-sm font-bold text-text-primary mt-0.5">
                         {formatMedicalDate(fullPanel.date)}
                       </p>
-                      <p className="text-[9px] text-text-muted">
+                      <p className="text-2xs text-text-muted">
                         {fullPanel.markerCount} markerów · {fullPanel.ageDays ?? '?'} dni temu
                       </p>
                     </div>
                   )}
                   {latestPanelDate && (
                     <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5">
-                      <p className="text-[8px] font-black uppercase text-text-muted">Ostatni wpis</p>
-                      <p className="text-[12px] font-bold text-text-primary mt-0.5">
+                      <p className="text-2xs font-black uppercase text-text-muted">Ostatni wpis</p>
+                      <p className="text-sm font-bold text-text-primary mt-0.5">
                         {formatMedicalDate(latestPanelDate)}
                       </p>
-                      <p className="text-[9px] text-text-muted">
+                      <p className="text-2xs text-text-muted">
                         {freshnessLabel(latestFresh)} · {latestAge ?? '?'} dni temu
                       </p>
                     </div>
                   )}
                   <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5">
-                    <p className="text-[8px] font-black uppercase text-text-muted">Markery</p>
-                    <p className="text-[12px] font-bold text-text-primary mt-0.5">{series.length}</p>
-                    <p className="text-[9px] text-text-muted">{labs.length} wpisów</p>
+                    <p className="text-2xs font-black uppercase text-text-muted">Markery</p>
+                    <p className="text-sm font-bold text-text-primary mt-0.5">{series.length}</p>
+                    <p className="text-2xs text-text-muted">{labs.length} wpisów</p>
                   </div>
                   <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5 col-span-2 sm:col-span-1">
-                    <p className="text-[8px] font-black uppercase text-text-muted">Skład ciała</p>
-                    <p className="text-[12px] font-bold text-text-primary mt-0.5">{bodyComposition.length}</p>
-                    <p className="text-[9px] text-text-muted">pomiarów BIA</p>
+                    <p className="text-2xs font-black uppercase text-text-muted">Skład ciała</p>
+                    <p className="text-sm font-bold text-text-primary mt-0.5">{bodyComposition.length}</p>
+                    <p className="text-2xs text-text-muted">pomiarów BIA</p>
                   </div>
                 </div>
               )}

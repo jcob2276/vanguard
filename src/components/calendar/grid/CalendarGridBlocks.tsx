@@ -55,12 +55,12 @@ export const renderEventBlock = ({
       <div className="flex items-start gap-0.5 min-w-0 w-full justify-start flex-wrap">
         {isAIScheduled && !tooShort && <Sparkles size={9} className="shrink-0 animate-pulse opacity-90 mt-0.5" />}
         {isFocusTime && !tooShort && <Shield size={9} className="shrink-0 opacity-90 mt-0.5" />}
-        <p className={`${tooShort ? 'text-[8.5px]' : 'text-[9.5px]'} font-extrabold leading-tight break-all whitespace-normal line-clamp-3`}>
+        <p className={`${tooShort ? 'text-2xs' : 'text-2xs'} font-extrabold leading-tight break-all whitespace-normal line-clamp-3`}>
           {displaySummary}
         </p>
       </div>
       {!tooShort && (
-        <div className="opacity-85 text-[8.5px] font-bold leading-none mt-0.5 break-all whitespace-normal">
+        <div className="opacity-85 text-2xs font-bold leading-none mt-0.5 break-all whitespace-normal">
           <span>{formatTime(ev.start_time)}–{formatTime(ev.end_time)}</span>
         </div>
       )}
@@ -122,7 +122,7 @@ export const renderTodoBlock = ({
         >
           {isCompleting && <Check size={6} className="text-white" strokeWidth={4} />}
         </button>
-        <p className={`flex items-center gap-0.5 text-[8px] font-bold text-primary leading-tight line-clamp-2 ${isCompleting ? 'line-through' : ''}`}>
+        <p className={`flex items-center gap-0.5 text-2xs font-bold text-primary leading-tight line-clamp-2 ${isCompleting ? 'line-through' : ''}`}>
           {GoalIcon && <GoalIcon size={7} className="shrink-0" />}
           <span className="truncate">{todo.title}</span>
         </p>

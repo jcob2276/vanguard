@@ -4,7 +4,7 @@ function Divider({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-px flex-1 bg-border-custom" />
-      <span className="text-[9px] uppercase tracking-widest text-text-muted font-black">{title}</span>
+      <span className="text-2xs uppercase tracking-widest text-text-muted font-black">{title}</span>
       <div className="h-px flex-1 bg-border-custom" />
     </div>
   );
@@ -44,7 +44,7 @@ function PillarScoreRow({ label, current, prev, onChange }: { label: string; cur
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-text-primary">{label}</span>
-        {prev != null && <span className="text-[10px] text-text-muted">zeszły tydzień: {prev}</span>}
+        {prev != null && <span className="text-xs text-text-muted">zeszły tydzień: {prev}</span>}
       </div>
       <div className="flex gap-1 flex-wrap">
         {[1,2,3,4,5,6,7,8,9,10].map((v) => (
@@ -84,7 +84,7 @@ export default function DirectionPlanReflection(props: DirectionPlanReflectionPr
       <Q num={6} label="Czego żałuję — co bym cofnął?" value={props.weekRegret} onChange={props.setWeekRegret} placeholder="Decyzja, słowo, zaniechanie…" />
       <Q num={7} label="Co myślę inaczej niż tydzień temu?" value={props.newBelief} onChange={props.setNewBelief} placeholder="Nowe przekonanie, zmiana perspektywy…" />
       <div className="pt-3 space-y-4 border-t border-border-custom">
-        <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">Oceny tygodnia (1–10)</p>
+        <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Oceny tygodnia (1–10)</p>
         <PillarScoreRow label="Ciało" current={props.pillarScores.cialo} prev={props.prevWeekScores?.cialo} onChange={(v) => props.setPillarScores({ ...props.pillarScores, cialo: v })} />
         <PillarScoreRow label="Duch" current={props.pillarScores.duch} prev={props.prevWeekScores?.duch} onChange={(v) => props.setPillarScores({ ...props.pillarScores, duch: v })} />
         <PillarScoreRow label="Konto" current={props.pillarScores.konto} prev={props.prevWeekScores?.konto} onChange={(v) => props.setPillarScores({ ...props.pillarScores, konto: v })} />

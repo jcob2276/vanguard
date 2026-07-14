@@ -49,7 +49,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
           size="sm"
           onClick={onBack}
           icon={<ChevronLeft size={16} />}
-          className="text-[11px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary shrink-0"
+          className="text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary shrink-0"
         >
           Powrót
         </Button>
@@ -63,7 +63,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
           onClick={() => onNavigateTo?.('todo')}
           title="Zadania"
           icon={<Check size={13} />}
-          className="text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
+          className="text-xs font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
         >
           Todo
         </Button>
@@ -73,7 +73,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
           onClick={() => onNavigateTo?.('keep')}
           title="Notatki"
           icon={<Sparkles size={13} />}
-          className="text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
+          className="text-xs font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
         >
           Notatki
         </Button>

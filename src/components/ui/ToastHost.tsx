@@ -29,7 +29,7 @@ export function ToastHost() {
           return (
             <div
               key={t.id}
-              className={`pointer-events-auto flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2.5 shadow-lg backdrop-blur-md text-[12px] font-semibold animate-in slide-in-from-right-4 ${TONE[t.type]}`}
+              className={`pointer-events-auto flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2.5 shadow-lg backdrop-blur-md text-sm font-semibold animate-in slide-in-from-right-4 ${TONE[t.type]}`}
             >
               <Icon size={14} className="shrink-0" />
               <span className="flex-1 leading-snug">{t.message}</span>
@@ -38,7 +38,7 @@ export function ToastHost() {
                   variant="secondary"
                   size="sm"
                   onClick={t.action.onClick}
-                  className="ml-1 shrink-0 rounded-[var(--radius-sm)] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide bg-black/10 hover:bg-black/20 text-current hover:text-current border-none shadow-none active:scale-95"
+                  className="ml-1 shrink-0 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-black uppercase tracking-wide bg-black/10 hover:bg-black/20 text-current hover:text-current border-none shadow-none active:scale-95"
                 >
                   {t.action.label}
                 </Button>

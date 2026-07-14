@@ -9,9 +9,9 @@ export function DurationCard({ data }: { data: DurationData }) {
         <Clock size={14} style={{ color: 'var(--color-warning)' }} />
       </div>
       <div>
-        <p className="text-[12px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{data.label}</p>
-        <p className="text-[18px] font-[800] leading-none" style={{ color: 'var(--text-primary)' }}>{h > 0 ? `${h}h ` : ''}{m > 0 ? `${m}min` : ''}</p>
-        {data.description && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>}
+        <p className="text-sm font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{data.label}</p>
+        <p className="text-lg font-[800] leading-none" style={{ color: 'var(--text-primary)' }}>{h > 0 ? `${h}h ` : ''}{m > 0 ? `${m}min` : ''}</p>
+        {data.description && <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{data.description}</p>}
       </div>
     </div>
   );

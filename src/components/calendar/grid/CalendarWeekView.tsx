@@ -84,7 +84,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           <ChevronLeft size={18} className="text-text-muted" />
         </button>
         <div className="text-center">
-          <p className="text-[12px] font-bold text-text-primary">
+          <p className="text-sm font-bold text-text-primary">
             {dayLabel(weekStart)} – {dayLabel(addDays(weekStart, 6))}
           </p>
           {!weekDays.includes(today) && (
@@ -94,7 +94,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                 setWeekStart(w);
                 setSelectedDay(today);
               }}
-              className="text-[10px] text-primary font-semibold"
+              className="text-xs text-primary font-semibold"
             >
               Bieżący tydzień
             </button>
@@ -117,7 +117,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           const dayForecast = weather?.daily?.[day];
           return (
             <div key={day} className="flex-1 text-center py-1.5 flex flex-col items-center justify-center relative group">
-              <p className={`text-[10px] font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-muted/80'}`}>
+              <p className={`text-xs font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-muted/80'}`}>
                 {formatWeekdayShort(day)}
               </p>
               {dayForecast && (
@@ -125,18 +125,18 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                   <div className="flex items-center justify-center transition-transform duration-200 hover:scale-110">
                     {getWMOWeatherIcon(dayForecast.weatherCode, 12)}
                   </div>
-                  <span className="text-[7.5px] font-black text-text-muted leading-none">
+                  <span className="text-3xs font-black text-text-muted leading-none">
                     {dayForecast.tempMax}°
                   </span>
                 </div>
               )}
               <div className="mt-1 flex items-center justify-center h-8 w-8">
                 {isToday ? (
-                  <span className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-[13px] font-black text-white leading-none shadow-sm shadow-primary/20">
+                  <span className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-sm font-black text-white leading-none shadow-sm shadow-primary/20">
                     {parseInt(day.split('-')[2])}
                   </span>
                 ) : (
-                  <span className="text-[15px] font-black text-text-primary leading-none">
+                  <span className="text-base font-black text-text-primary leading-none">
                     {parseInt(day.split('-')[2])}
                   </span>
                 )}

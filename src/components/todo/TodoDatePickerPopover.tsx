@@ -125,42 +125,42 @@ export default function TodoDatePickerPopover({
         value={freeText}
         onChange={(e) => handleFreeText(e.target.value)}
         placeholder="Wpisz termin"
-        className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-1.5 text-[12.5px] font-medium text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/40"
+        className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-1.5 text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/40"
       />
 
       <div className="flex flex-col gap-0.5">
         <button
           type="button"
           onClick={() => pickDate(today)}
-          className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors ${dueDate === today ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
+          className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${dueDate === today ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
         >
           <CalendarDays size={14} className="text-success" />
           <span className="flex-1 text-left">Dziś</span>
-          <span className="text-[10px] font-medium text-text-muted/50">{weekdayShort(today)}.</span>
+          <span className="text-xs font-medium text-text-muted/50">{weekdayShort(today)}.</span>
         </button>
         <button
           type="button"
           onClick={() => pickDate(tomorrowKey)}
-          className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors ${dueDate === tomorrowKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
+          className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${dueDate === tomorrowKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
         >
           <Sun size={14} className="text-warning" />
           <span className="flex-1 text-left">Jutro</span>
-          <span className="text-[10px] font-medium text-text-muted/50">{weekdayShort(tomorrowKey)}.</span>
+          <span className="text-xs font-medium text-text-muted/50">{weekdayShort(tomorrowKey)}.</span>
         </button>
         <button
           type="button"
           onClick={() => pickDate(weekendKey)}
-          className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors ${dueDate === weekendKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
+          className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${dueDate === weekendKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
         >
           <Sofa size={14} className="text-info" />
           <span className="flex-1 text-left">Następny weekend</span>
-          <span className="text-[10px] font-medium text-text-muted/50">{weekdayShort(weekendKey)}.</span>
+          <span className="text-xs font-medium text-text-muted/50">{weekdayShort(weekendKey)}.</span>
         </button>
       </div>
 
       <div className="border-t border-border-custom/40 pt-2">
         <div className="flex items-center justify-between mb-1.5 px-0.5">
-          <span className="text-[12px] font-black text-text-primary">{MONTH_LABELS[viewMonth]} {viewYear}</span>
+          <span className="text-sm font-black text-text-primary">{MONTH_LABELS[viewMonth]} {viewYear}</span>
           <div className="flex gap-1">
             <button type="button" onClick={goPrevMonth} className="p-1 rounded-lg hover:bg-surface/60 transition-colors">
               <ChevronLeft size={13} className="text-text-muted" />
@@ -172,7 +172,7 @@ export default function TodoDatePickerPopover({
         </div>
         <div className="grid grid-cols-7 gap-y-1 text-center mb-1">
           {WEEKDAY_LABELS.map((d) => (
-            <span key={d} className="text-[9px] font-bold text-text-muted/50 uppercase">{d}</span>
+            <span key={d} className="text-2xs font-bold text-text-muted/50 uppercase">{d}</span>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-y-1 text-center">
@@ -184,7 +184,7 @@ export default function TodoDatePickerPopover({
                 key={c.key}
                 type="button"
                 onClick={() => pickDate(c.key)}
-                className={`mx-auto h-6.5 w-6.5 rounded-lg text-[11px] font-semibold transition-colors ${
+                className={`mx-auto h-6.5 w-6.5 rounded-lg text-xs font-semibold transition-colors ${
                   !c.inMonth ? 'text-text-muted/25' :
                   isSelected ? 'bg-primary text-white' :
                   isToday ? 'text-primary border border-primary/40' :
@@ -203,7 +203,7 @@ export default function TodoDatePickerPopover({
           <button
             type="button"
             onClick={() => setShowTime(true)}
-            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-muted hover:bg-surface/60 hover:text-text-primary transition-colors"
+            className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-text-muted hover:bg-surface/60 hover:text-text-primary transition-colors"
           >
             <Clock3 size={13} /> Czas
           </button>
@@ -214,7 +214,7 @@ export default function TodoDatePickerPopover({
               type="time"
               value={scheduledTime || ''}
               onChange={(e) => onChange({ scheduled_time: e.target.value || null })}
-              className="flex-1 bg-transparent text-[12px] font-semibold text-text-primary outline-none [color-scheme:light] dark:[color-scheme:dark]"
+              className="flex-1 bg-transparent text-sm font-semibold text-text-primary outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
             <button
               type="button"
@@ -231,7 +231,7 @@ export default function TodoDatePickerPopover({
         <button
           type="button"
           onClick={() => pickDate(null)}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 py-1.5 text-[11px] font-semibold text-text-muted hover:text-danger transition-colors"
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 py-1.5 text-xs font-semibold text-text-muted hover:text-danger transition-colors"
         >
           <X size={11} /> Usuń termin
         </button>

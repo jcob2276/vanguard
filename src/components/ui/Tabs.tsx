@@ -21,7 +21,7 @@ export default function Tabs({ tabs, active, onChange, className = '' }: TabsPro
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 rounded-[var(--radius-sm)] transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-[var(--radius-sm)] transition-all cursor-pointer ${
             active === tab.key
               ? 'bg-background text-text-primary shadow-sm'
               : 'text-text-muted hover:text-text-primary'

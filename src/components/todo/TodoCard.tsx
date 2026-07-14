@@ -185,7 +185,7 @@ export default function TodoCard({
               className="shrink-0 mt-0.5 btn-press"
             >
               <span
-                className={`flex h-[18px] w-[18px] items-center justify-center text-[13.5px] leading-none transition-all ${
+                className={`flex h-[18px] w-[18px] items-center justify-center text-sm leading-none transition-all ${
                   isDone ? 'grayscale opacity-40' : ''
                 }`}
               >
@@ -234,12 +234,12 @@ export default function TodoCard({
                 }}
                 onBlur={onEditSave}
                 onClick={e => e.stopPropagation()}
-                className="w-full rounded-xl border border-primary/30 bg-surface-solid px-3 py-1.5 text-[13px] font-semibold text-text-primary outline-none ring-2 ring-primary/15"
+                className="w-full rounded-xl border border-primary/30 bg-surface-solid px-3 py-1.5 text-sm font-semibold text-text-primary outline-none ring-2 ring-primary/15"
               />
             ) : (
               <div className="group/title flex items-center gap-1.5">
                 <p
-                  className={`text-[13.5px] font-semibold leading-snug transition-colors ${
+                  className={`text-sm font-semibold leading-snug transition-colors ${
                     isDone ? 'line-through text-text-muted/50' : 'text-text-primary'
                   }`}
                 >
@@ -253,9 +253,9 @@ export default function TodoCard({
 
             {/* Metadata */}
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              {dateInfo && !isDone && <span className={`text-[9.5px] font-medium ${dateInfo.color}`}>{dateInfo.text}</span>}
+              {dateInfo && !isDone && <span className={`text-2xs font-medium ${dateInfo.color}`}>{dateInfo.text}</span>}
               {item.recurrence && (
-                <span className="flex items-center gap-0.5 text-[9.5px] text-primary/40">
+                <span className="flex items-center gap-0.5 text-2xs text-primary/40">
                   <Repeat2 size={8} /> {RECURRENCE_LABELS[item.recurrence]}
                 </span>
               )}
@@ -275,11 +275,11 @@ export default function TodoCard({
                       style={{ width: `${(doneSubtaskCount / totalSubtaskCount) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[9.5px] text-text-muted/45 font-medium">{doneSubtaskCount}/{totalSubtaskCount}</span>
+                  <span className="text-2xs text-text-muted/45 font-medium">{doneSubtaskCount}/{totalSubtaskCount}</span>
                 </div>
               )}
               {item.duration_minutes != null && item.duration_minutes > 0 && !isDone && (
-                <span className="flex items-center gap-0.5 text-[9.5px] text-text-muted/40 font-medium">
+                <span className="flex items-center gap-0.5 text-2xs text-text-muted/40 font-medium">
                   <Clock size={8} />
                   {item.duration_minutes >= 60
                     ? `${Math.floor(item.duration_minutes / 60)}h${item.duration_minutes % 60 > 0 ? ` ${item.duration_minutes % 60}m` : ''}`
@@ -289,7 +289,7 @@ export default function TodoCard({
               {(item.tags || []).map((tag: string) => (
                 <span
                   key={tag}
-                  className={`inline-flex items-center gap-1 text-[9.5px] font-medium px-1 py-0.5 rounded bg-white/5 border border-white/5 transition-all opacity-70 ${
+                  className={`inline-flex items-center gap-1 text-2xs font-medium px-1 py-0.5 rounded bg-white/5 border border-white/5 transition-all opacity-70 ${
                     tag.toLowerCase() === 'finanse' || tag.toLowerCase() === 'zdrowie'
                       ? 'text-success bg-success/10'
                       : tag.toLowerCase() === 'projekt'
@@ -304,7 +304,7 @@ export default function TodoCard({
                 </span>
               ))}
               {isLinkedToPlan && (
-                <span className="flex items-center gap-0.5 text-[9.5px] text-primary/50">
+                <span className="flex items-center gap-0.5 text-2xs text-primary/50">
                   <Link2 size={7} /> Plan
                 </span>
               )}
@@ -319,7 +319,7 @@ export default function TodoCard({
                     ? 'bg-warning/8 border-warning/15 text-warning dark:text-warning'
                     : 'bg-surface-solid border-border-custom/50 text-text-secondary';
                   return (
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-wide transition-all ${chipBg}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-semibold tracking-wide transition-all ${chipBg}`}>
                       {GoalIcon && <GoalIcon size={8} />}
                       <span className="uppercase">{sectionName}</span>
                       {dreamTitle && (

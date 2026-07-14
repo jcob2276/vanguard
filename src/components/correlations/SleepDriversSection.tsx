@@ -13,10 +13,10 @@ export default function SleepDriversSection({ title, subtitle, titleColor, drive
   return (
     <section className="space-y-3">
       <div>
-        <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${titleColor}`}>
+        <p className={`text-xs font-black uppercase tracking-[0.15em] ${titleColor}`}>
           {title}
         </p>
-        <p className="text-[11px] text-text-muted mt-0.5">
+        <p className="text-xs text-text-muted mt-0.5">
           {subtitle}
         </p>
       </div>

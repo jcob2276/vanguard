@@ -41,32 +41,32 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ calData, handleE
         value={editTitle}
         onChange={(e) => setEditTitle(e.target.value)}
         placeholder="Tytuł wydarzenia..."
-        className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-4 py-3.5 text-[14px] font-semibold text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+        className="w-full bg-surface-solid border border-border-custom/60 rounded-xl px-4 py-3.5 text-base font-semibold text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
       />
 
       <div className="grid grid-cols-2 gap-3.5">
         <div className="space-y-1">
-          <label className="text-[10px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">Start</label>
+          <label className="text-xs text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">Start</label>
           <input
             type="time"
             value={editStart}
             onChange={(e) => setEditStart(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+            className="w-full bg-surface-solid border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">Koniec</label>
+          <label className="text-xs text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">Koniec</label>
           <input
             type="time"
             value={editEnd}
             onChange={(e) => setEditEnd(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-3 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+            className="w-full bg-surface-solid border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Obszar życia:</span>
+        <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Obszar życia:</span>
         <CategoryPicker selected={editCategory} onSelect={setEditCategory} />
       </div>
 
@@ -91,7 +91,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ calData, handleE
           variant="primary"
           onClick={handleEditSave}
           disabled={saving}
-          className="flex-1 py-3 text-[13px] uppercase tracking-wider"
+          className="flex-1 py-3 text-sm uppercase tracking-wider"
           loading={saving}
         >
           {saving ? 'Zapisywanie...' : 'Zapisz'}

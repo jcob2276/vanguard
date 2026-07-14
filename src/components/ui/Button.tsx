@@ -24,9 +24,9 @@ export default function Button({
   const baseClass = 'inline-flex items-center justify-center font-bold font-display rounded-[var(--radius-md)] transition-all duration-150 active:scale-97 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
   
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-[11px] gap-1',
-    md: 'px-4.5 py-2.5 text-[13px] gap-1.5',
-    lg: 'px-6 py-3.5 text-[14px] gap-2',
+    sm: 'px-3 py-1.5 text-xs gap-1',
+    md: 'px-4.5 py-2.5 text-sm gap-1.5',
+    lg: 'px-6 py-3.5 text-base gap-2',
   };
 
   const variantClasses = {

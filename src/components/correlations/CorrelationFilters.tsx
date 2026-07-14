@@ -1,5 +1,6 @@
 import { BarChart2, Coffee, Moon, Dumbbell, Brain, Activity, Pill, Smartphone } from 'lucide-react';
 import type { CorrelationCategory } from '@vanguard/domain';
+import Button from '../ui/Button';
 
 const FILTERS: { id: CorrelationCategory | 'all'; icon: typeof Moon; label: string }[] = [
   { id: 'all', icon: BarChart2, label: 'Wszystkie' },
@@ -24,19 +25,15 @@ export default function CorrelationFilters({ filter, setFilter }: CorrelationFil
         const Icon = f.icon;
         const active = filter === f.id;
         return (
-          <button
+          <Button
             key={f.id}
-            type="button"
+            variant={active ? 'primary' : 'outline'}
             onClick={() => setFilter(f.id)}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all ${
-              active
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-surface border border-border-custom text-text-muted hover:text-text-primary'
-            }`}
+            className="gap-1.5 rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-wider shadow-none hover:translate-y-0"
+            icon={<Icon size={11} />}
           >
-            <Icon size={11} />
             {f.label}
-          </button>
+          </Button>
         );
       })}
     </div>

@@ -18,13 +18,13 @@ export function InsightSummaryCard({ data }: { data: InsightSummaryData }) {
         <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
           <Lightbulb size={12} style={{ color }} />
         </div>
-        <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
+        <p className="text-sm font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
       </div>
-      <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{data.insight}</p>
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{data.insight}</p>
       {data.evidence && data.evidence.length > 0 && (
         <ul className="space-y-0.5">
           {data.evidence.map((e, i) => (
-            <li key={i} className="flex gap-1.5 text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+            <li key={i} className="flex gap-1.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
               <span>•</span><span>{e}</span>
             </li>
           ))}
@@ -32,7 +32,7 @@ export function InsightSummaryCard({ data }: { data: InsightSummaryData }) {
       )}
       {data.action && (
         <div className="rounded-xl px-3 py-2" style={{ background: `${color}0F` }}>
-          <p className="text-[11px] font-semibold" style={{ color }}>→ {data.action}</p>
+          <p className="text-xs font-semibold" style={{ color }}>→ {data.action}</p>
         </div>
       )}
     </div>

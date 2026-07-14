@@ -16,40 +16,6 @@
   color: var(--primary) !important;
 }
 
-/* Custom Todoist styling classes */
-.todoist-btn-primary {
-  background-color: var(--primary) !important;
-  color: #ffffff !important;
-  font-weight: 700;
-  border-radius: 8px;
-  padding: 6px 14px;
-  font-size: 13px;
-  transition: filter 0.15s;
-  cursor: pointer;
-}
-.todoist-btn-primary:hover {
-  filter: brightness(0.9);
-}
-.todoist-btn-primary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.todoist-btn-secondary {
-  background-color: transparent !important;
-  color: var(--text-secondary) !important;
-  font-weight: 600;
-  border-radius: 8px;
-  padding: 6px 14px;
-  font-size: 13px;
-  transition: background-color 0.15s, color 0.15s;
-  cursor: pointer;
-}
-.todoist-btn-secondary:hover {
-  background-color: color-mix(in srgb, var(--text-primary) 8%, transparent) !important;
-  color: var(--text-primary) !important;
-}
-
 /* Section divider and add section line */
 .todoist-section-divider-line {
   position: relative;
@@ -93,26 +59,26 @@
 
 /* Custom checkbox priority colors */
 .todoist-checkbox-urgent {
-  border-color: #de4c4a !important;
+  border-color: var(--color-priority-urgent) !important;
 }
 .todoist-checkbox-urgent:hover {
-  background-color: rgba(222, 76, 74, 0.15) !important;
+  background-color: var(--color-priority-urgent-hover) !important;
 }
 .todoist-checkbox-high {
-  border-color: #f5a623 !important;
+  border-color: var(--color-priority-high) !important;
 }
 .todoist-checkbox-high:hover {
-  background-color: rgba(245, 166, 35, 0.15) !important;
+  background-color: var(--color-priority-high-hover) !important;
 }
 .todoist-checkbox-normal {
-  border-color: #4a90e2 !important;
+  border-color: var(--color-priority-normal) !important;
 }
 .todoist-checkbox-normal:hover {
-  background-color: rgba(74, 144, 226, 0.15) !important;
+  background-color: var(--color-priority-normal-hover) !important;
 }
 .todoist-checkbox-low {
-  border-color: #808080 !important;
+  border-color: var(--color-priority-low) !important;
 }
 .todoist-checkbox-low:hover {
-  background-color: rgba(128, 128, 128, 0.15) !important;
+  background-color: var(--color-priority-low-hover) !important;
 }

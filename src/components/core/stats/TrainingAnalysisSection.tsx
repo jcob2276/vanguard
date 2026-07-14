@@ -58,7 +58,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
   return (
     <section className="space-y-3.5">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-[18px] font-black tracking-tight text-text-primary">Trener AI</h2>
+        <h2 className="font-display text-lg font-black tracking-tight text-text-primary">Trener AI</h2>
         <Button
           variant="outline"
           size="sm"
@@ -98,15 +98,15 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
           const neutral = pctVal == null || Math.abs(pctVal) < 3;
           const good = neutral ? null : (higherBetter ? up : !up);
           return (
-            <div className="flex items-center gap-2 text-[10.5px]">
-              <span className="w-20 shrink-0 text-text-muted font-bold uppercase text-[8px] tracking-widest">{label}</span>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="w-20 shrink-0 text-text-muted font-bold uppercase text-2xs tracking-widest">{label}</span>
               <span className="font-extrabold text-text-primary">{weekText}{unit}</span>
               {pctVal != null && (
-                <span className={`text-[9px] font-black ${good === null ? 'text-text-muted' : good ? 'text-dayC' : 'text-dayB'}`}>
+                <span className={`text-2xs font-black ${good === null ? 'text-text-muted' : good ? 'text-dayC' : 'text-dayB'}`}>
                   {pctVal > 0 ? '+' : ''}{pctVal.toFixed(0)}%
                 </span>
               )}
-              <span className="text-text-muted/60 text-[9.5px] ml-auto">norma {baseText}{unit}</span>
+              <span className="text-text-muted/60 text-2xs ml-auto">norma {baseText}{unit}</span>
             </div>
           );
         };
@@ -121,10 +121,10 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
           <div className="space-y-4">
             {/* Status badges */}
             <div className="flex gap-2 flex-wrap">
-              <span className={`rounded-xl border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${loadColor}`}>{loadLabel}</span>
-              <span className={`rounded-xl border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${recovColor}`}>{recovLabel}</span>
+              <span className={`rounded-xl border px-3 py-1.5 text-2xs font-black uppercase tracking-widest ${loadColor}`}>{loadLabel}</span>
+              <span className={`rounded-xl border px-3 py-1.5 text-2xs font-black uppercase tracking-widest ${recovColor}`}>{recovLabel}</span>
               {r.injury_risk?.level && r.injury_risk.level !== 'low' && (
-                <span className={`rounded-xl border px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ${injuryColor}`}>
+                <span className={`rounded-xl border px-3 py-1.5 text-2xs font-black uppercase tracking-widest ${injuryColor}`}>
                   {r.injury_risk.level === 'high' ? '⚠ Ryzyko kontuzji' : '△ Uwaga'}
                 </span>
               )}
@@ -134,7 +134,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             <Card className="space-y-3" padding="1.125rem">
               {s.km_trend && (
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[8px] font-black uppercase text-text-muted w-20 shrink-0 tracking-widest">Km/tydz</span>
+                  <span className="text-2xs font-black uppercase text-text-muted w-20 shrink-0 tracking-widest">Km/tydz</span>
                   <div className="flex items-end gap-1.5 h-6">
                     {s.km_trend.map((v, i) => {
                       const maxV = Math.max(...s.km_trend!.filter(Boolean), 1);
@@ -142,7 +142,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                       return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[0_0_8px_rgba(79,70,229,0.3)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;
                     })}
                   </div>
-                  <span className="text-[9px] text-text-secondary ml-auto font-bold">{s.km_trend?.join(' → ')} km</span>
+                  <span className="text-2xs text-text-secondary ml-auto font-bold">{s.km_trend?.join(' → ')} km</span>
                 </div>
               )}
               <div className="space-y-2">
@@ -155,7 +155,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <StatRow label="Sauna" week={s.week_sauna} base={s.base_sauna_pw} unit="x" />
               </div>
               {s.hr_max && (
-                <p className="text-[9px] text-text-muted/65 pt-2 border-t border-border-custom font-medium">
+                <p className="text-2xs text-text-muted/65 pt-2 border-t border-border-custom font-medium">
                   HRmax (28d): {s.hr_max} BPM | Z2 &lt; {s.z2_ceiling} BPM
                 </p>
               )}
@@ -164,27 +164,27 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             {/* Summaries */}
             <Card className="space-y-2">
               {r.coach_decision_summary && (
-                <p className="text-[11.5px] text-dayC font-semibold leading-relaxed border-l-2 border-dayC/40 pl-2.5 mb-2">{r.coach_decision_summary}</p>
+                <p className="text-xs text-dayC font-semibold leading-relaxed border-l-2 border-dayC/40 pl-2.5 mb-2">{r.coach_decision_summary}</p>
               )}
-              {r.load_summary && <p className="text-[11px] text-text-secondary leading-relaxed">{r.load_summary}</p>}
-              {r.recovery_summary && <p className="text-[11px] text-text-secondary leading-relaxed">{r.recovery_summary}</p>}
+              {r.load_summary && <p className="text-xs text-text-secondary leading-relaxed">{r.load_summary}</p>}
+              {r.recovery_summary && <p className="text-xs text-text-secondary leading-relaxed">{r.recovery_summary}</p>}
               {r.training_trajectory && (
-                <p className="text-[11px] text-text-muted leading-relaxed italic">{r.training_trajectory}</p>
+                <p className="text-xs text-text-muted leading-relaxed italic">{r.training_trajectory}</p>
               )}
               {r.marathon_readiness && (
-                <p className="text-[11.5px] text-primary font-semibold leading-relaxed border-l-2 border-primary/40 pl-2.5 mt-2">{r.marathon_readiness}</p>
+                <p className="text-xs text-primary font-semibold leading-relaxed border-l-2 border-primary/40 pl-2.5 mt-2">{r.marathon_readiness}</p>
               )}
             </Card>
 
             {/* Injury risk details */}
             {r.injury_risk && ((r.injury_risk.flags?.length ?? 0) > 0 || r.injury_risk.prevention) && (
               <Card className={`space-y-2 ${injuryColor}`}>
-                <p className="text-[8px] font-black uppercase tracking-widest opacity-80">Ryzyko kontuzji</p>
+                <p className="text-2xs font-black uppercase tracking-widest opacity-80">Ryzyko kontuzji</p>
                 {r.injury_risk.flags?.map((f, i) => (
-                  <p key={i} className="text-[10.5px] leading-snug font-medium opacity-90">• {f}</p>
+                  <p key={i} className="text-xs leading-snug font-medium opacity-90">• {f}</p>
                 ))}
                 {r.injury_risk.prevention && (
-                  <p className="text-[9.5px] opacity-75 pt-1.5 border-t border-current/10 leading-normal">{r.injury_risk.prevention}</p>
+                  <p className="text-2xs opacity-75 pt-1.5 border-t border-current/10 leading-normal">{r.injury_risk.prevention}</p>
                 )}
               </Card>
             )}
@@ -194,26 +194,26 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
               const prescription = r.strength_prescription!;
               return (
               <div className="space-y-2.5">
-                <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Następna siłownia</p>
+                <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Następna siłownia</p>
                 {prescription.focus && (
-                  <p className="text-[10px] text-text-secondary leading-relaxed font-semibold">{prescription.focus}</p>
+                  <p className="text-xs text-text-secondary leading-relaxed font-semibold">{prescription.focus}</p>
                 )}
                 {prescription.critic && (
-                  <p className="text-[9.5px] text-warning dark:text-warning leading-relaxed bg-warning/5 p-2 rounded-lg border border-warning/10 font-medium">{prescription.critic}</p>
+                  <p className="text-2xs text-warning dark:text-warning leading-relaxed bg-warning/5 p-2 rounded-lg border border-warning/10 font-medium">{prescription.critic}</p>
                 )}
                 <div className="space-y-2">
                   {prescription.exercises!.map((ex, i) => (
                     <div key={i} className="rounded-[16px] border border-border-custom bg-surface/40 px-3.5 py-3 flex items-start gap-3">
                       <div className="shrink-0 w-5 h-5 rounded bg-primary/10 flex items-center justify-center mt-0.5">
-                        <span className="text-[9px] font-black text-primary">{i + 1}</span>
+                        <span className="text-2xs font-black text-primary">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11.5px] font-bold text-text-primary">{ex.name}</span>
-                          <span className="text-[9.5px] font-black text-primary bg-primary/8 rounded-md px-2 py-0.5">{ex.sets_reps}</span>
-                          {ex.load && <span className="text-[9.5px] font-black text-text-secondary bg-text-primary/5 rounded-md px-2 py-0.5">{ex.load}</span>}
+                          <span className="text-xs font-bold text-text-primary">{ex.name}</span>
+                          <span className="text-2xs font-black text-primary bg-primary/8 rounded-md px-2 py-0.5">{ex.sets_reps}</span>
+                          {ex.load && <span className="text-2xs font-black text-text-secondary bg-text-primary/5 rounded-md px-2 py-0.5">{ex.load}</span>}
                         </div>
-                        {ex.note && <p className="text-[9.5px] text-text-muted mt-1 leading-snug">{ex.note}</p>}
+                        {ex.note && <p className="text-2xs text-text-muted mt-1 leading-snug">{ex.note}</p>}
                       </div>
                     </div>
                   ))}
@@ -225,10 +225,10 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             {/* Muscle gaps */}
             {(r.missing_muscles?.length ?? 0) > 0 && (
               <div className="rounded-[24px] border border-warning/20 bg-warning/5 p-4">
-                <p className="text-[8px] font-black uppercase tracking-widest text-warning dark:text-warning mb-2">Brakujące partie</p>
+                <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning mb-2">Brakujące partie</p>
                 <div className="flex flex-wrap gap-2">
                   {r.missing_muscles!.map((m, i) => (
-                    <span key={i} className="rounded-lg border border-warning/20 bg-surface/80 dark:bg-black/20 px-2.5 py-0.5 text-[9.5px] font-black text-warning dark:text-warning shadow-sm">{m}</span>
+                    <span key={i} className="rounded-lg border border-warning/20 bg-surface/80 dark:bg-black/20 px-2.5 py-0.5 text-2xs font-black text-warning dark:text-warning shadow-sm">{m}</span>
                   ))}
                 </div>
               </div>
@@ -237,22 +237,22 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             {/* Strength + sauna notes */}
             {(r.strength_note || r.sauna_note) && (
               <div className="space-y-1.5 pt-2 border-t border-border-custom">
-                {r.strength_note && <p className="text-[10px] text-text-muted font-medium">{r.strength_note}</p>}
-                {r.sauna_note && <p className="text-[10px] text-text-muted font-medium">{r.sauna_note}</p>}
+                {r.strength_note && <p className="text-xs text-text-muted font-medium">{r.strength_note}</p>}
+                {r.sauna_note && <p className="text-xs text-text-muted font-medium">{r.sauna_note}</p>}
               </div>
             )}
 
             {/* Recommendations */}
             {(r.recommendations?.length ?? 0) > 0 && (
               <div className="space-y-2.5">
-                <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Rekomendacje</p>
+                <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Rekomendacje</p>
                 <div className="space-y-2">
                   {r.recommendations!.map((rec, i) => (
                     <Card key={i} className="flex gap-3">
-                      <Badge count={rec.priority} color="var(--color-primary)" className="shrink-0 w-6 h-6 text-[10px]" />
+                      <Badge count={rec.priority} color="var(--color-primary)" className="shrink-0 w-6 h-6 text-xs" />
                       <div className="min-w-0">
-                        <p className="text-[11.5px] font-black text-text-primary">{rec.action}</p>
-                        <p className="text-[9.5px] text-text-muted mt-0.5 leading-normal">{rec.reason}</p>
+                        <p className="text-xs font-black text-text-primary">{rec.action}</p>
+                        <p className="text-2xs text-text-muted mt-0.5 leading-normal">{rec.reason}</p>
                       </div>
                     </Card>
                   ))}

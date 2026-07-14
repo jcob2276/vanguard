@@ -52,34 +52,34 @@ export default function OrientationFooter() {
       padding="0"
     >
       <div className="px-5 py-4 border-l-4 border-primary/40">
-        <p className="font-display text-[14px] font-medium leading-relaxed text-text-primary italic whitespace-pre-line">
+        <p className="font-display text-base font-medium leading-relaxed text-text-primary italic whitespace-pre-line">
           {quote}
         </p>
       </div>
 
       <div className="px-5 py-3.5 border-t border-primary/10 space-y-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">
+          <span className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">
             PY{sprint.personalYear}
           </span>
           <span className="text-text-muted/30">·</span>
-          <span className="text-[9px] font-black uppercase tracking-wider text-primary">
+          <span className="text-2xs font-black uppercase tracking-wider text-primary">
             Sprint {sprint.sprintNumber} · {SPRINT_SEASON[sprint.sprintNumber]}
           </span>
-          <span className="ml-auto text-[9px] font-bold text-text-muted">
+          <span className="ml-auto text-2xs font-bold text-text-muted">
             tydz. {sprint.weekInSprint}/12 · {sprint.pct}%
           </span>
         </div>
 
         {sprintGoal && (
-          <p className="text-[13px] font-bold text-text-primary leading-snug">{sprintGoal}</p>
+          <p className="text-sm font-bold text-text-primary leading-snug">{sprintGoal}</p>
         )}
 
         <div className="h-1.5 bg-border-custom rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-primary/80 transition-all" style={{ width: `${sprint.pct}%` }} />
         </div>
 
-        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary/40">
+        <p className="text-2xs font-bold uppercase tracking-[0.18em] text-primary/40">
           Dzień {lived.toLocaleString('pl-PL')}
         </p>
       </div>

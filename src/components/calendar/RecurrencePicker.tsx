@@ -23,7 +23,7 @@ export default function RecurrencePicker({
 }: RecurrencePickerProps) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+      <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
         <Repeat size={11} /> Powtarzanie
       </label>
       <div className="flex flex-wrap gap-1.5">
@@ -32,7 +32,7 @@ export default function RecurrencePicker({
             key={r || 'none'}
             type="button"
             onClick={() => setRecurrence(r)}
-            className={`flex-1 min-w-[70px] text-[10.5px] font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+            className={`flex-1 min-w-[70px] text-xs font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
           >
             {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
           </button>
@@ -57,7 +57,7 @@ export default function RecurrencePicker({
                 onClick={() => setCustomDays((prev) =>
                   isSelected ? prev.filter((k) => k !== day.key) : [...prev, day.key],
                 )}
-                className={`w-10 text-[10.5px] font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+                className={`w-10 text-xs font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
               >
                 {day.label}
               </button>
@@ -67,13 +67,13 @@ export default function RecurrencePicker({
       )}
       {recurrence !== '' && (
         <div className="flex items-center gap-2.5 pt-1">
-          <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
+          <span className="text-xs text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             min={minDate}
-            className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
+            className="flex-1 bg-surface-solid border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
           {endDate && (
             <Button

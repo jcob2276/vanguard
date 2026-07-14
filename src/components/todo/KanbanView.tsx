@@ -50,7 +50,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
     const overdue = item.due_date < today;
     const isToday = item.due_date === today;
     return (
-      <span className={`text-[9px] font-bold ${overdue ? 'text-danger' : isToday ? 'text-warning' : 'text-text-muted'}`}>
+      <span className={`text-2xs font-bold ${overdue ? 'text-danger' : isToday ? 'text-warning' : 'text-text-muted'}`}>
         {isToday ? 'Dziś' : overdue ? `⚠ ${item.due_date}` : item.due_date}
       </span>
     );
@@ -78,11 +78,11 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
             {/* Column header */}
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-custom/30">
               <div className="flex items-center gap-1.5">
-                <span className="text-[13px]">{col.icon}</span>
-                <span className="text-[12px] font-bold text-text-primary">{col.title}</span>
+                <span className="text-sm">{col.icon}</span>
+                <span className="text-sm font-bold text-text-primary">{col.title}</span>
               </div>
               {colItems.length > 0 && (
-                <span className="text-[10px] font-black text-text-muted bg-surface-solid px-1.5 py-0.5 rounded-full">
+                <span className="text-xs font-black text-text-muted bg-surface-solid px-1.5 py-0.5 rounded-full">
                   {colItems.length}
                 </span>
               )}
@@ -99,14 +99,14 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
                     onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
                     className="rounded-xl border border-border-custom/40 bg-background/70 px-3 py-2.5 cursor-grab active:cursor-grabbing hover:border-border-custom transition-all group"
                   >
-                    <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-3">{item.title}</p>
+                    <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-3">{item.title}</p>
                     <div className="flex items-center justify-between mt-2">
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${pMeta?.chip ?? 'bg-surface-solid text-text-muted'}`}>
+                      <span className={`text-2xs font-black px-1.5 py-0.5 rounded-full ${pMeta?.chip ?? 'bg-surface-solid text-text-muted'}`}>
                         {pMeta?.label ?? item.priority}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {item.duration_minutes && (
-                          <span className="text-[9px] text-warning font-semibold">
+                          <span className="text-2xs text-warning font-semibold">
                             {item.duration_minutes < 60
                               ? `${item.duration_minutes}m`
                               : `${Math.floor(item.duration_minutes / 60)}h`}
@@ -121,7 +121,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
 
               {colItems.length === 0 && (
                 <Card variant="glass" padding="1rem" style={{ boxShadow: 'none' }} className="!bg-transparent !rounded-xl border border-dashed border-border-custom/20 text-center">
-                  <p className="text-[9px] text-text-muted/40">Przeciągnij tutaj</p>
+                  <p className="text-2xs text-text-muted/40">Przeciągnij tutaj</p>
                 </Card>
               )}
             </div>

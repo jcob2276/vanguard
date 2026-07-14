@@ -62,7 +62,7 @@ export default function NutritionCard({
     <section className="card p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-muted">Żywienie</p>
+        <p className="text-2xs font-black uppercase tracking-[0.15em] text-text-muted">Żywienie</p>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowEntryModal(true)}
@@ -77,14 +77,14 @@ export default function NutritionCard({
 
       {/* Main Calorie HUD */}
       <div className="flex flex-col items-center justify-center py-4 bg-surface-solid/35 border border-border-custom/50 rounded-2xl mb-4 text-center">
-        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-text-muted">Pozostało dzisiaj</span>
-        <p className={`font-display text-[32px] font-black tracking-tight leading-none my-1.5 ${
+        <span className="text-2xs font-black uppercase tracking-[0.15em] text-text-muted">Pozostało dzisiaj</span>
+        <p className={`font-display text-3xl font-black tracking-tight leading-none my-1.5 ${
           remainingKcalToday >= -75 ? 'text-success' : 'text-danger'
         }`}>
           {remainingKcalToday >= 0 ? `${remainingKcalToday}` : `+${Math.abs(remainingKcalToday)}`}
-          <span className="text-[12px] font-bold text-text-secondary ml-1">kcal</span>
+          <span className="text-sm font-bold text-text-secondary ml-1">kcal</span>
         </p>
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-text-muted">
           <span>Zjedzone: <strong className="text-text-secondary">{todayKcal} kcal</strong></span>
           <span>·</span>
           <span>Cel: <strong className="text-text-secondary">{kcalTarget} kcal</strong></span>
@@ -118,10 +118,10 @@ export default function NutritionCard({
       {/* Food quality analysis */}
       {todayAnalysis && (
         <Card variant="accent" padding="0.75rem" className="mt-3.5">
-          <p className="text-[9px] uppercase font-black tracking-wider text-text-muted mb-1">
+          <p className="text-2xs uppercase font-black tracking-wider text-text-muted mb-1">
             Analiza jakości jedzenia{todayAnalysisIsStale ? ` (${todayAnalysisRow!.key})` : ''}
           </p>
-          <p className="text-[11.5px] leading-relaxed text-text-secondary">{todayAnalysis}</p>
+          <p className="text-xs leading-relaxed text-text-secondary">{todayAnalysis}</p>
         </Card>
       )}
 

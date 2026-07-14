@@ -526,35 +526,6 @@
 .keep-icon-btn.danger { margin-left: 6px; }
 .keep-icon-btn.danger:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
 
-.keep-btn-ghost {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: background-color 0.15s, color 0.15s;
-  cursor: pointer;
-}
-.keep-btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-
-.keep-btn-primary {
-  font-size: 12px;
-  font-weight: 700;
-  font-family: var(--font-display);
-  color: white;
-  background: #4f46e5;
-  padding: 6px 16px;
-  border-radius: 8px;
-  transition: background-color 0.15s, opacity 0.15s;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.keep-btn-primary:hover { background: #4338ca; }
-.keep-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.keep-btn-primary.small { font-size: 11px; padding: 5px 12px; }
-
 /* ── Masonry ─────────────────────────────────────────────────────────────── */
 .keep-masonry {
   display: grid;
@@ -1480,14 +1451,6 @@
 
 .todo-checkbox-pop {
   animation: todo-check-pop 0.4s var(--spring) !important;
-}
-
-/* Premium springy click feedback */
-.btn-press {
-  transition: transform 0.12s var(--spring), opacity 0.1s ease;
-}
-.btn-press:active {
-  transform: scale(0.92) translateY(1px);
 }
 
 /* ── Grid Transition & Expand Helpers ── */

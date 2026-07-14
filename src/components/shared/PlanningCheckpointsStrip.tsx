@@ -56,7 +56,7 @@ export default function PlanningCheckpointsStrip({
     <Card variant="notice" padding="0.875rem" className="space-y-2.5">
       <div className="flex items-center gap-2">
         <Flag size={12} className="text-warning dark:text-warning shrink-0" />
-        <p className="text-[9px] font-black uppercase tracking-widest text-warning dark:text-warning">
+        <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning">
           Checkpointy → wpisz do 5 zadań
         </p>
       </div>
@@ -73,8 +73,8 @@ export default function PlanningCheckpointsStrip({
             >
               <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[11px] font-bold text-text-primary">{cp.title}</p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-[9px] text-text-muted">
+                <p className="truncate text-xs font-bold text-text-primary">{cp.title}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-2xs text-text-muted">
                   <span className={`truncate ${pillarClass}`}>{cp.project.name}</span>
                   {cp.isOverdue ? (
                     <span className="flex shrink-0 items-center gap-0.5 font-black text-danger">
@@ -93,7 +93,7 @@ export default function PlanningCheckpointsStrip({
                 type="button"
                 onClick={() => handleFill(cp)}
                 disabled={firstEmpty < 0}
-                className="flex shrink-0 items-center gap-0.5 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-[8px] font-black uppercase text-primary transition-all hover:bg-primary/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex shrink-0 items-center gap-0.5 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-2xs font-black uppercase text-primary transition-all hover:bg-primary/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 title={firstEmpty >= 0 ? `Wpisz do zadania ${firstEmpty + 1}` : 'Wszystkie sloty zajęte'}
               >
                 {firstEmpty >= 0 ? `→ ${firstEmpty + 1}` : 'Pełne'}

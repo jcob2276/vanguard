@@ -19,7 +19,7 @@ export default function DataHub({ onBack = null, embedded = false }: DataHubProp
           )}
           <div>
             <h1 className="font-black text-2xl text-white uppercase italic tracking-tighter">Data Hub</h1>
-            <p className="text-[10px] text-primary font-black uppercase tracking-widest">Reality Sync Console</p>
+            <p className="text-xs text-primary font-black uppercase tracking-widest">Reality Sync Console</p>
           </div>
         </header>
       )}
@@ -29,10 +29,10 @@ export default function DataHub({ onBack = null, embedded = false }: DataHubProp
 
 
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
-        <h4 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+        <h4 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
           <ShieldCheck size={14} /> System Integrity
         </h4>
-        <p className="text-[9px] text-neutral-500 font-bold leading-relaxed uppercase">
+        <p className="text-2xs text-neutral-500 font-bold leading-relaxed uppercase">
           Dane są przetwarzane lokalnie i używane wyłącznie do kalibracji Twojego "Cienia".
         </p>
       </div>

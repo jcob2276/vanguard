@@ -65,7 +65,7 @@ export default function TodoSectionsList({ renderInlineQuickCapture, renderAddTo
               className={`rounded-2xl p-2 transition-all duration-200 ${
                 draggingItem !== null
                   ? dragTarget === sec.id
-                    ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[0_4px_25px_rgba(99,102,241,0.12)]'
+                    ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[var(--shadow-accent-active)]'
                     : 'border border-dashed border-primary/20 bg-primary/5'
                   : 'border border-transparent bg-transparent'
               }`}

@@ -57,7 +57,7 @@ export default function SkillRadarPanel({
 
   if (n === 0) {
     return (
-      <Card variant="glass" padding="2rem" className="text-center text-[12px] text-text-muted">
+      <Card variant="glass" padding="2rem" className="text-center text-sm text-text-muted">
         Dodaj skilli, żeby zobaczyć radar.
       </Card>
     );
@@ -128,7 +128,7 @@ export default function SkillRadarPanel({
                 y={ly}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-[8px] font-bold fill-text-secondary"
+                className="text-2xs font-bold fill-text-secondary"
               >
                 {short}
               </text>
@@ -144,12 +144,12 @@ export default function SkillRadarPanel({
           const delta = prev != null && showPrev ? val - prev : null;
           return (
             <div key={s.id} className="space-y-1">
-              <div className="flex justify-between items-center gap-2 text-[11px]">
+              <div className="flex justify-between items-center gap-2 text-xs">
                 <span className="font-bold text-text-primary truncate">{s.label}</span>
                 <span className="shrink-0 font-black text-primary">
                   {val}/5
                   {delta != null && delta !== 0 && (
-                    <span className={`ml-1 text-[9px] ${delta > 0 ? 'text-success' : 'text-danger'}`}>
+                    <span className={`ml-1 text-2xs ${delta > 0 ? 'text-success' : 'text-danger'}`}>
                       {delta > 0 ? `+${delta}` : delta}
                     </span>
                   )}
@@ -169,7 +169,7 @@ export default function SkillRadarPanel({
                   <div className="h-full bg-primary/70 rounded-full transition-all" style={{ width: `${(val / 5) * 100}%` }} />
                 </div>
               )}
-              <p className="text-[9px] text-text-muted leading-snug">
+              <p className="text-2xs text-text-muted leading-snug">
                 {SCORE_RUBRICS[val] ?? SCORE_LABELS[val] ?? ''}
               </p>
             </div>

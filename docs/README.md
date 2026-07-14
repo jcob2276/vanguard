@@ -18,6 +18,7 @@ kolejność czytania albo listę odnośników, powinien zamiast tego cytować te
 | 3 | [`../supabase/functions/README.md`](../supabase/functions/README.md) | Rejestr edge functions: status, JWT, tabele, LOC |
 | 4 | [`BACKEND_CONTRACT.md`](./BACKEND_CONTRACT.md) | Twarde reguły deweloperskie i deployu dla backendu i funkcji edge |
 | 5 | [`FRONTEND_GUIDE.md`](./FRONTEND_GUIDE.md) | Standardy deweloperskie i zasady projektowe (UX/UI) dla `src/` |
+| 5b | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Tokeny, komponenty ui/, reguły dla agentów — czytać PRZED pisaniem kodu UI |
 | 6 | [`PRODUCT_PRINCIPLES.md`](./PRODUCT_PRINCIPLES.md) | Guardrails epistemiczne, feature gate, co jest zablokowane |
 
 ## Pełne czytanie (15 minut)

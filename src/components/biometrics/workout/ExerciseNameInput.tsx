@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EXERCISES, tagClass, normalize } from '../../../data/exercises';
 import { Card } from '../../ui/Card';
+import Button from '../../ui/Button';
 
 interface ExerciseNameInputProps {
   value: string;
@@ -59,23 +60,25 @@ export default function ExerciseNameInput({
           style={{ borderRadius: '12px' }}
         >
           {matches.map((ex) => (
-            <button
+            <Button
               key={ex.name}
+              type="button"
+              variant="ghost"
               onMouseDown={() => select(ex)}
-              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-text-primary/[0.04] transition-colors gap-3 cursor-pointer"
+              className="w-full flex items-center justify-between rounded-none px-3 py-2.5 text-left hover:bg-text-primary/[0.04] gap-3"
             >
               <span className="text-sm text-text-primary font-medium">{ex.name}</span>
               <div className="flex gap-1 shrink-0">
                 {ex.tags.slice(0, 3).map((t) => (
                   <span
                     key={t}
-                    className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${tagClass(t)}`}
+                    className={`text-2xs font-black uppercase px-1.5 py-0.5 rounded-full border ${tagClass(t)}`}
                   >
                     {t}
                   </span>
                 ))}
               </div>
-            </button>
+            </Button>
           ))}
         </Card>
       )}

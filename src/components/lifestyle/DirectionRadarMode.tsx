@@ -47,23 +47,23 @@ export default function DirectionRadarMode({
       {/* 1. Kompaktowe statsy */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
-          <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Streak</p>
-          <p className="text-[20px] font-black font-display text-primary mt-1 leading-none">{stats.streak}</p>
-          <p className="text-[8px] font-bold text-text-muted mt-1">dni</p>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Streak</p>
+          <p className="text-xl font-black font-display text-primary mt-1 leading-none">{stats.streak}</p>
+          <p className="text-2xs font-bold text-text-muted mt-1">dni</p>
         </div>
         <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
-          <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Tydzień</p>
-          <p className={`text-[14px] font-black font-display mt-1 leading-none ${stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Tydzień</p>
+          <p className={`text-base font-black font-display mt-1 leading-none ${stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>
             {stats.weeklyP > 2 ? 'Przeg.' : 'OK'}
           </p>
-          <p className="text-[8px] font-bold text-text-muted mt-1">{stats.weeklyP}/2 P</p>
+          <p className="text-2xs font-bold text-text-muted mt-1">{stats.weeklyP}/2 P</p>
         </div>
         <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
-          <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Miesiąc</p>
-          <p className={`text-[14px] font-black font-display mt-1 leading-none ${stats.monthlyWin ? 'text-dayC' : 'text-warning'}`}>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Miesiąc</p>
+          <p className={`text-base font-black font-display mt-1 leading-none ${stats.monthlyWin ? 'text-dayC' : 'text-warning'}`}>
             {stats.weeks.filter((w) => w.isWeekWin).length}/3
           </p>
-          <p className="text-[8px] font-bold text-text-muted mt-1">tyg. wygr.</p>
+          <p className="text-2xs font-bold text-text-muted mt-1">tyg. wygr.</p>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ export default function DirectionRadarMode({
             );
           })}
         </div>
-        <div className="flex items-center gap-4 mt-3 text-[9px] font-bold text-text-muted">
+        <div className="flex items-center gap-4 mt-3 text-2xs font-bold text-text-muted">
           <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-dayC" />Wygrany</span>
           <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-dayB" />Przegrany / brak</span>
           <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm border border-border-custom bg-surface" />Zaplanowany</span>
@@ -96,17 +96,17 @@ export default function DirectionRadarMode({
       {/* 3. Lekcja z poprzedniego tygodnia */}
       {prevWeekReview?.bottleneck && (
         <Card padding="1rem" className="flex gap-3 items-start animate-in fade-in-50 duration-300" style={{ background: 'rgba(245, 158, 11, 0.05)' }}>
-          <span className="text-[18px] leading-none">💡</span>
+          <span className="text-lg leading-none">💡</span>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-widest text-warning mb-0.5 font-display">Lekcja na ten tydzień</p>
-            <p className="text-[12px] font-semibold text-text-primary leading-relaxed">{prevWeekReview.bottleneck}</p>
+            <p className="text-2xs font-black uppercase tracking-widest text-warning mb-0.5 font-display">Lekcja na ten tydzień</p>
+            <p className="text-sm font-semibold text-text-primary leading-relaxed">{prevWeekReview.bottleneck}</p>
           </div>
         </Card>
       )}
 
       {/* 3. Weekly Board — na górze */}
       <div>
-        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted font-display mb-3">Plan tygodnia</p>
+        <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted font-display mb-3">Plan tygodnia</p>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
         {DAYS_PL.map((dayLabel, i) => {
           const dayDate = addDays(planWeekStart, i);
@@ -130,15 +130,15 @@ export default function DirectionRadarMode({
                 }`}
               >
                 <div className="flex items-center justify-between border-b border-border-custom/30 pb-2 mb-3">
-                  <h4 className={`text-[12px] font-black uppercase tracking-wide ${isToday ? 'text-primary' : 'text-text-primary'}`}>
+                  <h4 className={`text-sm font-black uppercase tracking-wide ${isToday ? 'text-primary' : 'text-text-primary'}`}>
                     {dayLabel}
                   </h4>
-                  <span className="text-[10px] font-bold text-text-muted">
+                  <span className="text-xs font-bold text-text-muted">
                     {format(dayDate, 'd MMM', { locale: pl })}
                   </span>
                 </div>
                 <div className="flex-1 flex items-center justify-center py-6">
-                  <span className="text-[9px] text-text-muted/40 font-bold uppercase tracking-wider">Brak planów</span>
+                  <span className="text-2xs text-text-muted/40 font-bold uppercase tracking-wider">Brak planów</span>
                 </div>
               </div>
             );
@@ -154,15 +154,15 @@ export default function DirectionRadarMode({
             >
               <div className="flex items-center justify-between border-b border-border-custom/40 pb-2 mb-3 shrink-0">
                 <div className="flex items-center gap-3">
-                  <h4 className={`text-[12px] font-black uppercase tracking-wide ${isToday ? 'text-primary' : 'text-text-primary'}`}>
+                  <h4 className={`text-sm font-black uppercase tracking-wide ${isToday ? 'text-primary' : 'text-text-primary'}`}>
                     {dayLabel}
                   </h4>
-                  <span className="text-[10px] font-bold text-text-muted">
+                  <span className="text-xs font-bold text-text-muted">
                     {format(dayDate, 'd MMM', { locale: pl })}
                   </span>
                 </div>
                 {isToday && (
-                  <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-primary">
+                  <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-2xs font-black uppercase tracking-wider text-primary">
                     Dzisiaj
                   </span>
                 )}
@@ -175,12 +175,12 @@ export default function DirectionRadarMode({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-2">
                       <Calendar size={11} className="text-primary shrink-0" />
-                      <span className="text-[8px] font-black uppercase tracking-wider text-text-muted">Harmonogram</span>
+                      <span className="text-2xs font-black uppercase tracking-wider text-text-muted">Harmonogram</span>
                     </div>
                     <div className="space-y-1.5 pl-3 border-l border-border-custom/50">
                       {dayEvents.map((ev, idx) => (
-                        <div key={idx} className="flex items-baseline gap-1.5 text-[10px] font-semibold text-text-secondary font-display">
-                          <span className="text-primary font-black shrink-0 text-[8.5px] mr-1">
+                        <div key={idx} className="flex items-baseline gap-1.5 text-xs font-semibold text-text-secondary font-display">
+                          <span className="text-primary font-black shrink-0 text-2xs mr-1">
                             {new Date(ev.start_time!).toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' })}
                           </span>
                           <span className="truncate">{ev.summary}</span>
@@ -195,7 +195,7 @@ export default function DirectionRadarMode({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-2">
                       <Target size={11} className="text-success shrink-0" />
-                      <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">Plan dnia</span>
+                      <span className="text-2xs font-black uppercase tracking-wider text-text-muted font-display">Plan dnia</span>
                     </div>
                     <div className="space-y-2 pl-3 border-l border-border-custom/50">
                       {[0, 1, 2, 3, 4].map((slotIdx) => {
@@ -208,7 +208,7 @@ export default function DirectionRadarMode({
                           <div
                             key={slotIdx}
                             onClick={() => isInteractive && togglePowerListTask(dayWin!, slotIdx)}
-                            className={`flex items-center gap-2 text-[11px] font-medium transition-all duration-200 ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                            className={`flex items-center gap-2 text-xs font-medium transition-all duration-200 ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                           >
                             <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-300 ${
                               done ? 'border-success bg-success text-white' : 'border-border-custom bg-surface'
@@ -235,9 +235,9 @@ export default function DirectionRadarMode({
       {/* 5. Cele tygodnia (z przeglądu niedzielnego) */}
       {currentReview && (currentReview.week_goal_cialo || currentReview.week_goal_duch || currentReview.week_goal_konto) && (
         <Card padding="1rem" className="space-y-3">
-          <p className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele tego tygodnia</p>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted font-display">Cele tego tygodnia</p>
           {currentReview.week_intention && (
-            <p className="text-[11px] font-semibold text-text-secondary italic">„{currentReview.week_intention}"</p>
+            <p className="text-xs font-semibold text-text-secondary italic">„{currentReview.week_intention}"</p>
           )}
           <div className="space-y-2">
             {[
@@ -246,8 +246,8 @@ export default function DirectionRadarMode({
               { key: 'week_goal_konto' as const, label: 'Konto', color: 'text-warning dark:text-warning',     bg: 'bg-warning/10'   },
             ].filter(g => currentReview[g.key]).map(g => (
               <div key={g.key} className="flex items-start gap-2">
-                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
-                <span className="text-[12px] font-semibold text-text-primary leading-snug">{currentReview[g.key]}</span>
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-3xs font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
+                <span className="text-sm font-semibold text-text-primary leading-snug">{currentReview[g.key]}</span>
               </div>
             ))}
           </div>
@@ -258,8 +258,8 @@ export default function DirectionRadarMode({
       <div className="space-y-3">
         {currentReview?.week_sentiment && (
           <Card padding="0.875rem 1rem" className="flex items-center justify-between">
-            <span className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Sentyment tygodnia</span>
-            <span className={`text-[9px] font-black uppercase tracking-wide rounded-full px-2.5 py-0.5 ${
+            <span className="text-2xs font-black uppercase tracking-widest text-text-muted font-display">Sentyment tygodnia</span>
+            <span className={`text-2xs font-black uppercase tracking-wide rounded-full px-2.5 py-0.5 ${
               currentReview.week_sentiment === 'excellent' ? 'bg-success/15 text-success dark:text-success'
               : currentReview.week_sentiment === 'good' ? 'bg-info/15 text-info dark:text-info'
               : currentReview.week_sentiment === 'ok' ? 'bg-warning/15 text-warning dark:text-warning'

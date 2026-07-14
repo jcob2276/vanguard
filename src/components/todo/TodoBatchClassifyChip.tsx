@@ -18,15 +18,15 @@ export default function TodoBatchClassifyChip() {
           <Sparkles size={14} className={`${batchClassifying ? 'animate-spin' : 'animate-pulse group-hover:scale-110 transition-transform'}`} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[12px] font-bold text-text-primary">
+          <span className="text-sm font-bold text-text-primary">
             {batchClassifying ? 'Porządkowanie zadań...' : 'Szybka klasyfikacja z AI'}
           </span>
-          <span className="text-[10px] text-text-muted">
+          <span className="text-xs text-text-muted">
             {batchClassifying ? 'Analizuję treść przez DeepSeek' : `${unclassifiedCount} zadań czeka na automatyczne przypisanie`}
           </span>
         </div>
       </div>
-      <div className="text-[10px] font-bold bg-primary/20 text-primary px-3 py-1 rounded-full uppercase tracking-wider scale-90 group-hover:scale-95 transition-transform">
+      <div className="text-xs font-bold bg-primary/20 text-primary px-3 py-1 rounded-full uppercase tracking-wider scale-90 group-hover:scale-95 transition-transform">
         Start
       </div>
     </button>

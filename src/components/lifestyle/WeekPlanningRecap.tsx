@@ -15,7 +15,7 @@ export default function WeekPlanningRecap({
 
   if (direction.loading) {
     return (
-      <div className="rounded-2xl border border-border-custom bg-surface/30 px-4 py-6 text-center text-[11px] text-text-muted animate-pulse">
+      <div className="rounded-2xl border border-border-custom bg-surface/30 px-4 py-6 text-center text-xs text-text-muted animate-pulse">
         Wczytuję podsumowanie tygodnia…
       </div>
     );
@@ -35,10 +35,10 @@ export default function WeekPlanningRecap({
   return (
     <Card variant="receipt" className="space-y-4" style={{ background: 'rgba(79,70,229,0.03)' }}>
       <div>
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+        <p className="text-2xs font-black uppercase tracking-[0.2em] text-primary">
           Ten tydzień — zoom out
         </p>
-        <p className="mt-1 text-[11px] text-text-secondary leading-relaxed">
+        <p className="mt-1 text-xs text-text-secondary leading-relaxed">
           To samo co w Radarze tygodnia. Teraz refleksja — nie zaczynaj od pustego formularza.
         </p>
       </div>

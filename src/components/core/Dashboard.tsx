@@ -109,10 +109,10 @@ export default function Dashboard({ session }: { session: Session }) {
   const weeklyReviewNudge = new Date().getDay() === 0 && !s.taskReviewDoneThisWeek && (
     <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <h4 className="text-[12px] font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
-        <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
+        <h4 className="text-sm font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+        <p className="text-xs text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
       </div>
-      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm">
+      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-black transition-colors btn-press shadow-sm">
         Rozpocznij
       </button>
     </div>
@@ -121,10 +121,10 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !s.todayWin;
 
   const fastCaptureItems = [
-    { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-success/20 text-success hover:bg-success/5', action: () => s.setShowQuickFoodEntry(true) },
-    { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-warning/20 text-warning hover:bg-warning/5', action: () => { s.openWorkout(); } },
-    { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-warning/20 text-warning hover:bg-warning/5', action: () => s.navigate('/sauna') },
-    { label: 'Zmierz Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => s.navigate('/optics') },
+    { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'var(--color-success)', action: () => s.setShowQuickFoodEntry(true) },
+    { label: 'Zaloguj Trening', emoji: '🏋️', color: 'var(--color-warning)', action: () => { s.openWorkout(); } },
+    { label: 'Zaloguj Saunę', emoji: '🧖', color: 'var(--color-warning)', action: () => s.navigate('/sauna') },
+    { label: 'Zmierz Wzrok', emoji: '👁️', color: '#14b8a6', action: () => s.navigate('/optics') },
   ];
 
   return (

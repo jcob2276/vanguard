@@ -4,6 +4,7 @@ import GrowthMediaQueue from './GrowthMediaQueue';
 import GrowthProjectsPanel from './GrowthProjectsPanel';
 import GrowthSkillsList from './GrowthSkillsList';
 import Skeleton from '../ui/Skeleton';
+import Button from '../ui/Button';
 import GrowthCockpit from './GrowthCockpit';
 import GrowthWeekPlan from './GrowthWeekPlan';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
@@ -113,14 +114,15 @@ export default function GrowthViewMainContent({
         onKpiChange={() => void refresh()}
       />
 
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={() => setShowMore((v) => !v)}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-custom py-2.5 text-[10px] font-black uppercase text-text-muted hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
+        icon={<ChevronDown size={14} className={`transition-transform ${showMore ? 'rotate-180' : ''}`} />}
+        iconPosition="right"
+        className="w-full rounded-xl border border-dashed border-border-custom py-2.5 text-xs font-black uppercase text-text-muted hover:text-primary hover:border-primary/30 hover:bg-transparent"
       >
         {showMore ? 'Mniej' : 'Więcej — skille i Keep'}
-        <ChevronDown size={14} className={`transition-transform ${showMore ? 'rotate-180' : ''}`} />
-      </button>
+      </Button>
 
       {showMore && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

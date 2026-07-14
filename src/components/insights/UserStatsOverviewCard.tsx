@@ -6,8 +6,8 @@ interface MetricPillProps { value: number; label: string; color: string; }
 function MetricPill({ value, label, color }: MetricPillProps) {
   return (
     <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: `${color}0D` }}>
-      <p className="text-[17px] font-[800] leading-none" style={{ color }}>{value.toLocaleString('pl-PL')}</p>
-      <p className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{label}</p>
+      <p className="text-lg font-[800] leading-none" style={{ color }}>{value.toLocaleString('pl-PL')}</p>
+      <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{label}</p>
     </div>
   );
 }
@@ -49,9 +49,9 @@ export function UserStatsOverviewCard({ snapshot, loading }: Props) {
         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(91,108,255,0.08)' }}>
           <BarChart2 size={13} style={{ color: 'var(--color-primary)' }} />
         </div>
-        <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Aktywność</span>
+        <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Aktywność</span>
         {snapshot && (
-          <span className="text-[11px] ml-auto" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span className="text-xs ml-auto" style={{ color: 'var(--color-text-tertiary)' }}>
             {snapshot.currentStreakDays} dni z rzędu
           </span>
         )}
@@ -59,7 +59,7 @@ export function UserStatsOverviewCard({ snapshot, loading }: Props) {
 
       {loading || !snapshot ? <Skeleton /> : (
         <>
-          <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             {snapshot.totalInputs.toLocaleString('pl-PL')} rekordów · {snapshot.activeDays} aktywnych dni
           </p>
 

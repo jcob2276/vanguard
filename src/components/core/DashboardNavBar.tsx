@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import Badge from '../ui/Badge';
+import Button from '../ui/Button';
 
 interface NavItem {
   id: string;
@@ -41,11 +42,12 @@ export function DashboardNavBar({
         const elements: React.ReactNode[] = [];
         navItems.forEach((item, idx) => {
           elements.push(
-            <button
+            <Button
               key={item.id}
+              variant="ghost"
               onClick={() => navigateTo(item.id)}
               disabled={false}
-              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 transition-all duration-300 active:scale-95 cursor-pointer disabled:cursor-default ${
+              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 px-0 min-w-0 h-auto transition-all duration-300 active:scale-95 hover:bg-transparent disabled:cursor-default ${
                 view === item.id
                   ? 'text-primary font-black'
                   : 'text-text-muted hover:text-text-primary'
@@ -59,8 +61,8 @@ export function DashboardNavBar({
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
-            </button>
+              <span className="text-xs font-black uppercase tracking-wider">{item.label}</span>
+            </Button>
           );
 
           if (idx === 1) {

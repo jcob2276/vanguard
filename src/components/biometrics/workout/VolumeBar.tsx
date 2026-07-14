@@ -29,16 +29,16 @@ export default function VolumeBar({ exercises }: VolumeBarProps) {
 
   return (
     <Card variant="glass" className="border border-border-custom">
-      <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted block mb-2">
+      <span className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted block mb-2">
         Objętość sesji
       </span>
       <div className="flex flex-wrap gap-2">
         {entries.map(([tag, v]) => (
           <div key={tag} className="flex items-center gap-1.5">
-            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${tagClass(tag)}`}>
+            <span className={`text-2xs font-black uppercase px-2 py-0.5 rounded-full border ${tagClass(tag)}`}>
               {tag}
             </span>
-            <span className="text-[10px] font-bold text-text-secondary">{Math.round(v).toLocaleString()}kg</span>
+            <span className="text-xs font-bold text-text-secondary">{Math.round(v).toLocaleString()}kg</span>
           </div>
         ))}
       </div>

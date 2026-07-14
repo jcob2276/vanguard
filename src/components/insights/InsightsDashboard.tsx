@@ -16,6 +16,7 @@ import { TrendChart } from '../widgets/TrendChart';
 import { BarChartWidget } from '../widgets/BarChart';
 import { DetailPageLayout } from '../ui/DetailPageLayout';
 import { Card } from '../ui/Card';
+import Button from '../ui/Button';
 import { useUserId } from '../../store/useStore';
 
 import { insightCardsKeys } from '../../lib/queryKeys';
@@ -122,14 +123,14 @@ export function InsightsDashboard() {
 
       {activityTrend && (
         <Card variant="glass" padding="16px">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — trend</p>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — trend</p>
           <TrendChart data={activityTrend} />
         </Card>
       )}
 
       {activityBars && (
         <Card variant="glass" padding="16px">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — 7 dni</p>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — 7 dni</p>
           <BarChartWidget data={activityBars} />
         </Card>
       )}
@@ -138,15 +139,15 @@ export function InsightsDashboard() {
 
       {cards.length > 0 && (
         <div className="space-y-3">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <p className="text-xs font-black uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-tertiary)' }}>
             Insights ({cards.length})
           </p>
           {cards.map(card => (
-            <button
+            <Button
               key={card.id}
-              type="button"
-              className="w-full text-left"
+              variant="ghost"
               onClick={() => setDetailCard(card)}
+              className="w-full min-w-0 p-0 text-left justify-start hover:bg-transparent"
             >
               <InsightCard
                 card={card}
@@ -154,13 +155,13 @@ export function InsightsDashboard() {
                 onSort={handleSort}
                 onDelete={handleDelete}
               />
-            </button>
+            </Button>
           ))}
         </div>
       )}
 
       {!cardsLoading && cards.length === 0 && (
-        <p className="text-center text-[12px] py-4" style={{ color: 'var(--color-text-tertiary)' }}>
+        <p className="text-center text-sm py-4" style={{ color: 'var(--color-text-tertiary)' }}>
           Brak insight cards — Oracle wygeneruje je automatycznie.
         </p>
       )}

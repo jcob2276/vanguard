@@ -120,7 +120,7 @@ export default function SearchModal({ onClose }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Szukaj wiedzy, zadań, notatek, projektów..."
-          className="flex-1 bg-transparent text-[14px] text-text-primary outline-none placeholder:text-slate-500 font-semibold"
+          className="flex-1 bg-transparent text-base text-text-primary outline-none placeholder:text-slate-500 font-semibold"
         />
         {loading ? (
           <Spinner size="sm" className="!border-primary/30 !border-t-indigo-400 shrink-0" />
@@ -141,21 +141,21 @@ export default function SearchModal({ onClose }: Props) {
         {!query.trim() && (
           <div className="text-center py-10 text-slate-500">
             <Search className="mx-auto mb-2 text-slate-600" size={24} />
-            <p className="text-[12px] font-semibold">Wpisz frazę, aby rozpocząć globalne wyszukiwanie</p>
-            <p className="text-[10px] text-slate-600 mt-1">Przeszukuje bazę wiedzy (graf), zadania, projekty i notatki</p>
+            <p className="text-sm font-semibold">Wpisz frazę, aby rozpocząć globalne wyszukiwanie</p>
+            <p className="text-xs text-slate-600 mt-1">Przeszukuje bazę wiedzy (graf), zadania, projekty i notatki</p>
           </div>
         )}
 
         {query.trim() && !loading && !hasResults && (
           <div className="text-center py-10 text-slate-500">
-            <p className="text-[12px] font-semibold">Brak wyników dla zapytania "{query}"</p>
+            <p className="text-sm font-semibold">Brak wyników dla zapytania "{query}"</p>
           </div>
         )}
 
         {/* Graph Results */}
         {results.graph.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary px-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary px-1">
               <Sparkles size={12} />
               <span>Baza Wiedzy (Graf)</span>
             </div>
@@ -165,7 +165,7 @@ export default function SearchModal({ onClose }: Props) {
                   key={i}
                   className="p-3 bg-primary/20 hover:bg-primary/30 border border-primary/30 hover:border-primary/40 rounded-xl transition-all"
                 >
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-primary">
+                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
                     <span>{item.source_entity}</span>
                     <span className="text-slate-500 font-medium">→</span>
                     <span className="text-primary px-1.5 py-0.2 rounded bg-primary/30 font-medium">{item.relation}</span>
@@ -173,7 +173,7 @@ export default function SearchModal({ onClose }: Props) {
                     <span>{item.target_entity}</span>
                   </div>
                   {item.fact_text && (
-                    <p className="text-[12px] text-text-secondary mt-1.5 font-medium leading-relaxed">
+                    <p className="text-sm text-text-secondary mt-1.5 font-medium leading-relaxed">
                       {item.fact_text}
                     </p>
                   )}
@@ -186,7 +186,7 @@ export default function SearchModal({ onClose }: Props) {
         {/* Todo Results */}
         {results.todos.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-success px-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-success px-1">
               <CheckCircle2 size={12} />
               <span>Zadania (Todos)</span>
             </div>
@@ -197,13 +197,13 @@ export default function SearchModal({ onClose }: Props) {
                   className="p-3 bg-success/10 hover:bg-success/20 border border-success/20 hover:border-success/30 rounded-xl transition-all"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-bold text-success">{todo.title}</span>
-                    <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-success/30 text-success">
+                    <span className="text-sm font-bold text-success">{todo.title}</span>
+                    <span className="text-2xs uppercase font-black px-1.5 py-0.5 rounded bg-success/30 text-success">
                       {todo.status}
                     </span>
                   </div>
                   {todo.notes && (
-                    <p className="text-[11px] text-text-muted mt-1 font-semibold truncate">
+                    <p className="text-xs text-text-muted mt-1 font-semibold truncate">
                       {todo.notes}
                     </p>
                   )}
@@ -216,7 +216,7 @@ export default function SearchModal({ onClose }: Props) {
         {/* Projects Results */}
         {results.projects.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-warning px-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-warning px-1">
               <Folder size={12} />
               <span>Projekty</span>
             </div>
@@ -227,13 +227,13 @@ export default function SearchModal({ onClose }: Props) {
                   className="p-3 bg-warning/10 hover:bg-warning/20 border border-warning/20 hover:border-warning/30 rounded-xl transition-all"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-bold text-warning">{proj.name}</span>
-                    <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-warning/30 text-warning">
+                    <span className="text-sm font-bold text-warning">{proj.name}</span>
+                    <span className="text-2xs uppercase font-black px-1.5 py-0.5 rounded bg-warning/30 text-warning">
                       {proj.status}
                     </span>
                   </div>
                   {proj.goal && (
-                    <p className="text-[11px] text-text-muted mt-1 font-semibold truncate">
+                    <p className="text-xs text-text-muted mt-1 font-semibold truncate">
                       {proj.goal}
                     </p>
                   )}
@@ -246,7 +246,7 @@ export default function SearchModal({ onClose }: Props) {
         {/* Notes Results */}
         {results.notes.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-info px-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-info px-1">
               <Bookmark size={12} />
               <span>Notatki</span>
             </div>
@@ -256,9 +256,9 @@ export default function SearchModal({ onClose }: Props) {
                   key={note.id}
                   className="p-3 bg-info/10 hover:bg-info/20 border border-info/20 hover:border-info/30 rounded-xl transition-all"
                 >
-                  <span className="text-[12px] font-bold text-info block">{note.title || '(Bez tytułu)'}</span>
+                  <span className="text-sm font-bold text-info block">{note.title || '(Bez tytułu)'}</span>
                   {note.content && (
-                    <p className="text-[11px] text-text-muted mt-1 font-semibold line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-text-muted mt-1 font-semibold line-clamp-2 leading-relaxed">
                       {note.content}
                     </p>
                   )}
@@ -270,7 +270,7 @@ export default function SearchModal({ onClose }: Props) {
       </div>
 
       {/* Footer shortcuts helper */}
-      <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-800 flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-500">
+      <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-800 flex items-center justify-between text-2xs font-bold uppercase tracking-wider text-slate-500">
         <span>ESC, aby zamknąć</span>
         <span>Przeszukiwanie zasilane hybrydowo (FTS + Vector)</span>
       </div>

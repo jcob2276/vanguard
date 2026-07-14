@@ -25,12 +25,12 @@ function YesterdayRecap({
   if (!yesterdayWin) return null;
   return (
     <Card variant="notice" padding="0.875rem" className="space-y-2.5">
-      <p className="text-[8px] font-black uppercase tracking-widest text-warning dark:text-warning">
+      <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning">
         Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
       </p>
       <ul className="space-y-1">
         {(yesterdayWin.daily_win_tasks || []).map((t: Tables<'daily_win_tasks'>) => (
-          <li key={t.id} className="flex items-center gap-2 text-[11px] font-medium">
+          <li key={t.id} className="flex items-center gap-2 text-xs font-medium">
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${t.done ? 'bg-dayC' : 'bg-text-muted/30'}`} />
             <span className={t.done ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
               {t.title}
@@ -38,7 +38,7 @@ function YesterdayRecap({
           </li>
         ))}
       </ul>
-      <p className="text-[10px] text-text-muted leading-relaxed">
+      <p className="text-xs text-text-muted leading-relaxed">
         Dlaczego zrealizowałeś / nie zrealizowałeś te zadania?{' '}
         {yesterdayNoteRequired && (
           <span className="font-bold text-warning dark:text-warning">(wymagane)</span>
@@ -67,14 +67,14 @@ function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) 
   return (
     <Card variant="accent" padding="0.875rem" className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-primary">
+        <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-primary">
           <Sparkles size={12} className="animate-pulse" /> Asystent AI
         </span>
         <button
           type="button"
           onClick={generateQuestions}
           disabled={aiLoading}
-          className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-50 cursor-pointer"
+          className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-2xs font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           {aiLoading ? 'Analizowanie...' : aiQuestions ? '🔄 Zadaj inne pytania' : '❓ Pomoc AI (Zadaj pytania)'}
         </button>
@@ -82,8 +82,8 @@ function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) 
 
       {aiQuestions && (
         <div className="rounded-lg border border-border-custom bg-surface p-3 text-left animate-in fade-in duration-300">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyślenia:</p>
-          <div className="text-[11px] font-semibold text-text-primary leading-relaxed whitespace-pre-line">
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyślenia:</p>
+          <div className="text-xs font-semibold text-text-primary leading-relaxed whitespace-pre-line">
             {aiQuestions}
           </div>
         </div>
@@ -153,10 +153,10 @@ export default function PowerListSetup({
       />
 
       <div>
-        <h3 className="font-display text-[14px] font-black tracking-tight text-text-primary">
+        <h3 className="font-display text-base font-black tracking-tight text-text-primary">
           Zdefiniuj 5 zwycięstw
         </h3>
-        <p className="mt-1 text-[11px] font-medium leading-relaxed text-text-secondary">
+        <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary">
           Wpisz ręcznie lub wybierz z{' '}
           <span className="inline-flex items-center gap-1 font-bold text-primary">
             Zadań <Link2 size={10} />
@@ -192,14 +192,14 @@ export default function PowerListSetup({
                 {slot.todoId ? (
                   <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-3">
                     <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority ?? ''] || 'bg-info'}`} />
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">{slot.task}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{slot.task}</span>
                   </div>
                 ) : (
                   <input
                     placeholder={sphere?.placeholder ?? `Zadanie ${i + 1}`}
                     value={slot.task}
                     onChange={(e) => updateSlot(i, { task: e.target.value })}
-                    className={`min-w-0 flex-1 bg-transparent py-3 text-[13px] font-medium text-text-primary outline-none placeholder:text-text-muted/40 ${sphere ? 'px-2' : 'px-3.5'}`}
+                    className={`min-w-0 flex-1 bg-transparent py-3 text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/40 ${sphere ? 'px-2' : 'px-3.5'}`}
                   />
                 )}
 
@@ -237,14 +237,14 @@ export default function PowerListSetup({
       </div>
 
       {!allFilled && (
-        <p className="text-center text-[10px] font-bold text-text-muted">
+        <p className="text-center text-xs font-bold text-text-muted">
           Wypełnione {filledCount}/5 — uzupełnij wszystkie, żeby zacząć dzień
         </p>
       )}
       <button
         onClick={startNewDay}
         disabled={submitting || !allFilled || (yesterdayNoteRequired && !yesterdayNote.trim())}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
       </button>

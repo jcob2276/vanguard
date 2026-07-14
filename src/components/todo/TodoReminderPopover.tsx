@@ -66,13 +66,13 @@ export default function TodoReminderPopover({
       onClick={(e) => e.stopPropagation()}
       className="absolute z-50 top-full left-0 mt-2 w-[290px] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-3 p-4 animate-in fade-in zoom-in-95 duration-150 origin-top-left"
     >
-      <p className="text-[13px] font-black text-text-primary">Przypomnienia</p>
+      <p className="text-sm font-black text-text-primary">Przypomnienia</p>
 
       <div className="flex items-center gap-4 border-b border-border-custom/40">
         <button
           type="button"
           onClick={() => setTab('datetime')}
-          className={`pb-2 text-[12px] font-bold transition-colors border-b-2 -mb-px ${
+          className={`pb-2 text-sm font-bold transition-colors border-b-2 -mb-px ${
             tab === 'datetime' ? 'text-text-primary border-primary' : 'text-text-muted/50 border-transparent hover:text-text-primary'
           }`}
         >
@@ -81,7 +81,7 @@ export default function TodoReminderPopover({
         <button
           type="button"
           onClick={() => setTab('before')}
-          className={`pb-2 text-[12px] font-bold transition-colors border-b-2 -mb-px ${
+          className={`pb-2 text-sm font-bold transition-colors border-b-2 -mb-px ${
             tab === 'before' ? 'text-text-primary border-primary' : 'text-text-muted/50 border-transparent hover:text-text-primary'
           }`}
         >
@@ -94,25 +94,25 @@ export default function TodoReminderPopover({
           type="datetime-local"
           value={datetimeVal}
           onChange={(e) => setDatetimeVal(e.target.value)}
-          className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/40 [color-scheme:light] dark:[color-scheme:dark]"
+          className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40 [color-scheme:light] dark:[color-scheme:dark]"
         />
       ) : dueTimestamp ? (
         <select
           value={offsetMinutes}
           onChange={(e) => setOffsetMinutes(Number(e.target.value))}
-          className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/40 cursor-pointer"
+          className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40 cursor-pointer"
         >
           {OFFSET_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       ) : (
-        <p className="text-[11.5px] text-text-muted/60 leading-relaxed">
+        <p className="text-xs text-text-muted/60 leading-relaxed">
           Ustaw najpierw termin zadania, aby dodać przypomnienie względem niego.
         </p>
       )}
 
-      <p className="text-[11px] text-text-muted/60 leading-relaxed">
+      <p className="text-xs text-text-muted/60 leading-relaxed">
         Otrzymaj powiadomienie, kiedy nadejdzie czas wykonania zadania.
       </p>
 
@@ -122,7 +122,7 @@ export default function TodoReminderPopover({
           type="button"
           onClick={tab === 'datetime' ? commitDatetime : commitBefore}
           disabled={tab === 'datetime' ? !datetimeVal : !dueTimestamp}
-          className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-[12px] font-black text-white disabled:opacity-30 hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-black text-white disabled:opacity-30 hover:bg-primary/90 transition-colors"
         >
           <Bell size={12} /> Dodaj przypomnienie
         </button>

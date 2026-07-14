@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Button from '../../ui/Button';
 import {
   HOURS,
   PX_PER_HOUR,
@@ -70,46 +71,47 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => {
             const d = addDays(selectedDay, -1);
             setSelectedDay(d);
             setWeekStart(weekMon(d));
           }}
-          className="p-2 rounded-full hover:bg-surface-solid transition-colors"
-        >
-          <ChevronLeft size={18} className="text-text-muted" />
-        </button>
+          icon={<ChevronLeft size={18} className="text-text-muted" />}
+          className="p-2 min-w-0 rounded-full"
+        />
         <div className="text-center flex flex-col items-center">
-          <p className="text-[14px] font-bold text-text-primary">{monthLabel(selectedDay)}</p>
+          <p className="text-base font-bold text-text-primary">{monthLabel(selectedDay)}</p>
           {weather?.daily?.[selectedDay] && (
-            <div className="flex items-center gap-1 mt-0.5 text-[10.5px] font-bold text-text-muted cursor-help" title={WMO_WEATHER_DESC[weather.daily[selectedDay].weatherCode]}>
+            <div className="flex items-center gap-1 mt-0.5 text-xs font-bold text-text-muted cursor-help" title={WMO_WEATHER_DESC[weather.daily[selectedDay].weatherCode]}>
               {getWMOWeatherIcon(weather.daily[selectedDay].weatherCode, 13)}
               <span>{weather.daily[selectedDay].tempMax}°C / {weather.daily[selectedDay].tempMin}°C</span>
             </div>
           )}
           {selectedDay !== today && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => {
                 setSelectedDay(today);
                 setWeekStart(weekMon(today));
               }}
-              className="text-[10px] text-primary font-semibold mt-0.5"
+              className="text-xs text-primary font-semibold mt-0.5 p-0 min-w-0 h-auto rounded-none hover:bg-transparent"
             >
               Wróć do dziś
-            </button>
+            </Button>
           )}
         </div>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => {
             const d = addDays(selectedDay, 1);
             setSelectedDay(d);
             setWeekStart(weekMon(d));
           }}
-          className="p-2 rounded-full hover:bg-surface-solid transition-colors"
-        >
-          <ChevronRight size={18} className="text-text-muted" />
-        </button>
+          icon={<ChevronRight size={18} className="text-text-muted" />}
+          className="p-2 min-w-0 rounded-full"
+        />
       </div>
       {renderAllDayTodos({
         days: [selectedDay],

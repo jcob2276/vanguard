@@ -75,7 +75,7 @@ export default function MedicalRetestPanel({
 
     <div className="space-y-4">
 
-      <p className="text-[11px] text-text-muted leading-relaxed">
+      <p className="text-xs text-text-muted leading-relaxed">
 
         Propozycje z reguł (stary panel, luki, trening). Oracle oceni sens i priorytet z kontekstem
 
@@ -91,7 +91,7 @@ export default function MedicalRetestPanel({
 
       ) : suggestions.length === 0 ? (
 
-        <p className="text-[12px] text-text-muted leading-relaxed">
+        <p className="text-sm text-text-muted leading-relaxed">
 
           Brak automatycznych propozycji — panel może być wystarczająco świeży albo brakuje markerów do reguł.
 
@@ -107,9 +107,9 @@ export default function MedicalRetestPanel({
 
               <div className="flex items-start justify-between gap-2">
 
-                <p className="text-[12px] font-bold text-text-primary leading-snug">{s.title}</p>
+                <p className="text-sm font-bold text-text-primary leading-snug">{s.title}</p>
 
-                <span className="shrink-0 text-[8px] font-black uppercase text-text-muted">
+                <span className="shrink-0 text-2xs font-black uppercase text-text-muted">
 
                   {PRIORITY_LABEL[s.priority]}
 
@@ -117,7 +117,7 @@ export default function MedicalRetestPanel({
 
               </div>
 
-              <p className="text-[10px] text-text-muted mt-1 leading-relaxed">{s.reason}</p>
+              <p className="text-xs text-text-muted mt-1 leading-relaxed">{s.reason}</p>
 
             </Card>
 

@@ -18,7 +18,7 @@ function ManualTimePicker({ logger }: ManualTimePickerProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock size={14} className="text-text-muted" />
-          <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary">Wpisz godziny ręcznie</span>
+          <span className="text-xs font-black uppercase tracking-wider text-text-secondary">Wpisz godziny ręcznie</span>
         </div>
         <input
           type="checkbox"
@@ -36,7 +36,7 @@ function ManualTimePicker({ logger }: ManualTimePickerProps) {
       {logger.manualTime && (
         <div className="grid grid-cols-3 gap-2 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase tracking-widest text-text-muted">Data</label>
+            <label className="text-2xs font-black uppercase tracking-widest text-text-muted">Data</label>
             <input
               type="date"
               value={logger.workoutDate}
@@ -45,7 +45,7 @@ function ManualTimePicker({ logger }: ManualTimePickerProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase tracking-widest text-text-muted">Start</label>
+            <label className="text-2xs font-black uppercase tracking-widest text-text-muted">Start</label>
             <input
               type="time"
               value={logger.startTimeManual}
@@ -54,7 +54,7 @@ function ManualTimePicker({ logger }: ManualTimePickerProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase tracking-widest text-text-muted">Koniec</label>
+            <label className="text-2xs font-black uppercase tracking-widest text-text-muted">Koniec</label>
             <input
               type="time"
               value={logger.endTimeManual}
@@ -89,13 +89,13 @@ export default function WorkoutLogger({
         <h1 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary flex-1 font-display">Zaloguj Trening</h1>
         {logger.timerStart ? (
           <button onClick={() => logger.setTimerStart(null)} className="flex items-center gap-1.5 text-primary hover:text-primary-hover transition-colors cursor-pointer">
-            <span className="text-[11px] font-black tabular-nums">{logger.elapsed}</span>
+            <span className="text-xs font-black tabular-nums">{logger.elapsed}</span>
             <Square size={11} className="fill-current" />
           </button>
         ) : (
           <button onClick={() => logger.setTimerStart(Date.now())} className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors cursor-pointer">
             <Play size={13} className="fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Start</span>
+            <span className="text-xs font-black uppercase tracking-widest">Start</span>
           </button>
         )}
       </header>
@@ -113,38 +113,38 @@ export default function WorkoutLogger({
         )}
 
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Nazwa (opcjonalnie)</label>
+          <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Nazwa (opcjonalnie)</label>
           <input type="text" value={logger.workoutName} onChange={e => logger.setWorkoutName(e.target.value)}
             placeholder="np. Push, Nogi, Plecy/Bicep..."
-            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all placeholder:text-text-muted/40" />
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-focus transition-all placeholder:text-text-muted/40" />
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Dumbbell size={12} className="text-text-muted" />
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
+            <span className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">Ćwiczenia</span>
           </div>
           {logger.exercises.map(ex => (
             <ExerciseCard key={ex.id} exercise={ex} onChange={logger.updateExercise} onRemove={() => logger.removeExercise(ex.id)} userId={userId} />
           ))}
           <button onClick={logger.addExercise}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-primary/45 p-3.5 text-[10px] font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border-custom bg-surface hover:bg-surface-solid hover:border-primary/45 p-3.5 text-xs font-black uppercase tracking-widest text-text-secondary transition-all cursor-pointer">
             <Plus size={13} /> Dodaj ćwiczenie
           </button>
           <VolumeBar exercises={logger.exercises} />
         </div>
 
         <div className="space-y-2">
-          <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">Notatki</label>
+          <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Notatki</label>
           <textarea value={logger.notes} onChange={e => logger.setNotes(e.target.value)} placeholder="Jak poszło?..."
-            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.1)] transition-all resize-none placeholder:text-text-muted/40" />
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[100px] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-focus transition-all resize-none placeholder:text-text-muted/40" />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-[9px] font-black uppercase tracking-widest text-text-secondary">RPE sesji</label>
+            <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">RPE sesji</label>
             {logger.sessionRpe && (
-              <button onClick={() => logger.setSessionRpe(null)} className="text-[9px] text-text-muted hover:text-text-secondary transition-colors cursor-pointer">wyczyść</button>
+              <button onClick={() => logger.setSessionRpe(null)} className="text-2xs text-text-muted hover:text-text-secondary transition-colors cursor-pointer">wyczyść</button>
             )}
           </div>
           <div className="grid grid-cols-10 gap-1">
@@ -156,13 +156,13 @@ export default function WorkoutLogger({
               const active = logger.sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-80 hover:opacity-100';
               return (
                 <button key={n} onClick={() => logger.setSessionRpe(logger.sessionRpe === n ? null : n)}
-                  className={`rounded-lg border py-2 text-[11px] font-black transition-all cursor-pointer ${color} ${active}`}>
+                  className={`rounded-lg border py-2 text-xs font-black transition-all cursor-pointer ${color} ${active}`}>
                   {n}
                 </button>
               );
             })}
           </div>
-          <p className="text-[9px] text-text-muted">
+          <p className="text-2xs text-text-muted">
             {logger.sessionRpe ? (logger.sessionRpe <= 4 ? 'Łatwa — dużo rezerwy' : logger.sessionRpe <= 6 ? 'Umiarkowana' : logger.sessionRpe <= 8 ? 'Ciężka — mało rezerwy' : 'Maksymalna — do oporu') : 'Jak ciężka była cała sesja?'}
           </p>
         </div>
@@ -181,8 +181,8 @@ export default function WorkoutLogger({
           if (totalVol === 0) return null;
           return (
             <div className="flex justify-between items-center px-1 max-w-md mx-auto w-full">
-              <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Suma Objętości:</span>
-              <span className="text-[12px] font-black text-primary tracking-wide font-display">{totalVol.toLocaleString()} kg</span>
+              <span className="text-xs font-black uppercase tracking-widest text-text-muted">Suma Objętości:</span>
+              <span className="text-sm font-black text-primary tracking-wide font-display">{totalVol.toLocaleString()} kg</span>
             </div>
           );
         })()}

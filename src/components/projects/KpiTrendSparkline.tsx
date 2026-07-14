@@ -49,7 +49,7 @@ export function KpiTrendSparkline({
   if (points.length < 2 || compact) {
     return (
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-[10px] font-bold text-text-secondary whitespace-nowrap tabular-nums">
+        <span className="text-xs font-bold text-text-secondary whitespace-nowrap tabular-nums">
           {displayValue}
           {target != null ? `/${target}` : ''}
           {unit ? ` ${unit}` : ''}
@@ -101,7 +101,7 @@ export function KpiTrendSparkline({
           />
         )}
       </svg>
-      <span className="text-[10px] font-bold text-text-secondary whitespace-nowrap tabular-nums">
+      <span className="text-xs font-bold text-text-secondary whitespace-nowrap tabular-nums">
         {latest}
         {unit ? ` ${unit}` : ''}
       </span>

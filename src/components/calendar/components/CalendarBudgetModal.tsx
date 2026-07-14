@@ -55,10 +55,10 @@ export default function CalendarBudgetModal() {
 
           return (
             <div key={sphere.id} className="space-y-1.5 border-none p-0">
-              <span className="text-[11px] font-bold text-text-primary block">{sphere.label}</span>
+              <span className="text-xs font-bold text-text-primary block">{sphere.label}</span>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">
+                  <span className="text-2xs font-black uppercase tracking-widest text-text-muted">
                     Min (godzin/tyg)
                   </span>
                   <input
@@ -69,11 +69,11 @@ export default function CalendarBudgetModal() {
                     onChange={(e) =>
                       setBudgetMinInputs({ ...budgetMinInputs, [sphere.id]: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border-custom bg-surface px-3 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/40"
+                    className="w-full rounded-xl border border-border-custom bg-surface px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40"
                   />
                 </div>
                 <div className="flex flex-col space-y-1">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">
+                  <span className="text-2xs font-black uppercase tracking-widest text-text-muted">
                     Max (godzin/tyg)
                   </span>
                   <input
@@ -84,7 +84,7 @@ export default function CalendarBudgetModal() {
                     onChange={(e) =>
                       setBudgetMaxInputs({ ...budgetMaxInputs, [sphere.id]: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border-custom bg-surface px-3 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/40"
+                    className="w-full rounded-xl border border-border-custom bg-surface px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40"
                   />
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function CalendarBudgetModal() {
       <Button
         variant="primary"
         onClick={handleSaveAll}
-        className="w-full py-3 text-[12px] uppercase"
+        className="w-full py-3 text-sm uppercase"
       >
         Zapisz Budżety
       </Button>

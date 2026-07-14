@@ -104,8 +104,8 @@ export default function TaskAnalyticsCard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-black text-text-muted uppercase tracking-widest">Zadania · ostatnie 7 dni</p>
-          <p className="text-[16px] font-black text-text-primary mt-0.5">Czas pracy</p>
+          <p className="text-xs font-black text-text-muted uppercase tracking-widest">Zadania · ostatnie 7 dni</p>
+          <p className="text-lg font-black text-text-primary mt-0.5">Czas pracy</p>
         </div>
         <Badge variant="tag" color={streak > 0 ? '#f97316' : undefined} className="px-3 py-1.5">
           🔥 {streak} dni
@@ -117,15 +117,15 @@ export default function TaskAnalyticsCard() {
         <div className="rounded-xl bg-primary/8 px-3 py-2.5 flex items-center gap-2">
           <CheckCircle2 size={14} className="text-primary shrink-0" />
           <div>
-            <p className="text-[18px] font-black text-text-primary leading-none">{totalCount}</p>
-            <p className="text-[9px] text-text-muted font-semibold">wykonanych</p>
+            <p className="text-lg font-black text-text-primary leading-none">{totalCount}</p>
+            <p className="text-2xs text-text-muted font-semibold">wykonanych</p>
           </div>
         </div>
         <div className="rounded-xl bg-warning/8 px-3 py-2.5 flex items-center gap-2">
           <Clock size={14} className="text-warning shrink-0" />
           <div>
-            <p className="text-[18px] font-black text-text-primary leading-none">{totalHours}h</p>
-            <p className="text-[9px] text-text-muted font-semibold">zalogowane</p>
+            <p className="text-lg font-black text-text-primary leading-none">{totalHours}h</p>
+            <p className="text-2xs text-text-muted font-semibold">zalogowane</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function TaskAnalyticsCard() {
       ) : (
         <div className="h-[140px] flex flex-col items-center justify-center gap-2">
           <TrendingUp size={24} className="text-text-muted/30" />
-          <p className="text-[12px] text-text-muted/50 font-semibold text-center">
+          <p className="text-sm text-text-muted/50 font-semibold text-center">
             Wykonaj pierwsze zadanie<br />żeby zobaczyć wykres
           </p>
         </div>

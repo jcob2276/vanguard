@@ -14,13 +14,13 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
     <>
       <div className="grid grid-cols-[28px_1fr_1fr_1fr_60px] gap-2 px-0.5">
         <span />
-        <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
+        <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           KG
         </span>
-        <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
+        <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           Pow.
         </span>
-        <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
+        <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           RIR
         </span>
         <span />
@@ -49,7 +49,7 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
             <button
               onClick={() => { haptics.light(); updateSet(set.id, 'msp', !set.msp); }}
               title="Oznacz jako MSP (kluczowy set)"
-              className={`text-[10px] font-black text-center w-5 h-5 rounded-full transition-colors cursor-pointer ${
+              className={`text-xs font-black text-center w-5 h-5 rounded-full transition-colors cursor-pointer ${
                 set.msp ? 'text-warning' : 'text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -70,13 +70,13 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
               <div className="flex gap-1 justify-center">
                 <button
                   onClick={() => adjustValue('kg', -2.5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -
                 </button>
                 <button
                   onClick={() => adjustValue('kg', 2.5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +
                 </button>
@@ -104,13 +104,13 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
               <div className="flex gap-1 justify-center">
                 <button
                   onClick={() => adjustValue('reps', -1, true)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -
                 </button>
                 <button
                   onClick={() => adjustValue('reps', 1, true)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +
                 </button>
@@ -132,13 +132,13 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
               <div className="flex gap-1 justify-center">
                 <button
                   onClick={() => adjustValue('rir', -0.5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -
                 </button>
                 <button
                   onClick={() => adjustValue('rir', 0.5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +
                 </button>

@@ -26,8 +26,8 @@ export function DetailPageLayout({ title, subtitle, onBack, actions, children }:
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[15px] font-bold text-text-primary">{title}</h1>
-          {subtitle && <p className="truncate text-[11px] text-text-tertiary">{subtitle}</p>}
+          <h1 className="truncate text-base font-bold text-text-primary">{title}</h1>
+          {subtitle && <p className="truncate text-xs text-text-tertiary">{subtitle}</p>}
         </div>
         {actions}
       </header>

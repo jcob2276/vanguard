@@ -21,11 +21,11 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
   return (
     <Card className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-black uppercase tracking-widest text-text-muted">Posiłek</p>
+        <p className="text-xs font-black uppercase tracking-widest text-text-muted">Posiłek</p>
         <div className="flex gap-1">
           {([['Dziś', today], ['Wczoraj', yesterday]] as const).map(([label, date]) => (
             <button key={label} type="button" onClick={() => d.setLogDate(date)}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${d.logDate === date ? 'bg-primary text-white' : 'text-text-muted border border-border-custom'}`}>
+              className={`rounded-full px-2 py-0.5 text-xs font-bold ${d.logDate === date ? 'bg-primary text-white' : 'text-text-muted border border-border-custom'}`}>
               {label}
             </button>
           ))}
@@ -33,7 +33,7 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-[10px] font-bold text-text-muted">
+        <div className="flex items-center justify-between text-xs font-bold text-text-muted">
           <span><span className="text-text-primary">{Math.round(d.totals.calories)}</span>{d.totals.targetKcal ? ` / ${d.totals.targetKcal}` : ''} kcal</span>
           {d.totals.targetProtein != null && (
             <span><span className="text-text-primary">{Math.round(d.totals.protein)}</span> / {d.totals.targetProtein} g B</span>
@@ -45,7 +45,7 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
           </div>
         )}
         {(d.qualityPending || d.totals.avgFoodQuality != null || d.totals.foodQualityAnalysis) && (
-          <p className="text-[10px] leading-snug text-text-muted">
+          <p className="text-xs leading-snug text-text-muted">
             {d.qualityPending && !d.totals.foodQualityAnalysis ? <span className="italic">Liczenie jakości…</span> : d.totals.avgFoodQuality != null ? (
               <><span className={`font-black ${d.totals.avgFoodQuality >= 70 ? 'text-success' : d.totals.avgFoodQuality >= 45 ? 'text-warning' : 'text-danger'}`}>Jakość {d.totals.avgFoodQuality}</span>{d.totals.foodQualityAnalysis && <span>{' — '}{d.totals.foodQualityAnalysis.split(/[.!?]/)[0]?.trim()}</span>}</>
             ) : null}
@@ -56,7 +56,7 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
       <div className="flex flex-wrap gap-1">
         {d.MEAL_TYPES.map((m) => (
           <button key={m.id} type="button" onClick={() => d.setMealType(m.id)}
-            className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${d.mealType === m.id ? 'bg-primary/15 text-primary' : 'text-text-muted border border-border-custom/60'}`}>
+            className={`rounded-full px-2.5 py-1 text-2xs font-black uppercase tracking-wider ${d.mealType === m.id ? 'bg-primary/15 text-primary' : 'text-text-muted border border-border-custom/60'}`}>
             {m.label}
           </button>
         ))}
@@ -66,7 +66,7 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
         <input value={d.text} onChange={(e) => { d.setText(e.target.value); if (d.preview) d.setPreview(null); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); d.handleParse(); } }}
           placeholder="np. 2 jajka, twaróg 150g, kawa"
-          className="min-w-0 flex-1 rounded-xl border border-border-custom bg-background/50 px-3 py-2.5 text-[13px] outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
+          className="min-w-0 flex-1 rounded-xl border border-border-custom bg-background/50 px-3 py-2.5 text-sm outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
         <Button onClick={d.handleParse} loading={d.parsing} disabled={!d.text.trim() || d.saving} icon={<Sparkles size={16} />} className="shrink-0" title="Parsuj i zapisz" />
       </div>
 
@@ -77,7 +77,7 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
             const label = f.is_pinned ? `★ ${shortName.length > 18 ? `${shortName.slice(0, 16)}…` : shortName}` : f.name.length > 22 ? `${f.name.slice(0, 20)}…` : f.name;
             return (
               <button key={f.id} type="button" disabled={d.saving} onClick={() => d.handleFavorite(f)}
-                className="rounded-full border px-2.5 py-1 text-[10px] font-semibold disabled:opacity-50 border-primary/35 bg-primary/10 text-primary hover:bg-primary/15 cursor-pointer"
+                className="rounded-full border px-2.5 py-1 text-xs font-semibold disabled:opacity-50 border-primary/35 bg-primary/10 text-primary hover:bg-primary/15 cursor-pointer"
                 title={f.brand ? `${f.name} — ${f.brand}` : f.name}>
                 {label}
               </button>
@@ -88,13 +88,13 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
 
       {d.yesterdayEntries.length > 0 && (
         <div className="space-y-1.5 pt-2.5 border-t border-border-custom/30 mt-1">
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-wider text-text-muted">
             {d.getYesterdayLabel(d.yesterdayEntries[0].date, d.mealType)}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {d.yesterdayEntries.map((entry) => (
               <button key={entry.id} type="button" disabled={d.saving} onClick={() => d.handleLogYesterdayEntry(entry)}
-                className="rounded-full border border-border-custom bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-text-secondary hover:border-primary/30 hover:text-primary disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                className="rounded-full border border-border-custom bg-slate-50 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:border-primary/30 hover:text-primary disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                 title={`Zaloguj ponownie: ${entry.name}`}>
                 <RotateCcw size={10} className="text-text-muted" />
                 <span>{entry.name}</span>
@@ -106,19 +106,19 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
 
       {d.preview && (
         <div className="space-y-2 border-t border-border-custom/50 pt-3">
-          <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Sprawdź przed zapisem</p>
+          <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Sprawdź przed zapisem</p>
           {d.preview.map((item, i) => {
             if (d.removed.has(i)) return null;
             const badge = d.confidenceLabel(item);
             return (
               <div key={i} className="flex items-center gap-2 rounded-xl border border-border-custom/60 px-2.5 py-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold truncate">{item.name}</p>
-                  <p className="text-[10px] text-text-muted">{item.grams}g · {item.calories} kcal · {item.protein}B</p>
-                  {item.assumptions?.length && <p className="text-[9px] text-warning/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>}
+                  <p className="text-sm font-semibold truncate">{item.name}</p>
+                  <p className="text-xs text-text-muted">{item.grams}g · {item.calories} kcal · {item.protein}B</p>
+                  {item.assumptions?.length && <p className="text-2xs text-warning/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>}
                 </div>
-                {badge && <span className={`text-[9px] font-bold uppercase ${badge === 'sprawdź' ? 'text-warning' : 'text-success'}`}>{badge}</span>}
-                <button type="button" onClick={() => d.setRemoved((p) => new Set([...p, i]))} className="text-[10px] text-text-muted hover:text-danger">×</button>
+                {badge && <span className={`text-2xs font-bold uppercase ${badge === 'sprawdź' ? 'text-warning' : 'text-success'}`}>{badge}</span>}
+                <button type="button" onClick={() => d.setRemoved((p) => new Set([...p, i]))} className="text-xs text-text-muted hover:text-danger">×</button>
               </div>
             );
           })}
@@ -130,7 +130,7 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
       )}
 
       {onOpenFullModal && (
-        <Button variant="ghost" size="sm" onClick={onOpenFullModal} className="px-0 py-0 text-[10px] text-primary/80 hover:text-primary hover:bg-transparent">Skaner / wyszukiwarka →</Button>
+        <Button variant="ghost" size="sm" onClick={onOpenFullModal} className="px-0 py-0 text-xs text-primary/80 hover:text-primary hover:bg-transparent">Skaner / wyszukiwarka →</Button>
       )}
     </Card>
   );

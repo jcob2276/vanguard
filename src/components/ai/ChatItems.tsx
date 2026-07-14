@@ -49,7 +49,7 @@ export function TimeDivider({ date }: { date: Date }) {
   return (
     <div className="flex items-center gap-2 my-2">
       <div className="flex-1 h-px" style={{ background: 'rgba(153,161,175,0.15)' }} />
-      <span className="text-[10px] font-medium px-2" style={{ color: 'var(--color-text-tertiary)' }}>
+      <span className="text-xs font-medium px-2" style={{ color: 'var(--color-text-tertiary)' }}>
         {formatTimestamp(date)}
       </span>
       <div className="flex-1 h-px" style={{ background: 'rgba(153,161,175,0.15)' }} />
@@ -68,13 +68,13 @@ export function ThinkingItem({ item }: { item: Extract<ChatItem, { type: 'thinki
       >
         <div className="flex items-center gap-1.5">
           <Brain size={11} style={{ color: 'var(--color-text-tertiary)' }} />
-          <span className="text-[10px] font-medium italic" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span className="text-xs font-medium italic" style={{ color: 'var(--color-text-tertiary)' }}>
             {item.isFinished ? 'Przemyślane' : 'Myślę...'}
           </span>
           {expanded ? <ChevronDown size={10} style={{ color: 'var(--color-text-tertiary)' }} /> : <ChevronRight size={10} style={{ color: 'var(--color-text-tertiary)' }} />}
         </div>
         {expanded && (
-          <p className="mt-1.5 text-[11px] italic leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-1.5 text-xs italic leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
             {item.text}
           </p>
         )}
@@ -94,23 +94,23 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
       >
         <div className="flex items-center gap-1.5">
           <Terminal size={11} style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }} />
-          <span className="text-[10px] font-mono font-medium" style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }}>
+          <span className="text-xs font-mono font-medium" style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }}>
             {item.name}
           </span>
           {item.duration != null && (
-            <span className="text-[9px] ml-1" style={{ color: 'var(--color-text-tertiary)' }}>{item.duration}ms</span>
+            <span className="text-2xs ml-1" style={{ color: 'var(--color-text-tertiary)' }}>{item.duration}ms</span>
           )}
           {expanded ? <ChevronDown size={10} style={{ color: 'var(--color-text-tertiary)' }} /> : <ChevronRight size={10} style={{ color: 'var(--color-text-tertiary)' }} />}
         </div>
         {expanded && (
           <div className="mt-1.5 space-y-1">
             {item.args && (
-              <pre className="text-[10px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-muted)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-muted)' }}>
                 {item.args}
               </pre>
             )}
             {item.result && (
-              <pre className="text-[10px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: item.isError ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.06)', color: item.isError ? 'var(--color-danger)' : 'var(--color-success)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: item.isError ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.06)', color: item.isError ? 'var(--color-danger)' : 'var(--color-success)' }}>
                 {item.result}
               </pre>
             )}
@@ -127,7 +127,7 @@ export function AiMessageItem({ text, reasoning, templateId, cardData }: { text:
       <div className="max-w-[85%] flex flex-col gap-2">
         {reasoning && (
           <div 
-            className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[11px] leading-relaxed border italic"
+            className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs leading-relaxed border italic"
             style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}
           >
             {reasoning}
@@ -135,7 +135,7 @@ export function AiMessageItem({ text, reasoning, templateId, cardData }: { text:
         )}
         {text && (
           <div
-            className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[12px] leading-relaxed border"
+            className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm leading-relaxed border"
             style={{ background: 'var(--surface-solid)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           >
             {text}
@@ -165,7 +165,7 @@ function AiCardRenderer({ templateId, cardData }: { templateId: string; cardData
 export function UserMessageItem({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-[12px] leading-relaxed bg-primary text-white">
+      <div className="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-sm leading-relaxed bg-primary text-white">
         {text}
       </div>
     </div>
@@ -175,7 +175,7 @@ export function UserMessageItem({ text }: { text: string }) {
 export function ErrorItem({ text }: { text: string }) {
   return (
     <div className="flex justify-start">
-      <div className="flex items-start gap-2 max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[12px] leading-relaxed border"
+      <div className="flex items-start gap-2 max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm leading-relaxed border"
         style={{ borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)', color: 'var(--color-danger)' }}>
         <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
         {text}
@@ -192,8 +192,8 @@ export function SystemReminderItem({ text }: { text: string }) {
         className="flex items-center gap-1.5 rounded-full px-3 py-1"
         style={{ background: 'rgba(91,108,255,0.07)', border: '1px solid rgba(91,108,255,0.15)' }}
       >
-        <span className="text-[9px]">💡</span>
-        <p className="text-[10px] font-medium" style={{ color: 'var(--color-primary)' }}>{text}</p>
+        <span className="text-2xs">💡</span>
+        <p className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>{text}</p>
       </div>
     </div>
   );

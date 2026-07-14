@@ -64,14 +64,14 @@ export default function HealthScore({ score, size = 44, showLabel = false }: Hea
         </svg>
         {/* Score label in center */}
         <span
-          className={`relative text-[10px] font-black leading-none ${colors.fill}`}
+          className={`relative text-xs font-black leading-none ${colors.fill}`}
           style={{ fontSize: size < 36 ? 9 : 10 }}
         >
           {score}
         </span>
       </div>
       {showLabel && (
-        <span className={`text-[9px] font-bold uppercase tracking-wider ${colors.text}`}>
+        <span className={`text-2xs font-bold uppercase tracking-wider ${colors.text}`}>
           {colors.label}
         </span>
       )}

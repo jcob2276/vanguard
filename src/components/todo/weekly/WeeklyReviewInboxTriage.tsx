@@ -19,11 +19,11 @@ export default function WeeklyReviewInboxTriage() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
+        <h3 className="text-sm font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
           <Inbox size={15} className="text-primary" />
           Krok 1: Triaż Skrzynki Odbiorczej
         </h3>
-        <p className="text-[10px] text-text-muted mt-0.5">
+        <p className="text-xs text-text-muted mt-0.5">
           Przenieś luźne zadania ze skrzynki do odpowiednich projektów lub zamknij/odpuść te, które nie są już aktualne.
         </p>
       </div>
@@ -40,11 +40,11 @@ export default function WeeklyReviewInboxTriage() {
                 className="p-3 rounded-xl border border-border-custom/50 bg-surface-solid/30 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0 flex-1">
-                  <span className="text-[12px] font-bold text-text-primary block truncate">
+                  <span className="text-sm font-bold text-text-primary block truncate">
                     {item.title}
                   </span>
                   {staged.due_date && (
-                    <span className="text-[9px] text-text-muted font-semibold mt-0.5 block">
+                    <span className="text-2xs text-text-muted font-semibold mt-0.5 block">
                       Termin: {staged.due_date}
                     </span>
                   )}
@@ -52,7 +52,7 @@ export default function WeeklyReviewInboxTriage() {
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {/* Project Selector */}
-                  <div className="relative flex items-center gap-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-[10px] font-semibold text-text-secondary">
+                  <div className="relative flex items-center gap-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-xs font-semibold text-text-secondary">
                     <Folder size={11} className="text-text-muted" />
                     <select
                       value={staged.section_id || ''}

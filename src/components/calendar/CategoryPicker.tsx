@@ -1,4 +1,5 @@
 import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
+import Button from '../ui/Button';
 
 interface CategoryPickerProps {
   selected: string | null;
@@ -8,14 +9,15 @@ interface CategoryPickerProps {
 export default function CategoryPicker({ selected, onSelect }: CategoryPickerProps) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {[{ id: null as string | null, label: 'Brak', dot: 'bg-slate-400', border: 'border-border-custom', bgSoft: 'bg-surface-solid' }, ...LIFE_SPHERES].map((cat) => {
+      {[{ id: null as string | null, label: 'Brak', dot: 'bg-text-muted/40', border: 'border-border-custom', bgSoft: 'bg-surface-solid' }, ...LIFE_SPHERES].map((cat) => {
         const isSelected = selected === cat.id;
         return (
-          <button
+          <Button
             key={cat.id || 'none'}
             type="button"
+            variant="ghost"
             onClick={() => onSelect(cat.id)}
-            className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
+            className={`gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border ${
               isSelected
                 ? cat.id
                   ? `${cat.bgSoft.replace('/8', '/20')} ${cat.border} text-text-primary font-black shadow-sm`
@@ -25,7 +27,7 @@ export default function CategoryPicker({ selected, onSelect }: CategoryPickerPro
           >
             <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
             <span>{cat.label}</span>
-          </button>
+          </Button>
         );
       })}
     </div>

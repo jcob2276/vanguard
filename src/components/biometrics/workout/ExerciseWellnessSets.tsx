@@ -13,10 +13,10 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
     <>
       <div className="grid grid-cols-[20px_1fr_1fr_56px] gap-2 px-0.5">
         <span />
-        <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
+        <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           Min
         </span>
-        <span className="text-[9px] font-black uppercase tracking-widest text-text-muted text-center">
+        <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           °C
         </span>
         <span />
@@ -34,7 +34,7 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
         };
         return (
           <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_56px] gap-1.5 items-center rounded-xl">
-            <span className="text-[10px] font-black text-text-secondary text-center">{idx + 1}</span>
+            <span className="text-xs font-black text-text-secondary text-center">{idx + 1}</span>
             {/* Minuty */}
             <div className="flex flex-col gap-1">
               <input
@@ -49,13 +49,13 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
               <div className="flex gap-1 justify-center">
                 <button
                   onClick={() => adjustWellness('reps', -5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -5
                 </button>
                 <button
                   onClick={() => adjustWellness('reps', 5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +5
                 </button>
@@ -75,13 +75,13 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
               <div className="flex gap-1 justify-center">
                 <button
                   onClick={() => adjustWellness('kg', -5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -5
                 </button>
                 <button
                   onClick={() => adjustWellness('kg', 5)}
-                  className="text-[11px] font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +5
                 </button>

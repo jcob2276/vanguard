@@ -87,7 +87,7 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
     >
       <div className="flex items-center gap-2 mb-1">
         <ScanText size={17} className="text-primary" />
-        <h3 className="text-[15px] font-bold text-text-primary">Skan Tekstu</h3>
+        <h3 className="text-base font-bold text-text-primary">Skan Tekstu</h3>
         <Badge variant="tag" color="var(--color-success)" className="tracking-wider">Beta</Badge>
       </div>
 
@@ -100,18 +100,18 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
               onChange={(e) => setText(e.target.value)}
               rows={6}
               placeholder="Wklej lub wpisz swój tekst"
-              className="w-full resize-none rounded-2xl border border-border-custom/60 bg-surface-solid/40 p-3 text-[13px] font-medium text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/30"
+              className="w-full resize-none rounded-2xl border border-border-custom/60 bg-surface-solid/40 p-3 text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/30"
             />
           </div>
           <div className="rounded-2xl bg-surface-solid/30 border border-border-custom/30 p-3 space-y-1.5">
-            <p className="text-[11px] font-semibold text-text-muted/70">Dodaj tekst z dowolnego miejsca. AI wyodrębni Twoje zadania.</p>
+            <p className="text-xs font-semibold text-text-muted/70">Dodaj tekst z dowolnego miejsca. AI wyodrębni Twoje zadania.</p>
             {['Transkrypcje z notatek ze spotkań', 'Rozbudowane plany projektów', 'Fragmenty tekstu z Twoich e-maili i czatu'].map((hint) => (
-              <p key={hint} className="flex items-center gap-2 text-[11px] text-text-muted/50">
+              <p key={hint} className="flex items-center gap-2 text-xs text-text-muted/50">
                 <span className="h-1 w-1 rounded-full bg-text-muted/40 shrink-0" /> {hint}
               </p>
             ))}
           </div>
-          {error && <p className="text-[11px] font-semibold text-danger">{error}</p>}
+          {error && <p className="text-xs font-semibold text-danger">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button onClick={onClose} variant="ghost" size="sm">Anuluj</Button>
             <Button
@@ -140,12 +140,12 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
                 <div className={`h-4 w-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${t.selected ? 'bg-primary border-primary' : 'border-border-custom'}`}>
                   {t.selected && <Check size={10} className="text-white" strokeWidth={3} />}
                 </div>
-                <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-text-primary">{t.title}</span>
-                {t.due_date && <span className="shrink-0 text-[10px] font-bold text-primary/70">{t.due_date}</span>}
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{t.title}</span>
+                {t.due_date && <span className="shrink-0 text-xs font-bold text-primary/70">{t.due_date}</span>}
               </button>
             ))}
           </div>
-          {error && <p className="text-[11px] font-semibold text-danger">{error}</p>}
+          {error && <p className="text-xs font-semibold text-danger">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button onClick={() => setTasks(null)} variant="ghost" size="sm">Wstecz</Button>
             <Button

@@ -120,11 +120,11 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   return (
     <Card variant="glass" className="w-full flex flex-col gap-8 bg-surface/50 border-border-custom" padding="1.5rem">
       <div className="flex items-center justify-between border-b border-border-custom/40 pb-4">
-        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Agregacja wykresu</span>
+        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Agregacja wykresu</span>
         <div className="flex bg-slate-100 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl p-0.5">
           <button
             onClick={() => setViewMode('daily')}
-            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'daily'
                 ? 'bg-primary text-white shadow-sm font-black'
                 : 'text-text-muted hover:text-text-primary'
@@ -134,7 +134,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
           </button>
           <button
             onClick={() => setViewMode('monthly')}
-            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'monthly'
                 ? 'bg-primary text-white shadow-sm font-black'
                 : 'text-text-muted hover:text-text-primary'
@@ -149,12 +149,12 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={chartDataLeft}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="name" stroke="#888" fontSize={12} />
-              <YAxis domain={['auto', 'auto']} stroke="#888" fontSize={12} />
-              <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
+              <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
+              <YAxis domain={['auto', 'auto']} stroke="var(--text-muted)" fontSize={12} />
+              <Tooltip contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-custom)' }} />
               <Legend />
-              <Line type="monotone" dataKey="Rano - L" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="Rano - L" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
               <Line type="monotone" dataKey="Południe - L" stroke="var(--color-danger)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
               <Line type="monotone" dataKey="Wieczór - L" stroke="var(--color-warning)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
             </LineChart>
@@ -167,12 +167,12 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={chartDataRight}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="name" stroke="#888" fontSize={12} />
-              <YAxis domain={['auto', 'auto']} stroke="#888" fontSize={12} />
-              <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
+              <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
+              <YAxis domain={['auto', 'auto']} stroke="var(--text-muted)" fontSize={12} />
+              <Tooltip contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-custom)' }} />
               <Legend />
-              <Line type="monotone" dataKey="Rano - P" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="Rano - P" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
               <Line type="monotone" dataKey="Południe - P" stroke="var(--color-danger)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
               <Line type="monotone" dataKey="Wieczór - P" stroke="var(--color-warning)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
             </LineChart>

@@ -20,14 +20,14 @@ export default function TodayEventsPanel({ userId, today }: { userId: string; to
   return (
     <div className="hidden lg:flex flex-col w-72 shrink-0 border-l border-border-custom/20 bg-background/60 h-full overflow-hidden">
       <div className="px-4 pt-4 pb-3 border-b border-border-custom/10">
-        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/50">Kalendarz dziś</p>
+        <p className="text-xs font-black uppercase tracking-widest text-text-muted/50">Kalendarz dziś</p>
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
         {loading && (
-          <p className="text-[11px] text-text-muted/40 text-center py-8">Ładuję…</p>
+          <p className="text-xs text-text-muted/40 text-center py-8">Ładuję…</p>
         )}
         {!loading && events.length === 0 && (
-          <p className="text-[11px] text-text-muted/30 text-center py-8 italic">Brak wydarzeń</p>
+          <p className="text-xs text-text-muted/30 text-center py-8 italic">Brak wydarzeń</p>
         )}
         {!loading && events.map((ev) => {
           const active = isActive(ev);
@@ -47,16 +47,16 @@ export default function TodayEventsPanel({ userId, today }: { userId: string; to
             >
               <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${past ? 'opacity-40' : ''}`} />
               <div className="min-w-0 flex-1">
-                <p className={`text-[11px] font-semibold leading-snug ${active ? 'text-primary' : 'text-text-primary'} line-clamp-2`}>
+                <p className={`text-xs font-semibold leading-snug ${active ? 'text-primary' : 'text-text-primary'} line-clamp-2`}>
                   {ev.summary || '—'}
                 </p>
-                <p className="text-[9px] text-text-muted/50 mt-0.5 flex items-center gap-0.5 tabular-nums">
+                <p className="text-2xs text-text-muted/50 mt-0.5 flex items-center gap-0.5 tabular-nums">
                   <Clock size={7} />
                   {fmt(ev.start_time)} – {fmt(ev.end_time)}
                 </p>
               </div>
               {active && (
-                <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[8px] font-black text-primary">TERAZ</span>
+                <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-2xs font-black text-primary">TERAZ</span>
               )}
             </div>
           );

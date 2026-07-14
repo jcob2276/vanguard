@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from 'lucide-react';
+import Button from '../ui/Button';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import NlpHighlightInput from './NlpHighlightInput';
@@ -70,14 +71,14 @@ export default function TodoQuickCapture({
           onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
           onFocus={() => setIsExpanded(true)}
           placeholder="Nazwa zadania"
-          className="w-full bg-transparent text-[13px] font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
+          className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
         />
         <textarea
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           rows={2}
           placeholder="Opis"
-          className="w-full resize-none bg-transparent text-[12px] font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
+          className="w-full resize-none bg-transparent text-sm font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
         />
       </div>
 
@@ -88,7 +89,7 @@ export default function TodoQuickCapture({
           <button
             type="button"
             onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${effectiveDueDate ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${effectiveDueDate ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
           >
             <Calendar size={12} className={effectiveDueDate ? 'text-primary' : 'text-text-muted/60'} />
             <span>{effectiveDueDate ? `${effectiveDueDate}${effectiveScheduledTime ? ` ${effectiveScheduledTime}` : ''}` : 'Termin'}</span>
@@ -125,7 +126,7 @@ export default function TodoQuickCapture({
           </select>
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
           >
             <Flag size={12} className={effectivePriority === 'urgent' ? 'text-danger' : effectivePriority === 'high' ? 'text-warning' : effectivePriority === 'normal' ? 'text-info' : 'text-text-muted/60'} />
             <span>
@@ -139,7 +140,7 @@ export default function TodoQuickCapture({
           <button
             type="button"
             onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${form.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
+            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${form.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
           >
             <Bell size={12} className={form.reminder_at ? 'text-primary' : 'text-text-muted/60'} />
             <span>
@@ -165,7 +166,7 @@ export default function TodoQuickCapture({
             value={form.tagsText}
             onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
             placeholder="Tagi"
-            className="bg-transparent text-[11px] font-semibold text-text-secondary outline-none w-full"
+            className="bg-transparent text-xs font-semibold text-text-secondary outline-none w-full"
           />
         </div>
 
@@ -174,7 +175,7 @@ export default function TodoQuickCapture({
           <button
             type="button"
             onClick={onOpenScanText}
-            className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-all"
           >
             <ScanText size={12} />
             <span>Skan tekstu</span>
@@ -198,7 +199,7 @@ export default function TodoQuickCapture({
           </select>
           <button
             type="button"
-            className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
           >
             <Folder size={13} className="text-text-muted/60" />
             <span>
@@ -210,24 +211,24 @@ export default function TodoQuickCapture({
 
         {/* Right: Cancel & Add buttons */}
         <div className="flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '', scheduled_time: '', reminder_at: '' });
               setIsExpanded(false);
             }}
-            className="todoist-btn-secondary"
           >
             Anuluj
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={addItem}
             disabled={busy || !form.title.trim()}
-            className="todoist-btn-primary"
           >
             Dodaj zadanie
-          </button>
+          </Button>
         </div>
       </div>
     </Card>

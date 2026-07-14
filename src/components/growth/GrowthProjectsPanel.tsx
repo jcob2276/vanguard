@@ -28,13 +28,13 @@ export default function GrowthProjectsPanel({
   if (projects.length === 0 && !sprintGoal) {
     return (
       <section className="rounded-2xl border border-dashed border-border-custom p-4 space-y-2">
-        <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Projekty</p>
-        <p className="text-[12px] text-text-muted leading-relaxed">
+        <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Projekty</p>
+        <p className="text-sm text-text-muted leading-relaxed">
           Brak aktywnego projektu. Skilli bez projektu = deklaracja bez dowodu.
         </p>
         <Link
           to="/projekty"
-          className="inline-block text-[11px] font-black uppercase text-primary hover:underline"
+          className="inline-block text-xs font-black uppercase text-primary hover:underline"
         >
           Otwórz Projekty -&gt;
         </Link>
@@ -45,12 +45,12 @@ export default function GrowthProjectsPanel({
   return (
     <Card variant="glass" padding="1rem" className="space-y-3 h-full">
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-text-muted">
+        <p className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-wider text-text-muted">
           <FolderKanban size={12} /> Projekty &middot; dow&oacute;d
         </p>
         <Link
           to="/projekty"
-          className="text-[9px] font-black uppercase text-primary hover:underline shrink-0"
+          className="text-2xs font-black uppercase text-primary hover:underline shrink-0"
         >
           Wszystkie -&gt;
         </Link>
@@ -58,8 +58,8 @@ export default function GrowthProjectsPanel({
 
       {sprintGoal && (
         <div className="rounded-xl border border-primary/15 bg-primary/[0.04] px-3 py-2">
-          <p className="text-[8px] font-black uppercase text-primary">{sprintLabel ?? 'Sprint'}</p>
-          <p className="text-[11px] font-semibold text-text-primary mt-0.5 line-clamp-2">{sprintGoal}</p>
+          <p className="text-2xs font-black uppercase text-primary">{sprintLabel ?? 'Sprint'}</p>
+          <p className="text-xs font-semibold text-text-primary mt-0.5 line-clamp-2">{sprintGoal}</p>
         </div>
       )}
 
@@ -87,19 +87,19 @@ export default function GrowthProjectsPanel({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     {isFocus && <Target size={11} className="text-primary shrink-0" />}
-                    <p className="text-[12px] font-bold text-text-primary truncate">{p.name}</p>
+                    <p className="text-sm font-bold text-text-primary truncate">{p.name}</p>
                   </div>
                   {p.goal && (
-                    <p className="text-[10px] text-text-muted mt-0.5 line-clamp-2">{p.goal}</p>
+                    <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{p.goal}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {totalCount > 0 ? (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black text-primary">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-2xs font-black text-primary">
                       {doneCount}/{totalCount}{mustCount > 0 ? ` · ${mustCount} MUST` : ''}
                     </span>
                   ) : (
-                    <span className="text-[9px] font-bold text-text-muted">brak planu tygodnia</span>
+                    <span className="text-2xs font-bold text-text-muted">brak planu tygodnia</span>
                   )}
                   {onAddMust && (
                     <Button
@@ -120,9 +120,9 @@ export default function GrowthProjectsPanel({
                     <div key={k.id} className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="text-[10px] font-semibold text-text-secondary truncate">{k.name}</span>
+                          <span className="text-xs font-semibold text-text-secondary truncate">{k.name}</span>
                           {k.current != null && (
-                            <span className="text-[10px] font-black text-primary tabular-nums shrink-0">
+                            <span className="text-xs font-black text-primary tabular-nums shrink-0">
                               {k.current}{k.target != null ? `/${k.target}` : ''}
                             </span>
                           )}
@@ -146,7 +146,7 @@ export default function GrowthProjectsPanel({
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-warning dark:text-warning mt-1.5">Brak KPI</p>
+                <p className="text-xs text-warning dark:text-warning mt-1.5">Brak KPI</p>
               )}
             </div>
           );

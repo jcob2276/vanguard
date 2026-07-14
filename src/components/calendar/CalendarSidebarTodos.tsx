@@ -41,8 +41,8 @@ export default function CalendarSidebarTodos({
   return (
     <div className="space-y-3 pt-4 border-t border-border-custom/40">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
-        <span className="text-[9px] text-text-muted/65 italic font-medium">przeciągnij na kalendarz</span>
+        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Zadania (Inbox)</span>
+        <span className="text-2xs text-text-muted/65 italic font-medium">przeciągnij na kalendarz</span>
       </div>
 
       {/* Quick add task input */}
@@ -53,7 +53,7 @@ export default function CalendarSidebarTodos({
           value={newTodoTitle}
           onChange={(e) => setNewTodoTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAddTodo(); }}
-          className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl pl-3 pr-8 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/30"
+          className="w-full bg-surface-solid border border-border-custom/60 rounded-xl pl-3 pr-8 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/30"
         />
         <Button
           variant="ghost"
@@ -67,7 +67,7 @@ export default function CalendarSidebarTodos({
 
       <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
         {sidebarTodos.length === 0 ? (
-          <p className="text-[11px] text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
+          <p className="text-xs text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
         ) : (
           sidebarTodos.map((todo) => {
             const isCompleted = completedTodoIds.has(todo.id);
@@ -90,11 +90,11 @@ export default function CalendarSidebarTodos({
                 </div>
 
                 <div className="min-w-0 flex-1 py-0.5 space-y-0.5">
-                  <span className="block text-[11.5px] font-bold text-text-primary break-words leading-snug">
+                  <span className="block text-xs font-bold text-text-primary break-words leading-snug">
                     {todo.title}
                   </span>
                   {chip && (
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold leading-none ${PILLAR_CHIP[chip.pillar] || ''}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-2xs font-bold leading-none ${PILLAR_CHIP[chip.pillar] || ''}`}>
                       {GoalIcon && <GoalIcon size={8} />}
                       {chip.dreamTitle && <span className="truncate max-w-[120px]">{chip.dreamTitle}</span>}
                     </span>

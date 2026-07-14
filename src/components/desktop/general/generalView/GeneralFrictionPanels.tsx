@@ -44,10 +44,10 @@ export default function GeneralFrictionPanels({
         <Panel title="Ostatnie tarcia">
           <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
             {friction.slice(-20).reverse().map((f, i) => (
-              <div key={i} className="flex items-start gap-2 text-[10px] py-1 border-b border-border-custom/40 last:border-0">
+              <div key={i} className="flex items-start gap-2 text-xs py-1 border-b border-border-custom/40 last:border-0">
                 <span className="shrink-0 font-mono text-text-muted">{f.occurred_at?.slice(5, 10)}</span>
                 <span
-                  className="font-bold px-1.5 py-0.5 rounded text-[9px] shrink-0"
+                  className="font-bold px-1.5 py-0.5 rounded text-2xs shrink-0"
                   style={{
                     backgroundColor: (frictionColor[f.friction_type ?? 'other'] || 'var(--color-text-muted)') + '22',
                     color: frictionColor[f.friction_type ?? 'other'] || 'var(--color-text-muted)',
@@ -58,7 +58,7 @@ export default function GeneralFrictionPanels({
                 <span className="text-text-secondary truncate">{f.actual_behavior || f.immediate_cost || '–'}</span>
               </div>
             ))}
-            {friction.length === 0 && <p className="text-text-muted text-[10px] py-2">Brak danych</p>}
+            {friction.length === 0 && <p className="text-text-muted text-xs py-2">Brak danych</p>}
           </div>
         </Panel>
       </div>

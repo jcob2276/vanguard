@@ -19,7 +19,7 @@ export default function Badge({ count, variant = 'count', color, className = '',
   if (variant === 'tag') {
     return (
       <span
-        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
           color ? '' : 'bg-primary/10 text-primary'
         } ${className}`}
         style={color ? { backgroundColor: `${color}20`, color } : undefined}
@@ -34,7 +34,7 @@ export default function Badge({ count, variant = 'count', color, className = '',
 
   return (
     <span
-      className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full px-1 text-[10px] font-black ${
+      className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full px-1 text-xs font-black ${
         color ? '' : 'bg-primary text-white'
       } ${className}`}
       style={color ? { backgroundColor: color, color: '#fff' } : undefined}

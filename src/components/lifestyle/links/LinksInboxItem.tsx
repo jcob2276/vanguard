@@ -58,14 +58,14 @@ export function LinksInboxItem({
               onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
             />
             <div className="min-w-0 flex-1">
-              <h3 className={`text-[14px] font-semibold truncate leading-tight ${
+              <h3 className={`text-base font-semibold truncate leading-tight ${
                 link.status === 'read' ? 'text-text-secondary line-through' : 'text-text-primary'
               }`}>
                 {link.title}
               </h3>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-[10px] text-text-muted">{link.domain}</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[8.5px] font-bold ${catStyle.pill}`}>
+                <span className="text-xs text-text-muted">{link.domain}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-2xs font-bold ${catStyle.pill}`}>
                   {link.category}
                 </span>
               </div>
@@ -131,30 +131,30 @@ export function LinksInboxItem({
                     className="w-3.5 h-3.5 rounded-sm object-contain"
                     onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
                   />
-                  <span className="text-[11px] text-text-muted">{link.channel_name || link.domain || 'link'}</span>
+                  <span className="text-xs text-text-muted">{link.channel_name || link.domain || 'link'}</span>
                 </div>
                 <span
                   onClick={(e) => {
                     e.stopPropagation();
                     d.setCategoryFilter((p: string | null) => p === link.category ? null : link.category);
                   }}
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold cursor-pointer hover:opacity-80 active:scale-95 transition-all ${catStyle.pill}`}
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold cursor-pointer hover:opacity-80 active:scale-95 transition-all ${catStyle.pill}`}
                 >
                   {link.category}
                 </span>
                 {(link.notes || d.notesDrafts[link.id]) && (
-                  <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
+                  <span className="flex items-center gap-1 text-xs text-text-muted/60">
                     <PenLine size={9} />
                   </span>
                 )}
               </div>
-              <h3 className={`text-[15px] font-semibold leading-snug tracking-tight ${
+              <h3 className={`text-base font-semibold leading-snug tracking-tight ${
                 link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
               }`}>
                 {link.title}
               </h3>
               {link.description && (
-                <p className="mt-1 text-[12.5px] text-text-muted leading-relaxed line-clamp-2">
+                <p className="mt-1 text-sm text-text-muted leading-relaxed line-clamp-2">
                   {link.description}
                 </p>
               )}
@@ -191,11 +191,11 @@ export function LinksInboxItem({
             )}
             {link.takeaways && link.takeaways.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kluczowe wnioski</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Kluczowe wnioski</p>
                 <ul className="space-y-2">
                   {link.takeaways.map((t: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-text-primary">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">{i + 1}</span>
+                    <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-text-primary">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xs font-bold text-primary">{i + 1}</span>
                       {t}
                     </li>
                   ))}
@@ -211,7 +211,7 @@ export function LinksInboxItem({
                 type="button"
                 disabled={d.convertingLinkId === link.id}
                 onClick={() => d.handleLinkToTodo(link)}
-                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-semibold transition-all disabled:opacity-50"
+                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-50"
                 icon={d.convertingLinkId === link.id ? <Spinner size="sm" className="h-3 w-3" /> : <ListTodo size={12} />}
               >
                 Zrób zadanie
@@ -222,7 +222,7 @@ export function LinksInboxItem({
                 type="button"
                 disabled={d.convertingLinkId === link.id}
                 onClick={() => d.handleLinkToNote(link)}
-                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-semibold transition-all disabled:opacity-50"
+                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-50"
                 icon={<StickyNote size={12} />}
               >
                 Do notatek
@@ -231,7 +231,7 @@ export function LinksInboxItem({
 
             {/* Kategoria */}
             <div className="border-t border-border-custom/40 pt-3 space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Kategoria</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Kategoria</p>
               <div className="flex flex-wrap gap-1.5">
                 {CATEGORIES.map((cat: string) => {
                   const isActive = link.category === cat;
@@ -240,7 +240,7 @@ export function LinksInboxItem({
                     <button
                       key={cat}
                       onClick={() => d.updateLinkCategory(link.id, cat)}
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border transition-all ${
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${
                         isActive
                           ? `${cStyle.pill} border-current ring-1 ring-current`
                           : 'border-border-custom bg-surface-solid text-text-muted hover:text-text-primary'
@@ -256,11 +256,11 @@ export function LinksInboxItem({
             {/* Przemyślenia */}
             <div className="border-t border-border-custom/40 pt-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">
                   <PenLine size={10} /> Przemyślenia
                 </p>
                 {d.savedNoteId === link.id && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-success">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-success">
                     <Check size={10} /> Zapisano
                   </span>
                 )}
@@ -283,7 +283,7 @@ export function LinksInboxItem({
                 }}
                 placeholder="Co myślisz o tym materiale? Zapisz refleksje, pytania, co chcesz wdrożyć…"
                 rows={3}
-                className="w-full resize-none bg-transparent text-[13px] leading-relaxed text-text-primary outline-none placeholder:text-text-muted/35"
+                className="w-full resize-none bg-transparent text-sm leading-relaxed text-text-primary outline-none placeholder:text-text-muted/35"
               />
             </div>
           </div>

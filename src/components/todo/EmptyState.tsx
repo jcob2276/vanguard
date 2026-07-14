@@ -29,8 +29,8 @@ export default function EmptyState({
         isDragOver ? activeClass : inactiveClass
       }`}
     >
-      <span className="block text-[14px] mb-1">{icon}</span>
-      <span className="text-[11px] font-bold tracking-wide">{label}</span>
+      <span className="block text-base mb-1">{icon}</span>
+      <span className="text-xs font-bold tracking-wide">{label}</span>
     </div>
   );
 }

@@ -99,8 +99,8 @@ export default function GeneralView({
           <BarChart2 size={18} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-black uppercase tracking-wider text-primary">Korelacje</p>
-          <p className="text-[10px] text-text-muted mt-0.5">
+          <p className="text-xs font-black uppercase tracking-wider text-primary">Korelacje</p>
+          <p className="text-xs text-text-muted mt-0.5">
             Skan odkrywczy z logów — sen, deep/REM, kawa, trening, nawyki (Lenie)…
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function GeneralView({
       {/* ── SEKCJA: ZDROWIE ── */}
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-border-custom" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Zdrowie — 90 dni</span>
+        <span className="text-xs font-black uppercase tracking-widest text-text-muted">Zdrowie — 90 dni</span>
         <div className="h-px flex-1 bg-border-custom" />
       </div>
 
@@ -128,7 +128,7 @@ export default function GeneralView({
       {/* ── SEKCJA: TARCIA ── */}
       <div className="flex items-center gap-3 mt-2">
         <div className="h-px flex-1 bg-border-custom" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+        <span className="text-xs font-black uppercase tracking-widest text-text-muted">
           Tarcia — 90 dni ({friction.length} zdarzeń)
         </span>
         <div className="h-px flex-1 bg-border-custom" />
@@ -144,7 +144,7 @@ export default function GeneralView({
       {/* ── SEKCJA: MEMEX ── */}
       <div id="pamiec" className="scroll-mt-28 flex items-center gap-3 mt-2">
         <div className="h-px flex-1 bg-border-custom" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+        <span className="text-xs font-black uppercase tracking-widest text-text-muted">
           Memex — Pamięć systemu
         </span>
         <div className="h-px flex-1 bg-border-custom" />
@@ -160,7 +160,7 @@ export default function GeneralView({
       {/* ── SEKCJA: ZALECENIA WYROCZNI ── */}
       <div className="flex items-center gap-3 mt-2">
         <div className="h-px flex-1 bg-border-custom" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+        <span className="text-xs font-black uppercase tracking-widest text-text-muted">
           Zalecenia Wyroczni
         </span>
         <div className="h-px flex-1 bg-border-custom" />

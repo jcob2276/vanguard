@@ -733,7 +733,7 @@ export default function RichEditor({
       )}
       {/* CSS Placeholder fallback */}
       {(!value || value === '<br>' || value === '') && (
-        <span className="absolute left-0 top-0 pointer-events-none text-text-muted opacity-50 text-[13px] select-none">
+        <span className="absolute left-0 top-0 pointer-events-none text-text-muted opacity-50 text-sm select-none">
           {placeholder}
         </span>
       )}

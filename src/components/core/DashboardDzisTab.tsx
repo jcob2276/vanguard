@@ -39,10 +39,10 @@ export function DashboardDzisTab() {
   const weeklyReviewNudge = new Date().getDay() === 0 && !s.taskReviewDoneThisWeek && (
     <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <h4 className="text-[12px] font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
-        <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
+        <h4 className="text-sm font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+        <p className="text-xs text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
       </div>
-      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm">
+      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-black transition-colors btn-press shadow-sm">
         Rozpocznij
       </button>
     </div>

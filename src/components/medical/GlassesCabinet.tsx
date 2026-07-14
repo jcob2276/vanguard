@@ -95,7 +95,7 @@ export default function GlassesCabinet() {
             {prescriptions.filter(p => p.status === 'past').map(p => (
               <Card key={p.id} variant="outline" padding="1rem" className="flex flex-col sm:flex-row sm:items-center justify-between">
                 <div>
-                  <span className={`text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full ${p.type === 'normalized' ? 'bg-info/20 text-info' : 'bg-success/20 text-success'}`}>
+                  <span className={`text-xs uppercase font-black tracking-wider px-2 py-0.5 rounded-full ${p.type === 'normalized' ? 'bg-info/20 text-info' : 'bg-success/20 text-success'}`}>
                     {p.type}
                   </span>
                   <div className="text-xs text-text-secondary mt-2 flex gap-4">

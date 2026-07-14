@@ -37,14 +37,14 @@ export default function NutritionMealGroupCard({
       {/* Meal group header with subtotals and quick add button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[16px] leading-none shrink-0" role="img" aria-label={group.label}>
+          <span className="text-lg leading-none shrink-0" role="img" aria-label={group.label}>
             {MEAL_ICON[mealKey] || '🍽️'}
           </span>
-          <span className="text-[13px] font-black uppercase tracking-wider text-text-primary">{group.label}</span>
+          <span className="text-sm font-black uppercase tracking-wider text-text-primary">{group.label}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {hasEntries && (
-            <div className="flex items-center gap-1 text-[10px] font-bold text-text-muted">
+            <div className="flex items-center gap-1 text-xs font-bold text-text-muted">
               <span className="rounded bg-surface-solid border border-border-custom/40 px-1.5 py-0.5 text-text-primary">{group.totalKcal} kcal</span>
               <span>·</span>
               <span className="text-primary">{group.totalProtein}B</span>
@@ -76,28 +76,28 @@ export default function NutritionMealGroupCard({
                 className="flex-1 min-w-0 text-left cursor-pointer"
               >
                 <div className="flex items-baseline gap-1.5">
-                  <p className="text-[12px] font-black text-text-primary truncate">{e.name}</p>
-                  {e.amount && <span className="text-[9px] text-text-muted shrink-0">{e.amount}</span>}
+                  <p className="text-sm font-black text-text-primary truncate">{e.name}</p>
+                  {e.amount && <span className="text-2xs text-text-muted shrink-0">{e.amount}</span>}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {e.protein != null && e.protein > 0.05 && (
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[8px] font-black text-primary">
+                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-black text-primary">
                       {Math.round(e.protein * 10) / 10}B
                     </span>
                   )}
                   {e.carbs != null && e.carbs > 0.05 && (
-                    <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[8px] font-black text-warning">
+                    <span className="rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-black text-warning">
                       {Math.round(e.carbs * 10) / 10}W
                     </span>
                   )}
                   {e.fat != null && e.fat > 0.05 && (
-                    <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[8px] font-black text-danger">
+                    <span className="rounded bg-danger/10 px-1.5 py-0.5 text-2xs font-black text-danger">
                       {Math.round(e.fat * 10) / 10}T
                     </span>
                   )}
                 </div>
               </button>
-              <span className="shrink-0 text-[11px] font-black text-text-secondary bg-surface-solid/60 px-2 py-0.5 rounded-lg border border-border-custom/30">
+              <span className="shrink-0 text-xs font-black text-text-secondary bg-surface-solid/60 px-2 py-0.5 rounded-lg border border-border-custom/30">
                 {e.calories ?? '?'} kcal
               </span>
               <Button
@@ -119,7 +119,7 @@ export default function NutritionMealGroupCard({
           className="border border-dashed border-border-custom/70 hover:border-primary/40 rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer transition-all hover:bg-primary/[0.02] group/slot py-3.5"
         >
           <Plus size={13} className="text-text-muted group-hover/slot:text-primary transition-colors" />
-          <span className="text-[10px] font-black uppercase tracking-wider text-text-muted group-hover/slot:text-primary transition-colors">
+          <span className="text-xs font-black uppercase tracking-wider text-text-muted group-hover/slot:text-primary transition-colors">
             Dodaj do posiłku
           </span>
         </div>

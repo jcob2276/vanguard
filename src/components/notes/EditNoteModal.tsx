@@ -327,7 +327,7 @@ export default function EditNoteModal({
               </div>
             )}
 
-            <div className="flex items-center justify-between px-5 py-2.5 border-t border-border-custom/20 text-[10px] text-text-muted/50 mt-auto bg-surface-solid/5 select-none" style={{ borderColor: c.border }}>
+            <div className="flex items-center justify-between px-5 py-2.5 border-t border-border-custom/20 text-xs text-text-muted/50 mt-auto bg-surface-solid/5 select-none" style={{ borderColor: c.border }}>
               <span>{wordCount} slow / {charCount} znakow</span>
               {uncheckedCount > 0 && <span className="font-semibold text-primary">{uncheckedCount} otwartych podpunktow</span>}
             </div>

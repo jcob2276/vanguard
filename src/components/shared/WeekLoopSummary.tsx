@@ -36,16 +36,16 @@ export default function WeekLoopSummary({
 
   return (
     <Card className={compact ? 'space-y-2' : 'space-y-3'} padding={compact ? '0.875rem' : '1.25rem'}>
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Pętla tygodnia</p>
+      <p className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Pętla tygodnia</p>
 
       {longTermBridge && (
-        <p className={`text-text-secondary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+        <p className={`text-text-secondary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>
           {longTermBridge}
         </p>
       )}
 
       {ctx.monthTheme && (
-        <p className={`text-text-secondary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+        <p className={`text-text-secondary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>
           <span className="font-black uppercase tracking-wider text-primary">
             Temat miesiąca{ctx.monthLabel ? ` · ${ctx.monthLabel}` : ''}:{' '}
           </span>
@@ -54,21 +54,21 @@ export default function WeekLoopSummary({
       )}
 
       {sprintBridge && (
-        <p className={`font-semibold text-text-primary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+        <p className={`font-semibold text-text-primary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>
           {sprintBridge}
         </p>
       )}
       {intention ? (
         <div className="space-y-1">
-          <p className={`font-bold text-text-primary leading-snug ${compact ? 'text-[12px]' : 'text-[13px]'}`}>{intention}</p>
+          <p className={`font-bold text-text-primary leading-snug ${compact ? 'text-sm' : 'text-sm'}`}>{intention}</p>
           {ctx.weekGoalsMeta?.source === 'fallback' && (
-            <p className="text-[10px] font-semibold text-warning">
+            <p className="text-xs font-semibold text-warning">
               Plan z poprzedniego tygodnia — uzupełnij w niedzielnym przeglądzie.
             </p>
           )}
         </div>
       ) : (
-        <p className="text-[11px] text-text-muted">
+        <p className="text-xs text-text-muted">
           Brak intencji —{' '}
           <Link to="/?view=tydzien" className="text-primary font-bold hover:underline">
             uzupełnij w Tydzień
@@ -103,7 +103,7 @@ export default function WeekLoopSummary({
       </div>
 
       {ctx.focus.skillLabel && (
-        <p className="text-[10px] text-text-secondary">
+        <p className="text-xs text-text-secondary">
           <span className="font-black text-text-muted">Focus: </span>
           {ctx.focus.skillLabel}
           {ctx.focus.subskillLabel ? ` → ${ctx.focus.subskillLabel}` : ''}
@@ -135,20 +135,20 @@ function MiniStat({
 }) {
   return (
     <div className="rounded-xl border border-border-custom bg-background/50 px-2.5 py-2 min-w-0">
-      <p className="flex items-center gap-1 text-[7px] font-black uppercase text-text-muted truncate">
+      <p className="flex items-center gap-1 text-3xs font-black uppercase text-text-muted truncate">
         {icon} {label}
       </p>
-      <p className="text-[11px] font-black text-text-primary mt-0.5 truncate" title={value}>
+      <p className="text-xs font-black text-text-primary mt-0.5 truncate" title={value}>
         {value}
       </p>
-      {sub && <p className="text-[8px] text-text-muted truncate">{sub}</p>}
+      {sub && <p className="text-2xs text-text-muted truncate">{sub}</p>}
     </div>
   );
 }
 
 function PillarChip({ label, text, cls }: { label: string; text: string; cls: string }) {
   return (
-    <span className="text-[9px] text-text-secondary max-w-full">
+    <span className="text-2xs text-text-secondary max-w-full">
       <span className={`font-black ${cls}`}>{label}: </span>
       {text}
     </span>

@@ -45,7 +45,7 @@ export default function CalendarBudgetPanel({
 
     return (
       <div key={cat.key} className="p-2.5 bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl flex flex-col justify-between hover:bg-surface-solid/10 dark:hover:bg-white/[0.025] transition-all">
-        <div className="flex items-center justify-between text-[11px] font-bold">
+        <div className="flex items-center justify-between text-xs font-bold">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cat.dot}`} />
             <span className="text-text-primary truncate">{cat.label}</span>
@@ -53,7 +53,7 @@ export default function CalendarBudgetPanel({
           <span className="text-text-primary tabular-nums shrink-0 font-extrabold">{formatHours(spent)}</span>
         </div>
 
-        <div className="flex items-center justify-between text-[9.5px] font-medium mt-0.5">
+        <div className="flex items-center justify-between text-2xs font-medium mt-0.5">
           <span className="text-text-muted">
             {minVal || maxVal ? statusText : 'Brak limitu'}
           </span>
@@ -85,9 +85,9 @@ export default function CalendarBudgetPanel({
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Budżety czasu (Tydzień)</span>
+        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Budżety czasu (Tydzień)</span>
         {onConfigure && (
-          <Button variant="ghost" size="sm" onClick={onConfigure} className="text-[10px] font-black hover:underline">
+          <Button variant="ghost" size="sm" onClick={onConfigure} className="text-xs font-black hover:underline">
             Konfiguruj
           </Button>
         )}

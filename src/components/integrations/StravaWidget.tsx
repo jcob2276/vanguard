@@ -61,10 +61,10 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
     <Card padding="1rem">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">
             {fmtDate(activity.start_date)}
           </p>
-          <h3 className="mt-1 truncate text-[13px] font-black uppercase tracking-tight text-text-primary font-display">
+          <h3 className="mt-1 truncate text-sm font-black uppercase tracking-tight text-text-primary font-display">
             {activity.name || 'Run'}
           </h3>
         </div>
@@ -76,20 +76,20 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
           <Route size={11} className="mb-1 text-primary/70" />
-          <p className="text-[11px] font-black text-text-primary">{distance} km</p>
+          <p className="text-xs font-black text-text-primary">{distance} km</p>
         </div>
         <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
           <Activity size={11} className="mb-1 text-warning/80" />
-          <p className="text-[11px] font-black text-text-primary">{fmtPace(activity.pace_sec_per_km)}</p>
+          <p className="text-xs font-black text-text-primary">{fmtPace(activity.pace_sec_per_km)}</p>
         </div>
         <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
           <Clock size={11} className="mb-1 text-text-muted" />
-          <p className="text-[11px] font-black text-text-primary">{fmtTime(activity.moving_time)}</p>
+          <p className="text-xs font-black text-text-primary">{fmtTime(activity.moving_time)}</p>
         </div>
       </div>
 
       {(hrAvg || activity.perceived_exertion || activity.total_elevation_gain != null) && (
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-text-muted">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-2xs font-bold uppercase tracking-widest text-text-muted">
           {hrAvg && (
             <span className="inline-flex items-center gap-1 text-danger/80">
               <HeartPulse size={10} /> {hrAvg} bpm
@@ -156,8 +156,8 @@ export default function StravaWidget({ session }: { session: Session }) {
     <section className="space-y-3">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-warning font-display">Bieganie</p>
-          <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Ostatnie 3 biegi</h2>
+          <p className="text-2xs font-black uppercase tracking-[0.22em] text-warning font-display">Bieganie</p>
+          <h2 className="mt-1 text-lg font-black uppercase tracking-tight text-text-primary font-display">Ostatnie 3 biegi</h2>
         </div>
         <button
           onClick={handleSync}
@@ -170,7 +170,7 @@ export default function StravaWidget({ session }: { session: Session }) {
       </header>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-[10px] font-bold text-danger dark:text-danger">
+        <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-xs font-bold text-danger dark:text-danger">
           <AlertTriangle size={12} />
           {error}
         </div>
@@ -182,7 +182,7 @@ export default function StravaWidget({ session }: { session: Session }) {
         </Card>
       ) : activities.length === 0 ? (
         <Card className="text-center" padding="1.25rem">
-          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Brak biegów w feedzie</p>
+          <p className="text-xs font-black uppercase tracking-widest text-text-muted">Brak biegów w feedzie</p>
         </Card>
       ) : (
         <div className="space-y-2">

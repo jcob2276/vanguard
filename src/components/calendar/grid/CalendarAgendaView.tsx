@@ -51,11 +51,11 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
         return (
           <div key={day} className="px-4 pt-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className={`text-[11px] font-black ${day === today ? 'text-primary' : 'text-text-muted'}`}>
+              <span className={`text-xs font-black ${day === today ? 'text-primary' : 'text-text-muted'}`}>
                 {day === today ? 'Dziś' : dayLabel(day)}
               </span>
               {dayEv.length === 0 && dayTodos.length === 0 && (
-                <span className="text-[9px] text-text-muted/40">brak wydarzeń</span>
+                <span className="text-2xs text-text-muted/40">brak wydarzeń</span>
               )}
             </div>
             <div className="space-y-1.5">
@@ -67,9 +67,9 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                 >
                   <div className={`w-2 h-2 rounded-full shrink-0 ${eventColor(ev).split(' ')[0].replace('bg-', 'bg-')}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-semibold text-text-primary line-clamp-1">{ev.summary}</p>
+                    <p className="text-sm font-semibold text-text-primary line-clamp-1">{ev.summary}</p>
                     {ev.start_time && (
-                      <p className="text-[9px] text-text-muted mt-0.5">
+                      <p className="text-2xs text-text-muted mt-0.5">
                         {formatTime(ev.start_time)}{ev.end_time ? ` – ${formatTime(ev.end_time)}` : ''}
                       </p>
                     )}
@@ -97,8 +97,8 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                       {isCompleting && <Check size={10} className="text-white" strokeWidth={3} />}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-[12px] font-semibold text-text-primary line-clamp-1 ${isCompleting ? 'line-through' : ''}`}>{todo.title}</p>
-                      <p className="text-[9px] text-text-muted mt-0.5">
+                      <p className={`text-sm font-semibold text-text-primary line-clamp-1 ${isCompleting ? 'line-through' : ''}`}>{todo.title}</p>
+                      <p className="text-2xs text-text-muted mt-0.5">
                         {todo.scheduled_time ? formatTime(todo.scheduled_time) : 'Cały dzień'}
                         {chip?.dreamTitle && <span className="opacity-70"> · {chip.dreamTitle}</span>}
                       </p>
@@ -116,14 +116,14 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
         <div className="flex flex-col items-center justify-center h-48 gap-3">
           <Calendar size={32} className="text-text-muted/30" />
           <div className="text-center">
-            <p className="text-[13px] font-bold text-text-muted">Brak wydarzeń</p>
-            <p className="text-[11px] text-text-muted/60 mt-1">Zsynchronizuj Google Calendar</p>
+            <p className="text-sm font-bold text-text-muted">Brak wydarzeń</p>
+            <p className="text-xs text-text-muted/60 mt-1">Zsynchronizuj Google Calendar</p>
           </div>
           <Button
             onClick={onSyncCalendar}
             variant="tonal"
             icon={<RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />}
-            className="rounded-full px-4 py-2 text-[12px]"
+            className="rounded-full px-4 py-2 text-sm"
           >
             Synchronizuj
           </Button>

@@ -114,12 +114,12 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     <div>
       <div className="flex gap-1.5 items-start">
         <div className="flex flex-col gap-[5px] pt-7 mr-1">
-          {DAYS.map(d => <div key={d} className="text-[8px] text-text-muted w-4 h-3.5 flex items-center">{d}</div>)}
+          {DAYS.map(d => <div key={d} className="text-2xs text-text-muted w-4 h-3.5 flex items-center">{d}</div>)}
         </div>
         <div className="flex gap-1 flex-1 overflow-hidden">
           {weeks.map((week, wi) => (
             <div key={wi} className="flex flex-col gap-[5px] flex-1">
-              <div className="text-[8px] text-text-muted h-6 flex items-end pb-0.5">
+              <div className="text-2xs text-text-muted h-6 flex items-end pb-0.5">
                 {wi % 3 === 0 ? format(parseISO(week[0].date), 'dd.MM') : ''}
               </div>
               {week.map((day, di) => {
@@ -152,23 +152,23 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
           }}
           className="rounded-[14px] border border-border-custom bg-surface shadow-xl px-3.5 py-2.5 min-w-[160px]"
         >
-          <p className="text-[9px] font-black text-text-muted mb-1">{tooltip.day.date}</p>
+          <p className="text-2xs font-black text-text-muted mb-1">{tooltip.day.date}</p>
           {tooltip.kmRun > 0 && (
-            <p className="text-[11px] font-bold text-warning mt-0.5">{tooltip.kmRun.toFixed(1)} km biegu</p>
+            <p className="text-xs font-bold text-warning mt-0.5">{tooltip.kmRun.toFixed(1)} km biegu</p>
           )}
           {tooltip.day.data && (
             <>
-              {tooltip.day.data.name && <p className="text-[12px] font-black text-text-primary leading-tight">{tooltip.day.data.name}</p>}
+              {tooltip.day.data.name && <p className="text-sm font-black text-text-primary leading-tight">{tooltip.day.data.name}</p>}
               {tooltip.day.data.wellness ? (
-                <p className="text-[10px] text-teal-500 font-bold mt-0.5">Wellness</p>
+                <p className="text-xs text-teal-500 font-bold mt-0.5">Wellness</p>
               ) : (
                 <>
-                  {tooltip.day.data.vol > 0 && <p className="text-[11px] font-bold text-primary mt-0.5">{(tooltip.day.data.vol / 1000).toFixed(1)} Mg</p>}
-                  {tooltip.day.data.rpe && <p className="text-[9px] text-text-muted mt-0.5">RPE <span className="font-black">{tooltip.day.data.rpe}</span></p>}
+                  {tooltip.day.data.vol > 0 && <p className="text-xs font-bold text-primary mt-0.5">{(tooltip.day.data.vol / 1000).toFixed(1)} Mg</p>}
+                  {tooltip.day.data.rpe && <p className="text-2xs text-text-muted mt-0.5">RPE <span className="font-black">{tooltip.day.data.rpe}</span></p>}
                 </>
               )}
               {tooltip.day.data.exercises?.length > 0 && (
-                <p className="text-[9px] text-text-muted mt-1 leading-relaxed">{tooltip.day.data.exercises.join(' · ')}</p>
+                <p className="text-2xs text-text-muted mt-1 leading-relaxed">{tooltip.day.data.exercises.join(' · ')}</p>
               )}
             </>
           )}
@@ -177,7 +177,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
       )}
 
       <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border-custom">
-        <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted">Legenda:</span>
+        <span className="text-2xs font-bold uppercase tracking-wider text-text-muted">Legenda:</span>
         {[
           { color: 'bg-border-custom',  label: 'Odpoczynek' },
           { color: 'bg-teal-500/50',    label: 'Wellness' },
@@ -192,7 +192,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className={`w-3 h-3 rounded-sm ${color}`} />
-            <span className="text-[8px] text-text-muted">{label}</span>
+            <span className="text-2xs text-text-muted">{label}</span>
           </div>
         ))}
       </div>

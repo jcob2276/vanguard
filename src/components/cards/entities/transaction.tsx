@@ -9,10 +9,10 @@ export function TransactionCard({ data }: { data: TransactionData }) {
         {isIn ? <ArrowDownLeft size={14} style={{ color }} /> : <ArrowUpRight size={14} style={{ color }} />}
       </div>
       <div className="flex-1">
-        <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{data.label}</p>
-        {(data.category || data.date) && <p className="text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>{data.category}{data.category && data.date ? ' · ' : ''}{data.date}</p>}
+        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{data.label}</p>
+        {(data.category || data.date) && <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>{data.category}{data.category && data.date ? ' · ' : ''}{data.date}</p>}
       </div>
-      <span className="text-[14px] font-bold" style={{ color }}>{isIn ? '+' : '-'}{Math.abs(data.amount)} {data.currency ?? 'PLN'}</span>
+      <span className="text-base font-bold" style={{ color }}>{isIn ? '+' : '-'}{Math.abs(data.amount)} {data.currency ?? 'PLN'}</span>
     </div>
   );
 }

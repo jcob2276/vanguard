@@ -21,13 +21,13 @@ export default function DesktopHeader({
   return (
     <header className="sticky top-0 z-30 border-b border-border-custom bg-background/95 backdrop-blur-md px-8 py-3.5 flex items-center gap-4">
       <div className="flex items-center gap-4">
-        <span className="font-display text-[13px] font-black uppercase tracking-[0.3em] text-primary">Vanguard OS</span>
-        <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted hidden lg:block">{now}</span>
+        <span className="font-display text-sm font-black uppercase tracking-[0.3em] text-primary">Vanguard OS</span>
+        <span className="text-2xs font-bold uppercase tracking-wider text-text-muted hidden lg:block">{now}</span>
       </div>
       <div className="hidden xl:flex items-center gap-3 ml-4">
         {[['S','sync'], ['T','trening'], ['D','dark']].map(([k, l]) => (
-          <span key={k} className="flex items-center gap-1 text-[8px] text-text-muted">
-            <kbd className="rounded border border-border-custom bg-surface px-1.5 py-0.5 font-mono text-[9px] font-black leading-none">{k}</kbd>
+          <span key={k} className="flex items-center gap-1 text-2xs text-text-muted">
+            <kbd className="rounded border border-border-custom bg-surface px-1.5 py-0.5 font-mono text-2xs font-black leading-none">{k}</kbd>
             <span>{l}</span>
           </span>
         ))}
@@ -39,7 +39,7 @@ export default function DesktopHeader({
         <Button onClick={syncAll} variant="secondary" icon={<RefreshCw size={14} className={syncing ? 'animate-spin text-primary' : ''} />} className="rounded-full p-2.5" disabled={syncing} />
         <Button onClick={() => setShowFundament(true)} variant="secondary" icon={<Fingerprint size={14} />} className="rounded-full p-2.5" title="Fundament" />
         <Link to="/"
-          className="flex items-center gap-1.5 rounded-full border border-border-custom px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary hover:bg-surface-solid transition-all cursor-pointer">
+          className="flex items-center gap-1.5 rounded-full border border-border-custom px-3 py-2 text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary hover:bg-surface-solid transition-all cursor-pointer">
           <Smartphone size={12} /> Mobile
         </Link>
       </div>

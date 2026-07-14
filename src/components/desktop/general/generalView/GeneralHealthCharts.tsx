@@ -18,10 +18,10 @@ import ScoreBar from './ScoreBar';
 
 const READINESS_COLOR: Record<string, string> = {
   primed: 'var(--color-success)',
-  balanced: '#38bdf8',
+  balanced: 'var(--color-info)',
   strained: 'var(--color-warning)',
   rundown: 'var(--color-danger)',
-  insufficient: '#6b7280',
+  insufficient: 'var(--text-muted)',
 };
 
 import { TimelineItem } from './generalViewUtils';
@@ -66,7 +66,7 @@ function SleepScoreChart({
   tick: string;
 }) {
   return sleepChartData.length === 0 ? (
-    <p className="text-[10px] text-text-muted py-8 text-center">Brak danych Oura — uruchom sync (S)</p>
+    <p className="text-xs text-text-muted py-8 text-center">Brak danych Oura — uruchom sync (S)</p>
   ) : (
     <ResponsiveContainer width="100%" height={190} minWidth={0} minHeight={0}>
       <AreaChart data={sleepChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -100,7 +100,7 @@ function SleepHrvScatterChart({
   tick: string;
 }) {
   return sleepHrvCorr.length === 0 ? (
-    <p className="text-[10px] text-text-muted py-8 text-center">Za mało par sen/HRV (min. 2 dni Oura)</p>
+    <p className="text-xs text-text-muted py-8 text-center">Za mało par sen/HRV (min. 2 dni Oura)</p>
   ) : (
     <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
       <ScatterChart data={sleepHrvCorr} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -175,7 +175,7 @@ export default function GeneralHealthCharts({
             <Area type="monotone" dataKey="strain" stroke={C.rose} fill="url(#gStrain)" strokeWidth={1.5} dot={false} connectNulls />
           </AreaChart>
         </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 text-[10px] text-text-muted">
+        <div className="flex gap-4 mt-2 text-xs text-text-muted">
           <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Recovery</span>
           <span><span className="inline-block w-2 h-2 rounded-full bg-danger mr-1" />Strain</span>
           <span className="ml-auto opacity-60">linia: 70 (dobry recovery) / 40 (niski)</span>
@@ -186,7 +186,7 @@ export default function GeneralHealthCharts({
         {/* VitalBands z-scores */}
         <Panel title="VitalBands z-scores — 90 dni">
           <VitalBandsChart timelineData={timelineData} tick={tick} />
-          <div className="flex gap-3 mt-1 text-[10px] text-text-muted">
+          <div className="flex gap-3 mt-1 text-xs text-text-muted">
             <span><span className="text-success">●</span> HRV z</span>
             <span><span className="text-primary">●</span> RHR z</span>
             <span><span className="text-info">●</span> Sleep z</span>
@@ -214,7 +214,7 @@ export default function GeneralHealthCharts({
               };
               return (
                 <div key={level}>
-                  <div className="flex justify-between text-[10px] mb-0.5">
+                  <div className="flex justify-between text-xs mb-0.5">
                     <span className="text-text-secondary" style={{ color: READINESS_COLOR[level] }}>{labels[level]}</span>
                     <span className="text-text-muted">{count}d · {pct}%</span>
                   </div>
@@ -223,7 +223,7 @@ export default function GeneralHealthCharts({
               );
             })}
           </div>
-          <p className="text-[9px] text-text-muted mt-3">Łącznie: {strainLength} dni z danymi</p>
+          <p className="text-2xs text-text-muted mt-3">Łącznie: {strainLength} dni z danymi</p>
         </Panel>
       </div>
 
@@ -231,13 +231,13 @@ export default function GeneralHealthCharts({
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <Panel title="Korelacja: długość snu → HRV następnego dnia">
           <SleepHrvScatterChart sleepHrvCorr={sleepHrvCorr} tick={tick} />
-          <p className="text-[10px] text-text-muted mt-1">Każdy punkt = jeden dzień. Więcej snu → wyższe HRV jutro?</p>
+          <p className="text-xs text-text-muted mt-1">Każdy punkt = jeden dzień. Więcej snu → wyższe HRV jutro?</p>
         </Panel>
 
         {/* HRV raw */}
         <Panel title="HRV & RHR — 90 dni">
           <HrvRhrChart timelineData={timelineData} tick={tick} />
-          <div className="flex gap-4 mt-1 text-[10px] text-text-muted">
+          <div className="flex gap-4 mt-1 text-xs text-text-muted">
             <span><span className="text-success">●</span> HRV (L)</span>
             <span><span className="text-danger">●</span> RHR (R)</span>
           </div>

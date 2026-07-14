@@ -32,7 +32,7 @@ export default function TodoCardSubtasks({ childTasks, onAddChildTask, onToggleC
                 </div>
               </button>
               <span
-                className={`min-w-0 flex-1 text-[11px] font-medium truncate ${
+                className={`min-w-0 flex-1 text-xs font-medium truncate ${
                   child.status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'
                 }`}
               >
@@ -53,7 +53,7 @@ export default function TodoCardSubtasks({ childTasks, onAddChildTask, onToggleC
               setNewChildTask('');
             }
           }}
-          className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-2.5 py-1 text-[11px] text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
+          className="min-w-0 flex-1 rounded-xl border border-border-custom/50 bg-surface-solid/40 px-2.5 py-1 text-xs text-text-primary outline-none placeholder:text-text-muted/30 focus:border-primary/30"
         />
         <button
           onClick={() => {
@@ -63,7 +63,7 @@ export default function TodoCardSubtasks({ childTasks, onAddChildTask, onToggleC
             }
           }}
           disabled={!newChildTask.trim()}
-          className="rounded-xl bg-primary/10 px-2.5 py-1 text-[11px] font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors btn-press"
+          className="rounded-xl bg-primary/10 px-2.5 py-1 text-xs font-black text-primary disabled:opacity-30 hover:bg-primary/20 transition-colors btn-press"
         >
           +
         </button>
