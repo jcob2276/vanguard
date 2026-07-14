@@ -16,6 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..", "..");
 const baselinePath = path.join(root, "scripts", "ops", "backend-contract-baseline.json");
 const functionsRoot = path.join(root, "supabase", "functions");
+const migrationsRoot = path.join(root, "supabase", "migrations");
 
 const MAX_LINES = 300;
 
@@ -76,6 +77,18 @@ const patternDefinitions = {
       return (content.match(/Deno\.env\.get\(["'](SB_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY)["']\)/g) || []).length;
     },
   },
+  patternCount_committedSecrets: {
+    label: "committed Supabase/OpenAI/Telegram secret material",
+    check: (_rel, content) => {
+      const patterns = [
+        /sb_secret(?:_|["']\s*\|\|)/g,
+        /\beyJhbGciOiJ[A-Za-z0-9_-]{20,}/g,
+        /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}/g,
+        /\b\d{8,12}:[A-Za-z0-9_-]{30,}/g,
+      ];
+      return patterns.reduce((total, pattern) => total + (content.match(pattern) || []).length, 0);
+    },
+  },
 };
 
 function walk(dir) {
@@ -106,6 +119,16 @@ for (const file of allFiles) {
   }
   const lines = content.split(/\r?\n/).length;
   if (lines > MAX_LINES) oversized[rel] = lines;
+}
+
+// Migration history is code and must never contain live credentials. Scan it in
+// addition to Edge Function sources; the normal file-size rules do not apply.
+for (const file of fs.existsSync(migrationsRoot)
+  ? fs.readdirSync(migrationsRoot).filter((name) => name.endsWith('.sql')).map((name) => path.join(migrationsRoot, name))
+  : []) {
+  const rel = path.relative(root, file).replace(/\\/g, '/');
+  const content = fs.readFileSync(file, 'utf8');
+  counts.patternCount_committedSecrets += patternDefinitions.patternCount_committedSecrets.check(rel, content);
 }
 
 if (process.argv.includes("--write-baseline")) {

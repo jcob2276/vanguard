@@ -9,6 +9,7 @@
  * @status active
  */
 import { serveJson } from '../_shared/http.ts';
+import { requireServiceRole } from '../_shared/auth.ts';
 import { handleTodoClassify } from './handlers/todoClassify.ts';
 import { handleTodoExtract } from './handlers/todoExtract.ts';
 import { handleStreamRecord } from './handlers/classify.ts';
@@ -29,6 +30,12 @@ Deno.serve(serveJson(async (req, ctx) => {
     }
     throw new Error(`Unknown action: ${action}`);
   }
+
+  // The default branch is invoked by a privileged database webhook. Without this
+  // check an arbitrary caller could submit another user's record, spend LLM quota,
+  // and write classifications through the service-role client.
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
 
   const { record } = body;
   return await handleStreamRecord(record, supabase);

@@ -185,7 +185,7 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     // 5. pattern-outcomes
     await runLedgerStep(supabase, userId, runId, 'pattern-outcomes', true, async () => {
-      await runPatternOutcomes();
+      await runPatternOutcomes(supabase, userId);
     });
 
     // 6. correlations

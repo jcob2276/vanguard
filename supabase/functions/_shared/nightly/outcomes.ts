@@ -1,7 +1,7 @@
-import { createServiceClient } from '../supabase.ts';
 import { HEALTH_THRESHOLDS } from '@vanguard/domain';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getWarsawDateString } from '../time.ts';
 
-const supabase = createServiceClient();
 
 const mapCatalogMetricToColumn = (metric: string | null): string => {
   if (!metric) return 'execution_score';
@@ -85,24 +85,29 @@ const thresholdLabel = (m: string): string => {
   }
 };
 
-export const runPatternOutcomes = async (): Promise<void> => {
+export const runPatternOutcomes = async (
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<void> => {
   console.log('[pattern-outcomes] Starting windowed join analysis');
-  const { data: patterns } = await supabase
+  const { data: patterns, error: patternsError } = await supabase
     .from('vanguard_behavioral_patterns')
-    .select('id, title, status, user_id, signature, confidence, outcome_metric');
+    .select('id, title, status, user_id, signature, confidence, outcome_metric')
+    .eq('user_id', userId);
+  if (patternsError) throw patternsError;
   if (!patterns) return;
 
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = getWarsawDateString();
 
   for (const pattern of patterns) {
     if (pattern.status === 'user_rejected') continue;
     
     // Get all events for this pattern
-    const { data: events } = await supabase
+    const { data: events, error: eventsError } = await supabase
       .from('pattern_events')
       .select('occurred_on')
       .eq('pattern_id', pattern.id);
+    if (eventsError) throw eventsError;
     if (!events || events.length === 0) continue;
 
     let successfulWindows = 0;
@@ -124,12 +129,13 @@ export const runPatternOutcomes = async (): Promise<void> => {
       // Rozstrzygamy prognozę, jeśli pełne 9-dniowe okno się zakończyło (endStr < dzisiaj)
       const isResolved = endStr < todayStr;
 
-      const { data: facts } = await supabase
+      const { data: facts, error: factsError } = await supabase
         .from('vanguard_daily_aggregates')
         .select(`date, ${metricColumn}`)
         .eq('user_id', pattern.user_id)
         .gte('date', startStr)
         .lte('date', endStr);
+      if (factsError) throw factsError;
       
       let windowSum = 0;
       let windowCount = 0;
@@ -165,7 +171,7 @@ export const runPatternOutcomes = async (): Promise<void> => {
         const actualVal = held ? 1.0 : 0.0;
         const brierScore = Math.pow(predConfidence - actualVal, 2);
 
-        await supabase
+        const { error: predictionError } = await supabase
           .from('vanguard_predictions')
           .upsert({
             user_id: pattern.user_id,
@@ -180,6 +186,7 @@ export const runPatternOutcomes = async (): Promise<void> => {
           }, {
             onConflict: 'user_id,prediction_date,prediction_type,metric'
           });
+        if (predictionError) throw predictionError;
       }
     }
 
@@ -199,7 +206,7 @@ export const runPatternOutcomes = async (): Promise<void> => {
         newConfidence = Math.max(0.1, Math.min(0.98, parseFloat(newConfidence.toFixed(2))));
       }
 
-      await supabase
+      const { error: patternUpdateError } = await supabase
         .from('vanguard_behavioral_patterns')
         .update({
           evidence_text,
@@ -207,6 +214,7 @@ export const runPatternOutcomes = async (): Promise<void> => {
           updated_at: new Date().toISOString()
         })
         .eq('id', pattern.id);
+      if (patternUpdateError) throw patternUpdateError;
       
       console.log(`[pattern-outcomes] Updated pattern ${pattern.id} (${pattern.signature}): confidence=${newConfidence}, evidence: ${evidence_text}`);
     }

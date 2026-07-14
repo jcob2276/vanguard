@@ -206,7 +206,7 @@ export function spearman(xy: [number, number][]): CorrelationCore | null {
   return pearson(rx.map((x, i) => [x, ry[i]] as [number, number]));
 }
 
-function shiftDay(day: string, delta: number): string | null {
+export function shiftDay(day: string, delta: number): string | null {
   if (delta === 0) return day;
   if (isNaN(new Date(day + 'T12:00:00Z').getTime())) return null;
   return shiftDateStr(day, delta);

@@ -18,19 +18,18 @@ import {
 } from "./foodParse/reconcile.ts";
 import { buildSystemPrompt } from "./foodParse/prompts.ts";
 
-;
-;
-;
 export {
-  
-  
-  
-  
+  applyDeclaredPieceCount,
+  applyHomemadeAdjustment,
+  parseDeclaredPieceCount,
+  pieceGramsForName,
+} from "./foodParse/matching.ts";
+export {
   needsFoodReview,
   caloriesFromMacros,
   enforceMacroMath,
 } from "./foodParse/normalize.ts";
-;
+export { applyUserCorrections } from "./foodParse/reconcile.ts";
 
 export interface FoodParseMeta {
   macroSource: 'library' | 'generic' | 'reference_pl' | 'off' | 'llm_estimate' | 'user_correction'

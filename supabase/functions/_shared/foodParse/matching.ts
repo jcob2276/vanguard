@@ -19,7 +19,7 @@ export function normalizePl(s: string): string {
     .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/ź|ż/g, 'z');
 }
 
-function pieceGramsForName(name: string): number | null {
+export function pieceGramsForName(name: string): number | null {
   const n = normalizePl(name);
   for (const rule of PIECE_GRAMS_RULES) {
     if (rule.test(n)) return rule.grams;
@@ -28,7 +28,7 @@ function pieceGramsForName(name: string): number | null {
 }
 
 /** "4 naleśniki", "3 jajka", "2x pieróg" → liczba sztuk z tekstu użytkownika. */
-function parseDeclaredPieceCount(text: string): number | null {
+export function parseDeclaredPieceCount(text: string): number | null {
   const n = normalizePl(text);
   const m = n.match(
     /\b(\d{1,2})\s*(?:x\s*)?(?:szt\.?\s*)?(?:nalesnik\w*|placek\w*|racuch\w*|jaj\w*|pierog\w*|kromk\w*|bul\w*|plaster\w*)/,

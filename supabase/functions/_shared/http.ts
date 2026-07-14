@@ -103,14 +103,16 @@ export function serveJson(
         metadata: { method: req.method, url: req.url },
       }).catch(() => {}); // don't let audit failure mask the response
 
-      const isAuthError = err instanceof Error && (
-        err.message.includes('Unauthorized') ||
-        err.message.includes('Missing Authorization') ||
-        err.message.includes('Invalid user token') ||
-        err.message.includes('Forbidden')
-      );
-      const status = isAuthError ? 401 : 500;
-      const message = err instanceof Error ? err.message : String(err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isForbidden = errorMessage.includes('Forbidden');
+      const isAuthError =
+        errorMessage.includes('Unauthorized') ||
+        errorMessage.includes('Missing Authorization') ||
+        errorMessage.includes('Invalid user token');
+      const status = isForbidden ? 403 : isAuthError ? 401 : 500;
+      // Detailed upstream/database messages stay in logs and audit_events. Returning
+      // them to callers leaks implementation details and occasionally provider data.
+      const message = status === 500 ? 'Internal server error' : errorMessage;
 
       return new Response(JSON.stringify({ error: message }), {
         status,

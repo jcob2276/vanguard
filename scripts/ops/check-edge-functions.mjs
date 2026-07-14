@@ -86,17 +86,23 @@ for (const fn of functionsNoJwt) {
   }
 
   const content = readFileSync(indexPath, 'utf-8');
+  // Comments are not authorization. A previous audit found an unauthenticated
+  // webhook passing this guard solely because its comment mentioned
+  // resolveUserScope, while the default request branch performed no check.
+  const executableContent = content
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
   // serveJson(handler, { auth: 'service' | 'user' }) enforces requireServiceRole/resolveUserScope
   // internally (see _shared/http.ts) — only `auth: 'none'` skips it, so a bare serveJson(handler)
   // call (defaults to 'user') still counts as authenticated. Conservatively scans the whole file
   // for an explicit auth:'none' rather than parsing nested parens around the serveJson(...) call.
-  const hasExplicitNoneAuth = /auth:\s*['"]none['"]/.test(content);
-  const serveJsonAuthed = content.includes('serveJson(') && !hasExplicitNoneAuth;
+  const hasExplicitNoneAuth = /auth:\s*['"]none['"]/.test(executableContent);
+  const serveJsonAuthed = executableContent.includes('serveJson(') && !hasExplicitNoneAuth;
   const hasAuth =
-    content.includes('requireServiceRole') ||
-    content.includes('resolveUserScope') ||
-    content.includes('verifyTelegramSecret') ||
-    content.includes('MCP_SERVER_SECRET') ||
+    executableContent.includes('requireServiceRole') ||
+    executableContent.includes('resolveUserScope') ||
+    executableContent.includes('verifyTelegramSecret') ||
+    executableContent.includes('MCP_SERVER_SECRET') ||
     serveJsonAuthed;
 
   if (!hasAuth) {

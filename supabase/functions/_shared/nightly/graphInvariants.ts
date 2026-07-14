@@ -23,20 +23,22 @@ export async function runGraphInvariantCheck(
   const violations: InvariantViolation[] = [];
 
   // ─── 1. Claims pointing to merged entities ───
-  const { data: mergedEntities } = await supabase
+  const { data: mergedEntities, error: mergedEntitiesError } = await supabase
     .from("entities")
     .select("id, canonical_name, merged_into")
     .eq("user_id", userId)
     .not("merged_into", "is", null);
+  if (mergedEntitiesError) throw mergedEntitiesError;
 
   if (mergedEntities && mergedEntities.length > 0) {
     for (const entity of mergedEntities) {
-      const { count } = await supabase
+      const { count, error: claimsCountError } = await supabase
         .from("claims")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("subject_id", entity.id)
         .eq("status", "active");
+      if (claimsCountError) throw claimsCountError;
 
       if (count && count > 0) {
         violations.push({
@@ -55,11 +57,12 @@ export async function runGraphInvariantCheck(
   }
 
   // ─── 2. Duplicate active claims for same entity+relation ───
-  const { data: claims } = await supabase
+  const { data: claims, error: claimsError } = await supabase
     .from("claims")
     .select("id, subject_id, relation_id, object_id, status")
     .eq("user_id", userId)
     .eq("status", "active");
+  if (claimsError) throw claimsError;
 
   if (claims && claims.length > 0) {
     const claimMap = new Map<string, Array<{ id: string; subject_id: string; relation_id: string; object_id: string }>>();
@@ -89,18 +92,24 @@ export async function runGraphInvariantCheck(
   }
 
   // ─── 3. entity_aliases without winner entity ───
-  const { data: aliases } = await supabase
-    .from("entity_aliases")
-    .select("id, entity_id, alias");
+  const { data: userEntities, error: userEntitiesError } = await supabase
+    .from("entities")
+    .select("id, merged_into")
+    .eq("user_id", userId);
+  if (userEntitiesError) throw userEntitiesError;
+
+  const userEntityIds = (userEntities || []).map((entity: { id: string }) => entity.id);
+  const aliasesResult = userEntityIds.length > 0
+    ? await supabase
+      .from("entity_aliases")
+      .select("id, entity_id, alias")
+      .in("entity_id", userEntityIds)
+    : { data: [], error: null };
+  if (aliasesResult.error) throw aliasesResult.error;
+  const aliases = aliasesResult.data;
 
   if (aliases && aliases.length > 0) {
-    const entityIds = [...new Set(aliases.map((a: { entity_id: string }) => a.entity_id))];
-    const { data: entities } = await supabase
-      .from("entities")
-      .select("id, merged_into")
-      .in("id", entityIds);
-
-    const entityMap = new Map((entities || []).map((e: { id: string; merged_into: string | null }) => [e.id, e]));
+    const entityMap = new Map((userEntities || []).map((e: { id: string; merged_into: string | null }) => [e.id, e]));
 
     for (const alias of aliases) {
       const entity = entityMap.get(alias.entity_id) as { id: string; merged_into: string | null } | undefined;

@@ -15,10 +15,8 @@ CREATE POLICY "Service role only" ON public._trigger_secrets
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 GRANT ALL ON TABLE public._trigger_secrets TO service_role;
 
--- 2. Store service-role key (idempotent)
-INSERT INTO public._trigger_secrets (name, secret)
-VALUES ('service_role_key', 'sb_secret' || '_2f8CePo0e8KOWMBdBwKwfA_af0Hadiu')
-ON CONFLICT (name) DO UPDATE SET secret = EXCLUDED.secret;
+-- 2. The service-role key must be provisioned out-of-band. Never commit it to
+-- migration history. Trigger functions fail closed when the row is absent.
 
 -- 3. Update telegram worker trigger to include Authorization header
 CREATE OR REPLACE FUNCTION public.trigger_vanguard_telegram_worker()
