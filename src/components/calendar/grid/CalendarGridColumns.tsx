@@ -1,5 +1,5 @@
 import { Pressable } from '../../ui/ControlPrimitives';
-import { TIMEZONE } from '../../../lib/date';
+import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
 import React from 'react';
 import { Check } from 'lucide-react';
 import {
@@ -23,11 +23,11 @@ export const renderTimeGutter = ({
   dayKey,
   weather,
 }: CalendarGridTimeGutterProps) => {
-  const today = new Date().toLocaleDateString('sv-SE', { timeZone: TIMEZONE });
+  const today = getTodayWarsaw();
   const tomorrow = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toLocaleDateString('sv-SE', { timeZone: TIMEZONE });
+    return formatWarsawDate(d);
   })();
   const showHourlyWeather = dayKey === today || dayKey === tomorrow;
   const hourlyForDay = showHourlyWeather && weather?.hourly?.[dayKey!] ? weather.hourly[dayKey!] : null;

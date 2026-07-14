@@ -6,7 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { useStore } from '../../../store/useStore';
 import { useDashboardData } from './useDashboardData';
-import { getTodayWarsaw, TIMEZONE } from '../../../lib/date';
+import { getTodayWarsaw, getWarsawHour } from '../../../lib/date';
 import { STORAGE_KEYS } from '../../../lib/constants';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { useNudgeData } from './useNudgeData';
@@ -242,10 +242,7 @@ export function useDashboardState(session: Session) {
     try {
       if (localStorage.getItem(STORAGE_KEYS.SHUTDOWN_DISMISSED) === today) return;
     } catch (e: unknown) { console.warn('[useDashboardState] Failed to read shutdown dismissed date from localStorage:', e); }
-    const warsawHour = parseInt(
-      new Date().toLocaleTimeString('en-CA', { timeZone: TIMEZONE, hour: 'numeric', hour12: false }),
-      10
-    );
+    const warsawHour = getWarsawHour();
     if (warsawHour >= 20) { setTimeout(() => setShowShutdown(true), 0); }
   }, [todayWin]);
 

@@ -1,7 +1,7 @@
 import Button from '../../ui/Button';
 import { notify } from '../../../lib/notify';
 import { STORAGE_KEYS } from '../../../lib/constants';
-import { getTodayWarsaw, TIMEZONE } from '../../../lib/date';
+import { getTodayWarsaw, formatDashboardDate } from '../../../lib/date';
 import { mergeLatestBodyMetrics } from '../../../lib/health/bodyMetrics';
 import { syncOura, syncCalendar, syncStrava, computeDailyStrain } from '../../../lib/syncApi';
 import { Suspense, lazy, useEffect, useState, useCallback, useMemo, useRef } from 'react';
@@ -160,7 +160,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   const sleepData = oura14.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Sen: r.total_sleep_hours ? +r.total_sleep_hours.toFixed(1) : null, HRV: r.hrv_avg || null }));
   const nutrData  = nutrition.map(r => ({ d: format(parseISO(r.date), 'dd.MM'), Kcal: r.calories || 0, Białko: r.protein || 0 }));
   const volData   = weeklyVolume(sessions);
-  const now       = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TIMEZONE });
+  const now       = formatDashboardDate();
 
   if (showHealth) return (
     <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">

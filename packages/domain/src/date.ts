@@ -5,6 +5,14 @@ export function getTodayWarsaw(): string {
   return formatWarsawDate(new Date());
 }
 
+/** Returns the current hour (0-23) in Europe/Warsaw timezone. */
+export function getWarsawHour(): number {
+  return parseInt(
+    new Date().toLocaleTimeString('en-CA', { timeZone: WARSAW_TZ, hour: 'numeric', hour12: false }),
+    10,
+  );
+}
+
 export function getYesterdayWarsaw(): string {
   const today = getTodayWarsaw();
   const d = new Date(`${today}T12:00:00Z`);

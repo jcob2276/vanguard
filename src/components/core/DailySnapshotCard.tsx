@@ -1,5 +1,5 @@
 import { Pressable } from '../ui/ControlPrimitives';
-import { getTodayWarsaw, TIMEZONE } from '../../lib/date';
+import { getTodayWarsaw, getWarsawHour } from '../../lib/date';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { useUserId } from '../../store/useStore';
 import { useDailySnapshotQuery, useSaveDayScoreMutation } from '../../lib/dailySnapshotApi';
@@ -17,7 +17,7 @@ const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 export default function DailySnapshotCard() {
   const userId = useUserId();
   const today = getTodayWarsaw();
-  const hourNum = parseInt(new Date().toLocaleTimeString('en-CA', { timeZone: TIMEZONE, hour: 'numeric', hour12: false }), 10);
+  const hourNum = getWarsawHour();
 
   const { data, isLoading: loading } = useDailySnapshotQuery(userId, today);
   const saveScoreMutation = useSaveDayScoreMutation(userId, today);

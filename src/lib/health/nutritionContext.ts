@@ -1,5 +1,5 @@
 import { supabase, invokeEdge } from '../supabase';
-import { getTodayWarsaw, warsawDayBoundsISO, TIMEZONE } from '../date';
+import { getTodayWarsaw, formatWarsawDate, warsawDayBoundsISO } from '../date';
 import type { TodayNutritionSnapshot } from './foodLogging';
 import { TIMEOUTS } from '../constants';
 
@@ -90,7 +90,7 @@ function parseVerdict(verdict: unknown): {
 }
 
 function stravaDay(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TIMEZONE });
+  return formatWarsawDate(iso);
 }
 
 function buildTrainingLabel(runKmToday: number, gymToday: boolean, addBackKcal: number): string {

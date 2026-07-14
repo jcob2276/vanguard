@@ -1,4 +1,4 @@
-import { TIMEZONE } from '../../../lib/date';
+import { getTodayWarsaw } from '../../../lib/date';
 import React from 'react';
 import { Card } from '../../ui/Card';
 import { computeLenieInsight, daysBefore, type LenieLogRow } from '../desktopUtils';
@@ -11,7 +11,7 @@ export default function LeniePanelMini({ logs }: LeniePanelMiniProps) {
   const totalMonth = (logs || []).filter(l => l.date >= daysBefore(30)).length;
   const totalWeek = (logs || []).filter(l => l.date >= daysBefore(7)).length;
   const lastDate = (logs || [])[0]?.date ?? null;
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE });
+  const todayStr = getTodayWarsaw();
   const daysFree = lastDate ? Math.round((new Date(todayStr + 'T12:00:00Z').getTime() - new Date(lastDate + 'T12:00:00Z').getTime()) / 86400000) : null;
   const freeColor =
     daysFree === null

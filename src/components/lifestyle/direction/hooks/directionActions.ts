@@ -2,7 +2,7 @@
  * Async action handlers for useDirection.
  * All "write" operations live here — separated from state management.
  */
-import { TIMEZONE } from '../../../../lib/date';
+import { getWarsawHour } from '../../../../lib/date';
 import type { Session } from '@supabase/supabase-js';
 import type { Tables, TablesUpdate } from '../../../../lib/database.types';
 import type { Json } from '../../../../lib/database.types';
@@ -19,6 +19,7 @@ import {
   updateDailyWin,
 } from '../../../../lib/goal/goalSpine';
 import { supabase, invokeEdge } from '../../../../lib/supabase';
+import type { RecapResponse } from '../../../../lib/edgeTypes';
 import { useHaptics } from '../../../../hooks/useHaptics';
 import { notify } from '../../../../lib/notify';
 import { TIMEOUTS } from '../../../../lib/constants';
@@ -98,22 +99,20 @@ export function createDirectionActions(params: {
   } = params;
 
   const callWeekRecap = async (phase: 'before' | 'after') => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return await invokeEdge<any>('recap?type=weekly-recap', {
+    return await invokeEdge('recap', {
       method: 'POST',
-      body: { weekStart: closingWeekStart, phase },
+      body: { weekStart: closingWeekStart, phase, type: 'weekly-recap' },
       signal: AbortSignal.timeout(TIMEOUTS.heavy),
-    });
+    }) as RecapResponse;
   };
 
   const callMonthRecap = async () => {
     if (!closingMonthStart) return null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return await invokeEdge<any>('recap?type=weekly-recap', {
+    return await invokeEdge('recap', {
       method: 'POST',
-      body: { monthStart: closingMonthStart, phase: 'month' },
+      body: { monthStart: closingMonthStart, phase: 'month', type: 'weekly-recap' },
       signal: AbortSignal.timeout(TIMEOUTS.heavy),
-    });
+    }) as RecapResponse;
   };
 
   async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {
@@ -136,7 +135,7 @@ export function createDirectionActions(params: {
     if (allDone) updates.result = 'Z';
     else {
       if (dayWin.result === 'Z') updates.result = null;
-      const isPastDeadline = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE })).getHours() >= 23;
+      const isPastDeadline = getWarsawHour() >= 23;
       if (isPastDeadline && !allDone) updates.result = 'P';
     }
 

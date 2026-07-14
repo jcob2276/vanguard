@@ -1,4 +1,4 @@
-import { TIMEZONE } from '../../lib/date';
+import { getWarsawHour } from '../../lib/date';
 import { supabase } from '../supabase'
 import { invokeEdge } from '../supabase'
 import { scheduleStrainRecompute } from './strainRefresh'
@@ -70,7 +70,7 @@ export function scheduleFoodQualityAnalysis(userId: string, date: string): void 
 }
 
 export function defaultMealType(): MealTypeId {
-  const hour = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE })).getHours()
+  const hour = getWarsawHour()
   if (hour < 11) return 'breakfast'
   if (hour < 16) return 'lunch'
   if (hour < 21) return 'dinner'
@@ -83,7 +83,7 @@ export async function parseFoodNL(text: string, userId: string, _accessToken: st
     json = await invokeEdge('parse-food-nl', {
       body: { text: text.trim(), userId, clientTime: new Date().toISOString() },
       signal: AbortSignal.timeout(TIMEOUTS.llmHeavy),
-    })
+    }) as { items?: ParsedFoodItem[] }
   } catch (e: unknown) {
     const msg = e instanceof Error ? (e as Error).message : String(e)
     if (/timed out|timeout|abort/i.test(msg)) {

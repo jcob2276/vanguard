@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getTodayWarsaw, getYesterdayWarsaw, TIMEZONE } from '../../lib/date';
+import { getTodayWarsaw, getYesterdayWarsaw, getWarsawHour } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useLifeGoals } from '../projects/hooks/useLifeGoals';
 import { useDirectionContext } from './direction/hooks/useDirectionContext';
-import { type TodoItemRow } from '../../lib/todo/todo';
 import { usePowerListActions } from './hooks/usePowerListActions';
 import { usePowerListEffects } from './hooks/usePowerListEffects';
 import {
@@ -49,14 +48,7 @@ function getEveningCloseDue(todayWin: DailyWinWithTasks | null): boolean {
   if (todayWin.day_note?.trim()) return false;
   if (!todayWin.task_1?.trim()) return false;
   if (todayWin.result === 'Z' || todayWin.result === 'P') return true;
-  const h = parseInt(
-    new Date().toLocaleTimeString('en-CA', {
-      timeZone: TIMEZONE,
-      hour: 'numeric',
-      hour12: false,
-    }),
-    10
-  );
+  const h = getWarsawHour();
   return h >= 20;
 }
 
@@ -80,21 +72,16 @@ export function usePowerListData({
   useEffect(() => {
     if (!todayWin) void refreshLifeGoals();
   }, [todayWin, refreshLifeGoals]);
-  const [projectMap, setProjectMap] = useState<Record<string, { name: string; color: string | null }>>({});
   const [checkpointPrompt, setCheckpointPrompt] = useState<{ index: number; checkpointId: string; title: string } | null>(null);
   const [markingCheckpoint, setMarkingCheckpoint] = useState(false);
-  const [yesterdayWin, setYesterdayWin] = useState<DailyWinWithTasks | null>(null);
   const [yesterdayNote, setYesterdayNote] = useState('');
-  const yesterdayNoteRequired = !!yesterdayWin && !yesterdayWin.day_note;
   const [newTaskForm, setNewTaskForm] = useState<TaskSlot[]>(getInitialTaskForm);
-  const [todoItems, setTodoItems] = useState<TodoItemRow[]>([]);
   const [pickerSlot, setPickerSlot] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
   const [eveningNote, setEveningNote] = useState('');
   const [savingEvening, setSavingEvening] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const draftLoaded = useRef(false);
-  const planDaySignalMounted = useRef(false);
   const [todaySlotKpis, setTodaySlotKpis] = useState<Record<number, string>>(() => {
     try {
       const raw = localStorage.getItem(powerListKpiKey(userId, today));
@@ -117,6 +104,22 @@ export function usePowerListData({
   const occupiedSlots = useMemo(() => newTaskForm.map((s) => !!s.task.trim()), [newTaskForm]);
   const [aiQuestions, setAiQuestions] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
+
+  const queries = usePowerListEffects({
+    userId,
+    today,
+    todayWin,
+    draftLoadedRef: draftLoaded,
+    newTaskForm,
+    setNewTaskForm,
+    yesterdayNote,
+    setYesterdayNote,
+    planDaySignal,
+    directionLoading: direction.loading,
+  });
+
+  const yesterdayNoteRequired = !!queries.yesterdayWin && !queries.yesterdayWin.day_note;
+
   const actions = usePowerListActions({
     userId,
     today,
@@ -127,7 +130,7 @@ export function usePowerListData({
     checkpointPrompt,
     setCheckpointPrompt,
     setMarkingCheckpoint,
-    yesterdayWin,
+    yesterdayWin: queries.yesterdayWin,
     yesterdayNote,
     yesterdayNoteRequired,
     submitting,
@@ -143,22 +146,6 @@ export function usePowerListData({
     setTodaySlotKpis,
     allProjectOptions,
   });
-  usePowerListEffects({
-    userId,
-    today,
-    todayWin,
-    draftLoadedRef: draftLoaded,
-    planDaySignalMountedRef: planDaySignalMounted,
-    newTaskForm,
-    setNewTaskForm,
-    yesterdayNote,
-    setYesterdayNote,
-    setYesterdayWin,
-    setProjectMap,
-    setTodoItems,
-    planDaySignal,
-    directionLoading: direction.loading,
-  });
   const eveningCloseDue = useMemo(() => getEveningCloseDue(todayWin), [todayWin]);
   return {
     userId,
@@ -168,17 +155,17 @@ export function usePowerListData({
     weekGoals,
     pillarProjects,
     allProjectOptions,
-    projectMap,
+    projectMap: queries.projectMap,
     checkpointPrompt,
     setCheckpointPrompt,
     markingCheckpoint,
-    yesterdayWin,
+    yesterdayWin: queries.yesterdayWin,
     yesterdayNote,
     setYesterdayNote,
     yesterdayNoteRequired,
     newTaskForm,
     setNewTaskForm,
-    todoItems,
+    todoItems: queries.todoItems,
     pickerSlot,
     setPickerSlot,
     submitting,
