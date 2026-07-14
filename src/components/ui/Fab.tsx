@@ -43,6 +43,7 @@ export default function Fab({
       disabled={disabled}
       style={style}
       title={title}
+      aria-label={title}
       className={`flex items-center justify-center rounded-full bg-primary text-on-accent shadow-lg shadow-primary/25 transition-all duration-[var(--motion-medium)] active:scale-93 hover:scale-105 disabled:opacity-[var(--opacity-50)] disabled:pointer-events-none cursor-pointer ${positionClasses[position]} ${sizeClasses[size]} ${className}`}
     >
       {children}

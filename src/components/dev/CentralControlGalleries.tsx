@@ -22,7 +22,7 @@ export function ControlPrimitivesGallery() {
       <h2 className="flex items-center gap-2 text-base font-black text-text-primary"><Settings size={16} />Control primitives</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input icon={<Search size={14} />} placeholder="Central Input" />
-        <Select aria-label="PrzykĹ‚adowy wybĂłr" options={[{ value: 'calm', label: 'Calm density' }, { value: 'compact', label: 'Compact density' }]} />
+        <Select aria-label="Przykładowy wybór" options={[{ value: 'calm', label: 'Calm density' }, { value: 'compact', label: 'Compact density' }]} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <IconButton icon={<Settings size={16} />} label="Ustawienia" variant="tonal" />
@@ -31,15 +31,15 @@ export function ControlPrimitivesGallery() {
         <Pressable variant="outline" onClick={() => setSheetOpen(true)}>Sheet</Pressable>
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen} title="Central Dialog" primaryAction={{ label: 'Gotowe', onClick: () => setDialogOpen(false) }} secondaryAction={{ label: 'Anuluj' }}>
-        <p className="text-sm text-text-secondary">WspĂłlny kontrakt akcji, typografii i motion.</p>
+        <p className="text-sm text-text-secondary">Wspólny kontrakt akcji, typografii i motion.</p>
       </Dialog>
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="Central Sheet"><p className="text-sm text-text-secondary">TreĹ›Ä‡ panelu.</p></Sheet>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="Central Sheet"><p className="text-sm text-text-secondary">Treść panelu.</p></Sheet>
     </section>
   );
 }
 
 export function LayoutPrimitivesGallery() {
-  const sample = <DataCard label="PrzykĹ‚adowa metryka" value="42" detail="Sterowana tokenami" />;
+  const sample = <DataCard label="Przykładowa metryka" value="42" detail="Sterowana tokenami" />;
   return (
     <section className="space-y-4">
       <h2 className="flex items-center gap-2 text-base font-black text-text-primary"><Layers size={16} />Layout primitives</h2>

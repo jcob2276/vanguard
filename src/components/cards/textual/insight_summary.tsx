@@ -15,7 +15,7 @@ export function InsightSummaryCard({ data }: { data: InsightSummaryData }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
           <Lightbulb size={12} style={{ color }} />
         </div>
         <p className="text-sm font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
@@ -31,7 +31,7 @@ export function InsightSummaryCard({ data }: { data: InsightSummaryData }) {
         </ul>
       )}
       {data.action && (
-        <div className="rounded-xl px-3 py-2" style={{ background: `${color}0F` }}>
+        <div className="rounded-xl px-3 py-2" style={{ background: `color-mix(in srgb, ${color} 6%, transparent)` }}>
           <p className="text-xs font-semibold" style={{ color }}>→ {data.action}</p>
         </div>
       )}

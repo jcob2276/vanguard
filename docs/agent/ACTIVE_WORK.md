@@ -5,5 +5,5 @@ otwarte resztki trafiają do `BACKLOG.md`, a ten plik wraca do stanu „nic w to
 
 ## Stan: nic w toku
 
-Centralizacja frontendu została zakończona i zweryfikowana. Bieżące zadania należy brać
-z `BACKLOG.md` albo z nowej, jawnej prośby użytkownika.
+Audyt jakości i spójności po centralizacji frontendu został zakończony i zweryfikowany.
+Bieżące zadania należy brać z `BACKLOG.md` albo z nowej, jawnej prośby użytkownika.

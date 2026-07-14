@@ -79,6 +79,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
             setWeekStart(weekMon(d));
           }}
           icon={<ChevronLeft size={18} className="text-text-muted" />}
+          aria-label="Poprzedni dzień"
           className="p-2 min-w-0 rounded-full"
         />
         <div className="text-center flex flex-col items-center">
@@ -110,6 +111,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
             setWeekStart(weekMon(d));
           }}
           icon={<ChevronRight size={18} className="text-text-muted" />}
+          aria-label="Następny dzień"
           className="p-2 min-w-0 rounded-full"
         />
       </div>

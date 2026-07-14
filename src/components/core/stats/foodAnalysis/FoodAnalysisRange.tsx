@@ -30,7 +30,7 @@ function DaysList({ days }: DaysListProps) {
             <div
               className="h-full rounded-full"
               style={{
-                width: d.fasting ? '100%' : `${d.score ?? 0}%`,
+                width: d.fasting ? 'var(--size-full)' : `${d.score ?? 0}%`,
                 backgroundColor: d.fasting
                   ? 'var(--legacy-color-022)'
                   : d.incomplete

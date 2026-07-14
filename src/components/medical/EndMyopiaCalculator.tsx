@@ -318,7 +318,7 @@ export default function EndMyopiaCalculator() {
       {(phase === 'calibrate' || phase === 'select-eye') && (
         <>
           <header className="sticky top-0 z-[var(--z-modal)] w-full px-4 py-3 flex items-center gap-3 border-b border-border-custom bg-background/90 backdrop-blur-[var(--blur-md)]">
-            <Link to="/medical" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary bg-surface transition-colors">
+            <Link to="/badania" aria-label="Wróć do badań" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary bg-surface transition-colors">
               <ArrowLeft size={18} />
             </Link>
             <div>

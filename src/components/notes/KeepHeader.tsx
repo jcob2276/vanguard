@@ -18,14 +18,14 @@ export default function KeepHeader({ onBack, search, setSearch, viewMode, setVie
     <WorkspaceHeader
       title="Notatki"
       onBack={onBack}
-      center={<WorkspaceSearch value={search} onChange={setSearch} placeholder="Szukaj notatekâ€¦" />}
+      center={<WorkspaceSearch value={search} onChange={setSearch} placeholder="Szukaj notatek…" />}
       actions={
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setViewMode((value) => (value === 'grid' ? 'list' : 'grid'))}
           title={viewMode === 'grid' ? 'Lista' : 'Siatka'}
-          aria-label={viewMode === 'grid' ? 'PokaĹĽ listÄ™' : 'PokaĹĽ siatkÄ™'}
+          aria-label={viewMode === 'grid' ? 'Pokaż listę' : 'Pokaż siatkę'}
         >
           {viewMode === 'grid' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
         </Button>

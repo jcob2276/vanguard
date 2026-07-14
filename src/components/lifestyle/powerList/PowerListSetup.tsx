@@ -27,7 +27,7 @@ function YesterdayRecap({
   return (
     <Card variant="notice" padding="0.875rem" className="space-y-2.5">
       <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning">
-        Zanim zaczniesz dziĹ› â€” wczoraj ({yesterdayWin.date})
+        Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
       </p>
       <ul className="space-y-1">
         {(yesterdayWin.daily_win_tasks || []).map((t: Tables<'daily_win_tasks'>) => (
@@ -40,7 +40,7 @@ function YesterdayRecap({
         ))}
       </ul>
       <p className="text-xs text-text-muted leading-relaxed">
-        Dlaczego zrealizowaĹ‚eĹ› / nie zrealizowaĹ‚eĹ› te zadania?{' '}
+        Dlaczego zrealizowałeś / nie zrealizowałeś te zadania?{' '}
         {yesterdayNoteRequired && (
           <span className="font-bold text-warning dark:text-warning">(wymagane)</span>
         )}
@@ -48,7 +48,7 @@ function YesterdayRecap({
       <ControlTextarea
         value={yesterdayNote}
         onChange={(e) => setYesterdayNote(e.target.value)}
-        placeholder="Napisz szczerzeâ€¦"
+        placeholder="Napisz szczerze…"
         rows={3}
         className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
           text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-038)]
@@ -77,13 +77,13 @@ function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) 
           disabled={aiLoading}
           className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-2xs font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-[var(--opacity-50)] cursor-pointer"
         >
-          {aiLoading ? 'Analizowanie...' : aiQuestions ? 'đź”„ Zadaj inne pytania' : 'âť“ Pomoc AI (Zadaj pytania)'}
+          {aiLoading ? 'Analizowanie...' : aiQuestions ? '🔄 Zadaj inne pytania' : '❓ Pomoc AI (Zadaj pytania)'}
         </Pressable>
       </div>
 
       {aiQuestions && (
         <div className="rounded-lg border border-border-custom bg-surface p-3 text-left animate-in fade-in duration-[var(--motion-slow)]">
-          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyĹ›lenia:</p>
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyślenia:</p>
           <div className="text-xs font-semibold text-text-primary leading-relaxed whitespace-pre-line">
             {aiQuestions}
           </div>
@@ -155,12 +155,12 @@ export default function PowerListSetup({
 
       <div>
         <h3 className="font-display text-base font-black tracking-tight text-text-primary">
-          Zdefiniuj 5 zwyciÄ™stw
+          Zdefiniuj 5 zwycięstw
         </h3>
         <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary">
-          Wpisz rÄ™cznie lub wybierz z{' '}
+          Wpisz ręcznie lub wybierz z{' '}
           <span className="inline-flex items-center gap-1 font-bold text-primary">
-            ZadaĹ„ <Link2 size={10} />
+            Zadań <Link2 size={10} />
           </span>
           .
         </p>
@@ -208,7 +208,7 @@ export default function PowerListSetup({
                   <Pressable
                     onClick={() => updateSlot(i, { task: '', todoId: null })}
                     className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-danger/10 hover:text-danger"
-                    title="UsuĹ„ powiÄ…zanie"
+                    title="Usuń powiązanie"
                   >
                     <X size={14} />
                   </Pressable>
@@ -218,7 +218,7 @@ export default function PowerListSetup({
                     className={`mr-3 shrink-0 rounded-full p-1.5 transition-colors ${
                       pickerSlot === i ? 'bg-primary/15 text-primary' : 'text-text-muted hover:bg-primary/10 hover:text-primary'
                     }`}
-                    title="Wybierz z zadaĹ„"
+                    title="Wybierz z zadań"
                   >
                     <Link2 size={14} />
                   </Pressable>
@@ -239,7 +239,7 @@ export default function PowerListSetup({
 
       {!allFilled && (
         <p className="text-center text-xs font-bold text-text-muted">
-          WypeĹ‚nione {filledCount}/5 â€” uzupeĹ‚nij wszystkie, ĹĽeby zaczÄ…Ä‡ dzieĹ„
+          Wypełnione {filledCount}/5 — uzupełnij wszystkie, żeby zacząć dzień
         </p>
       )}
       <Pressable
@@ -247,7 +247,7 @@ export default function PowerListSetup({
         disabled={submitting || !allFilled || (yesterdayNoteRequired && !yesterdayNote.trim())}
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-on-accent shadow-lg shadow-[var(--shadow-glow-primary)] transition-all hover:bg-primary-hover active:scale-[var(--legacy-arbitrary-001)] disabled:opacity-[var(--opacity-50)] disabled:cursor-not-allowed"
       >
-        <Upload size={14} /> {submitting ? 'Zapisywanieâ€¦' : 'Zacznij dzieĹ„'}
+        <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
       </Pressable>
     </Card>
   );

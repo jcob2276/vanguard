@@ -87,27 +87,27 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
               <Button
                 variant="ghost"
                 onClick={() => { onPin(card.id); setOverlayOpen(false); }}
-                icon={<Pin size={20} color="white" />}
+                icon={<Pin size={20} color="var(--color-on-accent)" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
-                style={{ background: 'var(--color-primary)', boxShadow: '0 0 20px var(--legacy-color-152)' }}
+                style={{ background: 'var(--color-primary)', boxShadow: 'var(--shadow-insight-pin)' }}
               />
             )}
             {onSort && (
               <Button
                 variant="ghost"
                 onClick={() => { onSort(card.id); setOverlayOpen(false); }}
-                icon={<SortAsc size={20} color="white" />}
+                icon={<SortAsc size={20} color="var(--color-on-accent)" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
-                style={{ background: 'var(--color-warning)', boxShadow: '0 0 20px var(--legacy-color-123)' }}
+                style={{ background: 'var(--color-warning)', boxShadow: 'var(--shadow-insight-sort)' }}
               />
             )}
             {onDelete && (
               <Button
                 variant="ghost"
                 onClick={handleDelete}
-                icon={deleting ? <Spinner size="sm" className="h-5 w-5 !border-on-accent/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
+                icon={deleting ? <Spinner size="sm" className="h-5 w-5 !border-on-accent/30 !border-t-on-accent" /> : <Trash2 size={20} color="var(--color-on-accent)" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
-                style={{ background: 'var(--color-danger)', boxShadow: '0 0 20px var(--legacy-color-116)' }}
+                style={{ background: 'var(--color-danger)', boxShadow: 'var(--shadow-insight-delete)' }}
               />
             )}
             <Button
@@ -115,7 +115,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
               onClick={() => setOverlayOpen(false)}
               icon={<X size={16} color="var(--legacy-color-002)" />}
               className="w-10 h-10 min-w-0 p-0 rounded-full hover:bg-transparent"
-              style={{ background: 'white' }}
+              style={{ background: 'var(--color-on-accent)' }}
             />
           </div>
         </div>

@@ -102,14 +102,14 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
           title="Pocket"
           subtitle={d.unreadCount > 0 ? `${d.unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
           onBack={onBack}
-          center={<WorkspaceSearch value={d.search} onChange={d.setSearch} placeholder="Szukaj w PocketĂ˘â‚¬Â¦" />}
+          center={<WorkspaceSearch value={d.search} onChange={d.setSearch} placeholder="Szukaj w Pocket…" />}
           actions={
             <>
               <Pressable variant="ghost" size="sm" onClick={() => d.setViewMode(v => v === 'card' ? 'list' : 'card')} aria-label={d.viewMode === 'card' ? 'Widok listy' : 'Widok kart'}>
                 {d.viewMode === 'card' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
               </Pressable>
               <Pressable variant="ghost" size="sm" onClick={d.handleAiTriage} title="Automatyczny Triage AI" icon={<Sparkles size={15} />} />
-              <Pressable variant="tonal" size="sm" onClick={() => { d.setShowAddForm(p => !p); d.setAddUrl(''); }} icon={d.showAddForm ? <X size={15} /> : <Plus size={15} />} />
+              <Pressable variant="tonal" size="sm" onClick={() => { d.setShowAddForm(p => !p); d.setAddUrl(''); }} aria-label={d.showAddForm ? 'Zamknij formularz dodawania linku' : 'Dodaj link'} icon={d.showAddForm ? <X size={15} /> : <Plus size={15} />} />
             </>
           }
           navigation={
@@ -134,7 +134,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
                 value={d.addUrl}
                 onChange={e => d.setAddUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') d.handleAddLink(); if (e.key === 'Escape') d.setShowAddForm(false); }}
-                placeholder="Wklej URL i naciĹ›nij Enter..."
+                placeholder="Wklej URL i naciśnij Enter..."
                 className="flex-1 border-0 bg-transparent text-sm shadow-none placeholder:text-text-muted/50"
               />
               {d.addLoading
@@ -171,9 +171,9 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
             ) : d.filteredLinks.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[var(--legacy-h-020)] text-center rounded-[var(--radius-xl)] bg-surface shadow-[var(--legacy-shadow-072)]">
                 <Inbox size={28} className="text-text-muted/40 mb-3" />
-                <p className="text-base font-semibold text-text-secondary">Brak linkĂłw</p>
+                <p className="text-base font-semibold text-text-secondary">Brak linków</p>
                 <p className="text-sm text-text-muted mt-1 max-w-[var(--legacy-maxw-055)] leading-relaxed">
-                  WyĹ›lij link na Telegramie â€” pojawi siÄ™ tutaj automatycznie.
+                  Wyślij link na Telegramie — pojawi się tutaj automatycznie.
                 </p>
               </div>
             ) : (

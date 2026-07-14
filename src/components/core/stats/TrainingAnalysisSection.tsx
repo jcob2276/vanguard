@@ -139,7 +139,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                     {s.km_trend.map((v, i) => {
                       const maxV = Math.max(...s.km_trend!.filter(Boolean), 1);
                       const h = Math.max(2, Math.round((v / maxV) * 20));
-                      return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[0_0_8px_var(--primary-30)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;
+                      return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[var(--shadow-training-current)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;
                     })}
                   </div>
                   <span className="text-2xs text-text-secondary ml-auto font-bold">{s.km_trend?.join(' → ')} km</span>

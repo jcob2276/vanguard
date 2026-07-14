@@ -116,7 +116,7 @@ export default function BucketHeader({
                 setRenaming(true);
               }}
               className="p-1 text-text-muted/40 hover:text-primary transition-colors cursor-pointer"
-              title="ZmieĹ„ nazwÄ™ sekcji"
+              title="Zmień nazwę sekcji"
             >
               <Pencil size={11} />
             </Pressable>
@@ -128,7 +128,7 @@ export default function BucketHeader({
                 setConfirmingDelete(true);
               }}
               className="p-1 text-text-muted/40 hover:text-danger transition-colors cursor-pointer"
-              title="UsuĹ„ sekcjÄ™"
+              title="Usuń sekcję"
             >
               <Trash2 size={11} />
             </Pressable>
@@ -143,9 +143,9 @@ export default function BucketHeader({
           className="absolute right-0 top-full z-[var(--z-popover)] mt-1 w-64 rounded-2xl border border-border-custom bg-surface/95 p-3 shadow-2xl backdrop-blur-[var(--blur-xl)]"
         >
           <p className="text-xs font-semibold text-text-primary leading-snug">
-            UsunÄ…Ä‡ sekcjÄ™ <span className="font-black">â€ž{title}â€ť</span>?
+            Usunąć sekcję <span className="font-black">„{title}”</span>?
           </p>
-          <p className="mt-0.5 text-xs text-text-muted">Zadania w niej wrĂłcÄ… do skrzynki.</p>
+          <p className="mt-0.5 text-xs text-text-muted">Zadania w niej wrócą do skrzynki.</p>
           <div className="mt-2.5 flex justify-end gap-2">
             <Pressable
               onClick={() => setConfirmingDelete(false)}
@@ -160,7 +160,7 @@ export default function BucketHeader({
               }}
               className="rounded-lg bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger hover:bg-danger/20 transition-colors"
             >
-              UsuĹ„
+              Usuń
             </Pressable>
           </div>
         </div>

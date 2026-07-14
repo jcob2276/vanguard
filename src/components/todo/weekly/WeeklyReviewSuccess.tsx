@@ -12,7 +12,7 @@ export default function WeeklyReviewSuccess() {
           System oczyszczony!
         </h2>
         <p className="text-sm text-text-muted">
-          TwĂłj Tygodniowy PrzeglÄ…d ZadaĹ„ zostaĹ‚ zakoĹ„czony. Masz teraz peĹ‚nÄ… jasnoĹ›Ä‡ umysĹ‚u oraz zdefiniowane prognozy.
+          Twój Tygodniowy Przegląd Zadań został zakończony. Masz teraz pełną jasność umysłu oraz zdefiniowane prognozy.
         </p>
       </div>
     </div>

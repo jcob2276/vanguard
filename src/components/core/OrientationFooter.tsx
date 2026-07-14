@@ -46,8 +46,8 @@ export default function OrientationFooter() {
       variant="outline"
       className="animate-fadeIn mt-4"
       style={{
-        border: '1px solid color-mix(in oklch, var(--color-primary) 10%, transparent)',
-        background: 'color-mix(in oklch, var(--color-primary) 2%, transparent)',
+        border: 'var(--border-orientation-footer)',
+        background: 'var(--surface-orientation-footer)',
       }}
       padding="0"
     >

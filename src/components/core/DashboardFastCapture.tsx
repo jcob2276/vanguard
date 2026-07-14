@@ -46,6 +46,7 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
               }}
               style={{ backgroundColor: item.color }}
               className="flex h-12 w-12 items-center justify-center rounded-full text-on-accent shadow-lg active:scale-90 transition-transform cursor-pointer"
+              aria-label={item.label}
             >
               <span className="text-xl">{item.emoji}</span>
             </Pressable>
@@ -70,6 +71,7 @@ export function DashboardFastCaptureFAB({ active, onToggle }: FabProps) {
       position="bottom-center"
       size="sm"
       onClick={onToggle}
+      title={active ? 'Zamknij szybkie dodawanie' : 'Otwórz szybkie dodawanie'}
       className="fast-capture-btn"
       style={{ bottom: 'var(--legacy-inline-style-012)' }}
     >

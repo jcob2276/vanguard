@@ -50,7 +50,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const s = useDashboardState(session);
   const userId = session?.user?.id;
 
-  // â”€â”€ Full-screen route views â”€â”€
+  // ── Full-screen route views ──
   if (s.view === 'fundament') return (
     <Suspense fallback={<ViewFallback />}>
       <Fundament onBack={s.goBack} onSyncCalendar={s.startGoogleAuth} isSyncing={s.isSyncing} />
@@ -101,8 +101,8 @@ export default function Dashboard({ session }: { session: Session }) {
   );
 
   const navItems = [
-    { id: 'dzis', icon: Sun, label: 'DziĹ›' },
-    { id: 'tydzien', icon: Calendar, label: 'TydzieĹ„' },
+    { id: 'dzis', icon: Sun, label: 'Dziś' },
+    { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
     { id: 'projekty', icon: FolderKanban, label: 'Projekty' },
     { id: 'historia', icon: Clock, label: 'Historia' },
   ];
@@ -110,8 +110,8 @@ export default function Dashboard({ session }: { session: Session }) {
   const weeklyReviewNudge = new Date().getDay() === 0 && !s.taskReviewDoneThisWeek && (
     <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <h4 className="text-sm font-black text-primary uppercase tracking-wider">Tygodniowy PrzeglÄ…d ZadaĹ„</h4>
-        <p className="text-xs text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektĂłw.</p>
+        <h4 className="text-sm font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+        <p className="text-xs text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
       </div>
       <Pressable onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-on-accent rounded-xl text-xs font-black transition-colors btn-press shadow-sm">
         Rozpocznij
@@ -122,16 +122,16 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !s.todayWin;
 
   const fastCaptureItems = [
-    { label: 'Dodaj Jedzenie', emoji: 'đźŤŽ', color: 'var(--color-success)', action: () => s.setShowQuickFoodEntry(true) },
-    { label: 'Zaloguj Trening', emoji: 'đźŹ‹ď¸Ź', color: 'var(--color-warning)', action: () => { s.openWorkout(); } },
-    { label: 'Zaloguj SaunÄ™', emoji: 'đź§–', color: 'var(--color-warning)', action: () => s.navigate('/sauna') },
-    { label: 'Zmierz Wzrok', emoji: 'đź‘ď¸Ź', color: 'var(--legacy-color-007)', action: () => s.navigate('/optics') },
+    { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'var(--color-success)', action: () => s.setShowQuickFoodEntry(true) },
+    { label: 'Zaloguj Trening', emoji: '🏋️', color: 'var(--color-warning)', action: () => { s.openWorkout(); } },
+    { label: 'Zaloguj Saunę', emoji: '🧖', color: 'var(--color-warning)', action: () => s.navigate('/sauna') },
+    { label: 'Zmierz Wzrok', emoji: '👁️', color: 'var(--legacy-color-007)', action: () => s.navigate('/optics') },
   ];
 
   return (
     <DashboardContext.Provider value={s}>
       <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-[var(--motion-slow)]">
-        <div className="mx-auto flex min-h-screen w-full max-w-md lg:max-w-4xl flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-[var(--blur-3xl)] shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto flex min-h-screen w-full max-w-md lg:max-w-4xl flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-[var(--blur-3xl)] shadow-sm" style={{ paddingBottom: showLock ? 'var(--dashboard-padding-locked)' : 'var(--dashboard-padding-navigation)' }}>
           <DashboardHeader
             userId={userId}
             unreadCount={s.pendingActionCount}
@@ -157,7 +157,7 @@ export default function Dashboard({ session }: { session: Session }) {
                 <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
                 {s.todayWin && isAfter20() && (
                   <Pressable onClick={() => s.setShowShutdown(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-black uppercase tracking-wider text-primary hover:bg-primary/20 active:scale-95 transition-all shadow-sm mt-4">
-                    Domknij DzieĹ„ (RytuaĹ‚ Wieczorny)
+                    Domknij Dzień (Rytuał Wieczorny)
                   </Pressable>
                 )}
               </div>

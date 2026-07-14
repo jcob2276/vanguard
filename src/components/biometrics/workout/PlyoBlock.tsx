@@ -43,7 +43,7 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
       <div className="h-1.5 rounded-full bg-surface-solid overflow-hidden">
         <div
           className="h-full bg-success transition-all duration-[var(--motion-slow)]"
-          style={{ width: totalSets ? `${(completedSets / totalSets) * 100}%` : '0%' }}
+          style={{ width: totalSets ? `${(completedSets / totalSets) * 100}%` : 'var(--size-zero)' }}
         />
       </div>
 

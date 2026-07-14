@@ -45,7 +45,7 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <DataStateNotice tone="loading" title="Zadania siÄ™ Ĺ‚adujÄ…" detail="Pobieram otwarte zadania." />
+        <DataStateNotice tone="loading" title="Zadania się ładują" detail="Pobieram otwarte zadania." />
       </div>
     );
   }

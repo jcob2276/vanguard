@@ -27,6 +27,8 @@ const eslintSrc = fs.readFileSync(eslintConfigPath, "utf8");
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
 const legacyBaseline = JSON.parse(fs.readFileSync(legacyBaselinePath, "utf8"));
+const appSource = fs.readFileSync(path.join(root, "src", "App.tsx"), "utf8");
+const declaredRoutes = new Set([...appSource.matchAll(/<Route\s+path=["']([^"']+)["']/gu)].map((match) => match[1]));
 
 // Array-name trackers — everything in ratchet-baseline.json except maxWarnings maps to a
 // `const NAME = [...]` in eslint.config.js. Exclude patternCount_* keys.
@@ -66,6 +68,36 @@ const patternDefinitions = {
   patternCount_backgroundError: {
     label: "Background Errors in src/",
     check: (file, relativePath, content) => (content.match(/\[Background Error\]/g) || []).length,
+  },
+  patternCount_mojibake: {
+    label: "broken UTF-8 / mojibake sequences in frontend source",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/")) return 0;
+      return (content.match(/[ÃÄÅâĹÂðđĂ]|�/gu) || []).length;
+    },
+  },
+  patternCount_invalidAlphaColorConcat: {
+    label: "invalid color alpha suffix concatenated to dynamic/CSS-variable colors",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/") || !/\.[jt]sx?$/u.test(relativePath)) return 0;
+      return (content.match(/\$\{[^}\n]+\}(?:0[0-9A-F]|[1-9A-F][0-9A-F])/gu) || []).length;
+    },
+  },
+  patternCount_imagesWithoutAlt: {
+    label: "JSX images without an explicit alt attribute",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/") || !relativePath.endsWith(".tsx")) return 0;
+      const images = content.match(/<img\b[\s\S]*?>/gu) || [];
+      return images.filter((image) => !/\balt\s*=/u.test(image)).length;
+    },
+  },
+  patternCount_unknownInternalRoutes: {
+    label: "static Link/navigate targets missing from the application router",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/") || !/\.[jt]sx?$/u.test(relativePath)) return 0;
+      const targets = [...content.matchAll(/(?:\bto\s*=\s*|\bnavigate\(\s*)["'](\/[^"'?#]*)["']/gu)].map((match) => match[1]);
+      return targets.filter((target) => !declaredRoutes.has(target)).length;
+    },
   },
   patternCount_functionsV1: {
     label: "/functions/v1/ calls outside lib/supabase.ts",
@@ -206,15 +238,31 @@ const patternDefinitions = {
       const source = ts.createSourceFile(relativePath, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
       const visualProps = new Set(["fontSize", "borderRadius", "boxShadow", "padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "margin", "marginTop", "marginRight", "marginBottom", "marginLeft", "gap", "rowGap", "columnGap", "width", "minWidth", "maxWidth", "height", "minHeight", "maxHeight", "border", "borderTop", "borderRight", "borderBottom", "borderLeft", "letterSpacing", "lineHeight", "opacity", "zIndex", "top", "right", "bottom", "left", "inset", "transform", "transition", "animation", "fontFamily", "fontWeight", "backdropFilter"]);
       let count = 0;
+      const countValue = (value, name) => {
+        if (ts.isParenthesizedExpression(value)) return countValue(value.expression, name);
+        if (ts.isNumericLiteral(value)) return Number(value.text) === 0 ? 0 : 1;
+        if (ts.isStringLiteral(value)) {
+          const outsideTokens = value.text.replace(/var\([^)]*\)/gu, "");
+          return (/\d/u.test(outsideTokens) || (name === "fontFamily" && !value.text.includes("var(--"))) ? 1 : 0;
+        }
+        if (ts.isConditionalExpression(value)) return countValue(value.whenTrue, name) + countValue(value.whenFalse, name);
+        if (ts.isBinaryExpression(value) && (value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken || value.operatorToken.kind === ts.SyntaxKind.BarBarToken)) {
+          return countValue(value.right, name);
+        }
+        return 0;
+      };
       const visit = (node) => {
         if (ts.isJsxAttribute(node) && node.name.text === "style" && node.initializer && ts.isJsxExpression(node.initializer) && node.initializer.expression && ts.isObjectLiteralExpression(node.initializer.expression)) {
           for (const property of node.initializer.expression.properties) {
             if (!ts.isPropertyAssignment(property)) continue;
             const name = ts.isIdentifier(property.name) ? property.name.text : ts.isStringLiteral(property.name) ? property.name.text : "";
             if (!visualProps.has(name)) continue;
-            const value = property.initializer;
-            if (ts.isNumericLiteral(value)) count += 1;
-            if (ts.isStringLiteral(value) && (/\d/.test(value.text) || name === "fontFamily") && !value.text.includes("var(--")) count += 1;
+            const violations = countValue(property.initializer, name);
+            if (violations > 0) {
+              const { line } = source.getLineAndCharacterOfPosition(property.getStart(source));
+              console.log(`[staticInlineStyle value] ${relativePath}:${line + 1} ${name}`);
+            }
+            count += violations;
           }
         }
         ts.forEachChild(node, visit);
@@ -318,6 +366,9 @@ for (const file of allFiles) {
     }
     if (c > 0 && key === "patternCount_functionsV1") {
       console.log(`[functionsV1 match] ${relativePath} has ${c}`);
+    }
+    if (c > 0 && key === "patternCount_staticInlineStyleValues") {
+      console.log(`[staticInlineStyle match] ${relativePath} has ${c}`);
     }
     counts[key] += c;
   }

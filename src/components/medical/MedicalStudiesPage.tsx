@@ -81,6 +81,7 @@ export default function MedicalStudiesPage() {
         <div className="w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center gap-4">
           <Link
             to="/"
+            aria-label="Wróć do widoku głównego"
             className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
           >
             <ArrowLeft size={18} />

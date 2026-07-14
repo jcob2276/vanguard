@@ -113,7 +113,7 @@ export default function OracleCard({
       {!open && !embedded ? (
         <Pressable
           onClick={handleOpen}
-          style={{ transform: btnPressed ? 'scale(0.9)' : 'scale(1)', transition: 'var(--legacy-inline-style-090)' }}
+          style={{ transform: `scale(var(${btnPressed ? '--scale-pressed-strong' : '--scale-rest'}))`, transition: 'var(--legacy-inline-style-090)' }}
           className="flex w-full items-center gap-3 rounded-[var(--radius-xl)] border border-primary/10 bg-primary/[0.04] p-4 text-left hover:bg-primary/[0.08] cursor-pointer"
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">

@@ -16,6 +16,7 @@ export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onE
       <div className="w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
         <Link
           to="/"
+          aria-label="Wróć do widoku głównego"
           className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
         >
           <ArrowLeft size={18} />
@@ -28,6 +29,7 @@ export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onE
                 variant="ghost"
                 onClick={() => onShiftWeek(-1)}
                 icon={<ChevronLeft size={15} />}
+                aria-label="Poprzedni tydzień"
                 className="p-1 min-w-0 text-text-muted hover:text-primary hover:bg-transparent"
               />
               <span className="text-xs font-bold text-text-muted">{formatWeekRange(weekStart)}</span>
@@ -36,6 +38,7 @@ export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onE
                 onClick={() => onShiftWeek(1)}
                 disabled={isCurrentWeek(weekStart)}
                 icon={<ChevronRight size={15} />}
+                aria-label="Następny tydzień"
                 className="p-1 min-w-0 text-text-muted hover:text-primary disabled:opacity-[var(--opacity-30)] hover:bg-transparent"
               />
             </div>

@@ -86,7 +86,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
         </Pressable>
         <div className="text-center">
           <p className="text-sm font-bold text-text-primary">
-            {dayLabel(weekStart)} â€“ {dayLabel(addDays(weekStart, 6))}
+            {dayLabel(weekStart)} – {dayLabel(addDays(weekStart, 6))}
           </p>
           {!weekDays.includes(today) && (
             <Pressable
@@ -97,7 +97,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
               }}
               className="text-xs text-primary font-semibold"
             >
-              BieĹĽÄ…cy tydzieĹ„
+              Bieżący tydzień
             </Pressable>
           )}
         </div>
@@ -122,12 +122,12 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                 {formatWeekdayShort(day)}
               </p>
               {dayForecast && (
-                <div className="mt-0.5 flex flex-col items-center gap-0.5 cursor-help" title={`${WMO_WEATHER_DESC[dayForecast.weatherCode]}: ${dayForecast.tempMax}Â°C / ${dayForecast.tempMin}Â°C`}>
+                <div className="mt-0.5 flex flex-col items-center gap-0.5 cursor-help" title={`${WMO_WEATHER_DESC[dayForecast.weatherCode]}: ${dayForecast.tempMax}°C / ${dayForecast.tempMin}°C`}>
                   <div className="flex items-center justify-center transition-transform duration-[var(--motion-medium)] hover:scale-110">
                     {getWMOWeatherIcon(dayForecast.weatherCode, 12)}
                   </div>
                   <span className="text-3xs font-black text-text-muted leading-none">
-                    {dayForecast.tempMax}Â°
+                    {dayForecast.tempMax}°
                   </span>
                 </div>
               )}

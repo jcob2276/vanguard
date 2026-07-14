@@ -13,6 +13,7 @@ export default function CorrelationsHeader({ loading, onRefresh }: CorrelationsH
       <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
         <Link
           to="/"
+          aria-label="Wróć do widoku głównego"
           className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
         >
           <ArrowLeft size={18} />

@@ -5,7 +5,7 @@ import type { UserStatsSnapshot } from './hooks/useUserStatsSnapshot';
 interface MetricPillProps { value: number; label: string; color: string; }
 function MetricPill({ value, label, color }: MetricPillProps) {
   return (
-    <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: `${color}0D` }}>
+    <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: `color-mix(in srgb, ${color} 5%, transparent)` }}>
       <p className="text-lg font-[var(--legacy-arbitrary-022)] leading-none" style={{ color }}>{value.toLocaleString('pl-PL')}</p>
       <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{label}</p>
     </div>

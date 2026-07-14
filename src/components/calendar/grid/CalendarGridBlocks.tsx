@@ -32,8 +32,8 @@ export const renderEventBlock = ({
   const top = (visibleStartMin - HOUR_START * 60) * PX_PER_MIN;
   const height = Math.max(20, (visibleEndMin - visibleStartMin) * PX_PER_MIN);
   const tooShort = height < 32;
-  const isAIScheduled = ev.summary?.includes('âś¨') || ev.summary?.includes('[AI]');
-  const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('đź›ˇď¸Ź');
+  const isAIScheduled = ev.summary?.includes('✨') || ev.summary?.includes('[AI]');
+  const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
 
   let displaySummary = ev.summary;
   if (tooShort) {
@@ -41,7 +41,7 @@ export const renderEventBlock = ({
     if (isSleep) {
       displaySummary = `${formatTime(ev.start_time)}-${formatTime(ev.end_time)}`;
     } else {
-      displaySummary = `${ev.summary} (${formatTime(ev.start_time)}â€“${formatTime(ev.end_time)})`;
+      displaySummary = `${ev.summary} (${formatTime(ev.start_time)}–${formatTime(ev.end_time)})`;
     }
   }
 
@@ -62,7 +62,7 @@ export const renderEventBlock = ({
       </div>
       {!tooShort && (
         <div className="mt-1 text-xs font-medium leading-none opacity-[var(--opacity-70)]">
-          <span>{formatTime(ev.start_time)}â€“{formatTime(ev.end_time)}</span>
+          <span>{formatTime(ev.start_time)}–{formatTime(ev.end_time)}</span>
         </div>
       )}
       <div
@@ -96,7 +96,7 @@ export const renderTodoBlock = ({
   return (
     <div
       key={`todo-${todo.id}`}
-      title={`${todo.title}${chip?.dreamTitle ? ` Â· ${chip.dreamTitle}` : ''}`}
+      title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''}`}
       draggable
       onDragStart={(e) => {
         e.stopPropagation();
@@ -117,8 +117,9 @@ export const renderTodoBlock = ({
           onClick={(e) => {
             e.stopPropagation();
             handleToggleTodo(todo.id);
-            setToastMessage(`UkoĹ„czono: "${todo.title}" âś…`);
+            setToastMessage(`Ukończono: "${todo.title}" ✅`);
           }}
+          aria-label={`Oznacz zadanie jako wykonane: ${todo.title}`}
           className={`relative after:absolute after:-inset-2 mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
         >
           {isCompleting && <Check size={6} className="text-on-accent" strokeWidth={4} />}

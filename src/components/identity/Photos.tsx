@@ -79,7 +79,7 @@ export default function Photos() {
         }
       } catch (exifErr: unknown) {
       console.error('[Action Error]', exifErr);
-      notify(exifErr instanceof Error ? exifErr.message : 'WystÄ…piĹ‚ bĹ‚Ä…d', 'error');
+      notify(exifErr instanceof Error ? exifErr.message : 'Wystąpił błąd', 'error');
     }
 
       const stamp = Date.now();
@@ -106,12 +106,12 @@ export default function Photos() {
       if (insertErr) throw insertErr;
       void photosQuery.refetch();
     } catch (error: unknown) {
-      notify('BĹ‚Ä…d: ' + (error instanceof Error ? (error as Error).message : String(error)), 'error');
+      notify('Błąd: ' + (error instanceof Error ? (error as Error).message : String(error)), 'error');
     } finally { setUploading(false); }
   }
 
   async function deletePhoto(id: string, url: string, thumbnailUrl: string | null) {
-    if (!(await confirmDialog('UsunÄ…Ä‡?'))) return;
+    if (!(await confirmDialog('Usunąć?'))) return;
     const fileName = `${userId}/${url.split('/').pop()}`;
     const paths = [fileName];
     if (thumbnailUrl) paths.push(`${userId}/${thumbnailUrl.split('/').pop()}`);
@@ -131,20 +131,20 @@ export default function Photos() {
         </div>
         <div className="space-y-1">
           <h3 className="text-base font-black uppercase tracking-tight text-text-primary font-display">
-            Wizualny ProtokĂłĹ‚
+            Wizualny Protokół
           </h3>
           <p className="text-xs font-medium leading-relaxed text-text-secondary max-w-[var(--legacy-maxw-056)] mx-auto">
-            Brak zdjÄ™Ä‡ postÄ™pu w bazie. ZrĂłb i dodaj pierwsze zdjÄ™cie, aby zaczÄ…Ä‡ Ĺ›ledziÄ‡ transformacjÄ™ sylwetki.
+            Brak zdjęć postępu w bazie. Zrób i dodaj pierwsze zdjęcie, aby zacząć śledzić transformację sylwetki.
           </p>
         </div>
         <div className="pt-2">
           <label className="inline-flex items-center gap-2 cursor-pointer bg-primary text-on-accent font-display font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl hover:bg-primary-hover transition-all active:scale-95 shadow-md shadow-primary/20 cursor-pointer">
             {uploading ? (
-              <Spinner size="sm" className="!border-on-accent/30 !border-t-white" />
+              <Spinner size="sm" className="!border-on-accent/30 !border-t-on-accent" />
             ) : (
               <>
                 <Camera size={14} className="shrink-0" />
-                <span>Dodaj pierwsze zdjÄ™cie</span>
+                <span>Dodaj pierwsze zdjęcie</span>
               </>
             )}
             <ControlInput type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
@@ -168,7 +168,7 @@ export default function Photos() {
       <Card padding="0">
         <div className="flex items-start justify-between px-5 pt-5 pb-4">
           <div>
-            <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">PostÄ™p sylwetki</p>
+            <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Postęp sylwetki</p>
             <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">Transformacja</h2>
           </div>
           <label className="cursor-pointer flex h-11 w-11 items-center justify-center rounded-2xl border border-border-custom bg-surface text-text-secondary transition-all hover:bg-primary hover:border-primary hover:text-on-accent shadow-sm">
@@ -184,13 +184,13 @@ export default function Photos() {
             <div className="relative flex-1 border-r border-border-custom overflow-hidden">
               {basePhoto ? (
                 <>
-                  <img src={basePhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={basePhoto.image_url} alt="Zdjęcie bazowe sylwetki" className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute top-4 left-4 bg-surface/80 backdrop-blur-[var(--blur-md)] px-3 py-1 rounded-full border border-border-custom shadow-sm">
                     <p className="text-2xs font-black text-text-secondary uppercase tracking-widest">Baza: {format(parseISO(basePhoto.date!), 'dd.MM.yy')}</p>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full text-xs font-black text-text-muted uppercase">Wybierz bazÄ™</div>
+                <div className="flex items-center justify-center h-full text-xs font-black text-text-muted uppercase">Wybierz bazę</div>
               )}
             </div>
 
@@ -198,7 +198,7 @@ export default function Photos() {
             <div className="relative flex-1 overflow-hidden">
               {targetPhoto ? (
                 <>
-                  <img src={targetPhoto.image_url} className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={targetPhoto.image_url} alt="Zdjęcie docelowe sylwetki" className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute top-4 right-4 bg-primary/10 backdrop-blur-[var(--blur-md)] px-3 py-1 rounded-full border border-primary/25">
                     <p className="text-2xs font-black text-primary uppercase tracking-widest">Cel: {format(parseISO(targetPhoto.date!), 'dd.MM.yy')}</p>
                   </div>
@@ -219,17 +219,17 @@ export default function Photos() {
           {/* Dni Progresu Badge */}
           {daysDiff > 0 && (
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-primary text-on-accent px-5 py-1.5 rounded-full shadow-lg shadow-primary/25">
-              <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] whitespace-nowrap">+{daysDiff} dni postÄ™pu</p>
+              <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] whitespace-nowrap">+{daysDiff} dni postępu</p>
             </div>
           )}
         </div>
       </Card>
 
-      {/* OĹ› czasu */}
+      {/* Oś czasu */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">OĹ› czasu</p>
-          <p className="text-2xs font-bold text-text-muted uppercase tracking-wider">Dotknij by zestawiÄ‡</p>
+          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Oś czasu</p>
+          <p className="text-2xs font-bold text-text-muted uppercase tracking-wider">Dotknij by zestawić</p>
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -243,7 +243,7 @@ export default function Photos() {
                   onClick={() => handleSelect(photo.id)}
                   className={`relative w-[var(--legacy-w-095)] aspect-[var(--legacy-arbitrary-047)] rounded-2xl overflow-hidden border-2 transition-all duration-[var(--motion-slow)] cursor-pointer ${isBase ? 'border-primary scale-[var(--legacy-arbitrary-048)] shadow-md shadow-primary/20' : isTarget ? 'border-primary/50 scale-[var(--legacy-arbitrary-048)] shadow-sm' : 'border-border-custom opacity-[var(--opacity-50)] hover:opacity-[var(--opacity-80)]'}`}
                 >
-                  <img src={photo.thumbnail_url || photo.image_url} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
+                  <img src={photo.thumbnail_url || photo.image_url} alt={`Zdjęcie sylwetki z ${format(parseISO(photo.date!), 'dd.MM.yyyy')}`} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
                   {(isBase || isTarget) && (
                     <div className="absolute inset-0 flex items-end justify-center pb-2">
                       <span className="text-2xs font-black text-on-accent uppercase bg-scrim/50 backdrop-blur-[var(--blur-sm)] px-2 py-0.5 rounded-full border border-on-accent/10">

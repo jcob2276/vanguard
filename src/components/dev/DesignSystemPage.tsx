@@ -33,7 +33,7 @@ function DesignSystemHeader({ onBack, dark, onToggleTheme }: { onBack: () => voi
         />
         <BrandTitle className="text-base" />
         <span className="ml-auto hidden text-xs font-bold uppercase tracking-widest text-text-muted sm:block">/dev/design-system</span>
-        <Button variant="tonal" size="sm" onClick={onToggleTheme} aria-label={dark ? 'WĹ‚Ä…cz jasny motyw' : 'WĹ‚Ä…cz ciemny motyw'}>
+        <Button variant="tonal" size="sm" onClick={onToggleTheme} aria-label={dark ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'}>
           {dark ? <Sun size={15} /> : <Moon size={15} />}
         </Button>
       </div>

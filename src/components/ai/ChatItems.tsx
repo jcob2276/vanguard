@@ -191,7 +191,7 @@ export function SystemReminderItem({ text }: { text: string }) {
     <div className="flex justify-center my-2">
       <div
         className="flex items-center gap-1.5 rounded-full px-3 py-1"
-        style={{ background: 'var(--legacy-color-148)', border: '1px solid var(--legacy-color-151)' }}
+        style={{ background: 'var(--legacy-color-148)', border: 'var(--border-width-thin) solid var(--legacy-color-151)' }}
       >
         <span className="text-2xs">💡</span>
         <p className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>{text}</p>

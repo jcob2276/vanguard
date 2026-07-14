@@ -560,6 +560,27 @@
   --shadow-focus: 0 0 0 3px var(--primary-10);
   --shadow-glow-primary: 0 0 12px var(--primary-40);
   --shadow-accent-active: 0 4px 25px var(--primary-12);
+  --shadow-avatar-ring: 0 0 0 2px var(--color-primary);
+  --border-avatar-badge: 2px solid var(--surface-solid);
+  --border-width-thin: 1px;
+  --border-orientation-footer: var(--border-width-thin) solid color-mix(in oklch, var(--color-primary) 10%, transparent);
+  --surface-orientation-footer: color-mix(in oklch, var(--color-primary) 2%, transparent);
+  --dashboard-padding-locked: 2rem;
+  --dashboard-padding-navigation: calc(6rem + env(safe-area-inset-bottom));
+  --scale-pressed-strong: 0.9;
+  --scale-rest: 1;
+  --shadow-training-current: 0 0 8px var(--primary-30);
+  --shadow-pattern-card: 0 2px 12px var(--legacy-color-049);
+  --shadow-insight-pin: 0 0 20px var(--legacy-color-152);
+  --shadow-insight-sort: 0 0 20px var(--legacy-color-123);
+  --shadow-insight-delete: 0 0 20px var(--legacy-color-116);
+  --opacity-pattern-rejected: 0.5;
+  --opacity-note-editing: 0.6;
+  --note-editor-max-width: 53.75rem;
+  --health-score-font-small: 9px;
+  --health-score-font-default: 10px;
+  --size-full: 100%;
+  --size-zero: 0%;
 
   --color-info: #3b82f6;
   --color-success-hover: #059669;
@@ -611,6 +632,7 @@
   --control-lg: 3rem;
   --touch-target: 2.75rem;
   --sidebar-width: 15.5rem;
+  --sidebar-toggle-offset: calc(var(--sidebar-width) - 1.125rem);
   --content-narrow: 45rem;
   --content-default: 55rem;
   --content-wide: 73.75rem;

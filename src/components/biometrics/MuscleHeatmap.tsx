@@ -243,7 +243,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                       style={{
                         width: `${(count / maxLoad) * 100}%`,
                         background: `linear-gradient(90deg, ${tagColor(tag)}, var(--legacy-color-138))`,
-                        boxShadow: count / maxLoad > 0.5 ? `0 0 8px ${tagColor(tag)}80` : 'none',
+                        boxShadow: count / maxLoad > 0.5 ? `0 0 8px color-mix(in srgb, ${tagColor(tag)} 50%, transparent)` : 'none',
                       }}
                     />
                   </div>

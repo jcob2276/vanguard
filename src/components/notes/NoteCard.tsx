@@ -46,7 +46,7 @@ export default function NoteCard({
       style={{
         backgroundColor: c.bg,
         borderColor: isDragOver ? 'var(--legacy-color-024)' : c.border,
-        opacity: isEditing ? 0.6 : 1,
+        opacity: isEditing ? 'var(--opacity-note-editing)' : 'var(--opacity-100)',
       }}
       onClick={() => onOpen(note.id)}
       draggable={!isEditing}

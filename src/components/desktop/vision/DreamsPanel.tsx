@@ -122,7 +122,7 @@ export default function DreamsPanel({
             </p>
             <div className="space-y-1.5">
               {top5Dreams.map(dream => (
-                <Card key={dream.id} variant="glass" padding="0.625rem 0.875rem" className="flex items-center gap-2.5" style={{ borderRadius: 'var(--legacy-inline-style-006)', border: '1px solid var(--legacy-color-121)', background: 'var(--legacy-color-118)' }}>
+                <Card key={dream.id} variant="glass" padding="0.625rem 0.875rem" className="flex items-center gap-2.5" style={{ borderRadius: 'var(--legacy-inline-style-006)', border: 'var(--border-width-thin) solid var(--legacy-color-121)', background: 'var(--legacy-color-118)' }}>
                   <Star size={10} className="shrink-0 text-warning" fill="currentColor" />
                   <Pressable variant="ghost" size="sm" onClick={() => openDreamModal(dream)} className="flex-1 text-left text-xs font-bold text-text-primary hover:text-primary truncate cursor-pointer">
                     {dream.title}
@@ -176,10 +176,10 @@ export default function DreamsPanel({
                 style={{
                   borderRadius: 'var(--legacy-inline-style-006)',
                   ...(dream.is_done
-                    ? { border: '1px solid var(--legacy-color-096)', background: 'var(--legacy-color-092)' }
+                    ? { border: 'var(--border-width-thin) solid var(--legacy-color-096)', background: 'var(--legacy-color-092)' }
                     : dream.is_top5
-                    ? { border: '1px solid var(--legacy-color-120)', background: 'var(--legacy-color-117)' }
-                    : { border: '1px solid var(--legacy-color-089)' })
+                    ? { border: 'var(--border-width-thin) solid var(--legacy-color-120)', background: 'var(--legacy-color-117)' }
+                    : { border: 'var(--border-width-thin) solid var(--legacy-color-089)' })
                 }}
                 onClick={() => openDreamModal(dream)}
               >

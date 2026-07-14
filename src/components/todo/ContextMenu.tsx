@@ -101,14 +101,14 @@ export default function ContextMenu({
           <span className="font-mono">T</span>
         </div>
         <div className="flex gap-1">
-          {/* DziĹ› */}
+          {/* Dziś */}
           <Pressable
             onClick={() => {
               onSetDueDate(today);
               onClose();
             }}
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
-            title="DziĹ›"
+            title="Dziś"
           >
             <Calendar size={14} className="text-success" />
           </Pressable>
@@ -123,18 +123,18 @@ export default function ContextMenu({
           >
             <Sun size={14} className="text-warning" />
           </Pressable>
-          {/* NastÄ™pny weekend */}
+          {/* Następny weekend */}
           <Pressable
             onClick={() => {
               onSetDueDate(getNextWeekend());
               onClose();
             }}
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
-            title="NastÄ™pny weekend"
+            title="Następny weekend"
           >
             <CalendarDays size={14} className="text-info" />
           </Pressable>
-          {/* WyczyĹ›Ä‡ termin */}
+          {/* Wyczyść termin */}
           <Pressable
             onClick={() => {
               onSetDueDate(null);
@@ -180,12 +180,12 @@ export default function ContextMenu({
 
       <div className="mx-2 my-0.5 border-t border-border-custom/40" />
 
-      {/* 4. PrzenieĹ› do, Duplikuj */}
+      {/* 4. Przenieś do, Duplikuj */}
       <div className="relative group/submenu">
         <Pressable className="flex w-full items-center justify-between px-3 py-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] transition-colors cursor-pointer font-semibold">
           <div className="flex items-center gap-2.5">
             <FolderInput size={14} className="text-text-muted/60" />
-            <span>PrzenieĹ› do...</span>
+            <span>Przenieś do...</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-2xs text-text-muted/40 font-mono tracking-wider">V</span>
@@ -202,7 +202,7 @@ export default function ContextMenu({
             }}
             className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
           >
-            <span>đź“Ą Skrzynka</span>
+            <span>📥 Skrzynka</span>
           </Pressable>
           {sections.map((s) => (
             <Pressable
@@ -213,7 +213,7 @@ export default function ContextMenu({
               }}
               className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
             >
-              <span>đź“‚ {s.name}</span>
+              <span>📂 {s.name}</span>
             </Pressable>
           ))}
         </div>
@@ -234,7 +234,7 @@ export default function ContextMenu({
 
       <div className="mx-2 my-0.5 border-t border-border-custom/40" />
 
-      {/* 5. UsuĹ„ */}
+      {/* 5. Usuń */}
       <Pressable
         onClick={() => {
           onDelete();
@@ -244,9 +244,9 @@ export default function ContextMenu({
       >
         <div className="flex items-center gap-2.5">
           <Trash2 size={14} className="text-danger" />
-          <span>UsuĹ„</span>
+          <span>Usuń</span>
         </div>
-        <span className="text-2xs text-danger/40 font-mono tracking-wider">â†‘ UsuĹ„</span>
+        <span className="text-2xs text-danger/40 font-mono tracking-wider">↑ Usuń</span>
       </Pressable>
     </div>
   );

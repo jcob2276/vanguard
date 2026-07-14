@@ -65,7 +65,7 @@ export default function HealthScore({ score, size = 44, showLabel = false }: Hea
         {/* Score label in center */}
         <span
           className={`relative text-xs font-black leading-none ${colors.fill}`}
-          style={{ fontSize: size < 36 ? 9 : 10 }}
+          style={{ fontSize: size < 36 ? 'var(--health-score-font-small)' : 'var(--health-score-font-default)' }}
         >
           {score}
         </span>

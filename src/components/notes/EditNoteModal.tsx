@@ -193,7 +193,7 @@ export default function EditNoteModal({
       <div className="keep-modal-backdrop" onClick={e => { e.stopPropagation(); handleSave(); }} />
       <div
         className="keep-modal-content"
-        style={{ backgroundColor: c.bg, borderColor: c.border, display: 'flex', flexDirection: 'row', overflow: 'hidden', maxWidth: showAI ? 860 : undefined }}
+        style={{ backgroundColor: c.bg, borderColor: c.border, display: 'flex', flexDirection: 'row', overflow: 'hidden', maxWidth: showAI ? 'var(--note-editor-max-width)' : undefined }}
         onClick={e => e.stopPropagation()}
       >
         {/* Main note column */}
@@ -339,7 +339,7 @@ export default function EditNoteModal({
           <div className="keep-ai-companion" style={{ borderColor: c.border }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--legacy-inline-style-074)', borderBottom: `1px solid ${c.border}`,
+              padding: 'var(--legacy-inline-style-074)', borderBottom: `var(--border-width-thin) solid ${c.border}`,
               background: 'linear-gradient(135deg, var(--primary-5) 0%, var(--legacy-color-100) 100%)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
@@ -365,7 +365,7 @@ export default function EditNoteModal({
                 <Pressable key={btn.key} type="button" disabled={!!aiLoading} onClick={btn.action}
                   style={{
                     display: 'flex', alignItems: 'flex-start', gap: 'var(--legacy-inline-style-029)', padding: 'var(--legacy-inline-style-073)',
-                    borderRadius: 'var(--legacy-inline-style-004)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--legacy-inline-style-004)', border: 'var(--border-width-thin) solid var(--border)',
                     background: aiLoading === btn.key ? btn.bg.replace('0.12', '0.20') : 'transparent',
                     cursor: aiLoading ? 'wait' : 'pointer', transition: 'var(--legacy-inline-style-086)', textAlign: 'left', width: 'var(--legacy-inline-style-092)',
                   }}>
@@ -384,8 +384,8 @@ export default function EditNoteModal({
 
             {aiResult && (
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--legacy-inline-style-068)' }}>
-                <div style={{ borderRadius: 'var(--legacy-inline-style-004)', border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--legacy-color-072)' }}>
-                  <div style={{ padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-023)', fontWeight: 'var(--legacy-inline-style-028)', textTransform: 'uppercase', letterSpacing: 'var(--legacy-inline-style-044)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-031)' }}>
+                <div style={{ borderRadius: 'var(--legacy-inline-style-004)', border: 'var(--border-width-thin) solid var(--border)', overflow: 'hidden', background: 'var(--legacy-color-072)' }}>
+                  <div style={{ padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-023)', fontWeight: 'var(--legacy-inline-style-028)', textTransform: 'uppercase', letterSpacing: 'var(--legacy-inline-style-044)', color: 'var(--text-muted)', borderBottom: 'var(--border-width-thin) solid var(--border)', display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-031)' }}>
                     <Sparkles size={9} />
                     {aiResult.type === 'summary' && 'Podsumowanie'}
                     {aiResult.type === 'tasks' && 'Wyciagniete zadania'}
@@ -402,7 +402,7 @@ export default function EditNoteModal({
                         setAiResult(null);
                         notify('Podsumowanie dodane na gore notatki!', 'success');
                       }}
-                      style={{ width: 'var(--legacy-inline-style-092)', padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-017)', fontWeight: 'var(--legacy-inline-style-026)', borderTop: '1px solid var(--border)', background: 'var(--primary-5)', color: 'var(--primary)', cursor: 'pointer', border: 'none', borderRadius: 'var(--legacy-inline-style-003)', transition: 'var(--legacy-inline-style-085)' }}>
+                      style={{ width: 'var(--legacy-inline-style-092)', padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-017)', fontWeight: 'var(--legacy-inline-style-026)', borderTop: 'var(--border-width-thin) solid var(--border)', background: 'var(--primary-5)', color: 'var(--primary)', cursor: 'pointer', border: 'none', borderRadius: 'var(--legacy-inline-style-003)', transition: 'var(--legacy-inline-style-085)' }}>
                       Wstaw na gore notatki
                     </Pressable>
                   )}

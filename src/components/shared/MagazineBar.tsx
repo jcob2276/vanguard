@@ -12,7 +12,7 @@ function MagazineHeroCard({
       className="relative overflow-hidden rounded-2xl p-5 min-h-[var(--legacy-h-013)] flex flex-col justify-end"
       style={{
         background: 'linear-gradient(135deg, var(--legacy-color-008), var(--legacy-color-003))',
-        border: '1px solid var(--legacy-color-129)',
+        border: 'var(--border-width-thin) solid var(--legacy-color-129)',
       }}
     >
       <span

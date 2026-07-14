@@ -11,7 +11,7 @@ const VIEW_TABS = [
   { key: 'lista', label: 'Lista', icon: <ListTodo size={14} /> },
   { key: 'eisenhower', label: 'Macierz', icon: <LayoutGrid size={14} /> },
   { key: 'kanban', label: 'Kanban', icon: <Kanban size={14} /> },
-  { key: 'timeline', label: 'OĹ› czasu', icon: <Clock3 size={14} /> },
+  { key: 'timeline', label: 'Oś czasu', icon: <Clock3 size={14} /> },
 ];
 
 interface TodoHeaderProps {
@@ -32,7 +32,7 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
         title="Zadania"
         onBack={onBack}
         leading={sidebarCollapsed && (
-          <Pressable variant="ghost" size="sm" onClick={() => setSidebarCollapsed(false)} aria-label="RozwiĹ„ panel boczny">
+          <Pressable variant="ghost" size="sm" onClick={() => setSidebarCollapsed(false)} aria-label="Rozwiń panel boczny">
             <PanelLeft size={16} />
           </Pressable>
         )}
@@ -40,7 +40,7 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
           <WorkspaceSearch
             value={searchQuery}
             onChange={(value) => { setSearchQuery(value); if (value) setActiveSmartListId(null); }}
-            placeholder="Szukaj zadaĹ„â€¦"
+            placeholder="Szukaj zadań…"
             inputRef={searchInputRef}
           />
         }

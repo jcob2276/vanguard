@@ -198,7 +198,7 @@ export default function TodoCard({
                 e.stopPropagation();
                 swipe.handleComplete();
               }}
-              disabled={busy}
+              disabled={busy} aria-label={`${isDone ? 'Oznacz jako niewykonane' : 'Oznacz jako wykonane'}: ${item.title}`}
               className="mt-0.5 shrink-0 btn-press cursor-pointer"
             >
               <div

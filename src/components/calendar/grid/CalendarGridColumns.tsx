@@ -249,6 +249,7 @@ export const renderAllDayTodos = ({
                     handleToggleTodo(todo.id);
                     setToastMessage(`Ukończono: "${todo.title}" ✅`);
                   }}
+                  aria-label={`Oznacz zadanie jako wykonane: ${todo.title}`}
                   className={`relative after:absolute after:-inset-2 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
                 >
                   {isCompleting && <Check size={7} className="text-on-accent" strokeWidth={4} />}

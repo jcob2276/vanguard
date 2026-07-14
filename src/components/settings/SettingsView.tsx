@@ -83,7 +83,7 @@ export default function SettingsView({ session }: { session: Session }) {
   return (
     <div className="min-h-screen bg-background p-5 pb-24 max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Link to="/" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary">
+        <Link to="/" aria-label="Wróć do widoku głównego" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary">
           <ArrowLeft size={16} />
         </Link>
         <h1 className="text-lg font-black font-display text-text-primary">Ustawienia</h1>

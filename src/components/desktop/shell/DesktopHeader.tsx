@@ -35,8 +35,8 @@ export default function DesktopHeader({
       <div className="ml-auto flex items-center gap-2">
         <DashboardModuleShortcuts naukaBadge={pendingGrowthMustCount} />
         <Button onClick={() => setShowHealth(true)} variant="secondary" icon={<ShieldCheck size={14} />} className="rounded-full p-2.5" title="Status zdrowia systemu" />
-        <Button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} variant="secondary" icon={theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-warning" />} className="rounded-full p-2.5" />
-        <Button onClick={syncAll} variant="secondary" icon={<RefreshCw size={14} className={syncing ? 'animate-spin text-primary' : ''} />} className="rounded-full p-2.5" disabled={syncing} />
+        <Button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} variant="secondary" icon={theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-warning" />} className="rounded-full p-2.5" aria-label={theme === 'light' ? 'Włącz ciemny motyw' : 'Włącz jasny motyw'} />
+        <Button onClick={syncAll} variant="secondary" icon={<RefreshCw size={14} className={syncing ? 'animate-spin text-primary' : ''} />} className="rounded-full p-2.5" disabled={syncing} aria-label="Synchronizuj dane" />
         <Button onClick={() => setShowFundament(true)} variant="secondary" icon={<Fingerprint size={14} />} className="rounded-full p-2.5" title="Fundament" />
         <Link to="/"
           className="flex items-center gap-1.5 rounded-full border border-border-custom px-3 py-2 text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary hover:bg-surface-solid transition-all cursor-pointer">

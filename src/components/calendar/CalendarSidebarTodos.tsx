@@ -61,6 +61,7 @@ export default function CalendarSidebarTodos({
           size="sm"
           onClick={handleQuickAddTodo}
           disabled={!newTodoTitle.trim()}
+          aria-label="Dodaj szybkie zadanie"
           icon={<Plus size={14} />}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80 disabled:opacity-[var(--opacity-30)]"
         />

@@ -77,10 +77,10 @@ export default function HabitsPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Pressable onClick={() => toggleHabit(habit.id)} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-success bg-success text-on-accent' : 'border-danger bg-danger text-on-accent') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
+                  <Pressable onClick={() => toggleHabit(habit.id)} aria-label={`${doneToday ? 'Cofnij oznaczenie' : 'Oznacz wykonanie'}: ${habit.name}`} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-success bg-success text-on-accent' : 'border-danger bg-danger text-on-accent') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
                     {doneToday ? <CheckSquare size={14} /> : <Square size={14} />}
                   </Pressable>
-                  <Pressable onClick={() => deleteHabit(habit.id)} className="p-1.5 text-text-muted/40 hover:text-danger rounded-lg cursor-pointer"><Trash2 size={11} /></Pressable>
+                  <Pressable onClick={() => deleteHabit(habit.id)} aria-label={`Usuń nawyk: ${habit.name}`} className="p-1.5 text-text-muted/40 hover:text-danger rounded-lg cursor-pointer"><Trash2 size={11} /></Pressable>
                 </div>
               </div>
               <div className="flex h-2 gap-0.5 overflow-hidden">

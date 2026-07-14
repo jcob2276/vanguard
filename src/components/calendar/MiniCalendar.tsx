@@ -68,8 +68,8 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
   }
 
   const monthNames = [
-    'StyczeĹ„', 'Luty', 'Marzec', 'KwiecieĹ„', 'Maj', 'Czerwiec',
-    'Lipiec', 'SierpieĹ„', 'WrzesieĹ„', 'PaĹşdziernik', 'Listopad', 'GrudzieĹ„'
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
   ];
 
   const today = todayStr();
@@ -88,12 +88,14 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
         <div className="flex gap-1">
           <Pressable
             onClick={handlePrevMonth}
+            aria-label="Poprzedni miesiąc"
             className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--legacy-arbitrary-018)]"
           >
             <ChevronLeft size={13} className="text-text-muted hover:text-text-primary" />
           </Pressable>
           <Pressable
             onClick={handleNextMonth}
+            aria-label="Następny miesiąc"
             className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--legacy-arbitrary-018)]"
           >
             <ChevronRight size={13} className="text-text-muted hover:text-text-primary" />
@@ -102,7 +104,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
       </div>
 
       <div className="grid grid-cols-7 gap-y-1.5 text-center">
-        {['Pn', 'Wt', 'Ĺšr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
+        {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
           <span key={idx} className="text-2xs font-bold text-text-muted/50 uppercase tracking-wider">
             {d}
           </span>
@@ -111,7 +113,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
           const isSelected = item.dayStr === selectedDay;
           const isToday = item.dayStr === today;
           const moon = getMoonPhase(item.dayStr);
-          // Pokazujemy emoji tylko dla 4 gĹ‚Ăłwnych faz i tylko dla dni bieĹĽÄ…cego miesiÄ…ca
+          // Pokazujemy emoji tylko dla 4 głównych faz i tylko dla dni bieżącego miesiąca
           const showMoon = moon.isMajor && item.isCurrentMonth;
 
           return (
@@ -131,7 +133,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
               >
                 {item.dayNum}
               </Pressable>
-              {/* Ikona fazy ksiÄ™ĹĽyca â€” tylko gĹ‚Ăłwne fazy */}
+              {/* Ikona fazy księżyca — tylko główne fazy */}
               {showMoon && (
                 <span
                   className="text-3xs leading-none mt-[var(--legacy-arbitrary-021)] opacity-[var(--opacity-80)]"

@@ -84,7 +84,7 @@ export function Card({ variant = 'glass', children, className = '', style, onCli
   return (
     <Tag
       className={`${v.className} ${onClick ? 'cursor-pointer active:scale-[var(--legacy-arbitrary-001)]' : ''} ${className}`}
-      style={{ padding: padding ?? '1rem', ...v.style, ...style }}
+      style={{ padding: padding ?? 'var(--space-4)', ...v.style, ...style }}
       onClick={onClick}
     >
       {children}

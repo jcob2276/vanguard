@@ -21,7 +21,7 @@ export function WorkspaceHeader({ title, subtitle, onBack, leading, center, acti
       description={subtitle}
       leading={
         <>
-      <Pressable variant="ghost" size="sm" onClick={onBack} className="shrink-0" aria-label="WrĂłÄ‡">
+      <Pressable variant="ghost" size="sm" onClick={onBack} className="shrink-0" aria-label="Wróć">
         <ChevronLeft size={20} strokeWidth={2.5} />
       </Pressable>
       {leading}
@@ -60,7 +60,7 @@ export function WorkspaceSearch({ value, onChange, placeholder, inputRef, classN
           size="sm"
           onClick={() => onChange('')}
           className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full p-0 text-text-muted"
-          aria-label="WyczyĹ›Ä‡ wyszukiwanie"
+          aria-label="Wyczyść wyszukiwanie"
         >
           <X size={13} />
         </Pressable>

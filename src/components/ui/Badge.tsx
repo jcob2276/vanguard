@@ -22,7 +22,7 @@ export default function Badge({ count, variant = 'count', color, className = '',
         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
           color ? '' : 'bg-primary/10 text-primary'
         } ${className}`}
-        style={color ? { backgroundColor: `${color}20`, color } : undefined}
+        style={color ? { backgroundColor: `color-mix(in srgb, ${color} 13%, transparent)`, color } : undefined}
       >
         {children}
       </span>

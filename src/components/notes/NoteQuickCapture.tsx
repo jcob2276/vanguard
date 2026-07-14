@@ -77,6 +77,7 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
           <span>Utwórz notatkę…</span>
           <Pressable
             type="button"
+            aria-label="Utwórz notatkę"
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           >
             <Plus size={16} />

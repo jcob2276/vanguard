@@ -94,7 +94,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
         try {
           baselineJson = JSON.parse(identity.behavioral_baseline);
         } catch {
-          throw new Error('Baseline musi byÄ‡ poprawnym JSON.');
+          throw new Error('Baseline musi być poprawnym JSON.');
         }
       }
 
@@ -111,7 +111,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
       notify('Fundament zapisany.', 'success');
     } catch (err: unknown) {
       console.error('Save Identity Error:', err);
-      notify(`BĹ‚Ä…d zapisu: ${err instanceof Error ? (err as Error).message : String(err)}`, 'error');
+      notify(`Błąd zapisu: ${err instanceof Error ? (err as Error).message : String(err)}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -128,7 +128,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
             variant="secondary"
             icon={<ChevronLeft size={18} />}
             className="rounded-full p-2.5"
-            title="WrĂłÄ‡"
+            title="Wróć"
           />
           <div className="min-w-0">
             <h1 className="truncate text-lg font-black uppercase tracking-tight text-text-primary font-display">Identity Fundament</h1>
@@ -150,12 +150,12 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
               </div>
             </div>
             <p className="mt-4 text-sm font-semibold leading-relaxed text-text-secondary">
-              To nie jest dashboard. To baza kontekstu, ktĂłra ma ustawiÄ‡ interpretacjÄ™ Mirror, Kierunku i raportĂłw.
+              To nie jest dashboard. To baza kontekstu, która ma ustawić interpretację Mirror, Kierunku i raportów.
             </p>
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Target} title="Misja" detail="Jedno zdanie lub akapit, ktĂłry ustawia dĹ‚ugi kierunek." />
+            <SectionHeader icon={Target} title="Misja" detail="Jedno zdanie lub akapit, który ustawia długi kierunek." />
             <TextAreaBlock
               label="Long-term mission"
               value={identity.long_term_mission}
@@ -166,7 +166,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Shield} title="Filary identity" detail="Trzy stabilne deklaracje: kim jesteĹ›, kiedy system ma oceniaÄ‡ zachowanie." />
+            <SectionHeader icon={Shield} title="Filary identity" detail="Trzy stabilne deklaracje: kim jesteś, kiedy system ma oceniać zachowanie." />
             <div className="space-y-2">
               {identity.pillars.map((pillar, index) => (
                 <ControlInput
@@ -185,7 +185,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Zap} title="Drifters" detail="Zachowania, ktĂłre system ma traktowaÄ‡ jako odchylenie od kierunku." />
+            <SectionHeader icon={Zap} title="Drifters" detail="Zachowania, które system ma traktować jako odchylenie od kierunku." />
             <TextAreaBlock
               label="System drifters"
               value={identity.avoidance_triggers}
@@ -197,7 +197,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Database} title="ĹąrĂłdĹ‚a danych" detail="Tu trafia kalendarz i importy, zamiast wisieÄ‡ jako globalna ikona w headerze." />
+            <SectionHeader icon={Database} title="Źródła danych" detail="Tu trafia kalendarz i importy, zamiast wisieć jako globalna ikona w headerze." />
             <div className="grid gap-3">
               <Pressable
                 onClick={onSyncCalendar}
@@ -221,7 +221,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={UploadCloud} title="Identity Vault" detail="Dokumenty, ankiety, testy i dĹ‚ugi kontekst do analiz." />
+            <SectionHeader icon={UploadCloud} title="Identity Vault" detail="Dokumenty, ankiety, testy i długi kontekst do analiz." />
             <IdentityVault />
           </section>
 
@@ -247,7 +247,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
 
           <section className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
             <p className="text-xs font-bold uppercase leading-relaxed text-text-secondary">
-              Te dane sÄ… warstwÄ… deklaracji i kontekstu. System nadal powinien konfrontowaÄ‡ je z zachowaniem, nie traktowaÄ‡ jako automatycznej prawdy o wykonaniu.
+              Te dane są warstwą deklaracji i kontekstu. System nadal powinien konfrontować je z zachowaniem, nie traktować jako automatycznej prawdy o wykonaniu.
             </p>
           </section>
         </main>

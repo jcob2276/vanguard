@@ -15,7 +15,7 @@ export function EventCard({ data }: { data: EventCardData }) {
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `${color}18` }}>
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
           <Calendar size={14} style={{ color }} />
         </div>
         <div className="flex-1 min-w-0">
@@ -45,7 +45,7 @@ export function EventCard({ data }: { data: EventCardData }) {
       {data.tags && data.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {data.tags.map(tag => (
-            <span key={tag} className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: `${color}10`, color }}>#{tag}</span>
+            <span key={tag} className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, ${color} 6%, transparent)`, color }}>#{tag}</span>
           ))}
         </div>
       )}

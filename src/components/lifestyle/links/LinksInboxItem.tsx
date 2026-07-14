@@ -50,7 +50,12 @@ export function LinksInboxItem({
             link.status === 'read' ? 'opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-90)]' : ''
           }`}
         >
-          <div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none" onClick={() => d.setExpandedLinkId((p: string | null) => p === link.id ? null : link.id)}>
+          <Pressable
+            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none text-left"
+            onClick={() => d.setExpandedLinkId((p: string | null) => p === link.id ? null : link.id)}
+            aria-expanded={isExpanded}
+            aria-label={`${isExpanded ? 'Zwiń' : 'Rozwiń'} link: ${link.title}`}
+          >
             <img
               src={`https://www.google.com/s2/favicons?sz=32&domain=${link.domain}`}
               alt=""
@@ -70,7 +75,7 @@ export function LinksInboxItem({
                 </span>
               </div>
             </div>
-          </div>
+          </Pressable>
 
           <div className="flex items-center gap-1 shrink-0">
             <Pressable
@@ -88,6 +93,7 @@ export function LinksInboxItem({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label={`Otwórz link w nowej karcie: ${link.title}`}
               onClick={() => haptic([6])}
               className="btn-press rounded-full p-1.5 text-text-muted/40 hover:text-text-primary hover:bg-surface-solid/60"
             >
@@ -110,7 +116,7 @@ export function LinksInboxItem({
         >
           {/* Thumbnail (YouTube) */}
           {link.thumbnail_url && (
-            <a href={link.url} target="_blank" rel="noopener noreferrer" className="block -mx-4 -mt-4 mb-3 rounded-t-[var(--legacy-arbitrary-051)] overflow-hidden">
+            <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Otwórz link w nowej karcie: ${link.title}`} className="block -mx-4 -mt-4 mb-3 rounded-t-[var(--legacy-arbitrary-051)] overflow-hidden">
               <img
                 src={link.thumbnail_url}
                 alt={link.title}
@@ -122,7 +128,7 @@ export function LinksInboxItem({
 
           {/* Top row */}
           <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => d.setExpandedLinkId((p: string | null) => p === link.id ? null : link.id)}>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap mb-1.5">
                 <div className="flex items-center gap-1 select-none">
                   <img
@@ -133,7 +139,7 @@ export function LinksInboxItem({
                   />
                   <span className="text-xs text-text-muted">{link.channel_name || link.domain || 'link'}</span>
                 </div>
-                <span
+                <Pressable
                   onClick={(e) => {
                     e.stopPropagation();
                     d.setCategoryFilter((p: string | null) => p === link.category ? null : link.category);
@@ -141,28 +147,36 @@ export function LinksInboxItem({
                   className={`rounded-full px-2 py-0.5 text-xs font-semibold cursor-pointer hover:opacity-[var(--opacity-80)] active:scale-95 transition-all ${catStyle.pill}`}
                 >
                   {link.category}
-                </span>
+                </Pressable>
                 {(link.notes || d.notesDrafts[link.id]) && (
                   <span className="flex items-center gap-1 text-xs text-text-muted/60">
                     <PenLine size={9} />
                   </span>
                 )}
               </div>
-              <h3 className={`text-base font-semibold leading-snug tracking-tight ${
-                link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
-              }`}>
-                {link.title}
-              </h3>
-              {link.description && (
-                <p className="mt-1 text-sm text-text-muted leading-relaxed line-clamp-2">
-                  {link.description}
-                </p>
-              )}
+              <Pressable
+                className="block w-full text-left"
+                onClick={() => d.setExpandedLinkId((p: string | null) => p === link.id ? null : link.id)}
+                aria-expanded={isExpanded}
+                aria-label={`${isExpanded ? 'Zwiń' : 'Rozwiń'} link: ${link.title}`}
+              >
+                <h3 className={`text-base font-semibold leading-snug tracking-tight ${
+                  link.status === 'read' ? 'text-text-secondary' : 'text-text-primary'
+                }`}>
+                  {link.title}
+                </h3>
+                {link.description && (
+                  <p className="mt-1 text-sm text-text-muted leading-relaxed line-clamp-2">
+                    {link.description}
+                  </p>
+                )}
+              </Pressable>
             </div>
             <a
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label={`Otwórz link w nowej karcie: ${link.title}`}
               onClick={() => haptic([6])}
               className="btn-press shrink-0 rounded-full p-1.5 text-text-muted/60 hover:text-text-primary hover:bg-surface-solid/60 opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-100)] transition-all duration-[var(--motion-medium)] active:scale-[var(--legacy-arbitrary-052)]"
             >
