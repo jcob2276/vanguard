@@ -37,7 +37,7 @@ const kindVariants = {
   },
 } as const;
 
-const spring = { type: 'spring' as const, damping: 1, duration: 0.35 };
+const spring = { type: 'spring' as const, bounce: 0, duration: 0.35 };
 
 /** Route-level design contract. `display: contents` preserves existing layout while
  * every descendant inherits the selected template's density and geometry tokens.
