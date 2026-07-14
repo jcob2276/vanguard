@@ -47,14 +47,14 @@ function useProjectCrudHandlers(
       let project: { id?: string } | null = null;
       let section: { id?: string } | null = null;
       try {
-        project = (await createProject(userId, {
+        project = await createProject(userId, {
           name: form.name.trim(),
           goal: form.goal.trim() || undefined,
           deadline: form.deadline || undefined,
           color: form.color,
           dream_id: form.dream_id || undefined,
-        })) as unknown as { id: string };
-        section = (await createTodoSection(userId, form.name.trim())) as unknown as { id: string };
+        });
+        section = await createTodoSection(userId, form.name.trim());
         if (section?.id && project?.id) {
           await linkSectionToProject(section.id, project.id);
         }
@@ -226,13 +226,13 @@ function useProjectTaskKpiHandlers(
     const pm = PILLAR_META[pillar];
     run(async () => {
       const dream = dreams.find(d => d.life_goal === pillar);
-      const project = (await createProject(userId, {
+      const project = await createProject(userId, {
         name: preview.project_name,
         goal: preview.affirmation,
         color: pm.color,
         dream_id: dream?.id,
-      })) as unknown as { id: string } | null;
-      const section = (await createTodoSection(userId, preview.project_name)) as unknown as { id: string } | null;
+      });
+      const section = await createTodoSection(userId, preview.project_name);
       if (!project?.id) return;
       const projectId = project.id;
       if (section?.id) await linkSectionToProject(section.id, projectId);

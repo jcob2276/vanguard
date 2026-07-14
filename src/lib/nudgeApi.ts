@@ -12,10 +12,7 @@ export interface NudgeCounts {
   pendingGrowthMustCount: number;
 }
 
-export const nudgeKeys = {
-  all: ['nudge'] as const,
-  counts: (userId: string) => [...nudgeKeys.all, 'counts', userId] as const,
-};
+import { nudgeKeys } from './queryKeys';
 
 // ── QUERIES ──
 

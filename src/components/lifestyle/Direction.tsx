@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Calendar } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Card } from '../ui/Card';
 import DirectionMonthlyMode from './DirectionMonthlyMode';
 import DirectionSprintMode from './DirectionSprintMode';
 import DirectionPlanningMode from './DirectionPlanningMode';
@@ -251,7 +252,7 @@ export default function Direction({
               onOpenActionCenter={onOpenActionCenter}
               onStartWeeklyReview={() => setForceWeeklyReview(true)}
             />
-            <div className="rounded-2xl border border-border-custom bg-surface/30">
+            <Card padding="0" style={{ background: 'rgba(11, 15, 25, 0.3)' }}>
               <p className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-text-muted">
                 Radar szczegóły
               </p>
@@ -266,7 +267,7 @@ export default function Direction({
                   currentReview={currentReview}
                 />
               </div>
-            </div>
+            </Card>
           </div>
         ) : null}
       </section>

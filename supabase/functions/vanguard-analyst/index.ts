@@ -3,13 +3,16 @@
  * @trigger pg_cron `0 3 * * *` UTC (daily-analyst) / manual
  * @role Nocna analiza wzorców: wykrywa tarcia i sugeruje system_proposals na bazie korelacji.
  * @reads vanguard_stream, friction_events, vanguard_curiosity_queue, system_proposals, user_settings, vanguard_daily_aggregates, vanguard_behavioral_patterns, vanguard_entity_links, oura_hr_zones_daily, oura_enhanced
- * @writes system_proposals, audit_events, vanguard_curiosity_queue, vanguard_stream
+ * @writes system_proposals, audit_events, vanguard_curiosity_queue, vanguard_stream, oracle_recommendations
  * @calls deepseek-reasoner, api.telegram.org (poprzez send.ts)
  * @consumer Action Center w aplikacji frontendowej (propozycje system_proposals)
  * @status active
  */
+import { EPISTEMIC_THRESHOLDS } from "@vanguard/domain"
 import { serveJson } from "../_shared/http.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
+import { LLM_TASKS } from "../_shared/llm/tasks.ts"
+import { logAuditEvent } from "../_shared/audit.ts"
 import { checkProactiveAlert } from "./proactiveAlert.ts"
 import { detectSpirals } from "./detectSpirals.ts"
 
@@ -80,7 +83,7 @@ Deno.serve(serveJson(async (_req, ctx) => {
     // LLM analysis
     const { content: rawContentParsed } = await deepseekChat({
       apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
-      model: 'deepseek-reasoner',
+      ...LLM_TASKS.deep,
       messages: [
         {
           role: 'system',
@@ -104,6 +107,7 @@ ZADANIE:
 2. FRICTION PATTERN DETECTION: Które friction_types powtarzają się?
 3. REPEATED_PATTERN_CANDIDATES: friction_type ≥2x w 14 dniach — opisz kandydata.
 4. JEDEN MIKROTEST: na najczęstszy friction_type.
+5. SUGGEST RECOMMENDATIONS: Wygeneruj 1–3 konkretne rekomendacje behawioralne na bazie wykrytych korelacji/wzorców i biometrii, z przypisaną mierzalną metryką (dozwolone wyłącznie: sleep_hours, readiness_score, execution_score) oraz progiem sukcesu i oknem oceny w dniach.
 
 FORMAT JSON:
 {
@@ -111,6 +115,7 @@ FORMAT JSON:
   "friction_summary": {"dominant_type": "...", "evidence_count": 0, "common_deviation": "...", "common_cost": "..."},
   "pattern_candidates": [{"friction_type": "...", "evidence_count": 0, "first_seen": "...", "last_seen": "...", "common_context": "...", "hypothesis_confidence": 0.0, "evidence_refs": ["..."]}],
   "micro_test": {"trigger": "...", "test": "...", "based_on": "..."},
+  "recommendations": [{"text": "...", "related_metric": "sleep_hours|readiness_score|execution_score", "success_threshold": 7.5, "evaluation_window_days": 7}],
   "provocation": "Jedno zdanie — obserwacja oparta na powtarzającym się wzorcu"
 }`
         },
@@ -161,7 +166,7 @@ REGENERACJA — ostatnie 7 dni:\n${recoveryText || 'Brak danych Oura.'}`
     // Save pattern candidates
     const hypotheses = result.pattern_candidates || []
     for (const h of hypotheses) {
-      if ((h.hypothesis_confidence || 0) < 0.3) continue
+      if ((h.hypothesis_confidence || 0) < EPISTEMIC_THRESHOLDS.CURIOSITY_CANDIDATE_MIN_CONFIDENCE) continue
       const { error: qErr } = await supabase.from('vanguard_curiosity_queue').insert({
         user_id, hypothesis: `[FRICTION PATTERN] ${h.friction_type} x${h.evidence_count}: ${h.common_context}`,
         provocation: result.provocation || result.micro_test?.test || '',
@@ -170,9 +175,48 @@ REGENERACJA — ostatnie 7 dni:\n${recoveryText || 'Brak danych Oura.'}`
       if (qErr) console.warn('[analyst] curiosity_queue insert failed:', qErr.message)
     }
 
+    // Save suggested recommendations
+    const recommendations = result.recommendations || []
+    for (const rec of recommendations) {
+      const metric = rec.related_metric;
+      if (!['sleep_hours', 'readiness_score', 'execution_score'].includes(metric)) {
+        console.warn(`[analyst] Discarding invalid/unsafe metric for recommendation: ${metric}`);
+        await logAuditEvent({
+          eventType: 'recommendation_discarded',
+          severity: 'warning',
+          message: `analyst: rekomendacja odrzucona, metryka spoza allowlisty: ${metric}`,
+          userId: user_id,
+          relatedTable: 'oracle_recommendations',
+          metadata: { rec },
+        });
+        continue;
+      }
+      const { error: recErr } = await supabase.from('oracle_recommendations').insert({
+        user_id,
+        recommendation_text: rec.text,
+        related_metric: metric,
+        success_threshold: typeof rec.success_threshold === 'number' ? rec.success_threshold : null,
+        evaluation_window_days: typeof rec.evaluation_window_days === 'number' ? rec.evaluation_window_days : 7,
+        status: 'pending'
+      })
+      if (recErr) {
+        console.warn('[analyst] oracle_recommendations insert failed:', recErr.message)
+        await logAuditEvent({
+          eventType: 'recommendation_insert_failed',
+          severity: 'error',
+          message: `analyst: insert do oracle_recommendations nie powiódł się: ${recErr.message}`,
+          userId: user_id,
+          relatedTable: 'oracle_recommendations',
+          metadata: { rec },
+        });
+      } else {
+        console.log('[analyst] Saved nightly recommendation:', rec.text)
+      }
+    }
+
     // Proactive alert
     if (!biometrics.error) await checkProactiveAlert(supabase, user_id, biometrics.data || [], graph || [], spiral)
 
-    console.log(`[analyst] done. patterns: ${hypotheses.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
+    console.log(`[analyst] done. patterns: ${hypotheses.length}, recommendations: ${recommendations.length}, micro_test: ${result.micro_test?.test?.substring(0, 60)}`)
     return { success: true, result }
 }, { auth: 'service' }))

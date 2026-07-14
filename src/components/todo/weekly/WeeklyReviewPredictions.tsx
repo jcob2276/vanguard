@@ -37,7 +37,7 @@ export default function WeeklyReviewPredictions() {
     <div className="space-y-5 animate-fadeIn">
       <div>
         <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
-          <Target size={15} className="text-indigo-500" />
+          <Target size={15} className="text-primary" />
           Krok 4: Prognozy i Kalibracja
         </h3>
         <p className="text-[10px] text-text-muted mt-0.5">
@@ -51,7 +51,7 @@ export default function WeeklyReviewPredictions() {
           <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
             Prognoza Snu
           </span>
-          <span className="text-[15px] font-black text-indigo-500">
+          <span className="text-[15px] font-black text-primary">
             {sleepMae ? `±${sleepMae}h` : 'brak'}
           </span>
           <span className="text-[8px] font-medium text-text-muted">Średni błąd (MAE)</span>
@@ -60,7 +60,7 @@ export default function WeeklyReviewPredictions() {
           <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
             Wykonanie
           </span>
-          <span className="text-[15px] font-black text-indigo-500">
+          <span className="text-[15px] font-black text-primary">
             {executionMae ? `±${executionMae}%` : 'brak'}
           </span>
           <span className="text-[8px] font-medium text-text-muted">Średni błąd (MAE)</span>
@@ -69,7 +69,7 @@ export default function WeeklyReviewPredictions() {
           <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
             Brier Wzorców
           </span>
-          <span className="text-[15px] font-black text-indigo-500">
+          <span className="text-[15px] font-black text-primary">
             {patternBrier ? patternBrier : 'brak'}
           </span>
           <span className="text-[8px] font-medium text-text-muted">Brier (0 = idealny)</span>
@@ -78,9 +78,9 @@ export default function WeeklyReviewPredictions() {
 
       {/* Custom predictions calibration */}
       {resolvedCustom.length > 0 && (
-        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex items-center justify-between">
+        <div className="bg-success/5 border border-success/10 rounded-xl p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TrendingUp size={16} className="text-emerald-500" />
+            <TrendingUp size={16} className="text-success" />
             <div className="flex flex-col">
               <span className="text-[11px] font-black text-text-primary">
                 Brier Score Twoich Prognoz
@@ -90,7 +90,7 @@ export default function WeeklyReviewPredictions() {
               </span>
             </div>
           </div>
-          <span className="text-[16px] font-black text-emerald-500">{customBrier}</span>
+          <span className="text-[16px] font-black text-success">{customBrier}</span>
         </div>
       )}
 
@@ -121,14 +121,14 @@ export default function WeeklyReviewPredictions() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => handleResolveCustom(pred.id, 1.0)}
-                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center transition-colors"
+                    className="w-8 h-8 rounded-lg bg-success/10 text-success hover:bg-success/20 flex items-center justify-center transition-colors"
                     title="Spełniło się"
                   >
                     <Check size={14} />
                   </button>
                   <button
                     onClick={() => handleResolveCustom(pred.id, 0.0)}
-                    className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 flex items-center justify-center transition-colors"
+                    className="w-8 h-8 rounded-lg bg-danger/10 text-danger hover:bg-danger/20 flex items-center justify-center transition-colors"
                     title="Nie spełniło się"
                   >
                     <X size={14} />

@@ -1,5 +1,6 @@
 import { TIMEZONE } from '../../../lib/date';
 import React from 'react';
+import { Card } from '../../ui/Card';
 import { computeLenieInsight, daysBefore, type LenieLogRow } from '../desktopUtils';
 
 export interface LeniePanelMiniProps {
@@ -16,22 +17,23 @@ export default function LeniePanelMini({ logs }: LeniePanelMiniProps) {
     daysFree === null
       ? 'text-text-muted'
       : daysFree === 0
-      ? 'text-rose-500'
+      ? 'text-danger'
       : daysFree <= 2
-      ? 'text-amber-400'
-      : 'text-emerald-500';
+      ? 'text-warning'
+      : 'text-success';
 
   const insight = computeLenieInsight(logs || []);
 
   if (!logs?.length) return null;
 
   return (
-    <div className="rounded-[20px] border border-rose-500/15 bg-rose-500/[0.025] px-6 py-4 flex items-center gap-8">
-      <p className="text-[8px] font-black uppercase tracking-[0.25em] text-rose-500/50 shrink-0">Lenie</p>
+    <Card variant="glass" padding="1rem 1.5rem" className="flex items-center gap-8"
+      style={{ border: '1px solid rgba(244,63,94,0.15)', background: 'rgba(244,63,94,0.025)' }}>
+      <p className="text-[8px] font-black uppercase tracking-[0.25em] text-danger/50 shrink-0">Lenie</p>
 
       <div className="flex items-center gap-6 shrink-0">
         {[
-          { label: 'Ten tydzień', val: totalWeek, color: totalWeek > 0 ? 'text-rose-500' : 'text-emerald-500' },
+          { label: 'Ten tydzień', val: totalWeek, color: totalWeek > 0 ? 'text-danger' : 'text-success' },
           { label: '30 dni', val: totalMonth, color: 'text-text-secondary' },
           {
             label: 'Czyste dni',
@@ -53,6 +55,6 @@ export default function LeniePanelMini({ logs }: LeniePanelMiniProps) {
           <p className="text-[10px] text-text-muted italic">Za mało danych do analizy.</p>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

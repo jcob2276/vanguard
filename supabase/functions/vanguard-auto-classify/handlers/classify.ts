@@ -4,6 +4,7 @@ import { getAggregateByDate } from "../../_shared/repos/aggregatesRepo.ts";
 import { logAuditEvent } from "../../_shared/audit.ts";
 import { updateStreamClassification } from "../../_shared/repos/streamRepo.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { CLASSIFY_SYSTEM, FRICTION_SYSTEM } from "../prompts.ts";
 import { normalizeClassification, normalizeFriction } from "./normalize.ts";
@@ -46,25 +47,21 @@ export async function handleStreamRecord(record: any, supabase: any): Promise<un
     [classifyRes, frictionRes] = await Promise.all([
       deepseekChat({
         apiKey,
-        model: 'deepseek-v4-flash',
+        ...LLM_TASKS.classify,
         messages: [
           { role: 'system', content: CLASSIFY_SYSTEM },
           { role: 'user', content: `KONTEKST: ${contextStr}\nNOTATKA: ${record.content}` },
         ],
-        temperature: 0.1,
         maxTokens: null,
-        responseFormat: { type: 'json_object' },
       }),
       deepseekChat({
         apiKey,
-        model: 'deepseek-v4-flash',
+        ...LLM_TASKS.classify,
         messages: [
           { role: 'system', content: FRICTION_SYSTEM },
           { role: 'user', content: record.content },
         ],
-        temperature: 0.1,
         maxTokens: null,
-        responseFormat: { type: 'json_object' },
       }),
     ]);
   } catch (err: any) {

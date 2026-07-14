@@ -1,4 +1,5 @@
-import Spinner from '../../ui/Spinner';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 
 export interface FoodRowProps {
   name: string;
@@ -12,16 +13,20 @@ export interface FoodRowProps {
 
 export default function FoodRow({ name, subtitle, calories, loading, onTap, onQuickAdd, quickAddIcon }: FoodRowProps) {
   return (
-    <div className="flex items-center gap-2.5 rounded-2xl border border-border-custom/70 bg-surface-solid/25 pl-3.5 pr-2 py-2.5 shadow-sm transition-all hover:border-primary/25 hover:bg-surface-solid/50 active:scale-[0.99]">
+    <Card className="flex items-center gap-2.5 transition-all hover:border-primary/25 hover:bg-surface-solid/50 active:scale-[0.99]" padding="0.625rem 0.5rem 0.625rem 0.875rem">
       <button onClick={onTap} className="flex-1 min-w-0 text-left cursor-pointer">
         <p className="text-[13.5px] font-bold text-text-primary truncate">{name}</p>
         {subtitle && <p className="text-[10.5px] text-text-muted truncate mt-0.5">{subtitle}</p>}
       </button>
       <span className="text-[11.5px] font-black text-primary shrink-0 tabular-nums">{calories ?? '?'} kcal</span>
-      <button onClick={onQuickAdd} disabled={loading}
-        className="shrink-0 rounded-full bg-primary p-2 text-white shadow-sm active:scale-90 transition-all cursor-pointer disabled:opacity-50">
-        {loading ? <Spinner size="sm" className="h-3 w-3 !border-white/30 !border-t-white" /> : quickAddIcon}
-      </button>
-    </div>
+      <Button
+        onClick={onQuickAdd}
+        loading={loading}
+        className="shrink-0 rounded-full p-2"
+        size="sm"
+      >
+        {!loading && quickAddIcon}
+      </Button>
+    </Card>
   );
 }

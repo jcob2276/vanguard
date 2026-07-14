@@ -1,5 +1,6 @@
 import { BookOpen, Calendar, CheckSquare, ListTodo, Plus } from 'lucide-react';
 import Spinner from '../ui/Spinner';
+import Fab from '../ui/Fab';
 import EditNoteModal from './EditNoteModal';
 import KeepHeader from './KeepHeader';
 import KeepSidebar from './KeepSidebar';
@@ -88,15 +89,13 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
       </div>
 
       {/* iOS Notes-style FAB */}
-      <button
-        className="keep-fab"
+      <Fab
         onClick={handleNewNote}
         disabled={busy}
         title="Nowa notatka"
-        type="button"
       >
         {busy ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Plus size={24} strokeWidth={2} />}
-      </button>
+      </Fab>
 
       {/* Page-level Edit Modal */}
       {editingId && (

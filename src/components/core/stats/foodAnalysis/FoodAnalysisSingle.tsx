@@ -1,3 +1,4 @@
+import { Card } from '../../../ui/Card';
 import { type FoodAnalysisResult } from '../FoodAnalysisSection';
 
 interface FoodAnalysisSingleProps {
@@ -8,21 +9,21 @@ export default function FoodAnalysisSingle({ res }: FoodAnalysisSingleProps) {
   return (
     <div className="space-y-3">
       {res.fasting && (
-        <div className="rounded-xl border border-blue-500/15 bg-blue-500/[0.03] p-4 space-y-1.5">
+        <Card className="space-y-1.5 border border-info/15" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">🔵</span>
-            <span className="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">
+            <span className="text-[10px] font-bold uppercase text-info dark:text-info">
               Post — {res.date}
             </span>
           </div>
           {res.day_quality_analysis && (
             <p className="text-[11px] text-text-secondary">{res.day_quality_analysis}</p>
           )}
-        </div>
+        </Card>
       )}
 
       {!res.fasting && (
-        <div className="rounded-xl border border-border-custom bg-surface p-4 space-y-3">
+        <Card className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase text-text-muted">
               Jakość dnia {res.date}
@@ -32,7 +33,7 @@ export default function FoodAnalysisSingle({ res }: FoodAnalysisSingleProps) {
                 (res.day_quality_score ?? 0) >= 70
                   ? 'text-dayC'
                   : (res.day_quality_score ?? 0) >= 45
-                  ? 'text-amber-500'
+                  ? 'text-warning'
                   : 'text-dayB'
               }`}
             >
@@ -52,7 +53,7 @@ export default function FoodAnalysisSingle({ res }: FoodAnalysisSingleProps) {
                       item.food_quality_score >= 70
                         ? 'text-dayC'
                         : item.food_quality_score >= 45
-                        ? 'text-amber-500'
+                        ? 'text-warning'
                         : 'text-dayB'
                     }`}
                   >
@@ -85,13 +86,13 @@ export default function FoodAnalysisSingle({ res }: FoodAnalysisSingleProps) {
                         className="h-full rounded-full transition-all"
                         style={{
                           width: `${Math.min(100, (m.protein_g / 40) * 100)}%`,
-                          backgroundColor: m.mps ? '#10b981' : m.protein_g >= 15 ? '#f59e0b' : '#f43f5e',
+                          backgroundColor: m.mps ? 'var(--color-success)' : m.protein_g >= 15 ? 'var(--color-warning)' : 'var(--color-danger)',
                         }}
                       />
                     </div>
                     <span
                       className={`text-[9px] font-bold w-10 text-right shrink-0 ${
-                        m.mps ? 'text-dayC' : m.protein_g >= 15 ? 'text-amber-500' : 'text-dayB'
+                        m.mps ? 'text-dayC' : m.protein_g >= 15 ? 'text-warning' : 'text-dayB'
                       }`}
                     >
                       {m.protein_g}g
@@ -106,7 +107,7 @@ export default function FoodAnalysisSingle({ res }: FoodAnalysisSingleProps) {
               </div>
             );
           })()}
-        </div>
+        </Card>
       )}
     </div>
   );

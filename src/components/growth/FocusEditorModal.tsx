@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { LearningSkill, LearningWeekFocus } from '../../lib/growth/growth';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 
 export default function FocusEditorModal({
   skills,
@@ -110,21 +111,21 @@ export default function FocusEditorModal({
         </div>
 
         <div className="flex gap-2 pt-2 border-t border-border-custom">
-          <button
-            type="button"
-            disabled={saving || !skillId}
+          <Button
+            variant="primary"
+            disabled={!skillId}
+            loading={saving}
             onClick={handleSave}
-            className="flex-1 rounded-xl bg-primary py-2.5 text-[11px] font-black uppercase text-white disabled:opacity-40 cursor-pointer"
+            className="flex-1"
           >
-            {saving ? 'Zapisywanie...' : 'Zapisz Focus'}
-          </button>
-          <button
-            type="button"
+            Zapisz Focus
+          </Button>
+          <Button
+            variant="outline"
             onClick={onClose}
-            className="rounded-xl border border-border-custom px-4 py-2.5 text-[11px] font-black uppercase text-text-muted cursor-pointer"
           >
             Anuluj
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

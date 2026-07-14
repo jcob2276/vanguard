@@ -56,7 +56,7 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
 
       {view.monthTheme && (
         <p className="text-[12px] leading-relaxed text-text-secondary px-0.5">
-          <span className="font-black uppercase tracking-wider text-indigo-600 text-[10px]">
+          <span className="font-black uppercase tracking-wider text-primary text-[10px]">
             Temat miesiąca{view.monthThemeLabel ? ` · ${view.monthThemeLabel}` : ''}
           </span>
           <br />
@@ -100,7 +100,7 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
                   <Card as="li" key={item.id} variant="outline" padding="0.625rem 0.75rem" className="flex items-start gap-3">
                     <span
                       className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: item.color ?? (item.kind === 'todo' ? '#5B6CFF' : '#10B981') }}
+                      style={{ background: item.color ?? (item.kind === 'todo' ? 'var(--color-primary)' : 'var(--color-success)') }}
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-semibold text-text-primary truncate">{item.title}</p>

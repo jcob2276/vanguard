@@ -5,6 +5,8 @@ import { combineDateTimeWarsawISO } from '../../../lib/date';
 import { updateTodoItem } from '../../../lib/todo/todo';
 import { addDays } from '../calendarHelpers';
 import Modal from '../../ui/Modal';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 
 export default function CalendarTodoModal() {
   const {
@@ -63,26 +65,22 @@ export default function CalendarTodoModal() {
         </div>
       </div>
 
-      <button
-        type="button"
+      <Button
+        variant={completedTodoIds.has(editingTodo.id) ? 'outline' : 'primary'}
+        icon={<Check size={14} />}
         onClick={async () => {
           await handleToggleTodo(editingTodo.id);
           const isDone = !completedTodoIds.has(editingTodo.id);
           setToastMessage(isDone ? `Ukończono: "${editingTodo.title}" ✅` : `Cofnięto ukończenie: "${editingTodo.title}"`);
           closeEditTodoModal();
         }}
-        className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-[12px] font-black uppercase transition-all active:scale-[0.98] cursor-pointer ${
-          completedTodoIds.has(editingTodo.id)
-            ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/15 border border-amber-500/20'
-            : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20'
-        }`}
+        className={`w-full py-3 text-[12px] uppercase ${completedTodoIds.has(editingTodo.id) ? 'text-warning border-warning/20 hover:bg-warning/15' : ''}`}
       >
-        <Check size={14} />
         {completedTodoIds.has(editingTodo.id) ? 'Oznacz jako nieukończone' : 'Oznacz jako ukończone'}
-      </button>
+      </Button>
 
       {!completedTodoIds.has(editingTodo.id) && (
-        <div className="rounded-xl border border-border-custom bg-surface-solid/30 p-3.5 space-y-2.5">
+        <Card variant="glass" padding="0.875rem" className="space-y-2.5">
           <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
           <textarea
             placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
@@ -90,8 +88,8 @@ export default function CalendarTodoModal() {
             onChange={(e) => setEditingTodo({ ...editingTodo, notes: e.target.value })}
             className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-[11px] font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
           />
-          <button
-            type="button"
+          <Button
+            variant="tonal"
             onClick={async () => {
               const currentDateStr = editingTodo.due_date || today;
               const tomorrowStr = addDays(currentDateStr, 1);
@@ -105,17 +103,17 @@ export default function CalendarTodoModal() {
               setToastMessage(`Przełożono na jutro: "${editingTodo.title}" ➡️`);
               closeEditTodoModal();
             }}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 border border-primary/25 py-2 text-[11px] font-black uppercase text-primary hover:bg-primary/15 transition-all active:scale-[0.98] cursor-pointer"
+            className="w-full py-2 text-[11px] uppercase"
           >
             Przełóż na jutro
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
       <div className="flex gap-2 pt-1">
-        <button onClick={deleteTodo} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 py-2.5 text-[12px] font-black text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer">
-          <Trash2 size={13} /> Usuń
-        </button>
+        <Button variant="outline" onClick={deleteTodo} icon={<Trash2 size={13} />} className="flex-1 py-2.5 text-[12px] text-danger border-danger/20 bg-danger/5 hover:bg-danger/10">
+          Usuń
+        </Button>
       </div>
     </Modal>
   );

@@ -62,7 +62,7 @@ export const renderTimeGutter = ({
                 title={`${WMO_WEATHER_DESC[hw.weatherCode]}${hw.precipProb > 0 ? ` · opady ${hw.precipProb}%` : ''}`}
               >
                 {getWMOWeatherIcon(hw.weatherCode, 9, absoluteHour < 6 || absoluteHour >= 20)}
-                <span className={`text-[8.5px] font-black leading-none tabular-nums ${hw.precipProb >= 50 ? 'text-sky-400' : 'text-text-muted/70'}`}>
+                <span className={`text-[8.5px] font-black leading-none tabular-nums ${hw.precipProb >= 50 ? 'text-info' : 'text-text-muted/70'}`}>
                   {hw.temp}°
                 </span>
               </div>
@@ -184,8 +184,8 @@ export const renderDayColumn = ({
                 style={{ top: sunriseTop }}
                 title={`Wschód: ${formatTimeWarsaw(sun.sunrise)}`}
               >
-                <div className="w-full h-[1px] bg-gradient-to-r from-amber-400/0 via-amber-400/50 to-amber-400/0" />
-                <span className="absolute right-1 text-[7px] font-bold text-amber-400/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
+                <div className="w-full h-[1px] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
+                <span className="absolute right-1 text-[7px] font-bold text-warning/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
               </div>
             )}
             {sunsetVisible && (
@@ -194,8 +194,8 @@ export const renderDayColumn = ({
                 style={{ top: sunsetTop }}
                 title={`Zachód: ${formatTimeWarsaw(sun.sunset)}`}
               >
-                <div className="w-full h-[1px] bg-gradient-to-r from-orange-500/0 via-orange-500/50 to-orange-500/0" />
-                <span className="absolute right-1 text-[7px] font-bold text-orange-400/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
+                <div className="w-full h-[1px] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
+                <span className="absolute right-1 text-[7px] font-bold text-warning/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
               </div>
             )}
           </>
@@ -203,8 +203,8 @@ export const renderDayColumn = ({
       })()}
       {nowLine !== null && nowLine >= 0 && (
         <div className="absolute left-0 right-0 flex items-center pointer-events-none z-20" style={{ top: nowLine }}>
-          <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse -ml-[5px]" />
-          <div className="flex-1 h-[1.5px] bg-rose-500" />
+          <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-md shadow-danger/50 animate-pulse -ml-[5px]" />
+          <div className="flex-1 h-[1.5px] bg-danger" />
         </div>
       )}
     </div>
@@ -248,7 +248,7 @@ export const renderAllDayTodos = ({
                     handleToggleTodo(todo.id);
                     setToastMessage(`Ukończono: "${todo.title}" ✅`);
                   }}
-                  className={`relative after:absolute after:-inset-2 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
+                  className={`relative after:absolute after:-inset-2 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
                 >
                   {isCompleting && <Check size={7} className="text-white" strokeWidth={4} />}
                 </button>

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapPin, RefreshCw } from 'lucide-react';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 import {
   BEHAVIOR_CAPTURE_ENTRIES,
   BEHAVIOR_CONFOUNDERS,
@@ -53,7 +55,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
   const visibleEntries = BEHAVIOR_CAPTURE_ENTRIES.filter((e) => !e.deprecated);
 
   return (
-    <div className="rounded-[20px] border border-border-custom bg-surface/60 px-5 py-4 space-y-4">
+    <Card padding="1rem 1.25rem" className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <MapPin size={12} className="text-primary shrink-0" />
@@ -61,14 +63,13 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
             Gdzie co logować
           </p>
         </div>
-        <button
-          type="button"
+        <Button
           onClick={() => void logsQuery.refetch()}
-          className="p-1.5 text-text-muted hover:text-text-primary rounded-lg cursor-pointer"
+          variant="ghost"
+          icon={<RefreshCw size={12} className={loading ? 'animate-spin' : ''} />}
+          className="p-1.5 rounded-lg"
           title="Odśwież sygnały dnia"
-        >
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-        </button>
+        />
       </div>
 
       <p className="text-[10px] text-text-secondary leading-relaxed">
@@ -95,7 +96,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
               <span className="font-bold">Używa:</span> {entry.usedBy}
             </p>
             {entry.note ? (
-              <p className="mt-1 text-[9px] text-amber-500/90 leading-snug">{entry.note}</p>
+              <p className="mt-1 text-[9px] text-warning/90 leading-snug">{entry.note}</p>
             ) : null}
           </div>
         ))}
@@ -131,6 +132,6 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
           })}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

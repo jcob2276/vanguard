@@ -1,4 +1,5 @@
 import { deepseekChat, parseJsonFromContent } from '../../_shared/deepseek.ts'
+import { LLM_TASKS } from '../../_shared/llm/tasks.ts'
 import { safeSendTelegram } from '../_utils/helpers.ts'
 import { getWarsawDateString } from '../../_shared/time.ts'
 import { getStreamBySource } from '../../_shared/repos/streamRepo.ts'
@@ -34,10 +35,8 @@ Zwróć poprawny JSON (wyłącznie JSON, bez markdownu):
   try {
     const response = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: 'deepseek-chat',
-      temperature: 0.1,
+      ...LLM_TASKS.structured,
       messages: [{ role: 'user', content: systemPrompt }],
-      responseFormat: { type: 'json_object' }
     })
 
     const parsed = parseJsonFromContent(response.content) as {

@@ -9,6 +9,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import type { P2ParsedResponse } from "../../_shared/reconciliationParser.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 
 const TELEGRAM_FAST_LLM_MS = 14000;
 
@@ -66,11 +67,9 @@ async function handleReconciliationTelegramFast(
   try {
     const { content: raw } = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: "deepseek-v4-flash",
-      temperature: 0.2,
+      ...LLM_TASKS.structured,
       maxTokens: 900,
       timeoutMs: TELEGRAM_FAST_LLM_MS,
-      responseFormat: { type: "json_object" },
       messages: [{
         role: "user",
         content:

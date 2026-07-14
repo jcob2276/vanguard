@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Note, createNoteApi, updateNoteApi, deleteNoteApi, sortNotes, isNetworkOrTableError } from '../../../lib/notesApi';
 import { notify, dismissToast } from '../../../lib/notify';
 import { isOfflineError, queueOfflineWrite } from '../../../lib/offlineQueue';
+import { STORAGE_KEYS } from '../../../lib/constants';
 
 async function createNoteAction(
   userId: string,
@@ -28,7 +29,7 @@ async function createNoteAction(
       if (isOfflineError(err)) await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, ...payload } }, 'Dodanie notatki');
       setNotes((prev) => {
         const updated = sortNotes([local, ...prev]);
-        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
         return updated;
       });
       return;
@@ -79,7 +80,7 @@ async function updateNoteAction(
     await updateNoteApi(id, { ...patch, updated_at: updatedAt });
     setNotes((prev) => {
       const updated = sortNotes(prev.map((n) => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
-      if (!navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+      if (!navigator.onLine) localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
       return updated;
     });
   } catch (err) {
@@ -88,7 +89,7 @@ async function updateNoteAction(
     }
     setNotes((prev) => {
       const updated = sortNotes(prev.map((n) => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
-      localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+      localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
       return updated;
     });
     setError('Brak połączenia. Zaktualizowano lokalnie.');
@@ -114,7 +115,7 @@ async function deleteNoteAction(
       setError('Brak połączenia. Usunięto lokalnie.');
       setNotes((prev) => {
         const updated = prev.filter((n) => n.id !== id);
-        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+        localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
         return updated;
       });
     }
@@ -143,7 +144,7 @@ async function togglePinAction(
     await updateNoteApi(note.id, { is_pinned: next });
     setNotes((prev) => {
       const updated = sortNotes(prev.map((n) => (n.id === note.id ? { ...n, is_pinned: next } : n)));
-      if (!navigator.onLine) localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+      if (!navigator.onLine) localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
       return updated;
     });
   } catch (err) {
@@ -152,7 +153,7 @@ async function togglePinAction(
     }
     setNotes((prev) => {
       const updated = sortNotes(prev.map((n) => (n.id === note.id ? { ...n, is_pinned: next } : n)));
-      localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+      localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
       return updated;
     });
     setError('Brak połączenia. Zmieniono przypięcie lokalnie.');
@@ -178,7 +179,7 @@ async function newNoteAction(
     const local: Note = { id, user_id: userId, ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     setNotes((prev) => {
       const updated = sortNotes([local, ...prev]);
-      localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(updated));
+      localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
       return updated;
     });
     setError('Brak połączenia. Utworzono notatkę lokalnie.');

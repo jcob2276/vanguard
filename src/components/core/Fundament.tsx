@@ -17,7 +17,8 @@ import { supabase } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
 import IdentityVault from '../identity/IdentityVault';
 import DataHub from './DataHub';
-import type { Session } from '@supabase/supabase-js';
+import { useUserId } from '../../store/useStore';
+import Button from '../ui/Button';
 
 function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail?: string | null }) {
   return (
@@ -49,7 +50,8 @@ function TextAreaBlock({ label, value, onChange, placeholder, danger = false, ro
   );
 }
 
-export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }: { onBack: () => void; session: Session; onSyncCalendar: () => Promise<void> | void; isSyncing: boolean }) {
+export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBack: () => void; onSyncCalendar: () => Promise<void> | void; isSyncing: boolean }) {
+  const userId = useUserId();
   const [identity, setIdentity] = useState({
     long_term_mission: '',
     pillars: ['', '', ''],
@@ -63,7 +65,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
     const { data } = await supabase
       .from('vanguard_identity')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId!)
       .maybeSingle();
 
     if (data) {
@@ -75,7 +77,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
       });
     }
     setLoading(false);
-  }, [session.user.id]);
+  }, [userId]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -97,7 +99,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
       }
 
       const { error } = await supabase.from('vanguard_identity').upsert({
-        user_id: session.user.id,
+        user_id: userId!,
         long_term_mission: identity.long_term_mission,
         pillars: identity.pillars,
         avoidance_triggers: identity.avoidance_triggers,
@@ -121,13 +123,13 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
     <div className="min-h-screen bg-background text-text-primary selection:bg-primary/30 transition-colors duration-300">
       <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-8 shadow-sm">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-xl">
-          <button
+          <Button
             onClick={onBack}
-            className="rounded-full border border-border-custom bg-surface/50 p-2.5 text-text-secondary transition-colors hover:text-text-primary hover:bg-surface shadow-sm"
+            variant="secondary"
+            icon={<ChevronLeft size={18} />}
+            className="rounded-full p-2.5"
             title="Wróć"
-          >
-            <ChevronLeft size={18} />
-          </button>
+          />
           <div className="min-w-0">
             <h1 className="truncate text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Identity Fundament</h1>
             <p className="text-[9px] font-black uppercase tracking-[0.22em] text-primary">Core context</p>
@@ -135,7 +137,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
         </header>
 
         <main className="flex-1 space-y-6 p-5">
-          <section className="card bg-gradient-to-br from-primary/[0.04] to-rose-500/[0.02] border-border-custom p-5">
+          <section className="card bg-gradient-to-br from-primary/[0.04] to-danger/[0.02] border-border-custom p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.24em] text-primary">Fundament</p>
@@ -220,7 +222,7 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
 
           <section className="space-y-3">
             <SectionHeader icon={UploadCloud} title="Identity Vault" detail="Dokumenty, ankiety, testy i długi kontekst do analiz." />
-            <IdentityVault session={session} />
+            <IdentityVault />
           </section>
 
           <section className="space-y-3">
@@ -234,13 +236,14 @@ export default function Fundament({ onBack, session, onSyncCalendar, isSyncing }
             />
           </section>
 
-          <button
+          <Button
             onClick={saveIdentity}
-            disabled={saving}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 text-[12px] font-bold tracking-wider text-white shadow-lg shadow-primary/25 hover:bg-primary-hover transition-all active:scale-[0.99] disabled:opacity-50 font-display cursor-pointer"
+            loading={saving}
+            icon={<Save size={16} />}
+            className="w-full rounded-2xl px-4 py-4 text-[12px] font-bold tracking-wider shadow-lg shadow-primary/25 font-display"
           >
-            <Save size={16} /> {saving ? 'Zapisywanie...' : 'Zapisz fundament'}
-          </button>
+            Zapisz fundament
+          </Button>
 
           <section className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
             <p className="text-[10px] font-bold uppercase leading-relaxed text-text-secondary">

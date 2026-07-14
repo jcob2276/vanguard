@@ -9,6 +9,7 @@
  * @status active
  */
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { serveJson } from "../_shared/http.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
@@ -55,8 +56,7 @@ Odpowiedz TYLKO JSONem w formacie:
 
   const { content } = await deepseekChat({
     apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
-    model: 'deepseek-chat',
-    responseFormat: { type: 'json_object' },
+    ...LLM_TASKS.structured,
     messages: [{ role: 'user', content: prompt }],
     timeoutMs: 30000,
   });

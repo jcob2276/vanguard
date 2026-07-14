@@ -1,3 +1,4 @@
+import Button from '../../ui/Button';
 import FoodAnalysisSingle from './foodAnalysis/FoodAnalysisSingle';
 import FoodAnalysisRange from './foodAnalysis/FoodAnalysisRange';
 
@@ -111,13 +112,14 @@ export function FoodAnalysisSection({
             Ostatnie {analyzePeriod} dni
           </p>
         )}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={analyzeFood}
           disabled={isAnalyzing}
-          className="rounded-xl border border-border-custom bg-surface px-4 py-2 text-[10px] font-bold uppercase text-text-secondary transition-all hover:bg-surface-solid hover:text-primary disabled:opacity-40 cursor-pointer"
         >
           {isAnalyzing ? 'Analizuję...' : 'Analizuj'}
-        </button>
+        </Button>
       </div>
 
       {analyzeResult && analyzeResult.mode === 'single' && (

@@ -10,6 +10,7 @@
  */
 import { serveJson } from "../_shared/http.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { sendMessage } from "../_shared/telegram.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
@@ -50,7 +51,14 @@ Deno.serve(serveJson(async (req, ctx) => {
       const SYSTEM = `Jesteś trenerem żywieniowym maratończyka. Masz NAJDOKŁADNIEJSZE dane: spalanie Oura, makra, trend wagi, sen, trening.
 Zasady: Prawdziwe maintenance > wzór. Deficyt ŁAGODNY. Białko to floor. Sen < 7h i niski błonnik to hamulce. forecast.* to projekcja CURRENT trendu. Konkretne polskie produkty. Mówisz po polsku, liczbami.`;
       const USER = `DANE:\n${JSON.stringify(signals, null, 2)}\n\nZwróć JSON: {"summary":"...","trajectory":"on_track|behind|ahead","trajectory_note":"...","forecast_note":"...","today_focus":"...","flags":["..."],"protein_note":"...","food_suggestions":["..."]}`;
-      const res = await deepseekChat({ apiKey, model: "deepseek-v4-flash", temperature: 0.3, maxTokens: 2500, timeoutMs: 40000, responseFormat: { type: "json_object" }, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: USER }] });
+      const res = await deepseekChat({
+        apiKey,
+        ...LLM_TASKS.structured,
+        temperature: 0.3,
+        maxTokens: 2500,
+        timeoutMs: 40000,
+        messages: [{ role: "system", content: SYSTEM }, { role: "user", content: USER }]
+      });
       verdict = parseJsonFromContent(res.content);
       if (!verdict) verdictError = `parse_failed len=${res.content.length}`;
     } catch (e) { verdictError = (e as Error).message; console.error("[nutrition-coach] deepseek failed:", verdictError); }

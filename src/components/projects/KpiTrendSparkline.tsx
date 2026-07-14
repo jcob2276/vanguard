@@ -1,5 +1,6 @@
 import { notify } from '../../lib/notify';
 import { Plus } from 'lucide-react';
+import Button from '../ui/Button';
 import { getTodayWarsaw } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import { useKpiHistoryQuery, useIncrementKpiMutation } from '../../lib/kpiTrendApi';
@@ -54,15 +55,15 @@ export function KpiTrendSparkline({
           {unit ? ` ${unit}` : ''}
         </span>
         {onValueChange && (
-          <button
-            type="button"
+          <Button
+            variant="tonal"
+            size="sm"
             onClick={() => void handleIncrement()}
             disabled={logging}
-            className="flex h-5 w-5 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            icon={<Plus size={10} strokeWidth={3} />}
+            className="h-5 w-5 p-0"
             title="+1"
-          >
-            <Plus size={10} strokeWidth={3} />
-          </button>
+          />
         )}
       </div>
     );
@@ -105,15 +106,15 @@ export function KpiTrendSparkline({
         {unit ? ` ${unit}` : ''}
       </span>
       {onValueChange && (
-        <button
-          type="button"
+        <Button
+          variant="tonal"
+          size="sm"
           onClick={() => void handleIncrement()}
           disabled={logging}
-          className="flex h-5 w-5 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+          icon={<Plus size={10} strokeWidth={3} />}
+          className="h-5 w-5 p-0"
           title="+1"
-        >
-          <Plus size={10} strokeWidth={3} />
-        </button>
+        />
       )}
     </div>
   );

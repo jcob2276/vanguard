@@ -1,4 +1,5 @@
 import { Sparkles, Check, Star, Trash2 } from 'lucide-react';
+import Button from '../../ui/Button';
 import Modal from '../../ui/Modal';
 import type { DreamRow } from '../../../lib/dreamsApi';
 
@@ -74,7 +75,7 @@ export default function DreamEditModal({
           <div className="space-y-1.5">
             <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-muted">Cel życiowy</label>
             <div className="flex gap-1.5">
-              {([['cialo', 'Ciało', 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'], ['duch', 'Duch', 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500'], ['konto', 'Konto', 'border-amber-500/40 bg-amber-500/10 text-amber-600']] as [string, string, string][]).map(([val, label, active]) => (
+              {([['cialo', 'Ciało', 'border-success/40 bg-success/10 text-success'], ['duch', 'Duch', 'border-primary/40 bg-primary/10 text-primary'], ['konto', 'Konto', 'border-warning/40 bg-warning/10 text-warning']] as [string, string, string][]).map(([val, label, active]) => (
                 <button key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
                   className={`rounded-xl border px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${editDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
                   {label}
@@ -98,30 +99,37 @@ export default function DreamEditModal({
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          <button
+          <Button
+            variant="primary"
+            size="lg"
             onClick={saveDreamEdit}
             disabled={savingDream || !editDreamTitle.trim()}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40"
+            loading={savingDream}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer"
+            icon={<Check size={11} strokeWidth={2.5} />}
           >
-            <Check size={11} strokeWidth={2.5} /> Zapisz wizję
-          </button>
-          <button
+            Zapisz wizję
+          </Button>
+          <Button
+            variant={editingDream.is_top5 ? 'tonal' : 'outline'}
+            size="lg"
             onClick={() => { toggleTop5(editingDream); setEditingDream((prev) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
             className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
               editingDream.is_top5
-                ? 'border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
-                : 'border-border-custom text-text-muted hover:border-amber-500/30 hover:text-amber-500'
+                ? 'border-warning/30 bg-warning/10 text-warning hover:bg-warning/20'
+                : 'border-border-custom text-text-muted hover:border-warning/30 hover:text-warning'
             }`}
+            icon={<Star size={11} fill={editingDream.is_top5 ? 'currentColor' : 'none'} />}
           >
-            <Star size={11} fill={editingDream.is_top5 ? 'currentColor' : 'none'} />
             Top 5
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
             onClick={() => { deleteDream(editingDream.id); }}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/20 text-rose-400/50 hover:text-rose-500 hover:border-rose-500/30 transition-all cursor-pointer"
-          >
-            <Trash2 size={13} />
-          </button>
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-danger/20 text-danger/50 hover:text-danger hover:border-danger/30 transition-all cursor-pointer"
+            icon={<Trash2 size={13} />}
+          />
         </div>
     </Modal>
   );

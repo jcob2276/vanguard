@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 import { TrendArrow } from './TrendArrow';
 import { computeBmi, effectiveWaistForNavy, navyBodyFatPct } from '../../../lib/health/bodyMetrics';
 import { BMI_NORMAL_LOW, BMI_NORMAL_HIGH } from '../../../lib/constants';
@@ -87,8 +89,8 @@ export function BodyMetricsSection({
   });
   const bf = waistNavy && neck && heightCm ? navyBodyFatPct(waistNavy, neck, heightCm) : null;
 
-  const bfColor = bf == null ? '' : bf < 12 ? 'text-amber-500' : bf < 18 ? 'text-emerald-500 dark:text-emerald-400' : bf < 25 ? 'text-text-primary' : 'text-rose-500';
-  const bmiColor = bmi == null ? '' : bmi < BMI_NORMAL_LOW ? 'text-amber-500' : bmi < BMI_NORMAL_HIGH ? 'text-emerald-500 dark:text-emerald-400' : bmi < 30 ? 'text-amber-500' : 'text-rose-500';
+  const bfColor = bf == null ? '' : bf < 12 ? 'text-warning' : bf < 18 ? 'text-success dark:text-success' : bf < 25 ? 'text-text-primary' : 'text-danger';
+  const bmiColor = bmi == null ? '' : bmi < BMI_NORMAL_LOW ? 'text-warning' : bmi < BMI_NORMAL_HIGH ? 'text-success dark:text-success' : bmi < 30 ? 'text-warning' : 'text-danger';
 
   return (
     <section className="card !p-0">
@@ -146,7 +148,7 @@ export function BodyMetricsSection({
 
         {/* Expandable panel */}
         {expanded && (
-          <div className="space-y-4 rounded-2xl border border-border-custom bg-surface-solid/40 p-4">
+          <Card className="space-y-4">
             {/* Live indicators */}
             {(bmi != null || bf != null || whr != null) && (
               <div className="flex flex-wrap gap-2 pb-1">
@@ -189,15 +191,16 @@ export function BodyMetricsSection({
               Brzuch = na poziomie pępka. Biodra = najszerszy punkt pośladków.
               BF% obliczany metodą US Navy (brzuch/talia − szyja → log₁₀).
             </p>
-          </div>
+          </Card>
         )}
 
-        <button
+        <Button
+          variant="primary"
           onClick={saveMetrics}
-          className="w-full rounded-xl bg-primary hover:bg-primary-hover py-3.5 text-[12px] font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.98] font-display cursor-pointer"
+          className="w-full"
         >
           Zapisz pomiary
-        </button>
+        </Button>
       </div>
     </section>
   );

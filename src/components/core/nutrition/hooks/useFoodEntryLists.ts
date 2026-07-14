@@ -4,13 +4,7 @@ import { supabase } from '../../../../lib/supabase';
 import { getTodayWarsaw } from '../../../../lib/date';
 import type { Favorite, RecentEntry } from './foodEntryUtils';
 
-export const foodEntryListsKeys = {
-  all: ['food-entry-lists'] as const,
-  favorites: (userId: string) => [...foodEntryListsKeys.all, 'favorites', userId] as const,
-  recent: (userId: string) => [...foodEntryListsKeys.all, 'recent', userId] as const,
-  todayTotals: (userId: string) => [...foodEntryListsKeys.all, 'today', userId] as const,
-  targets: (userId: string) => [...foodEntryListsKeys.all, 'targets', userId] as const,
-};
+import { foodEntryListsKeys } from '../../../../lib/queryKeys';
 
 async function fetchFavorites(userId: string): Promise<Favorite[]> {
   const { data, error } = await supabase

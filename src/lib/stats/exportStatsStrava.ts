@@ -1,6 +1,7 @@
 import { TIMEZONE } from '../../lib/date';
 import type { StravaCleanActivity, StravaSplit, StravaBestEffort, GcHrZone } from './exportStatsTypes';
 import type { Tables as DatabaseTables } from '../database.types';
+import { parseGcHrZones, parseStravaSplits, parseStravaBestEfforts } from '../db-json-guards';
 
 interface StravaSectionParams {
   md: string;
@@ -73,8 +74,9 @@ export function renderStravaSection({
         gcParts.push(`${gw.temp_c}°C${gw.condition ? ` ${gw.condition}` : ''}${gw.humidity != null ? ` ${gw.humidity}% wilg.` : ''}`);
       }
       if (gcParts.length > 0) out += `**Garmin Connect:** ${gcParts.join(' | ')}\n`;
-      if (Array.isArray(a.gc_hr_zones) && a.gc_hr_zones.length > 0) {
-        const zones = (a.gc_hr_zones as unknown as GcHrZone[]).map((z, i) => {
+      const parsedGcHrZones = parseGcHrZones(a.gc_hr_zones);
+      if (parsedGcHrZones && parsedGcHrZones.length > 0) {
+        const zones = parsedGcHrZones.map((z: GcHrZone, i: number) => {
           const mins = z.secsInZone != null ? Math.round(z.secsInZone / 60) : null;
           return mins != null && mins > 0 ? `Z${i + 1}: ${mins}min` : null;
         }).filter(Boolean);
@@ -118,7 +120,7 @@ export function renderStravaSection({
     if (athleteComment) out += `**Komentarz zawodnika:** ${athleteComment}\n`;
 
     // Splits table
-    const splits = a.splits_with_hr as unknown as StravaSplit[];
+    const splits: StravaSplit[] = parseStravaSplits(a.splits_with_hr) ?? [];
     if (splits && splits.length > 0) {
       const hasGapMd = splits.some(s => s.average_grade_adjusted_speed != null);
       out += `\n**Splity:**\n`;
@@ -147,7 +149,7 @@ export function renderStravaSection({
 
     // Best efforts
     const bestEffortNames = ['400m', '1K', '1 mile', '2 mile', '5K', '10K'];
-    const efforts = ((a.best_efforts as unknown as StravaBestEffort[]) ?? []).filter(e => bestEffortNames.includes(e.name));
+    const efforts: StravaBestEffort[] = (parseStravaBestEfforts(a.best_efforts) ?? []).filter((e: StravaBestEffort) => bestEffortNames.includes(e.name));
     if (efforts.length > 0) {
       out += `\n**Best Efforts:**\n`;
       efforts.forEach(e => {

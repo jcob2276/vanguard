@@ -56,8 +56,8 @@ export default function HabitsPanel({
             <input value={newHabit.name} onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addHabit()} className="rounded-lg border border-border-custom bg-surface px-3 py-2 text-[11px] font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50" placeholder="Nazwa" />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400' : 'border-border-custom text-text-muted'}`}>Wzmacniać</button>
-            <button onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-rose-500/35 bg-rose-500/10 text-rose-400' : 'border-border-custom text-text-muted'}`}>Unikać</button>
+            <button onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-success/35 bg-success/10 text-success' : 'border-border-custom text-text-muted'}`}>Wzmacniać</button>
+            <button onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} className={`rounded-lg border py-2 text-[8px] font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-danger/35 bg-danger/10 text-danger' : 'border-border-custom text-text-muted'}`}>Unikać</button>
           </div>
           <Button onClick={addHabit} variant="primary" size="sm" className="w-full uppercase tracking-widest">Dodaj</Button>
         </Card>
@@ -77,10 +77,10 @@ export default function HabitsPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => toggleHabit(habit.id)} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-rose-500 bg-rose-500 text-white') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
+                  <button onClick={() => toggleHabit(habit.id)} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-success bg-success text-white' : 'border-danger bg-danger text-white') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
                     {doneToday ? <CheckSquare size={14} /> : <Square size={14} />}
                   </button>
-                  <button onClick={() => deleteHabit(habit.id)} className="p-1.5 text-text-muted/40 hover:text-rose-500 rounded-lg cursor-pointer"><Trash2 size={11} /></button>
+                  <button onClick={() => deleteHabit(habit.id)} className="p-1.5 text-text-muted/40 hover:text-danger rounded-lg cursor-pointer"><Trash2 size={11} /></button>
                 </div>
               </div>
               <div className="flex h-2 gap-0.5 overflow-hidden">
@@ -88,7 +88,7 @@ export default function HabitsPanel({
                   const d = formatWarsawDate(subDays(new Date(), 29 - i));
                   const has = habitLogs.some(l => l.habit_id === habit.id && l.date === d);
                   const ok = habit.is_positive ? has : !has;
-                  return <div key={d} className={`flex-1 rounded-sm ${d === today && !has ? 'border border-border-custom' : ok ? 'bg-emerald-500' : 'bg-rose-500'}`} />;
+                  return <div key={d} className={`flex-1 rounded-sm ${d === today && !has ? 'border border-border-custom' : ok ? 'bg-success' : 'bg-danger'}`} />;
                 })}
               </div>
             </div>

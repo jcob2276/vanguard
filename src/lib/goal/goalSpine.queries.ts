@@ -7,6 +7,7 @@ import type {
   ProjectWeekKpi,
 } from './goalSpine.types';
 import { queryClient } from '../queryClient';
+import { goalSpineKeys } from '../queryKeys';
 import { currentWeekStart } from './goalSpine.derive';
 import {
   loadMonthlySlice,
@@ -24,7 +25,7 @@ export async function fetchWeeklyReviewFull(
   weekStart: string,
 ): Promise<WeeklyReviewRow | null> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'review', weekStart],
+    queryKey: goalSpineKeys.review(userId, weekStart),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('weekly_reviews')
@@ -40,7 +41,7 @@ export async function fetchWeeklyReviewFull(
 
 export async function fetchLatestCompletedWeeklyReviewDate(userId: string): Promise<string | null> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'reviewLatestCompletedDate'],
+    queryKey: goalSpineKeys.reviewLatestCompletedDate(userId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('weekly_reviews')
@@ -63,7 +64,7 @@ export async function fetchGoalSpine(
 ): Promise<GoalSpine> {
   const currentToday = today ?? getTodayWarsaw();
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'full', weekStart, currentToday],
+    queryKey: goalSpineKeys.full(userId, weekStart, currentToday),
     queryFn: async () => {
       const [week, sprint, longTerm, sprintReview, month] = await Promise.all([
         fetchWeekGoals(userId, weekStart),
@@ -83,9 +84,9 @@ export async function fetchProjectWeekKpis(
   weekStart: string,
 ): Promise<Record<string, ProjectWeekKpi[]>> {
   if (projectIds.length === 0) return {};
-  const sortedIds = projectIds.slice().sort().join(',');
+  const sortedIds = projectIds.slice().sort();
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'projectKpis', weekStart, sortedIds],
+    queryKey: goalSpineKeys.projectKpis(userId, weekStart, sortedIds),
     queryFn: async () => {
       const { data: kpis, error: kpiErr } = await supabase
         .from('goal_kpis')
@@ -120,7 +121,7 @@ export async function fetchProjectWeekKpis(
 
 export async function fetchKpisForProject(userId: string, projectId: string): Promise<GoalKpiRow[]> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'projectKpisFor', projectId],
+    queryKey: goalSpineKeys.projectKpisFor(userId, projectId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('goal_kpis')
@@ -136,7 +137,7 @@ export async function fetchKpisForProject(userId: string, projectId: string): Pr
 const invalidateListeners = new Set<() => void>();
 
 export function invalidateGoalSpineCache(userId: string): void {
-  void queryClient.invalidateQueries({ queryKey: ['goalSpine', userId] });
+  void queryClient.invalidateQueries({ queryKey: goalSpineKeys.forUser(userId) });
   invalidateListeners.forEach((fn) => fn());
 }
 

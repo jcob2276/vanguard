@@ -72,7 +72,7 @@ export default function GeneralView({
     .map(([type, count]) => ({
       type: type.replace(/_/g, ' '),
       count,
-      color: FRICTION_COLOR[type] || '#9ca3af',
+      color: FRICTION_COLOR[type] || 'var(--color-text-muted)',
     }))
     .sort((a, b) => b.count - a.count);
 

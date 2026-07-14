@@ -51,7 +51,7 @@ export function PersonaAvatarButton({
 
       <div
         className="absolute inset-0 rounded-full pointer-events-none"
-        style={{ boxShadow: '0 0 0 2px var(--color-primary, #5B6CFF)' }}
+        style={{ boxShadow: '0 0 0 2px var(--color-primary, var(--color-primary))' }}
       />
 
       {unreadCount > 0 && (
@@ -61,7 +61,7 @@ export function PersonaAvatarButton({
             minWidth: 16,
             height: 16,
             fontSize: 9,
-            background: '#F43F5E',
+            background: 'var(--color-danger)',
             border: '2px solid var(--surface-solid, white)',
             padding: '0 3px',
           }}

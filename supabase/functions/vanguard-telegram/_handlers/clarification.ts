@@ -1,4 +1,5 @@
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import type { TelegramRouterContext } from "../_router/config.ts";
 
@@ -48,10 +49,8 @@ export async function handleClarificationReply(
     try {
       const classificationRes = await deepseekChat({
         apiKey: deepseekApiKey,
-        model: "deepseek-v4-flash",
-        temperature: 0.1,
+        ...LLM_TASKS.structured,
         maxTokens: 50,
-        responseFormat: { type: "json_object" },
         messages: [
           {
             role: "system",

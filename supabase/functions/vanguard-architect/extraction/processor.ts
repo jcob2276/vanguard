@@ -1,5 +1,7 @@
+import { EPISTEMIC_THRESHOLDS } from "@vanguard/domain"
 import { getWarsawDateString } from "../../_shared/time.ts"
 import { deepseekChat } from "../../_shared/deepseek.ts"
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts"
 import { deprecateSupersededLinks } from "../../_shared/deprecateSupersededLinks.ts"
 import { getAggregateByDate } from "../../_shared/repos/aggregatesRepo.ts"
 import { extractJsonObject, normalizeText } from "./helpers.ts"
@@ -41,7 +43,7 @@ ZASADY EKSTRAKCJI (Graphiti + LightRAG patterns):
 - NIE twórz wezlów z: pospolitych rzeczowników (dzien, zycie, ludzie, rzeczy, czas), dat, przyslowkow, emocji bez konkretnego targetu.
 - Deduplication (Graphiti rule): jesli dwie encje sa TYM SAMYM obiektem realnym, uzywaj pelniejszej nazwy. "NYC" = "New York City" → "New York City".
 - NIGDY nie fabrykuj encji spoza tekstu.
-- Jesli wniosek nie jest wprost powiedzany → memory_type="hypothesis", confidence_score <= 0.65.
+- Jesli wniosek nie jest wprost powiedzany → memory_type="hypothesis", confidence_score <= ${EPISTEMIC_THRESHOLDS.GRAPH_HYPOTHESIS_MAX_CONFIDENCE}.
 - Relacja MUSI byc jedna z listy:
 ${allowedRelations.join(", ")}
 - Dla rodziny: ma_relacje_z, zna_osobe, mieszka_w, pamieta, wywoluje.
@@ -99,8 +101,7 @@ Przyklady:
     try {
       const { content: raw } = await deepseekChat({
         apiKey,
-        model: "deepseek-v4-flash",
-        temperature: 0.1,
+        ...LLM_TASKS.classify,
         maxTokens: 2200,
         messages: [
           { role: "system", content: systemPrompt },

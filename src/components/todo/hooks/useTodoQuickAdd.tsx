@@ -73,7 +73,7 @@ export function useTodoQuickAdd() {
         }}
         className="flex w-full items-center gap-2 px-3 py-2 text-[13px] font-semibold text-text-secondary hover:text-primary transition-colors cursor-pointer group mt-2"
       >
-        <span className="text-[16px] text-primary group-hover:text-primary font-bold">+</span>
+        <span className="text-[16px] text-primary group-hover:text-primary-hover font-bold">+</span>
         <span>Dodaj zadanie</span>
       </button>
     );

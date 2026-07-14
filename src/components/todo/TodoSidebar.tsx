@@ -237,7 +237,7 @@ export default function TodoSidebar({
                       </button>
                       <button
                         onClick={() => onDeleteSection(s.id)}
-                        className="p-1 text-text-muted/40 hover:text-rose-400 transition-colors"
+                        className="p-1 text-text-muted/40 hover:text-danger transition-colors"
                         title="Usuń listę"
                       >
                         <Trash2 size={10} />

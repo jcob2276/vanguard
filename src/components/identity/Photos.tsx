@@ -9,6 +9,8 @@ import { notify, confirmDialog } from '../../lib/notify';
 import { generateThumbnail } from '../../lib/imageThumbnail';
 import { useUserId } from '../../store/useStore';
 import Spinner from '../ui/Spinner';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 export default function Photos() {
   const userId = useUserId();
@@ -123,7 +125,7 @@ export default function Photos() {
 
   if (photos.length === 0) {
     return (
-      <div className="rounded-[24px] border border-border-custom bg-surface backdrop-blur-md p-6 text-center space-y-4 shadow-sm my-2">
+      <Card className="text-center space-y-4 my-2" padding="1.5rem">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
           <Camera size={22} />
         </div>
@@ -149,13 +151,13 @@ export default function Photos() {
           </label>
         </div>
         <div className="hidden">
-          <input 
-            type="date" 
-            value={photoDate} 
-            onChange={(e) => setPhotoDate(e.target.value)} 
+          <input
+            type="date"
+            value={photoDate}
+            onChange={(e) => setPhotoDate(e.target.value)}
           />
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -163,7 +165,7 @@ export default function Photos() {
     <div className="space-y-4 text-text-primary">
 
       {/* Card: Header + Comparison */}
-      <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
+      <Card padding="0">
         <div className="flex items-start justify-between px-5 pt-5 pb-4">
           <div>
             <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-text-muted font-display">Postęp sylwetki</p>
@@ -221,7 +223,7 @@ export default function Photos() {
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Oś czasu */}
       <div className="space-y-3">
@@ -254,9 +256,7 @@ export default function Photos() {
                   <span className={`text-[9px] font-bold ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
                     {format(parseISO(photo.date!), 'dd.MM')}
                   </span>
-                  <button onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} className="text-text-muted hover:text-rose-500 transition-colors p-1 rounded-lg hover:bg-rose-500/5 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center">
-                    <Trash2 size={11} />
-                  </button>
+                  <Button onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} variant="ghost" icon={<Trash2 size={11} />} className="text-text-muted hover:text-danger p-1 rounded-lg hover:bg-danger/5 min-w-[32px] min-h-[32px]" />
                 </div>
               </div>
             );

@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import Button from '../ui/Button';
 
 interface Props {
   children?: ReactNode;
@@ -59,12 +60,13 @@ export class ErrorBoundary extends Component<Props, State> {
               ? 'Nowa wersja aplikacji — odśwież stronę (Ctrl+F5), jeśli problem wraca.'
               : 'Wystąpił nieoczekiwany błąd aplikacji.'}
           </p>
-          <button
+          <Button
+            variant="primary"
             onClick={() => window.location.reload()}
-            className="rounded-full bg-primary px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-white shadow-md hover:bg-primary-hover transition-all active:scale-95 cursor-pointer"
+            className="rounded-full"
           >
             Odśwież stronę
-          </button>
+          </Button>
         </div>
       );
     }

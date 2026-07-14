@@ -23,6 +23,7 @@ import type {
   DreamRow,
 } from './goalSpine.types';
 import { queryClient } from '../queryClient';
+import { goalSpineKeys } from '../queryKeys';
 import { weekGoalsFromReview, weekGoalsAreEmpty, resolveWeekGoals, previousWeekStart, isSprintClosingWeek } from './goalSpine.derive';
 
 const WEEK_GOAL_COLUMNS =
@@ -169,21 +170,21 @@ export async function fetchWeekGoals(
   weekStart: string,
 ): Promise<ResolvedWeekGoals> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'week', weekStart],
+    queryKey: goalSpineKeys.week(userId, weekStart),
     queryFn: () => loadWeekGoals(userId, weekStart),
   });
 }
 
 export async function fetchSprintContext(userId: string): Promise<SprintContext> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'sprint'],
+    queryKey: goalSpineKeys.sprint(userId),
     queryFn: () => loadSprintContext(userId),
   });
 }
 
 export async function fetchLongTermGoals(userId: string): Promise<LongTermGoals> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'longTerm'],
+    queryKey: goalSpineKeys.longTerm(userId),
     queryFn: () => loadLongTermGoals(userId),
   });
 }
@@ -191,7 +192,7 @@ export async function fetchLongTermGoals(userId: string): Promise<LongTermGoals>
 export async function fetchSprintReview(userId: string): Promise<SprintReview | null> {
   const sprint = getSprintInfo();
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'sprintReview', sprint.personalYear, sprint.sprintNumber],
+    queryKey: goalSpineKeys.sprintReview(userId, sprint.personalYear, sprint.sprintNumber),
     queryFn: () => loadSprintReview(userId),
   });
 }
@@ -201,7 +202,7 @@ export async function fetchMonthlyReview(
   monthStart: string,
 ): Promise<MonthlyReviewRow | null> {
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'monthReview', monthStart],
+    queryKey: goalSpineKeys.monthReview(userId, monthStart),
     queryFn: () => loadMonthlyReview(userId, monthStart),
   });
 }
@@ -211,9 +212,9 @@ export async function fetchLatestKpiValues(
   kpiIds: string[],
 ): Promise<Map<string, number | null>> {
   if (kpiIds.length === 0) return new Map();
-  const sortedIds = kpiIds.slice().sort().join(',');
+  const sortedIds = kpiIds.slice().sort();
   return queryClient.fetchQuery({
-    queryKey: ['goalSpine', userId, 'latestKpiValues', sortedIds],
+    queryKey: goalSpineKeys.latestKpiValues(userId, sortedIds),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('kpi_entries')

@@ -2,6 +2,8 @@ import { BookOpen, CheckCircle2, ExternalLink, FileText, Link2, TrendingUp } fro
 import type { LearningNeedItem, WeekLearningItem } from '../../lib/growth/growthOverview';
 import type { GrowthLinkRow } from './hooks/useGrowthData';
 import type { GrowthPinSlot } from '../../lib/growth/growth';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 const KIND_ICON = {
   pin: CheckCircle2,
@@ -45,7 +47,7 @@ export default function GrowthLearningPanel({
 }) {
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <section className="rounded-2xl border border-border-custom bg-surface/30 p-4">
+      <Card variant="glass" padding="1rem">
         <div className="flex items-center gap-1.5 mb-2">
           <BookOpen size={12} className="text-text-muted" />
           <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">
@@ -91,14 +93,15 @@ export default function GrowthLearningPanel({
                       <ExternalLink size={12} />
                     </a>
                     {!readOnly && onQuickPinLink && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="tonal"
                         onClick={() => onQuickPinLink(link.id, 'must')}
-                        className="rounded bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[9px] font-black uppercase text-primary transition-all cursor-pointer"
+                        className="px-2 py-0.5 text-[9px] rounded font-black uppercase"
                         title="Dodaj jako MUST"
+                        size="sm"
                       >
                         Przypnij
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </li>
@@ -117,9 +120,9 @@ export default function GrowthLearningPanel({
             </ul>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded-2xl border border-border-custom bg-surface/30 p-4 flex-1 flex flex-col min-h-[200px]">
+      <Card variant="glass" padding="1rem" className="flex-1 flex flex-col min-h-[200px]">
         <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">
           Nauczyłem się w tym tygodniu
         </p>
@@ -148,7 +151,7 @@ export default function GrowthLearningPanel({
             })}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { deepseekStream, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import type { DeepSeekMessage } from "../../_shared/deepseek.ts";
 import { corsHeaders } from "../../_shared/supabase.ts";
 import { OracleResponseSchema, extractAnswer } from "./responseExtract.ts";
@@ -24,7 +25,7 @@ export async function handleStreamingResponse(
   console.log(`[oracle] deepseek stream start`, Date.now() - t0);
   const dsResponse = await deepseekStream({
     apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
-    model: thinking ? 'deepseek-reasoner' : 'deepseek-v4-flash',
+    ...(thinking ? LLM_TASKS.deep : LLM_TASKS.oracle),
     messages: messages,
     temperature: thinking ? null : 0.7,
     maxTokens: null,

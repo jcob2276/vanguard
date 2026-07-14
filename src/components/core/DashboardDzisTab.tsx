@@ -1,15 +1,13 @@
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
-import type { SpineGuidance, SpineGuideTarget } from '../../lib/goal/goalSpineGuide';
-import type { Tables } from '../../lib/database.types';
 import { SpineGuideStrip } from './SpineGuideStrip';
 import OrientationFooter from './OrientationFooter';
 import PowerList from '../lifestyle/PowerList';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import Spinner from '../ui/Spinner';
-
-type DailyWinRow = Tables<'daily_wins'>;
+import Button from '../ui/Button';
+import { useDashboardContext } from './context/DashboardContext';
 
 const DailyStrainCard  = lazy(() => import('../biometrics/DailyStrainCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
@@ -32,73 +30,68 @@ function isAfter20(): boolean {
   }
 }
 
-interface Props {
-  todayWin: DailyWinRow | null;
-  spineGuidance: SpineGuidance | null;
-  spineGuidanceLoading: boolean;
-  weeklyReviewNudge: React.ReactNode;
-  planDaySignal: number;
-  nutritionKey: number;
-  workoutKey: number;
-  onRefresh: () => void;
-  onSetNutritionKey: (fn: (k: number) => number) => void;
-  onOpenFoodModal: () => void;
-  onOpenShutdown: () => void;
-  onSpineGuideNavigate: (target: SpineGuideTarget) => void;
-  onPlanDay: () => void;
-  onFocusPlan: () => void;
-}
-
-export function DashboardDzisTab({
-  todayWin, spineGuidance, spineGuidanceLoading,
-  weeklyReviewNudge, planDaySignal, nutritionKey, workoutKey,
-  onRefresh, onSetNutritionKey, onOpenFoodModal, onOpenShutdown,
-  onSpineGuideNavigate, onPlanDay, onFocusPlan,
-}: Props) {
+export function DashboardDzisTab() {
   const session = useSession();
+  const s = useDashboardContext();
+
   if (!session) return null;
+
+  const weeklyReviewNudge = new Date().getDay() === 0 && !s.taskReviewDoneThisWeek && (
+    <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h4 className="text-[12px] font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+        <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
+      </div>
+      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm">
+        Rozpocznij
+      </button>
+    </div>
+  );
+
   return (
     <div className="p-5 pb-8">
-      <div className="space-y-5">
-        <OrientationFooter />
-        <SpineGuideStrip
-          guidance={spineGuidance}
-          loading={spineGuidanceLoading}
-          onNavigate={onSpineGuideNavigate}
-          onPlanDay={onPlanDay}
-          onFocusPlan={onFocusPlan}
-        />
-        {weeklyReviewNudge}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-5 lg:space-y-0">
+        {/* Lewa kolumna: Planowanie i aktywne zadania */}
+        <div className="space-y-5">
+          <OrientationFooter />
+          <SpineGuideStrip
+            guidance={s.spineGuidance}
+            loading={s.spineGuidanceLoading}
+            onNavigate={s.handleSpineGuideNavigate}
+            onPlanDay={s.handlePlanDay}
+            onFocusPlan={s.handleFocusPlan}
+          />
+          {weeklyReviewNudge}
+          <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
+          {s.todayWin && isAfter20() && (
+            <Button
+              onClick={() => s.setShowShutdown(true)}
+              variant="tonal"
+              size="lg"
+              className="w-full !text-primary dark:!text-primary !border-primary/20 !bg-primary/5 hover:!bg-primary/10 text-xs font-black uppercase tracking-wider shadow-sm"
+            >
+              Domknij Dzień (Rytuał Wieczorny)
+            </Button>
+          )}
+        </div>
 
-        <Suspense fallback={<ViewFallback />}>
-          <DailyStrainCard refreshSignal={nutritionKey + workoutKey} />
-        </Suspense>
-
-        <Suspense fallback={null}>
-          <TodayEventsCard />
-        </Suspense>
-
-        <FoodQuickCapture
-          session={session}
-          refreshSignal={nutritionKey}
-          onSaved={() => { onRefresh(); onSetNutritionKey(k => k + 1); }}
-          onOpenFullModal={onOpenFoodModal}
-        />
-
-        <PowerList session={session} todayWin={todayWin} onUpdate={onRefresh} planDaySignal={planDaySignal} />
-
-        {todayWin && isAfter20() && (
-          <button
-            onClick={onOpenShutdown}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/20 active:scale-95 transition-all shadow-sm"
-          >
-            Domknij Dzień (Rytuał Wieczorny)
-          </button>
-        )}
-
-        <Suspense fallback={<ViewFallback />}>
-          <DailySnapshotCard />
-        </Suspense>
+        {/* Prawa kolumna: Telemetria, biometria i wykresy */}
+        <div className="space-y-5">
+          <Suspense fallback={<ViewFallback />}>
+            <DailyStrainCard refreshSignal={s.nutritionKey + s.workoutKey} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <TodayEventsCard />
+          </Suspense>
+          <FoodQuickCapture
+            refreshSignal={s.nutritionKey}
+            onSaved={() => { s.refresh(); s.setNutritionKey(k => k + 1); }}
+            onOpenFullModal={() => s.setShowQuickFoodEntry(true)}
+          />
+          <Suspense fallback={<ViewFallback />}>
+            <DailySnapshotCard />
+          </Suspense>
+        </div>
       </div>
     </div>
   );

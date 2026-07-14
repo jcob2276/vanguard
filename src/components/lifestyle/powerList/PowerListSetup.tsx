@@ -25,7 +25,7 @@ function YesterdayRecap({
   if (!yesterdayWin) return null;
   return (
     <Card variant="notice" padding="0.875rem" className="space-y-2.5">
-      <p className="text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+      <p className="text-[8px] font-black uppercase tracking-widest text-warning dark:text-warning">
         Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
       </p>
       <ul className="space-y-1">
@@ -41,7 +41,7 @@ function YesterdayRecap({
       <p className="text-[10px] text-text-muted leading-relaxed">
         Dlaczego zrealizowałeś / nie zrealizowałeś te zadania?{' '}
         {yesterdayNoteRequired && (
-          <span className="font-bold text-amber-600 dark:text-amber-400">(wymagane)</span>
+          <span className="font-bold text-warning dark:text-warning">(wymagane)</span>
         )}
       </p>
       <textarea
@@ -191,7 +191,7 @@ export default function PowerListSetup({
 
                 {slot.todoId ? (
                   <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-3">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority ?? ''] || 'bg-blue-500'}`} />
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority ?? ''] || 'bg-info'}`} />
                     <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">{slot.task}</span>
                   </div>
                 ) : (
@@ -206,7 +206,7 @@ export default function PowerListSetup({
                 {slot.todoId ? (
                   <button
                     onClick={() => updateSlot(i, { task: '', todoId: null })}
-                    className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-rose-500/10 hover:text-rose-500"
+                    className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-danger/10 hover:text-danger"
                     title="Usuń powiązanie"
                   >
                     <X size={14} />

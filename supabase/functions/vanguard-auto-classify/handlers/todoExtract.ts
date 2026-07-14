@@ -1,5 +1,6 @@
 import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { TODO_EXTRACT_SYSTEM } from "../prompts.ts";
 
@@ -17,14 +18,13 @@ export async function handleTodoExtract(req: Request, body: any): Promise<unknow
 
   const result = await deepseekChat({
     apiKey,
-    model: "deepseek-chat",
+    ...LLM_TASKS.structured,
     messages: [
       { role: "system", content: system },
       { role: "user", content: text.slice(0, 6000) },
     ],
     maxTokens: 1500,
     temperature: 0.2,
-    responseFormat: { type: "json_object" },
   });
 
   const parsed = parseJsonFromContent(result.content) || {};

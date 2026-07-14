@@ -1,5 +1,6 @@
 import type { TelegramRouterContext } from "./config.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { sendChatAction } from "../../_shared/telegram.ts";
 import { fetchWorldState } from "../../_shared/worldState.ts";
@@ -59,10 +60,13 @@ Dozwolone kind: "person" | "concept" | "place" | "education" | "role" | "event" 
 Tekst: "${cleanText}"`;
 
     const nluRes = await deepseekChat({
-      apiKey: deepseekApiKey, model: 'deepseek-v4-flash',
+      apiKey: deepseekApiKey,
+      ...LLM_TASKS.structured,
       messages: [{ role: 'system', content: nluPrompt }],
-      temperature: 0.0, responseFormat: { type: 'json_object' }, timeoutMs: 6000,
-      userId: vanguardUserId, feature: 'entity-resolution-nlu'
+      temperature: 0.0,
+      timeoutMs: 6000,
+      userId: vanguardUserId,
+      feature: 'entity-resolution-nlu'
     }).catch((e) => { console.error('[telegram] NLU extraction failed:', e); return null; });
 
     let extractedEntities: { name: string, kind: string }[] = [];
@@ -94,10 +98,13 @@ Tekst: "${cleanText}"`;
         if (candidates && candidates.length > 0) {
           const candidateListStr = candidates.map((c: any) => `- ID: ${c.entity_id}, Name: ${c.canonical_name}, Alias: ${c.alias}, Kind: ${c.kind}`).join('\n');
           const tier2Res = await deepseekChat({
-            apiKey: deepseekApiKey, model: 'deepseek-v4-flash',
+            apiKey: deepseekApiKey,
+            ...LLM_TASKS.structured,
             messages: [{ role: 'system', content: `Użytkownik wspomniał o: "${entity.name}" (kind: ${entity.kind}).\nKandydaci:\n${candidateListStr}\nCzy nazwa odnosi się do któregoś? Odpowiedz JSON: {"matched_entity_id": "UUID lub null"}` }],
-            temperature: 0.0, responseFormat: { type: 'json_object' }, timeoutMs: 6000,
-            userId: vanguardUserId, feature: 'entity-resolution-tier2'
+            temperature: 0.0,
+            timeoutMs: 6000,
+            userId: vanguardUserId,
+            feature: 'entity-resolution-tier2'
           }).catch(async (e) => { console.error('[telegram] Tier 2 failed:', e); return null; });
 
           if (tier2Res) {

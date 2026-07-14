@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Shield, Fingerprint, Lock, Zap } from 'lucide-react';
-import { SYSTEM_VERSION, NEURAL_LINK_VERSION } from '../../lib/constants';
+import { Shield, Fingerprint, Lock } from 'lucide-react';
+import { SYSTEM_VERSION, NEURAL_LINK_VERSION, STORAGE_KEYS } from '../../lib/constants';
+import Button from '../ui/Button';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -13,7 +14,7 @@ export default function Auth() {
 
   // Sync theme with document class on mount
   useEffect(() => {
-    const theme = localStorage.getItem('vanguard_theme') || 'light';
+    const theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -75,12 +76,12 @@ export default function Auth() {
 
           <form onSubmit={handleAuth} className="space-y-6">
             {message && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center">
+              <div className="bg-success/10 border border-success/20 text-success p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center">
                 {message}
               </div>
             )}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
+              <div className="bg-danger/10 border border-danger/20 text-danger p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
                 {error}
               </div>
             )}
@@ -115,20 +116,14 @@ export default function Auth() {
             </div>
             )}
             
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className="w-full bg-primary hover:bg-primary-hover text-white rounded-2xl py-5 font-black text-xs uppercase tracking-[0.2em] transition-all transform active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/25 flex items-center justify-center gap-3 mt-4 cursor-pointer"
+            <Button
+              type="submit"
+              loading={loading}
+              icon={!loading ? <Lock size={16} /> : undefined}
+              className="w-full py-5 font-black text-xs uppercase tracking-[0.2em] mt-4"
             >
-              {loading ? (
-                <Zap size={18} className="animate-spin" />
-              ) : (
-                <>
-                  <Lock size={16} />
-                  {mode === 'reset' ? 'Wyślij link resetu' : mode === 'signup' ? 'Utwórz konto' : 'Inicjuj Sesję'}
-                </>
-              )}
-            </button>
+              {mode === 'reset' ? 'Wyślij link resetu' : mode === 'signup' ? 'Utwórz konto' : 'Inicjuj Sesję'}
+            </Button>
           </form>
 
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-[10px] font-bold text-text-muted">

@@ -1,3 +1,4 @@
+import { Card } from '../../../ui/Card';
 import { type FoodAnalysisResult, type FoodAnalysisDay } from '../FoodAnalysisSection';
 
 interface FoodAnalysisRangeProps {
@@ -5,9 +6,9 @@ interface FoodAnalysisRangeProps {
 }
 
 const kcalBarColor = (score: number) => {
-  if (score >= 70) return '#10b981'; // text-dayC equivalent (emerald)
-  if (score >= 45) return '#f59e0b'; // amber
-  return '#f43f5e'; // text-dayB equivalent (rose)
+  if (score >= 70) return 'var(--color-success)'; // text-dayC equivalent (emerald)
+  if (score >= 45) return 'var(--color-warning)'; // amber
+  return 'var(--color-danger)'; // text-dayB equivalent (rose)
 };
 
 interface DaysListProps {
@@ -41,13 +42,13 @@ function DaysList({ days }: DaysListProps) {
           <span
             className={`w-8 shrink-0 text-[9px] font-bold text-right ${
               d.fasting
-                ? 'text-indigo-600'
+                ? 'text-primary'
                 : d.incomplete
                 ? 'text-text-muted'
                 : (d.score ?? 0) >= 70
                 ? 'text-dayC'
                 : (d.score ?? 0) >= 45
-                ? 'text-amber-500'
+                ? 'text-warning'
                 : 'text-dayB'
             }`}
           >
@@ -93,7 +94,7 @@ function BestWorstDays({ bestDay, worstDay }: BestWorstDaysProps) {
 
 export default function FoodAnalysisRange({ res }: FoodAnalysisRangeProps) {
   return (
-    <div className="rounded-xl border border-border-custom bg-surface p-4 space-y-4">
+    <Card className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase text-text-muted">
           Średnia {res.dateFrom} → {res.dateTo}
@@ -103,7 +104,7 @@ export default function FoodAnalysisRange({ res }: FoodAnalysisRangeProps) {
             (res.avg_score ?? 0) >= 70
               ? 'text-dayC'
               : (res.avg_score ?? 0) >= 45
-              ? 'text-amber-500'
+              ? 'text-warning'
               : 'text-dayB'
           }`}
         >
@@ -205,14 +206,14 @@ export default function FoodAnalysisRange({ res }: FoodAnalysisRangeProps) {
       {/* Chronic gaps */}
       {(res.chronic_gaps?.length ?? 0) > 0 && (
         <div>
-          <p className="text-[8px] font-bold uppercase tracking-widest text-orange-500 mb-1.5">
+          <p className="text-[8px] font-bold uppercase tracking-widest text-warning mb-1.5">
             Chroniczne braki
           </p>
           <div className="flex flex-wrap gap-1.5">
             {res.chronic_gaps?.map((g, i) => (
               <span
                 key={i}
-                className="rounded border border-orange-500/20 bg-orange-500/5 px-2 py-0.5 text-[9px] text-orange-600 dark:text-orange-400"
+                className="rounded border border-warning/20 bg-warning/5 px-2 py-0.5 text-[9px] text-warning dark:text-warning"
               >
                 {g}
               </span>
@@ -232,6 +233,6 @@ export default function FoodAnalysisRange({ res }: FoodAnalysisRangeProps) {
           </p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

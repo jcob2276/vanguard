@@ -60,11 +60,11 @@ export default function BrainHealth() {
                   {row.table_name.replace('vanguard_', '')}
                 </span>
                 {row.coverage_percent >= 90 ? (
-                  <CheckCircle2 size={11} className="text-green-500" />
+                  <CheckCircle2 size={11} className="text-success" />
                 ) : row.coverage_percent > 0 ? (
-                  <AlertCircle size={11} className="text-amber-500" />
+                  <AlertCircle size={11} className="text-warning" />
                 ) : (
-                  <ShieldAlert size={11} className="text-red-500" />
+                  <ShieldAlert size={11} className="text-danger" />
                 )}
               </div>
 
@@ -76,13 +76,13 @@ export default function BrainHealth() {
               <div className="space-y-1">
                 <div className="flex justify-between text-[8px] font-black uppercase">
                   <span className="text-text-muted italic">Semantic coverage</span>
-                  <span className={row.coverage_percent < 50 ? 'text-red-500' : 'text-primary'}>
+                  <span className={row.coverage_percent < 50 ? 'text-danger' : 'text-primary'}>
                     {row.coverage_percent}%
                   </span>
                 </div>
                 <div className="w-full h-1 bg-text-primary/10 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-1000 ${row.coverage_percent < 50 ? 'bg-red-500' : 'bg-primary'}`}
+                    className={`h-full transition-all duration-1000 ${row.coverage_percent < 50 ? 'bg-danger' : 'bg-primary'}`}
                     style={{ width: `${row.coverage_percent}%` }}
                   />
                 </div>

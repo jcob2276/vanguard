@@ -1,5 +1,6 @@
 import React from 'react';
 import type { SprintFacts, SprintProjectDecision } from '../../lib/growth/sprintReview';
+import { Card } from '../ui/Card';
 
 function Divider({ title }: { title: string }) {
   return (
@@ -13,10 +14,10 @@ function Divider({ title }: { title: string }) {
 
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <div className="bg-surface rounded-xl px-3 py-2.5 border border-border-custom">
+    <Card padding="0.625rem 0.75rem">
       <div className="text-xl font-bold text-text-primary">{value}</div>
       <div className="text-[10px] text-text-muted mt-0.5">{label}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -71,8 +72,8 @@ export default function DirectionSprintMode({
 
   return (
     <div className="space-y-6 pb-6 border-b border-border-custom mb-6">
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600">Zamknięcie sprintu</p>
+      <div className="rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-warning">Zamknięcie sprintu</p>
         <p className="mt-1 text-sm font-semibold text-text-primary">
           {sprintFacts.sprintLabel} · tydzień 12/12
         </p>
@@ -163,7 +164,7 @@ export default function DirectionSprintMode({
                           decision === d
                             ? d === 'continue'
                               ? 'bg-primary text-white'
-                              : 'bg-amber-500/20 text-amber-700'
+                              : 'bg-warning/20 text-warning'
                             : 'text-text-muted hover:bg-surface'
                         }`}
                       >

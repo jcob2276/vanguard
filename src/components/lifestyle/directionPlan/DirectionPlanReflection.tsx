@@ -30,7 +30,7 @@ function Q({ num, label, value, onChange, placeholder, rows = 4 }: {
 
 function ScoreButton({ value, current, onClick }: { value: number; current: number | null; onClick: () => void }) {
   const active = current === value;
-  const activeColor = value <= 3 ? "bg-red-500 text-white border-red-500" : value <= 6 ? "bg-yellow-400 text-black border-yellow-400" : "bg-emerald-500 text-white border-emerald-500";
+  const activeColor = value <= 3 ? "bg-danger text-white border-danger" : value <= 6 ? "bg-warning text-black border-warning" : "bg-success text-white border-success";
   return (
     <button onClick={onClick}
       className={`w-8 h-8 rounded-full text-xs font-semibold border transition-all ${active ? `${activeColor} ring-2 ring-offset-1 ring-offset-surface-solid scale-110` : "border-border-custom bg-surface text-text-muted hover:bg-surface-solid"}`}>
@@ -95,7 +95,7 @@ export default function DirectionPlanReflection(props: DirectionPlanReflectionPr
           {props.savingReflection ? "Zapisuję…" : "Zapisz refleksję →"}
         </button>
       ) : (
-        <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+        <div className="flex items-center gap-2 text-xs text-success dark:text-success">
           <span>✓</span><span>Refleksja zapisana</span>
           {props.phase2Loading && (
             <span className="text-text-muted ml-1 flex items-center gap-1"><Spinner size="sm" />AI generuje pytania…</span>

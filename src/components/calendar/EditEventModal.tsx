@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { useCalendarData } from './hooks/useCalendarData';
 
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
 
@@ -80,21 +81,21 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ calData, handleE
       />
 
       <div className="flex gap-2.5 pt-2">
-        <button
-          type="button"
+        <Button
+          variant="outline"
           onClick={handleEditDelete}
-          className="w-12 h-12 flex items-center justify-center rounded-xl border border-rose-500/20 hover:bg-rose-500/10 text-rose-500 transition-colors"
-        >
-          <Trash2 size={18} />
-        </button>
-        <button
-          type="button"
+          icon={<Trash2 size={18} />}
+          className="w-12 h-12 text-danger border-danger/20 hover:bg-danger/10"
+        />
+        <Button
+          variant="primary"
           onClick={handleEditSave}
           disabled={saving}
-          className="flex-1 rounded-xl bg-primary hover:bg-primary-hover disabled:bg-slate-400 text-white py-3 text-[13px] font-black uppercase tracking-wider transition-colors"
+          className="flex-1 py-3 text-[13px] uppercase tracking-wider"
+          loading={saving}
         >
           {saving ? 'Zapisywanie...' : 'Zapisz'}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

@@ -3,6 +3,7 @@ import { format, startOfWeek } from 'date-fns';
 import { sessionVol } from '../biometrics/workout/workoutUtils';
 import { avg } from './desktopMath';
 import type { OuraRow, WorkoutSessionSummary, StravaActivitySummary, NutritionDayRow } from './desktopDataTypes';
+import { HEALTH_THRESHOLDS } from '@vanguard/domain';
 
 export function weeklyVolume(sessions: WorkoutSessionSummary[]) {
   const map: Record<string, number> = {};
@@ -46,7 +47,7 @@ export function computeAlerts(oura: OuraRow[], _sessions: WorkoutSessionSummary[
   const avg7HRV = avg(oura.slice(-8, -1).map((o) => o.hrv_avg).filter((v): v is number => v != null));
   if (lat?.hrv_avg && avg7HRV && (avg7HRV - lat.hrv_avg) / avg7HRV > 0.12)
     alerts.push({ type: 'warn', msg: `HRV o ${Math.round(avg7HRV - lat.hrv_avg)}ms poniżej 7-dniowej średniej` });
-  if (!alerts.length && (lat?.readiness_score ?? 0) >= 70)
+  if (!alerts.length && (lat?.readiness_score ?? 0) >= HEALTH_THRESHOLDS.READINESS_GREEN)
     alerts.push({ type: 'ok', msg: 'Sygnały OK — dobry dzień na ciśnięcie' });
   return alerts;
 }

@@ -3,13 +3,11 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Brain } from 'lucide-react';
 import { PatternCard } from './PatternCard';
+import Button from '../ui/Button';
 import { listActivePatterns, triggerPatternDetection, type BehavioralPattern as PatternData } from '../../lib/insightsApi';
 import { useUserId } from '../../store/useStore';
 
-const patternsKeys = {
-  all: ['patterns'] as const,
-  list: (userId: string) => [...patternsKeys.all, userId] as const,
-};
+import { patternsKeys } from '../../lib/queryKeys';
 
 export function PatternsView() {
   const userId = useUserId();
@@ -56,14 +54,15 @@ export function PatternsView() {
           <Brain className="w-5 h-5 text-purple-500" />
           Wykryte wzorce
         </h2>
-        <button
+        <Button
           onClick={() => void runDetection()}
+          variant="tonal"
+          icon={<RefreshCw className={`w-3.5 h-3.5 ${running ? 'animate-spin' : ''}`} />}
           disabled={running}
-          className="flex items-center gap-1.5 rounded-lg bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-600 hover:bg-purple-500/20 disabled:opacity-50"
+          className="rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${running ? 'animate-spin' : ''}`} />
           {running ? 'Analizuję...' : 'Wykryj wzorce'}
-        </button>
+        </Button>
       </div>
 
       {loading ? (

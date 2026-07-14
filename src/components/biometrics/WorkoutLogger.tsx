@@ -1,5 +1,6 @@
 import { ChevronLeft, Save, Dumbbell, Clock, Play, Square, Plus } from 'lucide-react';
 import { useWorkoutLogger } from './hooks/useWorkoutLogger';
+import { Card } from '../ui/Card';
 import { type WorkoutLoggerInitial } from '../../lib/health/workoutLogging';
 import ExerciseCard from './workout/ExerciseCard';
 import VolumeBar from './workout/VolumeBar';
@@ -13,7 +14,7 @@ interface ManualTimePickerProps {
 
 function ManualTimePicker({ logger }: ManualTimePickerProps) {
   return (
-    <div className="rounded-[24px] border border-border-custom bg-surface p-4 space-y-3 shadow-sm">
+    <Card variant="glass" className="border border-border-custom space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock size={14} className="text-text-muted" />
@@ -63,7 +64,7 @@ function ManualTimePicker({ logger }: ManualTimePickerProps) {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -148,9 +149,9 @@ export default function WorkoutLogger({
           </div>
           <div className="grid grid-cols-10 gap-1">
             {[1,2,3,4,5,6,7,8,9,10].map(n => {
-              const color = n <= 4 ? 'border-sky-500/30 dark:border-sky-500/40 text-sky-650 dark:text-sky-400 bg-sky-500/8 dark:bg-sky-500/15 hover:bg-sky-500/20'
-                          : n <= 6 ? 'border-yellow-500/35 dark:border-yellow-500/40 text-yellow-600 dark:text-yellow-400 bg-yellow-500/8 dark:bg-yellow-500/15 hover:bg-yellow-500/20'
-                          : n <= 8 ? 'border-orange-500/35 dark:border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-500/8 dark:bg-orange-500/15 hover:bg-orange-500/20'
+              const color = n <= 4 ? 'border-info/30 dark:border-info/40 text-info dark:text-info bg-info/8 dark:bg-info/15 hover:bg-info/20'
+                          : n <= 6 ? 'border-warning/35 dark:border-warning/40 text-warning dark:text-warning bg-warning/8 dark:bg-warning/15 hover:bg-warning/20'
+                          : n <= 8 ? 'border-warning/35 dark:border-warning/40 text-warning dark:text-warning bg-warning/8 dark:bg-warning/15 hover:bg-warning/20'
                           : 'border-dayB/35 dark:border-dayB/40 text-dayB bg-dayB/8 dark:bg-dayB/15 hover:bg-dayB/20';
               const active = logger.sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100 scale-105 shadow-sm' : 'opacity-80 hover:opacity-100';
               return (

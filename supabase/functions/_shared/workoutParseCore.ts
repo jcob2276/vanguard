@@ -1,4 +1,5 @@
 import { deepseekChat, parseJsonFromContent } from './deepseek.ts'
+import { LLM_TASKS } from './llm/tasks.ts'
 
 interface ParsedWorkoutSet {
   kg: number
@@ -195,11 +196,9 @@ export async function parseWorkoutText(
 
   const result = await deepseekChat({
     apiKey,
-    model: 'deepseek-chat',
-    temperature: 0.1,
+    ...LLM_TASKS.structured,
     maxTokens: 1200,
     timeoutMs: 25000,
-    responseFormat: { type: 'json_object' },
     messages: [
       { role: 'system', content: buildSystemPrompt(historyBlock) },
       { role: 'user', content: `Parsuj: "${text.trim()}"` },

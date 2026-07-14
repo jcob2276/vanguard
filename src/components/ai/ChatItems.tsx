@@ -93,8 +93,8 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
         style={{ borderColor: item.isError ? 'rgba(244,63,94,0.2)' : 'rgba(91,108,255,0.15)', background: item.isError ? 'rgba(244,63,94,0.04)' : 'rgba(91,108,255,0.04)' }}
       >
         <div className="flex items-center gap-1.5">
-          <Terminal size={11} style={{ color: item.isError ? 'var(--color-danger)' : '#5B6CFF' }} />
-          <span className="text-[10px] font-mono font-medium" style={{ color: item.isError ? 'var(--color-danger)' : '#5B6CFF' }}>
+          <Terminal size={11} style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }} />
+          <span className="text-[10px] font-mono font-medium" style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }}>
             {item.name}
           </span>
           {item.duration != null && (
@@ -193,7 +193,7 @@ export function SystemReminderItem({ text }: { text: string }) {
         style={{ background: 'rgba(91,108,255,0.07)', border: '1px solid rgba(91,108,255,0.15)' }}
       >
         <span className="text-[9px]">💡</span>
-        <p className="text-[10px] font-medium" style={{ color: '#5B6CFF' }}>{text}</p>
+        <p className="text-[10px] font-medium" style={{ color: 'var(--color-primary)' }}>{text}</p>
       </div>
     </div>
   );

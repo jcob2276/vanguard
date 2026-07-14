@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import {
   useFoodEntryData,
   type RecentEntry,
@@ -9,14 +8,13 @@ import FoodEntryContent from './foodEntryModal/FoodEntryContent';
 import Modal from '../../ui/Modal';
 
 export interface FoodEntryModalProps {
-  session: Session;
   onClose: () => void;
   onSaved?: () => void;
   initialEditEntry?: RecentEntry;
   initialMealType?: string;
 }
 
-export default function FoodEntryModal({ session, onClose, onSaved, initialEditEntry, initialMealType }: FoodEntryModalProps) {
+export default function FoodEntryModal({ onClose, onSaved, initialEditEntry, initialMealType }: FoodEntryModalProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +32,7 @@ export default function FoodEntryModal({ session, onClose, onSaved, initialEditE
     openEditEntry, save, quickAddSearchResult, quickAddFavorite,
     quickRepeatEntry, parseNL, saveNLItems, saveEntryEdit, deleteEntry,
     todayStr, yesterdayStr, lookupBarcode,
-  } = useFoodEntryData({ session, onClose, onSaved, initialEditEntry, initialMealType, searchInputRef });
+  } = useFoodEntryData({ onClose, onSaved, initialEditEntry, initialMealType, searchInputRef });
 
   // Keep the bottom sheet above the virtual keyboard on mobile
   useEffect(() => {

@@ -42,5 +42,10 @@ export function useCorrelationsQuery(userId: string | undefined, includeWeak: bo
     queryKey: correlationsKeys.forUser(userId || '', includeWeak),
     queryFn: () => fetchCorrelationsData(userId as string, includeWeak),
     enabled: !!userId,
+    // compute-correlations to ciężki endpoint przeliczający, nie odczyt — nightly liczy go
+    // co noc, więc w ciągu dnia wynik się nie zmienia. Bez staleTime React Query odpalałby
+    // przeliczenie przy każdym mount/focus okna (lesson 2026-07-11).
+    staleTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }

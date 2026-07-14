@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import Badge from '../ui/Badge';
 
 interface NavItem {
   id: string;
@@ -53,8 +54,8 @@ export function DashboardNavBar({
               <div className="relative">
                 <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
                 {item.id === 'dzis' && urgentTodoCount > 0 && (
-                  <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
-                    {urgentTodoCount > 9 ? '9+' : urgentTodoCount}
+                  <span className="absolute -top-1 -right-1.5 shadow-sm">
+                    <Badge count={urgentTodoCount} color="var(--color-danger)" />
                   </span>
                 )}
               </div>

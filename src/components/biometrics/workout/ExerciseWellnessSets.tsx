@@ -89,7 +89,7 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
             </div>
             <button
               onClick={() => removeSet(set.id)}
-              className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
+              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[0.9] transition-all cursor-pointer"
             >
               <Trash2 size={12} />
             </button>

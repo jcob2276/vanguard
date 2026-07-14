@@ -10,6 +10,7 @@
  * NOT from index.ts (which carries Deno.serve as a module-level side-effect).
  */
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import type { DeepSeekMessage } from "../../_shared/deepseek.ts";
 import { z } from "npm:zod";
 import { runOracleReadonlyQuery } from "../../_shared/oracleSql.ts";
@@ -131,11 +132,11 @@ export async function runOracleQuery(
       const offerTools = !thinking && iterations < MAX_SQL_TOOL_ITERATIONS;
       chatRes = await deepseekChat({
         apiKey: Deno.env.get("DEEPSEEK_API_KEY") ?? "",
-        model: thinking ? "deepseek-reasoner" : "deepseek-v4-flash",
+        ...(thinking ? LLM_TASKS.deep : LLM_TASKS.oracle),
         messages: toolMessages,
         temperature: thinking ? null : 0.7,
         maxTokens: null,
-        responseFormat: !thinking && !offerTools ? { type: "json_object" as const } : undefined,
+        responseFormat: undefined,
         tools: offerTools ? [buildSqlTool()] : undefined,
         timeoutMs: 25000,
       });
@@ -164,11 +165,11 @@ export async function runOracleQuery(
       console.warn("[oracle] DeepSeek returned empty content, retrying once");
       chatRes = await deepseekChat({
         apiKey: Deno.env.get("DEEPSEEK_API_KEY") ?? "",
-        model: thinking ? "deepseek-reasoner" : "deepseek-v4-flash",
+        ...(thinking ? LLM_TASKS.deep : LLM_TASKS.oracle),
         messages: toolMessages,
         temperature: thinking ? null : 0.7,
         maxTokens: null,
-        responseFormat: !thinking ? { type: "json_object" as const } : undefined,
+        responseFormat: undefined,
         timeoutMs: 25000,
       });
     }

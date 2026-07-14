@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Calendar, Check, Target } from 'lucide-react';
+import { Card } from '../ui/Card';
 import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw, formatWarsawDate, shiftDateStr, TIMEZONE } from '../../lib/date';
@@ -59,7 +60,7 @@ export default function DirectionRadarMode({
         </div>
         <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
           <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Miesiąc</p>
-          <p className={`text-[14px] font-black font-display mt-1 leading-none ${stats.monthlyWin ? 'text-dayC' : 'text-orange-500'}`}>
+          <p className={`text-[14px] font-black font-display mt-1 leading-none ${stats.monthlyWin ? 'text-dayC' : 'text-warning'}`}>
             {stats.weeks.filter((w) => w.isWeekWin).length}/3
           </p>
           <p className="text-[8px] font-bold text-text-muted mt-1">tyg. wygr.</p>
@@ -67,7 +68,7 @@ export default function DirectionRadarMode({
       </div>
 
       {/* 2. Mapka 28 dni */}
-      <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm">
+      <Card padding="1rem">
         <div className="grid grid-cols-7 gap-2">
           {Array.from({ length: 28 }).map((_, index) => {
             const d = new Date(shiftDateStr(getTodayWarsaw(), -21) + 'T12:00:00Z');
@@ -90,17 +91,17 @@ export default function DirectionRadarMode({
           <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-dayB" />Przegrany / brak</span>
           <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm border border-border-custom bg-surface" />Zaplanowany</span>
         </div>
-      </div>
+      </Card>
 
       {/* 3. Lekcja z poprzedniego tygodnia */}
       {prevWeekReview?.bottleneck && (
-        <div className="rounded-[24px] border border-amber-500/25 bg-amber-500/5 p-4 shadow-sm flex gap-3 items-start animate-in fade-in-50 duration-300">
+        <Card padding="1rem" className="flex gap-3 items-start animate-in fade-in-50 duration-300" style={{ background: 'rgba(245, 158, 11, 0.05)' }}>
           <span className="text-[18px] leading-none">💡</span>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-widest text-amber-500 mb-0.5 font-display">Lekcja na ten tydzień</p>
+            <p className="text-[8px] font-black uppercase tracking-widest text-warning mb-0.5 font-display">Lekcja na ten tydzień</p>
             <p className="text-[12px] font-semibold text-text-primary leading-relaxed">{prevWeekReview.bottleneck}</p>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* 3. Weekly Board — na górze */}
@@ -193,7 +194,7 @@ export default function DirectionRadarMode({
                 {hasWins && (
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Target size={11} className="text-emerald-500 shrink-0" />
+                      <Target size={11} className="text-success shrink-0" />
                       <span className="text-[8px] font-black uppercase tracking-wider text-text-muted font-display">Plan dnia</span>
                     </div>
                     <div className="space-y-2 pl-3 border-l border-border-custom/50">
@@ -210,7 +211,7 @@ export default function DirectionRadarMode({
                             className={`flex items-center gap-2 text-[11px] font-medium transition-all duration-200 ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                           >
                             <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-300 ${
-                              done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-border-custom bg-surface'
+                              done ? 'border-success bg-success text-white' : 'border-border-custom bg-surface'
                             }`}>
                               {done && <Check size={8} strokeWidth={3} className="text-white" />}
                             </div>
@@ -233,16 +234,16 @@ export default function DirectionRadarMode({
 
       {/* 5. Cele tygodnia (z przeglądu niedzielnego) */}
       {currentReview && (currentReview.week_goal_cialo || currentReview.week_goal_duch || currentReview.week_goal_konto) && (
-        <div className="rounded-[24px] border border-border-custom bg-surface p-4 shadow-sm space-y-3">
+        <Card padding="1rem" className="space-y-3">
           <p className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Cele tego tygodnia</p>
           {currentReview.week_intention && (
             <p className="text-[11px] font-semibold text-text-secondary italic">„{currentReview.week_intention}"</p>
           )}
           <div className="space-y-2">
             {[
-              { key: 'week_goal_cialo' as const, label: 'Ciało', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
-              { key: 'week_goal_duch' as const,  label: 'Duch',  color: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
-              { key: 'week_goal_konto' as const, label: 'Konto', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10'   },
+              { key: 'week_goal_cialo' as const, label: 'Ciało', color: 'text-success dark:text-success', bg: 'bg-success/10' },
+              { key: 'week_goal_duch' as const,  label: 'Duch',  color: 'text-primary dark:text-primary',   bg: 'bg-primary/10'  },
+              { key: 'week_goal_konto' as const, label: 'Konto', color: 'text-warning dark:text-warning',     bg: 'bg-warning/10'   },
             ].filter(g => currentReview[g.key]).map(g => (
               <div key={g.key} className="flex items-start gap-2">
                 <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest ${g.bg} ${g.color}`}>{g.label}</span>
@@ -250,23 +251,23 @@ export default function DirectionRadarMode({
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* 6. Sentyment */}
       <div className="space-y-3">
         {currentReview?.week_sentiment && (
-          <div className="rounded-[24px] border border-border-custom bg-surface px-4 py-3.5 shadow-sm flex items-center justify-between">
+          <Card padding="0.875rem 1rem" className="flex items-center justify-between">
             <span className="text-[8px] font-black uppercase tracking-widest text-text-muted font-display">Sentyment tygodnia</span>
             <span className={`text-[9px] font-black uppercase tracking-wide rounded-full px-2.5 py-0.5 ${
-              currentReview.week_sentiment === 'excellent' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-              : currentReview.week_sentiment === 'good' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-              : currentReview.week_sentiment === 'ok' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-              : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+              currentReview.week_sentiment === 'excellent' ? 'bg-success/15 text-success dark:text-success'
+              : currentReview.week_sentiment === 'good' ? 'bg-info/15 text-info dark:text-info'
+              : currentReview.week_sentiment === 'ok' ? 'bg-warning/15 text-warning dark:text-warning'
+              : 'bg-danger/15 text-danger dark:text-danger'
             }`}>
               {SENTIMENTS.find((s) => s.value === currentReview.week_sentiment)?.label}
             </span>
-          </div>
+          </Card>
         )}
       </div>
 

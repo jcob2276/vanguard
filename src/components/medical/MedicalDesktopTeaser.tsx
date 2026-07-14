@@ -8,6 +8,7 @@ import {
   PRIORITY_CHART_MARKERS,
 } from '../../lib/health/medicalAnalytics';
 import { ValueCell } from './MedicalLabSections';
+import { Card } from '../ui/Card';
 
 export default function MedicalDesktopTeaser({ userId }: { userId: string }) {
   const { labs, loading } = useMedicalData(userId);
@@ -18,7 +19,7 @@ export default function MedicalDesktopTeaser({ userId }: { userId: string }) {
     .slice(0, 4);
 
   return (
-    <div className="rounded-[24px] border border-border-custom bg-surface/30 p-5 space-y-4">
+    <Card variant="glass" className="bg-surface/30 border-border-custom space-y-4" padding="1.25rem">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-text-muted">
@@ -49,6 +50,6 @@ export default function MedicalDesktopTeaser({ userId }: { userId: string }) {
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

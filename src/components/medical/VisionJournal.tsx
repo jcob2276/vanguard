@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../../lib/supabase';
+import { fetchMeasurements } from '../../lib/visionApi';
 import {
   LineChart,
   Line,
@@ -10,13 +10,9 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import { Card } from '../ui/Card';
 
-type Measurement = {
-  id: string;
-  measured_at: string;
-  eye_measured: 'left' | 'right' | 'both';
-  diopters: number;
-};
+import type { Measurement } from '../../lib/visionApi';
 
 function getTimeOfDay(dateStr: string): 'Rano' | 'Południe' | 'Wieczór' {
   const hour = new Date(dateStr).getHours();
@@ -38,12 +34,14 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
 
   useEffect(() => {
     async function loadData() {
-      const { data } = await supabase
-        .from('endmyopia_measurements')
-        .select('*')
-        .order('measured_at', { ascending: true });
-      if (data) setMeasurements(data);
-      setLoading(false);
+      try {
+        const data = await fetchMeasurements();
+        setMeasurements(data);
+      } catch (e: unknown) {
+        console.error('[VisionJournal] fetch measurements failed:', e);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, [refreshTrigger]);
@@ -120,7 +118,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   if (loading) return <div className="p-4 text-text-muted">Wczytywanie dziennika...</div>;
 
   return (
-    <div className="w-full flex flex-col gap-8 bg-surface/50 p-6 rounded-3xl border border-border-custom shadow-xl">
+    <Card variant="glass" className="w-full flex flex-col gap-8 bg-surface/50 border-border-custom" padding="1.5rem">
       <div className="flex items-center justify-between border-b border-border-custom/40 pb-4">
         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Agregacja wykresu</span>
         <div className="flex bg-slate-100 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl p-0.5">
@@ -157,8 +155,8 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
               <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
               <Legend />
               <Line type="monotone" dataKey="Rano - L" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
-              <Line type="monotone" dataKey="Południe - L" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} connectNulls />
-              <Line type="monotone" dataKey="Wieczór - L" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="Południe - L" stroke="var(--color-danger)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="Wieczór - L" stroke="var(--color-warning)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -175,12 +173,12 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
               <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
               <Legend />
               <Line type="monotone" dataKey="Rano - P" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
-              <Line type="monotone" dataKey="Południe - P" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} connectNulls />
-              <Line type="monotone" dataKey="Wieczór - P" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="Południe - P" stroke="var(--color-danger)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="Wieczór - P" stroke="var(--color-warning)" strokeWidth={2} dot={{ r: 4 }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

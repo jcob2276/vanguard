@@ -13,7 +13,7 @@ interface TaskCardData {
   completedCount?: number;
 }
 
-const PRIORITY_COLOR = { high: '#F43F5E', medium: '#F59E0B', low: '#99A1AF' };
+const PRIORITY_COLOR = { high: 'var(--color-danger)', medium: 'var(--color-warning)', low: 'var(--color-text-tertiary)' };
 
 export function TaskCard({ data }: { data: TaskCardData }) {
   const total = data.tasks.length;

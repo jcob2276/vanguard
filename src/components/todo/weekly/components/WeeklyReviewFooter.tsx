@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWeeklyReview } from '../context/WeeklyReviewContext';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import Button from '../../../ui/Button';
 
 interface WeeklyReviewFooterProps {
   onClose: () => void;
@@ -20,7 +21,7 @@ export default function WeeklyReviewFooter({ onClose }: WeeklyReviewFooterProps)
   return (
     <div className="p-4 border-t border-border-custom/20 flex items-center justify-between shrink-0">
       {step > 1 && step < 6 && (
-        <button
+        <Button
           onClick={() => {
             if (step === 2) {
               setStep(1);
@@ -32,25 +33,28 @@ export default function WeeklyReviewFooter({ onClose }: WeeklyReviewFooterProps)
               setStep(4);
             }
           }}
-          className="px-4 py-3 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all flex items-center gap-1.5 cursor-pointer outline-none"
+          variant="outline"
+          size="sm"
+          icon={<ChevronLeft size={16} />}
         >
-          <ChevronLeft size={16} />
           Wróć
-        </button>
+        </Button>
       )}
 
       {step === 1 && (
-        <button
+        <Button
           onClick={() => setStep(2)}
-          className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto cursor-pointer outline-none"
+          size="sm"
+          icon={<ChevronRight size={16} />}
+          iconPosition="right"
+          className="ml-auto"
         >
           Dalej
-          <ChevronRight size={16} />
-        </button>
+        </Button>
       )}
 
       {step === 2 && (
-        <button
+        <Button
           onClick={() => {
             if (currentSectionIdx < activeSections.length - 1) {
               setCurrentSectionIdx(currentSectionIdx + 1);
@@ -58,51 +62,59 @@ export default function WeeklyReviewFooter({ onClose }: WeeklyReviewFooterProps)
               setStep(3);
             }
           }}
-          className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto cursor-pointer outline-none"
+          size="sm"
+          icon={<ChevronRight size={16} />}
+          iconPosition="right"
+          className="ml-auto"
         >
           {currentSectionIdx < activeSections.length - 1 ? 'Następna Sekcja' : 'Dalej'}
-          <ChevronRight size={16} />
-        </button>
+        </Button>
       )}
 
       {step === 3 && (
-        <button
+        <Button
           onClick={() => setStep(4)}
-          className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto cursor-pointer outline-none"
+          size="sm"
+          icon={<ChevronRight size={16} />}
+          iconPosition="right"
+          className="ml-auto"
         >
           Dalej
-          <ChevronRight size={16} />
-        </button>
+        </Button>
       )}
 
       {step === 4 && (
-        <button
+        <Button
           onClick={() => setStep(5)}
-          className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all flex items-center gap-1.5 ml-auto cursor-pointer outline-none"
+          size="sm"
+          icon={<ChevronRight size={16} />}
+          iconPosition="right"
+          className="ml-auto"
         >
           Dalej
-          <ChevronRight size={16} />
-        </button>
+        </Button>
       )}
 
       {step === 5 && (
-        <button
+        <Button
           onClick={handleFinishReview}
-          disabled={saving}
-          className="px-5 py-3 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-505 transition-all flex items-center gap-1.5 ml-auto disabled:opacity-40 cursor-pointer outline-none"
+          loading={saving}
+          icon={<Check size={16} />}
+          iconPosition="right"
+          size="sm"
+          className="ml-auto"
         >
-          {saving ? 'Zapisywanie...' : 'Zatwierdź Przegląd'}
-          <Check size={16} />
-        </button>
+          Zatwierdź Przegląd
+        </Button>
       )}
 
       {step === 6 && (
-        <button
+        <Button
           onClick={onClose}
-          className="w-full py-3.5 rounded-xl bg-indigo-600 text-white text-[12px] font-black hover:bg-indigo-500 transition-all text-center cursor-pointer outline-none"
+          className="w-full"
         >
           Zamknij
-        </button>
+        </Button>
       )}
     </div>
   );

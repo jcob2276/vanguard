@@ -6,12 +6,12 @@ export type ProjectRow = Database['public']['Tables']['projects']['Row'];
 export type GoalKpiRow = Database['public']['Tables']['goal_kpis']['Row'] & { current_value: number | null };
 
 export const COLORS = [
-  { id: 'indigo',  dot: 'bg-indigo-500',  bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400'  },
-  { id: 'violet',  dot: 'bg-violet-500',  bar: 'bg-violet-500',  text: 'text-violet-600 dark:text-violet-400'  },
-  { id: 'sky',     dot: 'bg-sky-500',     bar: 'bg-sky-500',     text: 'text-sky-600 dark:text-sky-400'        },
-  { id: 'emerald', dot: 'bg-emerald-500', bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400'},
-  { id: 'amber',   dot: 'bg-amber-500',   bar: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400'    },
-  { id: 'rose',    dot: 'bg-rose-500',    bar: 'bg-rose-500',    text: 'text-rose-600 dark:text-rose-400'      },
+  { id: 'indigo',  dot: 'bg-primary',  bar: 'bg-primary',  text: 'text-primary dark:text-primary'  },
+  { id: 'violet',  dot: 'bg-primary',  bar: 'bg-primary',  text: 'text-primary dark:text-primary'  },
+  { id: 'sky',     dot: 'bg-info',     bar: 'bg-info',     text: 'text-info dark:text-info'        },
+  { id: 'emerald', dot: 'bg-success', bar: 'bg-success', text: 'text-success dark:text-success'},
+  { id: 'amber',   dot: 'bg-warning',   bar: 'bg-warning',   text: 'text-warning dark:text-warning'    },
+  { id: 'rose',    dot: 'bg-danger',    bar: 'bg-danger',    text: 'text-danger dark:text-danger'      },
 ];
 
 export const colorOf = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
@@ -94,10 +94,10 @@ export function getHealthLevel(score: number): HealthLevel {
 export const HEALTH_COLORS: Record<HealthLevel, {
   ring: string; fill: string; text: string; bg: string; label: string;
 }> = {
-  great:    { ring: '#10b981', fill: 'text-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', label: 'Świetnie' },
-  ok:       { ring: '#3b82f6', fill: 'text-blue-500',    text: 'text-blue-600 dark:text-blue-400',       bg: 'bg-blue-500/10',    label: 'OK'       },
-  'at-risk':{ ring: '#f59e0b', fill: 'text-amber-500',   text: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10',   label: 'Ryzyko'   },
-  critical: { ring: '#ef4444', fill: 'text-rose-500',    text: 'text-rose-600 dark:text-rose-400',       bg: 'bg-rose-500/10',    label: 'Krytyczny'},
+  great:    { ring: '#10b981', fill: 'text-success', text: 'text-success dark:text-success', bg: 'bg-success/10', label: 'Świetnie' },
+  ok:       { ring: '#3b82f6', fill: 'text-info',    text: 'text-info dark:text-info',       bg: 'bg-info/10',    label: 'OK'       },
+  'at-risk':{ ring: '#f59e0b', fill: 'text-warning',   text: 'text-warning dark:text-warning',     bg: 'bg-warning/10',   label: 'Ryzyko'   },
+  critical: { ring: '#ef4444', fill: 'text-danger',    text: 'text-danger dark:text-danger',       bg: 'bg-danger/10',    label: 'Krytyczny'},
 };
 
 export type Momentum = 'accelerating' | 'steady' | 'slipping' | 'stalled';

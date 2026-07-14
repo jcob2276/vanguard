@@ -28,7 +28,7 @@ describe('Skeleton', () => {
     const { container } = render(<Skeleton variant="card" lines={2} />);
     const pulses = container.querySelectorAll('.animate-pulse');
     expect(pulses.length).toBe(3);
-    const card = container.querySelector('.rounded-2xl');
+    const card = container.querySelector('.rounded-\\[var\\(--radius-lg\\)\\]');
     expect(card).toBeTruthy();
   });
 });

@@ -59,8 +59,8 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
       >
         {card.isPinned && (
           <div className="flex items-center gap-1 mb-1.5 px-1">
-            <Pin size={9} style={{ color: '#5B6CFF' }} />
-            <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#5B6CFF' }}>Przypięte</span>
+            <Pin size={9} style={{ color: 'var(--color-primary)' }} />
+            <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Przypięte</span>
           </div>
         )}
         {!widgetType && card.title && expanded && (
@@ -87,7 +87,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
                 type="button"
                 onClick={() => { onPin(card.id); setOverlayOpen(false); }}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-                style={{ background: '#5B6CFF', boxShadow: '0 0 20px rgba(91,108,255,0.4)' }}
+                style={{ background: 'var(--color-primary)', boxShadow: '0 0 20px rgba(91,108,255,0.4)' }}
               >
                 <Pin size={20} color="white" />
               </button>
@@ -97,7 +97,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
                 type="button"
                 onClick={() => { onSort(card.id); setOverlayOpen(false); }}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-                style={{ background: '#F59E0B', boxShadow: '0 0 20px rgba(245,158,11,0.4)' }}
+                style={{ background: 'var(--color-warning)', boxShadow: '0 0 20px rgba(245,158,11,0.4)' }}
               >
                 <SortAsc size={20} color="white" />
               </button>
@@ -107,7 +107,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
                 type="button"
                 onClick={handleDelete}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-                style={{ background: '#F43F5E', boxShadow: '0 0 20px rgba(244,63,94,0.4)' }}
+                style={{ background: 'var(--color-danger)', boxShadow: '0 0 20px rgba(244,63,94,0.4)' }}
               >
                 {deleting ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
               </button>

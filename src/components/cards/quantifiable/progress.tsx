@@ -2,7 +2,7 @@ interface ProgressData { label: string; value: number; max?: number; unit?: stri
 export function ProgressCard({ data }: { data: ProgressData }) {
   const max = data.max ?? 100;
   const pct = Math.min(100, (data.value / max) * 100);
-  const color = data.color ?? '#5B6CFF';
+  const color = data.color ?? 'var(--color-primary)';
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">

@@ -9,16 +9,13 @@ import {
   setProjectKpiTarget,
 } from '../../lib/goal/goalSpine';
 import { PILLARS, PILLAR_META } from '../../lib/projects/pillars';
+import { projectWeekKpisKeys } from '../../lib/queryKeys';
 
 const PILLAR_OPTIONS = PILLARS.map((id) => ({ id, label: PILLAR_META[id].label }));
 
 type ProjectLite = { id: string; name: string };
 
-const projectWeekKpisKeys = {
-  all: ['project-week-kpis'] as const,
-  list: (userId: string, weekStart: string, projectIdsKey: string) =>
-    [...projectWeekKpisKeys.all, userId, weekStart, projectIdsKey] as const,
-};
+
 
 export default function ProjectWeekKpis({
   userId,

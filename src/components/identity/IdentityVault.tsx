@@ -14,14 +14,14 @@ const colorMap = {
     text: 'text-purple-600 dark:text-purple-400' 
   },
   'rose-500': { 
-    bg: 'bg-rose-500/8 dark:bg-rose-500/15', 
-    border: 'border-rose-500/15 dark:border-rose-500/30', 
-    text: 'text-rose-600 dark:text-rose-400' 
+    bg: 'bg-danger/8 dark:bg-danger/15', 
+    border: 'border-danger/15 dark:border-danger/30', 
+    text: 'text-danger dark:text-danger' 
   },
   'orange-500': { 
-    bg: 'bg-orange-500/8 dark:bg-orange-500/15', 
-    border: 'border-orange-500/15 dark:border-orange-500/30', 
-    text: 'text-orange-600 dark:text-orange-400' 
+    bg: 'bg-warning/8 dark:bg-warning/15', 
+    border: 'border-warning/15 dark:border-warning/30', 
+    text: 'text-warning dark:text-warning' 
   }
 };
 
@@ -157,7 +157,7 @@ export default function IdentityVault() {
           disabled={loading}
           className={`px-8 py-3.5 rounded-2xl font-bold text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md disabled:opacity-50 font-display cursor-pointer ${
             saveStatus === 'success' 
-              ? 'bg-green-500 text-white shadow-green-500/20' 
+              ? 'bg-success text-white shadow-success/20' 
               : 'bg-primary text-white hover:bg-primary-hover shadow-primary/20'
           }`}
         >
@@ -166,7 +166,7 @@ export default function IdentityVault() {
       </div>
 
       {saveStatus === 'success' && (
-        <div className="bg-green-500/5 dark:bg-green-500/10 border border-green-500/25 text-green-600 dark:text-green-400 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-wider text-center animate-in zoom-in-95">
+        <div className="bg-success/5 dark:bg-success/10 border border-success/25 text-success dark:text-success p-4 rounded-2xl text-[11px] font-bold uppercase tracking-wider text-center animate-in zoom-in-95">
           Fundament Zaktualizowany. Bliźniak właśnie stał się mądrzejszy.
         </div>
       )}

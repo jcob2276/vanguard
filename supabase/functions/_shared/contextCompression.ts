@@ -1,4 +1,5 @@
 import { deepseekChat } from './deepseek.ts';
+import { LLM_TASKS } from './llm/tasks.ts';
 
 interface HistoryMsg { role: string; content: string; }
 
@@ -51,6 +52,7 @@ PODSUMOWANIE (max ${BUDGET_CHARS} znaków):`;
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
     const result = await deepseekChat({
       apiKey,
+      ...LLM_TASKS.classify,
       messages: [{ role: 'user', content: compressionPrompt }],
       temperature: 0.2,
       maxTokens: Math.ceil(BUDGET_CHARS / CHARS_PER_TOKEN),

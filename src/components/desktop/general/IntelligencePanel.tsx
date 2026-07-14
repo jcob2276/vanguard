@@ -1,6 +1,7 @@
 import React from 'react';
 import { INTEL_CFG, cleanIntelText, isUsefulIntelCard, intelScore, computeNarrativeInsights, type OuraRow, type WorkoutSessionSummary, type NutritionDayRow, type IntelCard } from '../desktopUtils';
 import { Panel } from '../shell/Panel';
+import { Card } from '../../ui/Card';
 
 export interface PatternRow {
   confidence?: number | null;
@@ -92,11 +93,11 @@ export default function IntelligencePanel({
   return (
     <Panel title="Intelligence — co powinieneś wiedzieć">
       <div className="grid grid-cols-3 gap-3">
-        {visibleCards.map((card, i) => {
+        {visibleCards.map((card) => {
           const cfg = INTEL_CFG[card.type] || INTEL_CFG.data;
           const urgency = card.urgency || 'medium';
           return (
-            <div key={i} className={`rounded-[16px] border px-4 py-4 flex flex-col gap-2 ${cfg.urgencyMap[urgency]}`}>
+            <Card variant="glass" padding="1rem" className={`flex flex-col gap-2 ${cfg.urgencyMap[urgency]}`}>
               <div className="flex items-center gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot[urgency]}`} />
                 <span
@@ -110,7 +111,7 @@ export default function IntelligencePanel({
               {card.evidence && (
                 <p className="text-[11px] text-text-secondary leading-relaxed line-clamp-4">{card.evidence}</p>
               )}
-            </div>
+            </Card>
           );
         })}
       </div>

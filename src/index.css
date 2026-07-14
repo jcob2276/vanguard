@@ -38,6 +38,16 @@
   --shadow-float: 0 6px 24px rgba(0,0,0,0.08);
   --shadow-back-btn: 0 0 9px rgba(0,0,0,0.04);
 
+  --color-info: #3b82f6;
+  --color-success-hover: #059669;
+  --color-warning-hover: #d97706;
+  --color-danger-hover: #e11d48;
+  --color-info-hover: #2563eb;
+
+  --surface-1: var(--surface);
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
+
   /* ── Pixel + iOS Design Tokens ── */
   --radius-sm: 10px;   /* tagi, chipy, badge */
   --radius-md: 16px;   /* przyciski, inputy */
@@ -81,6 +91,19 @@
   --bg-secondary: #0b0f19;
   --accent: #6366f1;
   --border-color: rgba(255, 255, 255, 0.06);
+
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #fb7185;
+  --color-info: #6366f1;
+  --color-success-hover: #6ee7b7;
+  --color-warning-hover: #fcd34d;
+  --color-danger-hover: #fda4af;
+  --color-info-hover: #818cf8;
+
+  --surface-1: var(--surface);
+  --surface-2: rgba(255, 255, 255, 0.03);
+  --surface-3: rgba(255, 255, 255, 0.06);
 }
 
 @theme {
@@ -110,6 +133,19 @@
   --shadow-event: var(--shadow-event-card);
   --shadow-float: var(--shadow-float);
   --shadow-back-btn: var(--shadow-back-btn);
+
+  --color-success: var(--color-success);
+  --color-success-hover: var(--color-success-hover);
+  --color-warning: var(--color-warning);
+  --color-warning-hover: var(--color-warning-hover);
+  --color-danger: var(--color-danger);
+  --color-danger-hover: var(--color-danger-hover);
+  --color-info: var(--color-info);
+  --color-info-hover: var(--color-info-hover);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
 }
 
 

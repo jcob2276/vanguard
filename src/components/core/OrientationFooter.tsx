@@ -3,6 +3,7 @@ import { fetchSprintContext } from '../../lib/goal/goalSpine';
 import { useGoalSpineInvalidation } from '../../hooks/useGoalSpineInvalidation';
 import { getSprintInfo, SPRINT_SEASON } from '../../lib/growth/sprintUtils';
 import { useUserId } from '../../store/useStore';
+import { Card } from '../ui/Card';
 
 const BORN = new Date('2002-07-06');
 
@@ -41,7 +42,15 @@ export default function OrientationFooter() {
   useGoalSpineInvalidation(() => loadRef.current());
 
   return (
-    <footer className="animate-fadeIn mt-4 rounded-[24px] border border-primary/10 bg-primary/[0.02] dark:bg-primary/[0.04] overflow-hidden">
+    <Card
+      variant="outline"
+      className="animate-fadeIn mt-4"
+      style={{
+        border: '1px solid color-mix(in oklch, var(--color-primary) 10%, transparent)',
+        background: 'color-mix(in oklch, var(--color-primary) 2%, transparent)',
+      }}
+      padding="0"
+    >
       <div className="px-5 py-4 border-l-4 border-primary/40">
         <p className="font-display text-[14px] font-medium leading-relaxed text-text-primary italic whitespace-pre-line">
           {quote}
@@ -74,6 +83,6 @@ export default function OrientationFooter() {
           Dzień {lived.toLocaleString('pl-PL')}
         </p>
       </div>
-    </footer>
+    </Card>
   );
 }

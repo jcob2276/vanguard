@@ -2,17 +2,16 @@ import { useCallback, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { getTodayWarsaw } from '../../../../lib/date';
 import { usePersistentDraft } from '../../../../hooks/usePersistentDraft';
+import { useSession } from '../../../../store/useStore';
 import {
   parseFoodNL,
   saveParsedFoodItems,
   needsReview,
 } from '../../../../lib/health/foodLogging';
 import type { NLItem } from './foodEntryUtils';
-import type { Session } from '@supabase/supabase-js';
 
 interface UseFoodEntryNLOptions {
   userId: string | undefined;
-  session: Session;
   mealType: string;
   setError: (msg: string | null) => void;
   onSaved?: () => void;
@@ -22,7 +21,6 @@ interface UseFoodEntryNLOptions {
 
 export function useFoodEntryNL({
   userId,
-  session,
   mealType,
   setError,
   onSaved,
@@ -35,6 +33,7 @@ export function useFoodEntryNL({
   const [nlItems, setNlItems] = useState<NLItem[] | null>(null);
   const [nlSaving, setNlSaving] = useState(false);
   const [nlRemovedIdx, setNlRemovedIdx] = useState<Set<number>>(new Set());
+  const accessToken = useSession()?.access_token;
 
   const parseNL = useCallback(async () => {
     if (!nlText.trim() || nlParsing || !userId) return;
@@ -44,7 +43,12 @@ export function useFoodEntryNL({
     setNlRemovedIdx(new Set());
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
-      const items = await parseFoodNL(nlText.trim(), userId, authSession?.access_token ?? session.access_token);
+      const token = authSession?.access_token ?? accessToken;
+      if (!token) {
+        setError('Brak autoryzacji');
+        return;
+      }
+      const items = await parseFoodNL(nlText.trim(), userId, token);
       if (!items.length) {
         setError('Nie rozpoznano produktów');
         return;
@@ -67,7 +71,7 @@ export function useFoodEntryNL({
     } finally {
       setNlParsing(false);
     }
-  }, [nlText, nlParsing, userId, session.access_token, mealType, onSaved, loadLists, flashSaved, setNlText, setError]);
+  }, [nlText, nlParsing, userId, accessToken, mealType, onSaved, loadLists, flashSaved, setNlText, setError]);
 
   const saveNLItems = useCallback(async () => {
     if (!userId || !nlItems || nlSaving) return;

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { getTodayWarsaw, TIMEZONE } from '../lib/date';
+import { STORAGE_KEYS } from '../lib/constants';
 
 function getWarsawHourMinute(): { hour: number; minute: number } {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -25,7 +26,7 @@ export function useNotifications() {
       if (hour === 20 && minute === 30) {
         if (Notification.permission === "granted") {
           let lastNotified: string | null = null;
-          try { lastNotified = localStorage.getItem('last_reminder_date'); } catch (_e: unknown) { /* unavailable */ }
+          try { lastNotified = localStorage.getItem(STORAGE_KEYS.LAST_REMINDER_DATE); } catch (_e: unknown) { /* unavailable */ }
           const today = getTodayWarsaw();
 
           if (lastNotified !== today) {
@@ -35,7 +36,7 @@ export function useNotifications() {
               tag: 'daily-reminder',
               requireInteraction: true
             });
-            try { localStorage.setItem('last_reminder_date', today); } catch (_e: unknown) { /* unavailable */ }
+            try { localStorage.setItem(STORAGE_KEYS.LAST_REMINDER_DATE, today); } catch (_e: unknown) { /* unavailable */ }
           }
         }
       }

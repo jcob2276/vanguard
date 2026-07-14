@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Search, X, Sparkles, CheckCircle2, Bookmark, Folder } from 'lucide-react';
 import Spinner from '../ui/Spinner';
-import type { Session } from '@supabase/supabase-js';
+import { useSession } from '../../store/useStore';
 import { notify } from '../../lib/notify';
 import { invokeEdge } from '../../lib/supabase';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 
 interface GraphSearchResult {
   source_entity: string;
@@ -34,11 +35,12 @@ interface NoteSearchResult {
 }
 
 interface Props {
-  session: Session;
   onClose: () => void;
 }
 
-export default function SearchModal({ session, onClose }: Props) {
+export default function SearchModal({ onClose }: Props) {
+  const session = useSession();
+  const accessToken = session?.access_token;
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,7 +92,7 @@ export default function SearchModal({ session, onClose }: Props) {
     }, 350);
 
     return () => clearTimeout(delay);
-  }, [query, session.access_token]);
+  }, [query, accessToken]);
 
   const hasResults =
     results.graph.length > 0 ||
@@ -121,14 +123,16 @@ export default function SearchModal({ session, onClose }: Props) {
           className="flex-1 bg-transparent text-[14px] text-text-primary outline-none placeholder:text-slate-500 font-semibold"
         />
         {loading ? (
-          <Spinner size="sm" className="!border-indigo-400/30 !border-t-indigo-400 shrink-0" />
+          <Spinner size="sm" className="!border-primary/30 !border-t-indigo-400 shrink-0" />
         ) : (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-text-primary transition-colors shrink-0"
+            className="p-1 rounded-[var(--radius-sm)] text-slate-400 hover:text-text-primary shrink-0"
           >
             <X size={15} />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -151,7 +155,7 @@ export default function SearchModal({ session, onClose }: Props) {
         {/* Graph Results */}
         {results.graph.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 px-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary px-1">
               <Sparkles size={12} />
               <span>Baza Wiedzy (Graf)</span>
             </div>
@@ -159,12 +163,12 @@ export default function SearchModal({ session, onClose }: Props) {
               {results.graph.map((item, i) => (
                 <div
                   key={i}
-                  className="p-3 bg-indigo-950/20 hover:bg-indigo-950/30 border border-indigo-900/30 hover:border-indigo-800/40 rounded-xl transition-all"
+                  className="p-3 bg-primary/20 hover:bg-primary/30 border border-primary/30 hover:border-primary/40 rounded-xl transition-all"
                 >
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-300">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-primary">
                     <span>{item.source_entity}</span>
                     <span className="text-slate-500 font-medium">→</span>
-                    <span className="text-indigo-400 px-1.5 py-0.2 rounded bg-indigo-900/30 font-medium">{item.relation}</span>
+                    <span className="text-primary px-1.5 py-0.2 rounded bg-primary/30 font-medium">{item.relation}</span>
                     <span className="text-slate-500 font-medium">→</span>
                     <span>{item.target_entity}</span>
                   </div>
@@ -182,7 +186,7 @@ export default function SearchModal({ session, onClose }: Props) {
         {/* Todo Results */}
         {results.todos.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 px-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-success px-1">
               <CheckCircle2 size={12} />
               <span>Zadania (Todos)</span>
             </div>
@@ -190,11 +194,11 @@ export default function SearchModal({ session, onClose }: Props) {
               {results.todos.map((todo) => (
                 <div
                   key={todo.id}
-                  className="p-3 bg-emerald-950/10 hover:bg-emerald-950/20 border border-emerald-900/20 hover:border-emerald-800/30 rounded-xl transition-all"
+                  className="p-3 bg-success/10 hover:bg-success/20 border border-success/20 hover:border-success/30 rounded-xl transition-all"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-bold text-emerald-300">{todo.title}</span>
-                    <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-emerald-950/30 text-emerald-400">
+                    <span className="text-[12px] font-bold text-success">{todo.title}</span>
+                    <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-success/30 text-success">
                       {todo.status}
                     </span>
                   </div>
@@ -212,7 +216,7 @@ export default function SearchModal({ session, onClose }: Props) {
         {/* Projects Results */}
         {results.projects.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 px-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-warning px-1">
               <Folder size={12} />
               <span>Projekty</span>
             </div>
@@ -220,11 +224,11 @@ export default function SearchModal({ session, onClose }: Props) {
               {results.projects.map((proj) => (
                 <div
                   key={proj.id}
-                  className="p-3 bg-amber-950/10 hover:bg-amber-950/20 border border-amber-900/20 hover:border-amber-800/30 rounded-xl transition-all"
+                  className="p-3 bg-warning/10 hover:bg-warning/20 border border-warning/20 hover:border-warning/30 rounded-xl transition-all"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-bold text-amber-300">{proj.name}</span>
-                    <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-amber-950/30 text-amber-400">
+                    <span className="text-[12px] font-bold text-warning">{proj.name}</span>
+                    <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-warning/30 text-warning">
                       {proj.status}
                     </span>
                   </div>
@@ -242,7 +246,7 @@ export default function SearchModal({ session, onClose }: Props) {
         {/* Notes Results */}
         {results.notes.length > 0 && (
           <div className="space-y-2 animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-400 px-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-info px-1">
               <Bookmark size={12} />
               <span>Notatki</span>
             </div>
@@ -250,9 +254,9 @@ export default function SearchModal({ session, onClose }: Props) {
               {results.notes.map((note) => (
                 <div
                   key={note.id}
-                  className="p-3 bg-sky-950/10 hover:bg-sky-950/20 border border-sky-900/20 hover:border-sky-800/30 rounded-xl transition-all"
+                  className="p-3 bg-info/10 hover:bg-info/20 border border-info/20 hover:border-info/30 rounded-xl transition-all"
                 >
-                  <span className="text-[12px] font-bold text-sky-300 block">{note.title || '(Bez tytułu)'}</span>
+                  <span className="text-[12px] font-bold text-info block">{note.title || '(Bez tytułu)'}</span>
                   {note.content && (
                     <p className="text-[11px] text-text-muted mt-1 font-semibold line-clamp-2 leading-relaxed">
                       {note.content}

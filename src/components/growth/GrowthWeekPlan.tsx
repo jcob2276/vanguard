@@ -112,7 +112,7 @@ export default function GrowthWeekPlan({
                   variant="outline"
                   size="sm"
                   onClick={() => onQuickPinTodo(todo.id, 'must')}
-                  className="max-w-full truncate border-emerald-500/30 bg-emerald-500/5 hover:border-primary/40"
+                  className="max-w-full truncate border-success/30 bg-success/5 hover:border-primary/40"
                 >
                   ↗ {todo.title}
                 </Button>
@@ -133,7 +133,7 @@ export default function GrowthWeekPlan({
             )}
           </div>
           {balance && balance.theory > balance.practice && (
-            <p className="text-[10px] text-amber-700 dark:text-amber-400">
+            <p className="text-[10px] text-warning dark:text-warning">
               Masz więcej teorii niż praktyki — priorytet: zadanie / ćwiczenie, nie kolejne wideo.
             </p>
           )}

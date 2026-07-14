@@ -50,7 +50,7 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
               onClick={() => { haptics.light(); updateSet(set.id, 'msp', !set.msp); }}
               title="Oznacz jako MSP (kluczowy set)"
               className={`text-[10px] font-black text-center w-5 h-5 rounded-full transition-colors cursor-pointer ${
-                set.msp ? 'text-amber-500' : 'text-text-secondary hover:text-text-primary'
+                set.msp ? 'text-warning' : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               {set.msp ? '★' : idx + 1}
@@ -96,7 +96,7 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
                   className={numInput}
                 />
                 {isPR && (
-                  <div className="absolute -top-1.5 -right-1.5 bg-yellow-400 rounded-full p-0.5 pointer-events-none">
+                  <div className="absolute -top-1.5 -right-1.5 bg-warning rounded-full p-0.5 pointer-events-none">
                     <Trophy size={8} className="text-black" />
                   </div>
                 )}
@@ -147,7 +147,7 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
 
             <button
               onClick={() => removeSet(set.id)}
-              className="flex items-center justify-center text-text-muted/60 hover:text-rose-500 active:scale-[0.9] transition-all cursor-pointer"
+              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[0.9] transition-all cursor-pointer"
             >
               <Trash2 size={12} />
             </button>

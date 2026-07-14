@@ -1,5 +1,6 @@
 import { tagClass, stimulusForExercise } from '../../../data/exercises';
 import { WorkoutExercise } from './workoutUtils';
+import { Card } from '../../ui/Card';
 
 interface VolumeBarProps {
   exercises: WorkoutExercise[];
@@ -27,7 +28,7 @@ export default function VolumeBar({ exercises }: VolumeBarProps) {
   if (!entries.length) return null;
 
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface px-4 py-3 shadow-sm">
+    <Card variant="glass" className="border border-border-custom">
       <span className="text-[9px] font-black uppercase tracking-[0.18em] text-text-muted block mb-2">
         Objętość sesji
       </span>
@@ -41,6 +42,6 @@ export default function VolumeBar({ exercises }: VolumeBarProps) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

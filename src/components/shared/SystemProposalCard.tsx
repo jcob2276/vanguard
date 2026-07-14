@@ -28,7 +28,7 @@ export function SystemProposalCard({
   return (
     <Card className="space-y-3" padding="1rem">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-warning">
           {proposal.proposal_type === 'friction_cluster' ? 'Tarcie — N×' : proposal.proposal_type}
         </p>
         <h3 className="mt-1 text-[14px] font-bold text-text-primary">{proposal.title}</h3>

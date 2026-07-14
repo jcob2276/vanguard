@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import Button from '../../../ui/Button';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },
@@ -27,7 +28,7 @@ export default function FoodEntryHeader({
     <>
       <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-border-custom shrink-0">
         <div className="flex items-center gap-2">
-          <span className={`text-[15px] font-black transition-colors ${savedFlash && screen === 'browse' ? 'text-emerald-400' : 'text-text-primary'}`}>
+          <span className={`text-[15px] font-black transition-colors ${savedFlash && screen === 'browse' ? 'text-success' : 'text-text-primary'}`}>
             {headerTitle}
           </span>
           {screen === 'browse' && (
@@ -43,9 +44,9 @@ export default function FoodEntryHeader({
             </div>
           )}
         </div>
-        <button onClick={onClose} className="text-text-muted hover:text-text-primary cursor-pointer">
+        <Button variant="ghost" size="sm" onClick={onClose} className="p-1">
           <X size={18} />
-        </button>
+        </Button>
       </div>
 
       {todayTotals && (
@@ -64,7 +65,7 @@ export default function FoodEntryHeader({
           {targets?.target_kcal ? (
             <div className="h-1 rounded-full bg-border-custom overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${todayTotals.calories > targets.target_kcal ? 'bg-amber-500' : 'bg-primary'}`}
+                className={`h-full rounded-full transition-all duration-500 ${todayTotals.calories > targets.target_kcal ? 'bg-warning' : 'bg-primary'}`}
                 style={{ width: `${Math.min(100, (todayTotals.calories / targets.target_kcal) * 100)}%` }}
               />
             </div>

@@ -7,9 +7,10 @@ import { supabase } from '../../lib/supabase';
 import { listTodoSections, listTodoItems, updateTodoItem, logTaskReviewCompleted, TodoItemRow, TodoItemUpdate, TodoSectionRow } from '../../lib/todo/todo';
 import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, type StreamEntry } from '../../lib/behavior/streamReview';
 import { listWeeklyPredictions, resolveCustomPrediction, createCustomPrediction, type Prediction } from '../../lib/predictionsApi';
-import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { useUserId } from '../../store/useStore';
 
 import { WeeklyReviewContext, WeeklyReviewContextType, type WeeklyAiRecap } from './weekly/context/WeeklyReviewContext';
 import WeeklyReviewInboxTriage from './weekly/WeeklyReviewInboxTriage';
@@ -22,13 +23,12 @@ import WeeklyReviewSuccess from './weekly/WeeklyReviewSuccess';
 import WeeklyReviewFooter from './weekly/components/WeeklyReviewFooter';
 
 interface Props {
-  session: Session;
   onClose: () => void;
   onFinished?: () => void;
 }
 
-export default function WeeklyReviewModal({ session, onClose, onFinished }: Props) {
-  const userId = session?.user?.id as string | undefined;
+export default function WeeklyReviewModal({ onClose, onFinished }: Props) {
+  const userId = useUserId();
   const today = getTodayWarsaw();
 
   const [loading, setLoading] = useState(true);
@@ -256,21 +256,19 @@ export default function WeeklyReviewModal({ session, onClose, onFinished }: Prop
             <h2 className="text-[15px] font-black text-text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] font-semibold text-text-muted">Niedziela, {today}</span>
-              {step < 6 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">Krok {step} z 5</span>}
+              {step < 6 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">Krok {step} z 5</span>}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
-            <X size={18} />
-          </button>
+          <Button onClick={onClose} variant="ghost" icon={<X size={18} />} className="p-1.5" />
         </div>
 
         {step < 6 && (
           <div className="grid grid-cols-5 h-1 bg-border-custom/20 shrink-0">
-            <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-indigo-500' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 5 ? 'bg-indigo-500' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-300 ${step >= 5 ? 'bg-primary' : 'bg-transparent'}`} />
           </div>
         )}
 

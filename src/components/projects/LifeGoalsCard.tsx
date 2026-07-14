@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pencil, X, Star } from 'lucide-react';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 import { PILLAR_META, PILLARS, type PillarId } from './projectUtils';
 import { saveLifeGoalDeclarations } from '../../lib/goal/goalSpine.mutations';
 import type { LifeGoalDeclarations } from '../../lib/goal/goalSpine.types';
@@ -32,6 +34,22 @@ function draftFrom(lifeGoals: LifeGoalDeclarations | null): Draft {
   };
 }
 
+function getGoalByPillar(lifeGoals: LifeGoalDeclarations | null, pillar: PillarId): string | null {
+  if (!lifeGoals) return null;
+  if (pillar === 'cialo') return lifeGoals.goal_cialo;
+  if (pillar === 'duch') return lifeGoals.goal_duch;
+  if (pillar === 'konto') return lifeGoals.goal_konto;
+  return null;
+}
+
+function getDateByPillar(lifeGoals: LifeGoalDeclarations | null, pillar: PillarId): string | null {
+  if (!lifeGoals) return null;
+  if (pillar === 'cialo') return lifeGoals.date_cialo;
+  if (pillar === 'duch') return lifeGoals.date_duch;
+  if (pillar === 'konto') return lifeGoals.date_konto;
+  return null;
+}
+
 /**
  * Editable "Cele Roczne" (yearly BHAG per pillar) — this is the missing write
  * path the goal-spine "Następny krok" nudge points to. Read-only display
@@ -47,7 +65,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
     if (!editing) void (async () => { setDraft(draftFrom(lifeGoals)); })();
   }, [lifeGoals, editing]);
 
-  const hasAnyGoal = PILLARS.some((p) => ((lifeGoals as unknown as Record<string, unknown>)?.[`goal_${p}`] as string | undefined)?.trim());
+  const hasAnyGoal = PILLARS.some((p) => getGoalByPillar(lifeGoals, p)?.trim());
 
   const startEdit = () => {
     setDraft(draftFrom(lifeGoals));
@@ -77,18 +95,21 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
   };
 
   return (
-    <div className="rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm space-y-3.5">
+    <Card variant="glass" padding="1.25rem" className="space-y-3.5">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-display text-[10px] font-black uppercase tracking-wider text-text-muted">
           <Star size={12} className="text-primary" /> Cele Roczne (BHAG)
         </h3>
         {!editing && (
-          <button
+          <Button
+            variant="tonal"
+            size="sm"
             onClick={startEdit}
             className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/10 transition-all cursor-pointer"
+            icon={<Pencil size={11} />}
           >
-            <Pencil size={11} /> {hasAnyGoal ? 'Edytuj' : 'Uzupełnij'}
-          </button>
+            {hasAnyGoal ? 'Edytuj' : 'Uzupełnij'}
+          </Button>
         )}
       </div>
 
@@ -96,8 +117,8 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
         hasAnyGoal ? (
           <div className="space-y-2.5">
             {PILLARS.map((p) => {
-              const goal = (lifeGoals as unknown as Record<string, unknown>)?.[`goal_${p}`] as string | null;
-              const date = (lifeGoals as unknown as Record<string, unknown>)?.[`date_${p}`] as string | null;
+              const goal = getGoalByPillar(lifeGoals, p);
+              const date = getDateByPillar(lifeGoals, p);
               if (!goal) return null;
               const meta = PILLAR_META[p];
               const Icon = meta.icon;
@@ -159,23 +180,29 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
           })}
 
           <div className="flex gap-2 pt-1">
-            <button
+            <Button
+              variant="primary"
+              size="lg"
               onClick={save}
               disabled={saving}
-              className="flex-1 rounded-xl bg-primary py-2.5 text-[12px] font-black uppercase tracking-wider text-white hover:bg-primary-hover active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              loading={saving}
+              className="flex-1 rounded-xl py-2.5 text-[12px] font-black uppercase tracking-wider hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
             >
               {saving ? 'Zapisywanie…' : 'Zapisz'}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => setEditing(false)}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-1 rounded-xl border border-border-custom px-3 py-2.5 text-[12px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1 rounded-xl border border-border-custom px-3 py-2.5 text-[12px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary cursor-pointer"
+              icon={<X size={12} />}
             >
-              <X size={12} /> Anuluj
-            </button>
+              Anuluj
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

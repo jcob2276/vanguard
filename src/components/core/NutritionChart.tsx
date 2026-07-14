@@ -72,7 +72,7 @@ export default function NutritionChart({
             {/* Target baseline */}
             {kcalTarget > 0 && (
               <div 
-                className="absolute left-0 right-0 border-t border-dashed border-amber-500/40 z-0 pointer-events-none"
+                className="absolute left-0 right-0 border-t border-dashed border-warning/40 z-0 pointer-events-none"
                 style={{ bottom: `${(kcalTarget / Math.max(...chart.map(c => c.calories), kcalTarget, 1)) * 100}%` }}
               />
             )}
@@ -86,9 +86,9 @@ export default function NutritionChart({
                   <div
                     className={`w-3.5 rounded-t-md transition-all duration-500 cursor-pointer ${
                       isToday
-                        ? 'bg-gradient-to-t from-orange-500 to-amber-400 opacity-100 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                        ? 'bg-gradient-to-t from-warning to-warning opacity-100 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
                         : d.calories >= kcalTarget
-                          ? 'bg-emerald-500/60 dark:bg-emerald-500/70 hover:opacity-100 opacity-70'
+                          ? 'bg-success/60 dark:bg-success/70 hover:opacity-100 opacity-70'
                           : 'bg-text-secondary/40 hover:opacity-85 opacity-55'
                     }`}
                     style={{ height: `${Math.max(pct, 5)}%` }}
@@ -132,9 +132,9 @@ export default function NutritionChart({
                   <div
                     className={`w-3.5 rounded-t-md transition-all duration-500 cursor-pointer ${
                       isToday
-                        ? 'bg-gradient-to-t from-primary to-indigo-400 opacity-100 shadow-[0_0_8px_rgba(99,102,241,0.25)]'
+                        ? 'bg-gradient-to-t from-primary to-primary opacity-100 shadow-[0_0_8px_rgba(99,102,241,0.25)]'
                         : d.protein >= proteinGoal
-                          ? 'bg-emerald-500/60 dark:bg-emerald-500/70 hover:opacity-100 opacity-70'
+                          ? 'bg-success/60 dark:bg-success/70 hover:opacity-100 opacity-70'
                           : 'bg-primary/45 hover:opacity-85 opacity-55'
                     }`}
                     style={{ height: `${Math.max(pct, 5)}%` }}

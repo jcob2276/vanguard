@@ -125,7 +125,7 @@ export async function saveParsedFoodItems(
         sugar: item.sugar != null ? Math.round(item.sugar * scale100 * 10) / 10 : null,
         meal_type: opts.mealType,
         meal_group_id: groupId ?? null,
-        parse_meta: (item.parseMeta ?? null) as unknown as Json,
+        parse_meta: (item.parseMeta ?? null) as Json,
       },
     })
     if (error) throw error

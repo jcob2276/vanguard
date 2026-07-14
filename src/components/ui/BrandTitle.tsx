@@ -7,7 +7,7 @@ export function BrandTitle({ className = '' }: BrandTitleProps) {
   return (
     <span className={className} style={{ letterSpacing: '0.25em', fontWeight: 900, textTransform: 'uppercase' }}>
       {body}
-      <span style={{ color: 'var(--color-primary, #5B6CFF)' }}>{last}</span>
+      <span style={{ color: 'var(--color-primary, var(--color-primary))' }}>{last}</span>
     </span>
   );
 }

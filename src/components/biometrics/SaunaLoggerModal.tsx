@@ -72,7 +72,7 @@ export default function SaunaLoggerModal({
           <ChevronLeft size={20} />
         </button>
         <div className="flex items-center gap-2 flex-1">
-          <Flame size={16} className="text-orange-500" />
+          <Flame size={16} className="text-warning" />
           <h1 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary font-display">Sauna</h1>
         </div>
       </header>
@@ -135,7 +135,7 @@ export default function SaunaLoggerModal({
             type="button"
             onClick={() => void save()}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-orange-500 py-3.5 text-xs font-black uppercase tracking-wider text-white hover:bg-orange-600 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-warning py-3.5 text-xs font-black uppercase tracking-wider text-white hover:bg-warning-hover active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
           >
             <Save size={14} />
             {saving ? 'Zapisywanie…' : 'Zapisz saunę'}

@@ -3,6 +3,8 @@ import { FolderKanban, Plus, Target } from 'lucide-react';
 import type { GrowthProjectSummary } from './hooks/useGrowthData';
 import type { LearningWeekPin } from '../../lib/growth/growth';
 import { KpiTrendSparkline } from '../projects/KpiTrendSparkline';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 export default function GrowthProjectsPanel({
   projects,
@@ -41,7 +43,7 @@ export default function GrowthProjectsPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-border-custom bg-surface/30 p-4 space-y-3 h-full">
+    <Card variant="glass" padding="1rem" className="space-y-3 h-full">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-text-muted">
           <FolderKanban size={12} /> Projekty &middot; dow&oacute;d
@@ -100,14 +102,14 @@ export default function GrowthProjectsPanel({
                     <span className="text-[9px] font-bold text-text-muted">brak planu tygodnia</span>
                   )}
                   {onAddMust && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="tonal"
+                      size="sm"
                       onClick={() => onAddMust(p.id)}
-                      className="rounded-lg bg-rose-500/10 hover:bg-rose-500/20 p-1 text-rose-600 dark:text-rose-400 transition-all cursor-pointer"
+                      className="p-1 rounded-lg bg-danger/10 text-danger dark:text-danger hover:bg-danger/20"
                       title="Dodaj MUST"
-                    >
-                      <Plus size={12} />
-                    </button>
+                      icon={<Plus size={12} />}
+                    />
                   )}
                 </div>
               </div>
@@ -144,12 +146,12 @@ export default function GrowthProjectsPanel({
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">Brak KPI</p>
+                <p className="text-[10px] text-warning dark:text-warning mt-1.5">Brak KPI</p>
               )}
             </div>
           );
         })}
       </div>
-    </section>
+    </Card>
   );
 }

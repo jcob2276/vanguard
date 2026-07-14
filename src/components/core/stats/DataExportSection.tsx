@@ -1,4 +1,5 @@
 import { Clock, CheckSquare } from 'lucide-react';
+import Button from '../../ui/Button';
 
 interface DataExportSectionProps {
   dateRange: { from: string; to: string };
@@ -114,13 +115,14 @@ export function DataExportSection({
       </div>
 
       <div className="flex items-center justify-end pt-2 border-t border-border-custom">
-        <button
+        <Button
+          variant="primary"
           onClick={exportData}
           disabled={isExporting}
-          className="w-full rounded-xl bg-primary hover:bg-primary-hover px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.99] font-display text-center cursor-pointer"
+          className="w-full"
         >
           {isExporting ? 'Generowanie...' : 'Pobierz Raport (.md)'}
-        </button>
+        </Button>
       </div>
     </>
   );

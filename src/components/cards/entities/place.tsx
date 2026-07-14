@@ -4,7 +4,7 @@ export function PlaceCard({ data }: { data: PlaceCardData }) {
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[rgba(16,185,129,0.1)]">
-        <MapPin size={13} style={{ color: '#10B981' }} />
+        <MapPin size={13} style={{ color: 'var(--color-success)' }} />
       </div>
       <div>
         <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{data.name}</p>

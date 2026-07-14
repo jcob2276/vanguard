@@ -2,6 +2,7 @@ import { TIMEZONE } from '../../lib/date';
 import { CalendarDays } from 'lucide-react';
 import { useTodayCalendarEvents } from '../calendar/hooks/useTodayCalendarEvents';
 import { useUserId } from '../../store/useStore';
+import Badge from '../ui/Badge';
 
 export default function TodayEventsCard() {
   const userId = useUserId();
@@ -47,10 +48,10 @@ export default function TodayEventsCard() {
                 {e.summary}
               </div>
               {active && (
-                <span className="shrink-0 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-black text-primary">
+                <Badge variant="tag" className="shrink-0 flex items-center gap-1 text-[9px] font-black">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                   teraz
-                </span>
+                </Badge>
               )}
             </div>
           );

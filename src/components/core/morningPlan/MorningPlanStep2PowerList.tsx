@@ -1,6 +1,7 @@
 import { X, Flame } from 'lucide-react';
 import { TodoSlot } from './types';
 import { PRIORITY_COLORS } from './useMorningPlanData';
+import Button from '../../ui/Button';
 
 interface Props {
   powerList: (TodoSlot | null)[];
@@ -36,13 +37,13 @@ export default function MorningPlanStep2PowerList({
 
       {/* Power List slots */}
       {nutritionTarget && (
-        <div className="bg-emerald-500/5 dark:bg-emerald-950/10 border border-emerald-500/10 dark:border-emerald-900/30 rounded-xl p-3 flex items-center justify-between">
+        <div className="bg-success/5 dark:bg-success/10 border border-success/10 dark:border-success/30 rounded-xl p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+            <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-success">
               <Flame size={16} />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-emerald-500 block uppercase tracking-wider">Dzienny Cel Żywieniowy</span>
+              <span className="text-[10px] font-bold text-success block uppercase tracking-wider">Dzienny Cel Żywieniowy</span>
               <span className="text-[12px] text-text-primary font-bold">
                 {nutritionTarget.target_kcal ? `${nutritionTarget.target_kcal} kcal` : '—'} 
                 <span className="text-text-muted font-normal mx-1.5">|</span>
@@ -76,15 +77,16 @@ export default function MorningPlanStep2PowerList({
               </span>
             </div>
             {slot && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   onClear(idx);
                 }}
-                className="p-1 text-text-muted hover:text-rose-500 transition-colors"
-              >
-                <X size={14} />
-              </button>
+                icon={<X size={14} />}
+                className="!p-1 hover:!text-danger"
+              />
             )}
           </div>
         ))}
@@ -100,16 +102,18 @@ export default function MorningPlanStep2PowerList({
             [...todayTasks, ...inboxTasks].map((task) => {
               const isUsed = powerList.some((s) => s?.id === task.id);
               return (
-                <button
+                <Button
                   key={task.id}
                   disabled={isUsed || activeSlotIdx === null}
                   onClick={() => onAssign(task)}
-                  className={`w-full text-left p-2 rounded-xl border transition-all flex items-center justify-between ${
+                  variant="outline"
+                  size="sm"
+                  className={`w-full text-left !justify-between ${
                     isUsed
-                      ? 'opacity-40 border-border-custom/20 bg-surface-solid/10'
+                      ? '!opacity-40 !border-border-custom/20 !bg-surface-solid/10'
                       : activeSlotIdx !== null
-                      ? 'border-primary/40 hover:border-primary bg-surface hover:bg-primary/[0.02]'
-                      : 'border-border-custom/30 bg-surface'
+                      ? '!border-primary/40 hover:!border-primary hover:!bg-primary/[0.02]'
+                      : ''
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
@@ -123,7 +127,7 @@ export default function MorningPlanStep2PowerList({
                       {task.duration_minutes}m
                     </span>
                   )}
-                </button>
+                </Button>
               );
             })
           )}

@@ -39,10 +39,10 @@ export const WMO_WEATHER_DESC: Record<number, string> = {
 export function getWMOWeatherIcon(code: number, size = 12, isNight = false) {
   switch (code) {
     case 0:
-      return isNight ? <Moon size={size} className="text-indigo-300 animate-pulse" /> : <Sun size={size} className="text-amber-400" />;
+      return isNight ? <Moon size={size} className="text-primary animate-pulse" /> : <Sun size={size} className="text-warning" />;
     case 1:
     case 2:
-      return isNight ? <CloudMoon size={size} className="text-slate-300" /> : <CloudSun size={size} className="text-amber-300" />;
+      return isNight ? <CloudMoon size={size} className="text-slate-300" /> : <CloudSun size={size} className="text-warning" />;
     case 3:
       return <Cloud size={size} className="text-slate-400" />;
     case 45:
@@ -51,23 +51,23 @@ export function getWMOWeatherIcon(code: number, size = 12, isNight = false) {
     case 51:
     case 53:
     case 55:
-      return <CloudDrizzle size={size} className="text-sky-300" />;
+      return <CloudDrizzle size={size} className="text-info" />;
     case 61:
     case 63:
     case 65:
-      return <CloudRain size={size} className="text-blue-400" />;
+      return <CloudRain size={size} className="text-info" />;
     case 71:
     case 73:
     case 75:
-      return <CloudSnow size={size} className="text-sky-200" />;
+      return <CloudSnow size={size} className="text-info" />;
     case 80:
     case 81:
     case 82:
-      return <CloudRain size={size} className="text-sky-400" />;
+      return <CloudRain size={size} className="text-info" />;
     case 95:
     case 96:
     case 99:
-      return <CloudLightning size={size} className="text-amber-500 animate-pulse" />;
+      return <CloudLightning size={size} className="text-warning animate-pulse" />;
     default:
       return <Cloud size={size} className="text-slate-400" />;
   }

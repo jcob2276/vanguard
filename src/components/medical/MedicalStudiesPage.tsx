@@ -113,7 +113,7 @@ export default function MedicalStudiesPage() {
         {loading ? (
           <Skeleton variant="card" className="h-64 rounded-2xl" />
         ) : error ? (
-          <Card variant="danger" padding="0.75rem 1rem" className="text-[12px] text-rose-700 dark:text-rose-300">
+          <Card variant="danger" padding="0.75rem 1rem" className="text-[12px] text-danger dark:text-danger">
             Nie udało się wczytać badań: {error}
           </Card>
         ) : labs.length === 0 && bodyComposition.length === 0 ? (

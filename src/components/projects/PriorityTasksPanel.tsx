@@ -1,6 +1,7 @@
 import { Zap } from 'lucide-react';
 import { getTodayWarsaw } from '../../lib/date';
 import { TodoItemRow } from '../../lib/todo/todo';
+import { Card } from '../ui/Card';
 
 interface Props {
   items: TodoItemRow[];
@@ -19,9 +20,9 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
   if (importantTasks.length === 0) return null;
 
   return (
-    <div className="rounded-[24px] border border-border-custom bg-surface p-5 shadow-sm space-y-3">
+    <Card variant="glass" padding="1.25rem" className="space-y-3">
       <h3 className="flex items-center gap-2 font-display text-[10px] font-black uppercase tracking-wider text-text-muted">
-        <Zap size={12} className="text-amber-500" /> Priorytetowe Zadania
+        <Zap size={12} className="text-warning" /> Priorytetowe Zadania
       </h3>
       <div className="space-y-2">
         {importantTasks.slice(0, 3).map((task) => (
@@ -31,7 +32,7 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
             className="flex items-center gap-2.5 rounded-xl border border-border-custom bg-background/30 px-3.5 py-2.5 cursor-pointer hover:bg-slate-100 transition-colors"
             title="Kliknij, aby oznaczyć jako wykonane"
           >
-            <span className={`h-2 w-2 rounded-full ${task.priority === 'urgent' ? 'bg-rose-500' : 'bg-indigo-500'}`} />
+            <span className={`h-2 w-2 rounded-full ${task.priority === 'urgent' ? 'bg-danger' : 'bg-primary'}`} />
             <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary hover:line-through">
               {task.title}
             </span>
@@ -41,6 +42,6 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

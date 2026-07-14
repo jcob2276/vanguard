@@ -4,6 +4,7 @@ import NlpHighlightInput from './NlpHighlightInput';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import TodoCardSubtasks from './TodoCardSubtasks';
+import { Card } from '../ui/Card';
 import type { useTodoCardAttachments } from './useTodoCardAttachments';
 import type { TodoItemRow, TodoAttachmentRow } from '../../lib/todo/todo';
 
@@ -44,7 +45,8 @@ export default function TodoCardExpandedPanel({
   const [tagInput, setTagInput] = useState('');
 
   return (
-    <div className="mt-3 border border-border-custom bg-surface-solid/35 rounded-2xl p-4 flex flex-col gap-4 shadow-md" onClick={e => e.stopPropagation()}>
+    <div onClick={e => e.stopPropagation()}>
+    <Card className="mt-3 border border-border-custom bg-surface-solid/35 flex flex-col gap-4 shadow-md" padding="1rem">
       {/* Title & Description inputs */}
       <div className="flex flex-col gap-1.5">
         <NlpHighlightInput
@@ -86,7 +88,7 @@ export default function TodoCardExpandedPanel({
               </a>
               <button
                 onClick={() => handleDeleteAttachment(att)}
-                className="text-text-muted/35 hover:text-rose-400 transition-colors ml-0.5"
+                className="text-text-muted/35 hover:text-danger transition-colors ml-0.5"
               >
                 <X size={10} />
               </button>
@@ -170,7 +172,7 @@ export default function TodoCardExpandedPanel({
             type="button"
             className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
           >
-            <Flag size={12} className={item.priority === 'urgent' ? 'text-rose-500' : item.priority === 'high' ? 'text-amber-500' : item.priority === 'normal' ? 'text-sky-500' : 'text-text-muted/60'} />
+            <Flag size={12} className={item.priority === 'urgent' ? 'text-danger' : item.priority === 'high' ? 'text-warning' : item.priority === 'normal' ? 'text-info' : 'text-text-muted/60'} />
             <span>
               {item.priority === 'urgent' ? 'P1' : item.priority === 'high' ? 'P2' : item.priority === 'normal' ? 'P3' : 'P4'}
             </span>
@@ -227,7 +229,7 @@ export default function TodoCardExpandedPanel({
                 #{tag}
                 <button
                   onClick={() => onSetTags((item.tags || []).filter((t: string) => t !== tag))}
-                  className="text-text-muted/40 hover:text-rose-400 transition-colors ml-0.5"
+                  className="text-text-muted/40 hover:text-danger transition-colors ml-0.5"
                 >
                   <X size={9} />
                 </button>
@@ -268,7 +270,7 @@ export default function TodoCardExpandedPanel({
           <button
             type="button"
             onClick={onDrop}
-            className="rounded-xl border border-rose-500/15 bg-rose-500/5 px-3 py-1.5 text-[11px] font-black text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+            className="rounded-xl border border-danger/15 bg-danger/5 px-3 py-1.5 text-[11px] font-black text-danger hover:bg-danger/10 transition-colors btn-press"
           >
             Odpuść zadanie
           </button>
@@ -281,6 +283,7 @@ export default function TodoCardExpandedPanel({
           </button>
         </div>
       </div>
+    </Card>
     </div>
   );
 }

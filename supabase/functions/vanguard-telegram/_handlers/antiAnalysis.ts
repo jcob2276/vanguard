@@ -9,6 +9,7 @@
 import { safeSendTelegram } from '../_utils/helpers.ts';
 import { ackCallback } from '../_utils/callbackAck.ts';
 import { deepseekChat } from '../../_shared/deepseek.ts';
+import { LLM_TASKS } from '../../_shared/llm/tasks.ts';
 import { getWarsawDateString } from '../../_shared/time.ts';
 
 
@@ -21,8 +22,7 @@ async function checkAntiAnalysis(text: string, deepseekApiKey: string): Promise<
   try {
     const { content: answerRaw } = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: 'deepseek-v4-flash',
-      temperature: 0.1,
+      ...LLM_TASKS.classify,
       maxTokens: 10,
       timeoutMs: 8000,
       messages: [{

@@ -135,14 +135,14 @@ export default function TodoCard({
     >
       {/* Swipe hint overlays */}
       <div
-        className={`absolute inset-0 flex items-center justify-start pl-3 text-emerald-500 pointer-events-none transition-opacity duration-150 ${
+        className={`absolute inset-0 flex items-center justify-start pl-3 text-success pointer-events-none transition-opacity duration-150 ${
           swipe.swipeDir === 'right' ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <Check size={15} strokeWidth={3} />
       </div>
       <div
-        className={`absolute inset-0 flex items-center justify-end pr-3 text-rose-400 pointer-events-none transition-opacity duration-150 ${
+        className={`absolute inset-0 flex items-center justify-end pr-3 text-danger pointer-events-none transition-opacity duration-150 ${
           swipe.swipeDir === 'left' ? 'opacity-100' : 'opacity-0'
         }`}
       >
@@ -204,13 +204,13 @@ export default function TodoCard({
               <div
                 className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
                   swipe.completing || isDone
-                    ? 'bg-emerald-500 border-emerald-500 scale-100'
+                    ? 'bg-success border-success scale-100'
                     : item.priority === 'urgent'
-                    ? 'border-rose-500 hover:bg-rose-500/10'
+                    ? 'border-danger hover:bg-danger/10'
                     : item.priority === 'high'
-                    ? 'border-amber-400 hover:bg-amber-400/10'
+                    ? 'border-warning hover:bg-warning/10'
                     : item.priority === 'normal'
-                    ? 'border-cyan-400 hover:bg-cyan-400/10'
+                    ? 'border-info hover:bg-info/10'
                     : 'border-slate-400 hover:bg-slate-400/10'
                 }`}
               >
@@ -265,11 +265,11 @@ export default function TodoCard({
                     <div
                       className={`todo-progress-bar ${
                         sectionGoalKey === 'cialo'
-                          ? 'bg-emerald-500'
+                          ? 'bg-success'
                           : sectionGoalKey === 'duch'
-                          ? 'bg-indigo-500'
+                          ? 'bg-primary'
                           : sectionGoalKey === 'konto'
-                          ? 'bg-amber-500'
+                          ? 'bg-warning'
                           : 'bg-primary'
                       }`}
                       style={{ width: `${(doneSubtaskCount / totalSubtaskCount) * 100}%` }}
@@ -291,9 +291,9 @@ export default function TodoCard({
                   key={tag}
                   className={`inline-flex items-center gap-1 text-[9.5px] font-medium px-1 py-0.5 rounded bg-white/5 border border-white/5 transition-all opacity-70 ${
                     tag.toLowerCase() === 'finanse' || tag.toLowerCase() === 'zdrowie'
-                      ? 'text-emerald-400 bg-emerald-500/10'
+                      ? 'text-success bg-success/10'
                       : tag.toLowerCase() === 'projekt'
-                      ? 'text-indigo-400 bg-indigo-500/10'
+                      ? 'text-primary bg-primary/10'
                       : tag.toLowerCase() === 'egzamin'
                       ? 'text-pink-400 bg-pink-500/10'
                       : 'text-text-muted bg-white/5'
@@ -312,11 +312,11 @@ export default function TodoCard({
                 (() => {
                   const GoalIcon = sectionGoalKey ? GOAL_ICON[sectionGoalKey] : null;
                   const chipBg = sectionGoalKey === 'cialo'
-                    ? 'bg-emerald-500/8 border-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-success/8 border-success/15 text-success dark:text-success'
                     : sectionGoalKey === 'duch'
-                    ? 'bg-indigo-500/8 border-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+                    ? 'bg-primary/8 border-primary/15 text-primary dark:text-primary'
                     : sectionGoalKey === 'konto'
-                    ? 'bg-amber-500/8 border-amber-500/15 text-amber-600 dark:text-amber-400'
+                    ? 'bg-warning/8 border-warning/15 text-warning dark:text-warning'
                     : 'bg-surface-solid border-border-custom/50 text-text-secondary';
                   return (
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-wide transition-all ${chipBg}`}>

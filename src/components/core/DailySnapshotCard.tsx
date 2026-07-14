@@ -2,12 +2,13 @@ import { getTodayWarsaw, TIMEZONE } from '../../lib/date';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { useUserId } from '../../store/useStore';
 import { useDailySnapshotQuery, useSaveDayScoreMutation } from '../../lib/dailySnapshotApi';
+import Badge from '../ui/Badge';
 
-const MODE_STYLE: Record<string, { label: string; cls: string }> = {
-  rescue:   { label: 'Tryb ratunkowy', cls: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
-  minimal:  { label: 'Tryb minimalny', cls: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-  normal:   { label: 'Normalny',        cls: 'bg-primary/10 text-primary border-primary/20' },
-  optimal:  { label: 'Optymalny',       cls: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+const MODE_STYLE: Record<string, { label: string; color?: string }> = {
+  rescue:   { label: 'Tryb ratunkowy', color: 'var(--color-danger)' },
+  minimal:  { label: 'Tryb minimalny', color: 'var(--color-warning)' },
+  normal:   { label: 'Normalny',        color: undefined },
+  optimal:  { label: 'Optymalny',       color: 'var(--color-success)' },
 };
 
 const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -53,17 +54,17 @@ export default function DailySnapshotCard() {
           {dayScore != null && (
             <span className="text-[11px] font-black text-text-primary">{dayScore}/10</span>
           )}
-          <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${mode.cls}`}>
+          <Badge variant="tag" color={mode.color} className="text-[9px] font-black uppercase tracking-wider">
             {mode.label}
-          </span>
+          </Badge>
         </div>
       </div>
 
       {/* Rescue streak alert */}
       {rescueStreak >= 3 && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2">
+        <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/[0.06] px-3 py-2">
           <span className="text-[13px]">🔴</span>
-          <p className="text-[11px] font-bold text-rose-400">
+          <p className="text-[11px] font-bold text-danger">
             {rescueStreak} dni z rzędu tryb ratunkowy — czas zresetować priorytety
           </p>
         </div>
@@ -97,16 +98,16 @@ export default function DailySnapshotCard() {
 
       {/* Tension action */}
       {snap.tension_action?.action && snap.tension_action.action !== 'Zdefiniuj ruch napięciowy' && (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-500/15 bg-amber-500/[0.04] px-3 py-2">
-          <Zap size={11} className="mt-0.5 shrink-0 text-amber-500" />
+        <div className="flex items-start gap-2 rounded-xl border border-warning/15 bg-warning/[0.04] px-3 py-2">
+          <Zap size={11} className="mt-0.5 shrink-0 text-warning" />
           <p className="text-[11px] leading-snug text-text-secondary">{snap.tension_action.action}</p>
         </div>
       )}
 
       {/* Midday blocker */}
       {midday?.blocker && (
-        <div className="flex items-start gap-2 rounded-xl border border-rose-500/15 bg-rose-500/[0.04] px-3 py-2">
-          <CheckCircle2 size={11} className="mt-0.5 shrink-0 text-rose-400" />
+        <div className="flex items-start gap-2 rounded-xl border border-danger/15 bg-danger/[0.04] px-3 py-2">
+          <CheckCircle2 size={11} className="mt-0.5 shrink-0 text-danger" />
           <p className="text-[11px] leading-snug text-text-secondary">Bloker: {midday.blocker}</p>
         </div>
       )}
@@ -115,8 +116,8 @@ export default function DailySnapshotCard() {
       {strainState?.daily_status && (
         <div className="flex items-center gap-2 pt-1 border-t border-border-custom">
           <div className={`h-2 w-2 rounded-full ${
-            strainState.daily_status === 'green' ? 'bg-emerald-500' :
-            strainState.daily_status === 'yellow' ? 'bg-amber-500' : 'bg-rose-500'
+            strainState.daily_status === 'green' ? 'bg-success' :
+            strainState.daily_status === 'yellow' ? 'bg-warning' : 'bg-danger'
           }`} />
           <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
             {strainState.daily_status === 'green' ? 'Dobra kondycja' :
@@ -137,9 +138,9 @@ export default function DailySnapshotCard() {
                 onClick={() => saveScore(s)}
                 disabled={savingScore}
                 className={`h-8 w-8 rounded-xl text-[11px] font-black transition-all active:scale-90 cursor-pointer disabled:opacity-40
-                  ${s <= 3 ? 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20' :
-                    s <= 6 ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' :
-                             'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
+                  ${s <= 3 ? 'bg-danger/10 text-danger hover:bg-danger/20' :
+                    s <= 6 ? 'bg-warning/10 text-warning hover:bg-warning/20' :
+                             'bg-success/10 text-success hover:bg-success/20'}`}
               >
                 {s}
               </button>

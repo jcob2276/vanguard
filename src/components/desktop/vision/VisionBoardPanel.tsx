@@ -1,4 +1,6 @@
 import { Plus, X, Sparkles, ImageIcon, Type } from 'lucide-react';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 import { Panel } from '../shell/Panel';
 import type { Tables } from '../../../lib/database.types';
 
@@ -48,12 +50,15 @@ export default function VisionBoardPanel({
               <span className="ml-2 text-[11px] font-bold text-text-muted">{visionItems.length} elementów</span>
             </p>
           </div>
-          <button
+          <Button
+            variant="tonal"
+            size="sm"
             onClick={() => setIsAddingVision(p => !p)}
             className="flex items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-all cursor-pointer"
+            icon={<Plus size={11} />}
           >
-            <Plus size={11} /> Dodaj
-          </button>
+            Dodaj
+          </Button>
         </div>
 
         {/* Add form */}
@@ -97,12 +102,10 @@ export default function VisionBoardPanel({
                 placeholder={newVisionType === 'image' ? 'URL obrazka...' : newVisionType === 'word' ? 'Jedno słowo...' : 'Afirmacja: Jestem...'}
                 className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
               />
-              <button onClick={addVisionItem} className="rounded-xl bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90 transition-all cursor-pointer">
+              <Button variant="primary" size="sm" onClick={addVisionItem} className="rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
                 Dodaj
-              </button>
-              <button onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer">
-                <X size={13} />
-              </button>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={13} />} />
             </div>
           </div>
         )}
@@ -120,40 +123,43 @@ export default function VisionBoardPanel({
               return (
                 <div key={item.id} className="group relative break-inside-avoid mb-2">
                   {item.type === 'image' ? (
-                    <div className="relative overflow-hidden rounded-[14px] border border-border-custom bg-surface">
+                    <Card variant="glass" padding="0" className="relative overflow-hidden" style={{ borderRadius: '14px' }}>
                       <img
                         src={item.content}
                         alt=""
                         className="w-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => deleteVisionItem(item.id)}
                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-all cursor-pointer"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
+                        icon={<X size={10} />}
+                      />
+                    </Card>
                   ) : item.type === 'word' ? (
-                    <div className={`relative flex items-center justify-center rounded-[14px] border ${c.border} ${c.bg} px-4 py-5`}>
+                    <Card variant="glass" padding="1.25rem 1rem" className={`relative flex items-center justify-center ${c.border} ${c.bg}`} style={{ borderRadius: '14px' }}>
                       <p className={`font-display text-[22px] font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => deleteVisionItem(item.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
+                        icon={<X size={10} />}
+                      />
+                    </Card>
                   ) : (
-                    <div className={`relative rounded-[14px] border ${c.border} ${c.bg} px-3.5 py-4`}>
+                    <Card variant="glass" padding="1rem 0.875rem" className={`relative ${c.border} ${c.bg}`} style={{ borderRadius: '14px' }}>
                       <p className={`text-[12px] font-bold leading-snug ${c.text}`}>{item.content}</p>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => deleteVisionItem(item.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-rose-500 transition-all cursor-pointer"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
+                        icon={<X size={10} />}
+                      />
+                    </Card>
                   )}
                 </div>
               );

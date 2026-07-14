@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { HelpCircle, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { Card } from '../ui/Card';
 
 interface Option {
   id: string;
@@ -78,7 +79,7 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4 mb-3">
+    <Card variant="outline" className="border-primary/20 bg-primary/[0.04] mb-3" padding="1rem">
       <div className="flex items-start gap-2 mb-3">
         <HelpCircle size={14} className="text-primary mt-0.5 flex-shrink-0" />
         <p className="text-[13px] font-semibold leading-snug text-text-primary">
@@ -185,6 +186,6 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
       >
         Pomiń
       </button>
-    </div>
+    </Card>
   );
 }

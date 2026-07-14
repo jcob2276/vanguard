@@ -6,6 +6,7 @@ import { getWarsawDayBoundaries, getWarsawDateString } from "../_shared/time.ts"
 import { logAuditEvent } from "../_shared/audit.ts";
 import { logCriticalError } from "../_shared/errorLogging.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts";
 
 type StreamRow = {
@@ -42,6 +43,7 @@ async function buildReflectionPrompt(apiKey: string, params: {
   voiceRows: StreamRow[];
   streamRows: StreamRow[];
   frictionRows: any[];
+  systemHealthBlock: string;
   manual: boolean;
 }): Promise<string[]> {
   const voiceBlock = params.voiceRows.length
@@ -63,9 +65,8 @@ async function buildReflectionPrompt(apiKey: string, params: {
   try {
     const { content } = await deepseekChat({
       apiKey,
-      model: "deepseek-v4-flash",
+      ...LLM_TASKS.synthesis,
       temperature: 0.35,
-      maxTokens: 2500,
       messages: [
         {
           role: "system",
@@ -82,9 +83,11 @@ async function buildReflectionPrompt(apiKey: string, params: {
             `GLOSOWKI 24H:\n${voiceBlock}\n\n` +
             `STREAM 24H:\n${streamBlock}\n\n` +
             `FRICTION 24H:\n${frictionBlock}\n\n` +
+            `SYSTEM HEALTH:\n${params.systemHealthBlock}\n\n` +
             "Napisz dwie osobne wiadomosci oddzielone ciagiem znakow '===DELIMITER==='.\n" +
             "Wiadomosc 1 (Podsumowanie):\n" +
-            "- 3-5 punktow: co slychac w ostatnich 24h z glosowek/streamu.\n\n" +
+            "- 3-5 punktow: co slychac w ostatnich 24h z glosowek/streamu.\n" +
+            "- Jesli sa bledy krytyczne w system health, dodaj 1 krotki punkt o stanie systemu (co sie psuje, ile razy).\n\n" +
             "===DELIMITER===\n\n" +
             "Wiadomosc 2 (Pytania i Instrukcja):\n" +
             "- 2-4 pytania poglebiajace, bardzo konkretne.\n" +
@@ -148,7 +151,10 @@ export async function runDailyReconciliation(req: Request): Promise<unknown> {
 
     const { start: dayStart, end: dayEnd } = getWarsawDayBoundaries(todayStr);
 
-    const [streamData, frictionRes] = await Promise.all([
+    const sevenDaysAgo = new Date(dayStart);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [streamData, frictionRes, auditRes] = await Promise.all([
       getStreamForDailyReconciliation(
         supabase,
         VANGUARD_USER_ID,
@@ -164,6 +170,13 @@ export async function runDailyReconciliation(req: Request): Promise<unknown> {
         .lt("occurred_at", dayEnd)
         .order("occurred_at", { ascending: true })
         .limit(30),
+      supabase
+        .from("audit_events")
+        .select("event_type, severity, message, created_at")
+        .gte("created_at", sevenDaysAgo.toISOString())
+        .in("severity", ["error", "critical"])
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]);
 
     if (frictionRes.error) console.error("[reconciliation] friction query error:", frictionRes.error);
@@ -175,10 +188,29 @@ export async function runDailyReconciliation(req: Request): Promise<unknown> {
     });
     const frictionRows = frictionRes.data || [];
 
+    // Aggregate system health from audit_events (last 7 days)
+    const auditRows = (auditRes.data || []) as { event_type: string; severity: string; message: string; created_at: string }[];
+    const auditByType: Record<string, { count: number; severity: string; lastMessage: string }> = {};
+    for (const row of auditRows) {
+      const key = row.event_type;
+      if (!auditByType[key]) {
+        auditByType[key] = { count: 0, severity: row.severity, lastMessage: row.message };
+      }
+      auditByType[key].count++;
+    }
+    const auditSummary = Object.entries(auditByType)
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([type, info]) => `${type} (${info.severity}): ${info.count}x — ${info.lastMessage}`)
+      .join("\n");
+    const systemHealthBlock = auditRows.length > 0
+      ? `SYSTEM HEALTH (7 dni, ${auditRows.length} zdarzeń error/critical):\n${auditSummary}`
+      : "SYSTEM HEALTH: Brak błędów krytycznych w ostatnich 7 dniach.";
+
     let messageTexts = await buildReflectionPrompt(DEEPSEEK_API_KEY, {
       voiceRows,
       streamRows,
       frictionRows,
+      systemHealthBlock,
       manual,
     });
 
@@ -194,6 +226,16 @@ export async function runDailyReconciliation(req: Request): Promise<unknown> {
       }
     } catch (e) {
       console.warn("[reconciliation] pattern bridge fetch failed (non-fatal):", e);
+    }
+
+    // System Health: append critical error summary to first message
+    if (auditRows.length > 0) {
+      const topTypes = Object.entries(auditByType)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 3)
+        .map(([type, info]) => `• ${type}: ${info.count}x`)
+        .join("\n");
+      messageTexts[0] += `\n\n---\n\n*Stan systemu (7 dni):* ${auditRows.length} błędów.\n${topTypes}`;
     }
 
     let messageId: number | null = null;

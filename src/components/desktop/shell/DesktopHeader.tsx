@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { RefreshCw, Moon, Sun, Fingerprint, ShieldCheck, Smartphone } from 'lucide-react';
 import DashboardModuleShortcuts from '../../core/DashboardModuleShortcuts';
+import Button from '../../ui/Button';
 
 interface DesktopHeaderProps {
   now: string;
@@ -33,25 +34,10 @@ export default function DesktopHeader({
       </div>
       <div className="ml-auto flex items-center gap-2">
         <DashboardModuleShortcuts naukaBadge={pendingGrowthMustCount} />
-        <button onClick={() => setShowHealth(true)}
-          className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer flex items-center justify-center"
-          title="Status zdrowia systemu"
-        >
-          <ShieldCheck size={14} />
-        </button>
-        <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-          className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer">
-          {theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-yellow-400" />}
-        </button>
-        <button onClick={syncAll} disabled={syncing}
-          className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 disabled:opacity-40 cursor-pointer">
-          <RefreshCw size={14} className={syncing ? 'animate-spin text-primary' : ''} />
-        </button>
-        <button onClick={() => setShowFundament(true)}
-          className="rounded-full border border-border-custom bg-surface-solid/40 p-2.5 text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer"
-          title="Fundament">
-          <Fingerprint size={14} />
-        </button>
+        <Button onClick={() => setShowHealth(true)} variant="secondary" icon={<ShieldCheck size={14} />} className="rounded-full p-2.5" title="Status zdrowia systemu" />
+        <Button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} variant="secondary" icon={theme === 'light' ? <Moon size={14} /> : <Sun size={14} className="text-warning" />} className="rounded-full p-2.5" />
+        <Button onClick={syncAll} variant="secondary" icon={<RefreshCw size={14} className={syncing ? 'animate-spin text-primary' : ''} />} className="rounded-full p-2.5" disabled={syncing} />
+        <Button onClick={() => setShowFundament(true)} variant="secondary" icon={<Fingerprint size={14} />} className="rounded-full p-2.5" title="Fundament" />
         <Link to="/"
           className="flex items-center gap-1.5 rounded-full border border-border-custom px-3 py-2 text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary hover:bg-surface-solid transition-all cursor-pointer">
           <Smartphone size={12} /> Mobile

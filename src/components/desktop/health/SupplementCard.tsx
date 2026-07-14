@@ -1,4 +1,6 @@
 import { Calendar, Bell, Check, Trash2 } from 'lucide-react';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 import type { Supplement } from '../../../lib/health/supplementsClient';
 
 function formatShortDate(dateStr: string) {
@@ -41,7 +43,8 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
   }
 
   return (
-    <div className={`rounded-xl border p-3.5 space-y-2.5 transition-all ${takenToday ? 'border-emerald-500/20 bg-emerald-500/[0.02]' : 'border-border-custom bg-surface/30'}`}>
+    <Card variant="outline" padding="0.875rem" className="space-y-2.5 transition-all"
+      style={takenToday ? { border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(16,185,129,0.02)' } : { background: 'rgba(26,26,46,0.3)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="text-xl shrink-0" role="img" aria-label={sup.name}>{sup.emoji || '💊'}</span>
@@ -49,21 +52,22 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
             <p className="text-[11px] font-black uppercase text-text-primary leading-tight truncate">{sup.name}</p>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[9px] text-text-muted">
               <span>1x {sup.unit}</span>
-              {sup.reminder_time && <span className="flex items-center gap-0.5 text-indigo-400"><Bell size={10} /> {sup.reminder_time.slice(0, 5)}</span>}
-              {cycleDaysText && <span className="flex items-center gap-0.5 text-amber-500 font-bold uppercase tracking-wider"><Calendar size={10} /> {cycleDaysText}</span>}
+              {sup.reminder_time && <span className="flex items-center gap-0.5 text-primary"><Bell size={10} /> {sup.reminder_time.slice(0, 5)}</span>}
+              {cycleDaysText && <span className="flex items-center gap-0.5 text-warning font-bold uppercase tracking-wider"><Calendar size={10} /> {cycleDaysText}</span>}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onToggle}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${takenToday ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'border-border-custom bg-surface hover:text-text-primary hover:border-border-custom/80'}`}>
-            <Check size={11} className={takenToday ? 'stroke-[3px]' : 'opacity-30'} />
+          <Button variant={takenToday ? 'tonal' : 'outline'} size="sm" type="button" onClick={onToggle}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${takenToday ? 'border-success/40 bg-success/10 text-success hover:bg-success/20' : 'border-border-custom bg-surface hover:text-text-primary hover:border-border-custom/80'}`}
+            icon={<Check size={11} className={takenToday ? 'stroke-[3px]' : 'opacity-30'} />}
+          >
             <span>{takenToday ? 'Zalogowano' : 'Zaloguj'}</span>
-          </button>
-          <button type="button" onClick={onDeactivate}
-            className="p-2 text-text-muted hover:text-red-400 border border-transparent hover:border-red-500/20 hover:bg-red-500/5 rounded-lg transition-all cursor-pointer" title="Zarchiwizuj">
-            <Trash2 size={11} />
-          </button>
+          </Button>
+          <Button variant="ghost" size="sm" type="button" onClick={onDeactivate}
+            className="p-2 text-text-muted hover:text-danger border border-transparent hover:border-danger/20 hover:bg-danger/5 rounded-lg transition-all cursor-pointer" title="Zarchiwizuj"
+            icon={<Trash2 size={11} />}
+          />
         </div>
       </div>
 
@@ -74,7 +78,7 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
             <span>Zakończenie: {formatShortDate(sup.end_date!)}</span>
           </div>
           <div className="h-1 w-full bg-border-custom rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${cycleProgress}%` }} />
+            <div className="h-full bg-success rounded-full transition-all" style={{ width: `${cycleProgress}%` }} />
           </div>
         </div>
       )}
@@ -88,15 +92,15 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
             const inCycle = isWithinCycle(sup, date);
             return (
               <div key={date} className="flex flex-col items-center gap-0.5" title={`${date}${!inCycle ? ' (poza cyklem)' : ''}`}>
-                <div className={`h-4.5 w-4.5 rounded-md flex items-center justify-center text-[8px] transition-all border ${logged ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500 font-bold' : !inCycle ? 'bg-surface/20 border-border-custom/20 text-text-muted/30 line-through' : isToday ? 'bg-surface border-indigo-500/40 text-indigo-400' : 'bg-surface/40 border-border-custom/50 text-text-muted'}`}>
+                <div className={`h-4.5 w-4.5 rounded-md flex items-center justify-center text-[8px] transition-all border ${logged ? 'bg-success/20 border-success/50 text-success font-bold' : !inCycle ? 'bg-surface/20 border-border-custom/20 text-text-muted/30 line-through' : isToday ? 'bg-surface border-primary/40 text-primary' : 'bg-surface/40 border-border-custom/50 text-text-muted'}`}>
                   {logged ? '✓' : ''}
                 </div>
-                <span className={`text-[7px] font-mono leading-none ${isToday ? 'text-indigo-400 font-bold' : 'text-text-muted'}`}>{formatShortDate(date).split('.')[0]}</span>
+                <span className={`text-[7px] font-mono leading-none ${isToday ? 'text-primary font-bold' : 'text-text-muted'}`}>{formatShortDate(date).split('.')[0]}</span>
               </div>
             );
           })}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

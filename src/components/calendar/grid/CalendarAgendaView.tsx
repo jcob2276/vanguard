@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, Calendar, RefreshCw } from 'lucide-react';
+import Button from '../../ui/Button';
 import {
   eventColor,
   formatTime,
@@ -91,7 +92,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                         handleToggleTodo(todo.id);
                         setToastMessage(`Ukończono: "${todo.title}" ✅`);
                       }}
-                      className={`relative after:absolute after:-inset-2 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/40 hover:bg-primary/10'}`}
+                      className={`relative after:absolute after:-inset-2 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/40 hover:bg-primary/10'}`}
                     >
                       {isCompleting && <Check size={10} className="text-white" strokeWidth={3} />}
                     </button>
@@ -118,13 +119,14 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
             <p className="text-[13px] font-bold text-text-muted">Brak wydarzeń</p>
             <p className="text-[11px] text-text-muted/60 mt-1">Zsynchronizuj Google Calendar</p>
           </div>
-          <button
+          <Button
             onClick={onSyncCalendar}
-            className="flex items-center gap-2 rounded-full bg-primary/10 text-primary border border-primary/20 px-4 py-2 text-[12px] font-bold"
+            variant="tonal"
+            icon={<RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />}
+            className="rounded-full px-4 py-2 text-[12px]"
           >
-            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
             Synchronizuj
-          </button>
+          </Button>
         </div>
       )}
     </div>

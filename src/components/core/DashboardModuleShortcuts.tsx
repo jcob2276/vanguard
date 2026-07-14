@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FlaskConical, GraduationCap } from 'lucide-react';
+import Badge from '../ui/Badge';
 
 const btnClass =
   'relative rounded-full border border-border-custom bg-primary/[0.04] p-2.5 text-primary transition-all hover:bg-primary/10 active:scale-95 cursor-pointer';
@@ -14,8 +15,8 @@ export default function DashboardModuleShortcuts({
       <Link to="/rozwoj" className={btnClass} title="Nauka">
         <GraduationCap size={15} />
         {naukaBadge != null && naukaBadge > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-black text-white shadow-sm">
-            {naukaBadge > 9 ? '9+' : naukaBadge}
+          <span className="absolute -top-0.5 -right-0.5 shadow-sm">
+            <Badge count={naukaBadge} color="var(--color-danger)" />
           </span>
         )}
       </Link>

@@ -1,4 +1,5 @@
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts';
+import { LLM_TASKS } from '../_shared/llm/tasks.ts';
 import { getWarsawDateString } from '../_shared/time.ts';
 import {
   epley, avg, fmtPace, fmt, ACTIVITY_KW, SAUNA_KW, classifyRun, fmtGcZones,
@@ -110,7 +111,14 @@ export async function analyzeTrainingLoad(supabase: any, userId: string, apiKey:
     complianceLines: metrics.complianceLines, exerciseHistoryLines: metrics.exerciseHistoryLines, coachSignals,
   });
 
-  const result = await deepseekChat({ apiKey, model: 'deepseek-chat', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }], maxTokens: 4000, temperature: 0.2, timeoutMs: 90000 });
+  const result = await deepseekChat({
+    apiKey,
+    ...LLM_TASKS.structured,
+    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }],
+    maxTokens: 4000,
+    temperature: 0.2,
+    timeoutMs: 90000,
+  });
   const parsed: any = parseJsonFromContent(result.content);
   if (!parsed) throw new Error(`No JSON in response. Raw: ${result.content.slice(0, 300)}`);
 

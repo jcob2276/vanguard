@@ -1,6 +1,8 @@
 import { Pill, Plus, X, AlertCircle } from 'lucide-react';
 import Spinner from '../../ui/Spinner';
+import Button from '../../ui/Button';
 import EmptyState from '../../ui/EmptyState';
+import { Card } from '../../ui/Card';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { useSupplementsData } from './useSupplementsData';
 import SupplementCard from './SupplementCard';
@@ -14,27 +16,28 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
   const data = useSupplementsData(userId);
 
   return (
-    <div className="rounded-[20px] border border-border-custom bg-surface/60 px-5 py-4 space-y-4 text-text-primary">
+    <Card padding="1rem 1.25rem" className="space-y-4 text-text-primary">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Pill size={14} className="text-emerald-500 shrink-0" />
+          <Pill size={14} className="text-success shrink-0" />
           <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-text-muted">Suplementy & Cykle</h3>
         </div>
-        <button type="button" onClick={() => {
+        <Button variant="outline" size="sm" type="button" onClick={() => {
           data.setShowAddForm(!data.showAddForm);
           if (!data.startDate) {
             data.setStartDate(shiftDateStr(getTodayWarsaw(), 0));
             data.setEndDate(shiftDateStr(getTodayWarsaw(), 21));
           }
         }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border-custom hover:border-emerald-500/50 bg-surface-solid/40 text-[9px] font-black uppercase tracking-wider text-text-muted hover:text-emerald-500 transition-colors cursor-pointer">
-          {data.showAddForm ? <X size={10} /> : <Plus size={10} />}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border-custom hover:border-success/50 bg-surface-solid/40 text-[9px] font-black uppercase tracking-wider text-text-muted hover:text-success transition-colors cursor-pointer"
+          icon={data.showAddForm ? <X size={10} /> : <Plus size={10} />}
+        >
           <span>{data.showAddForm ? 'Anuluj' : 'Dodaj Cykl'}</span>
-        </button>
+        </Button>
       </div>
 
       {data.error && (
-        <div className="flex items-center gap-2 p-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-500 text-[10px]">
+        <div className="flex items-center gap-2 p-2.5 rounded-lg border border-danger/20 bg-danger/5 text-danger text-[10px]">
           <AlertCircle size={12} /><span>{data.error}</span>
         </div>
       )}
@@ -66,6 +69,6 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

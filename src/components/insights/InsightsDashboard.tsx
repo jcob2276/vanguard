@@ -18,10 +18,7 @@ import { DetailPageLayout } from '../ui/DetailPageLayout';
 import { Card } from '../ui/Card';
 import { useUserId } from '../../store/useStore';
 
-const insightCardsKeys = {
-  all: ['insight-cards'] as const,
-  list: (userId: string) => [...insightCardsKeys.all, userId] as const,
-};
+import { insightCardsKeys } from '../../lib/queryKeys';
 
 export function InsightsDashboard() {
   const userId = useUserId();
@@ -44,7 +41,7 @@ export function InsightsDashboard() {
       label: d.date.slice(5),
       value: d.inputs,
     }));
-    return { points, unit: 'wpisów', color: '#5B6CFF' };
+    return { points, unit: 'wpisów', color: 'var(--color-primary)' };
   }, [snapshot]);
 
   const activityBars = useMemo(() => {
@@ -53,7 +50,7 @@ export function InsightsDashboard() {
       label: d.date.slice(5),
       value: d.inputs + d.completedTodos,
     }));
-    return { points, color: '#10B981' };
+    return { points, color: 'var(--color-success)' };
   }, [snapshot]);
 
   const invalidate = useCallback(() => {

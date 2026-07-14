@@ -3,6 +3,7 @@ import { Plus, GripVertical } from 'lucide-react';
 import { GOAL_ICON } from '../todo/todoUtils';
 import type { CalendarTodo } from './hooks/useCalendarTodos';
 import { PILLARS, PILLAR_META } from '../../lib/projects/pillars';
+import Button from '../ui/Button';
 
 type SidebarTodo = CalendarTodo;
 
@@ -11,9 +12,9 @@ type SidebarTodo = CalendarTodo;
 // Tailwind's static scanner and would silently render unstyled). `text` reuses PILLAR_META
 // so at least the color identity can't drift out of sync with the canonical map.
 const PILLAR_CHIP_BG_BORDER: Record<string, string> = {
-  cialo: 'bg-emerald-500/8 border-emerald-500/15',
-  duch: 'bg-indigo-500/8 border-indigo-500/15',
-  konto: 'bg-amber-500/8 border-amber-500/15',
+  cialo: 'bg-success/8 border-success/15',
+  duch: 'bg-primary/8 border-primary/15',
+  konto: 'bg-warning/8 border-warning/15',
 };
 const PILLAR_CHIP: Record<string, string> = Object.fromEntries(
   PILLARS.map((id) => [id, `${PILLAR_CHIP_BG_BORDER[id]} ${PILLAR_META[id].text}`]),
@@ -54,13 +55,14 @@ export default function CalendarSidebarTodos({
           onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAddTodo(); }}
           className="w-full bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl pl-3 pr-8 py-2 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all placeholder:text-text-muted/30"
         />
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleQuickAddTodo}
           disabled={!newTodoTitle.trim()}
+          icon={<Plus size={14} />}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80 disabled:opacity-30"
-        >
-          <Plus size={14} />
-        </button>
+        />
       </div>
 
       <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">

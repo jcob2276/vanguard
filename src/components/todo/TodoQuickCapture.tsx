@@ -3,6 +3,7 @@ import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import NlpHighlightInput from './NlpHighlightInput';
+import { Card } from '../ui/Card';
 
 interface TodoFormState {
   title: string;
@@ -59,7 +60,8 @@ export default function TodoQuickCapture({
   const effectiveRecurrence = parsedInput.recurrence || form.recurrence || '';
 
   return (
-    <div ref={quickCaptureRef} className="border border-border-custom bg-surface-solid/40 rounded-2xl p-4.5 flex flex-col gap-4.5 shadow-lg">
+    <div ref={quickCaptureRef}>
+    <Card className="border border-border-custom bg-surface-solid/40 flex flex-col gap-4.5 shadow-lg" padding="1.125rem">
       {/* Title & Description inputs */}
       <div className="flex flex-col gap-1.5">
         <NlpHighlightInput
@@ -125,7 +127,7 @@ export default function TodoQuickCapture({
             type="button"
             className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
           >
-            <Flag size={12} className={effectivePriority === 'urgent' ? 'text-rose-500' : effectivePriority === 'high' ? 'text-amber-500' : effectivePriority === 'normal' ? 'text-sky-500' : 'text-text-muted/60'} />
+            <Flag size={12} className={effectivePriority === 'urgent' ? 'text-danger' : effectivePriority === 'high' ? 'text-warning' : effectivePriority === 'normal' ? 'text-info' : 'text-text-muted/60'} />
             <span>
               {effectivePriority === 'urgent' ? 'P1' : effectivePriority === 'high' ? 'P2' : effectivePriority === 'normal' ? 'P3' : 'P4'}
             </span>
@@ -172,7 +174,7 @@ export default function TodoQuickCapture({
           <button
             type="button"
             onClick={onOpenScanText}
-            className="flex items-center gap-1.5 rounded-lg border border-dashed border-indigo-500/30 px-2.5 py-1 text-[11px] font-semibold text-indigo-400 hover:bg-indigo-500/10 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-all"
           >
             <ScanText size={12} />
             <span>Skan tekstu</span>
@@ -228,6 +230,7 @@ export default function TodoQuickCapture({
           </button>
         </div>
       </div>
+    </Card>
     </div>
   );
 }

@@ -28,7 +28,7 @@ export default function PowerListActive({
   return (
     <div className="space-y-2.5">
       {checkpointPrompt && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3.5 py-2.5 animate-fadeIn">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-success/25 bg-success/[0.06] px-3.5 py-2.5 animate-fadeIn">
           <p className="text-[11px] font-semibold text-text-primary leading-snug min-w-0">
             Checkpoint: <span className="font-bold">{checkpointPrompt.title}</span> — oznaczyć jako done?
           </p>
@@ -37,7 +37,7 @@ export default function PowerListActive({
               type="button"
               onClick={() => void confirmCheckpointDone()}
               disabled={markingCheckpoint}
-              className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[9px] font-black uppercase text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+              className="rounded-lg bg-success px-2.5 py-1 text-[9px] font-black uppercase text-white hover:bg-success-hover disabled:opacity-50 cursor-pointer"
             >
               Tak
             </button>

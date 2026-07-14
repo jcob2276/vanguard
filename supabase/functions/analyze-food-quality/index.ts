@@ -10,6 +10,7 @@
  */
 import { serveJson } from '../_shared/http.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
+import { LLM_TASKS } from '../_shared/llm/tasks.ts'
 import { SYSTEM_PROMPT } from './prompt.ts'
 import { warsawOffsetStr, buildTrainingContext, buildFoodFrequency } from './helpers.ts'
 import { processMultiDay, parseMultiDayResult } from './multiDayProcessor.ts'
@@ -27,7 +28,13 @@ Deno.serve(serveJson(async (req, ctx) => {
     const multiDay = await processMultiDay(supabase, userId, dateFrom, dateTo, apiKey, SYSTEM_PROMPT)
     if (!multiDay) throw new Error('Brak wpisów żywieniowych dla tego okresu')
 
-    const result = await deepseekChat({ apiKey, model: 'deepseek-chat', messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: multiDay.userMessage }], maxTokens: 7000, temperature: 0.1, timeoutMs: 90000 })
+    const result = await deepseekChat({
+      apiKey,
+      ...LLM_TASKS.structured,
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: multiDay.userMessage }],
+      maxTokens: 7000,
+      timeoutMs: 90000,
+    })
     const parsed = parseMultiDayResult(result.content, multiDay.fastingDays ?? new Map(), multiDay.incompleteDays)
     return { success: true, mode: 'range', dateFrom, dateTo, ...parsed }
   }
@@ -60,7 +67,13 @@ Deno.serve(serveJson(async (req, ctx) => {
 
   const userMessage = `DZIEŃ: ${targetDate}\n\nTRENING:\n${trainingContext}\n\nPRODUKTY:\n${todayLines}\n\nBIAŁKO:\n${mealProtein}\n\nWZORZEC 30 DNI:\n${freqLines || 'Brak'}\n\nZADANIE:\n1. Oceń każdy produkt (0-100 + reason)\n2. day_quality_analysis (2-4 zdania)\n3. day_quality_score (0-100)\n4. protein_distribution\n5. micronutrient_gaps (max 4)\n6. training_sync\n7. swap_suggestions (max 3)\n\nJSON:\n{"items":[{"name":"...","food_quality_score":0-100,"quality_reason":"..."}],"day_quality_score":0-100,"day_quality_analysis":"...","protein_distribution":[{"meal":"...","protein_g":0,"mps":true,"note":"..."}],"micronutrient_gaps":["..."],"training_sync":"...","swap_suggestions":[{"from":"...","to":"...","reason":"..."}]}`
 
-  const result = await deepseekChat({ apiKey, model: 'deepseek-chat', messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage }], maxTokens: 4000, temperature: 0.1, timeoutMs: 60000 })
+  const result = await deepseekChat({
+    apiKey,
+    ...LLM_TASKS.structured,
+    messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage }],
+    maxTokens: 4000,
+    timeoutMs: 60000,
+  })
   const parsed: any = parseJsonFromContent(result.content)
   if (!parsed) throw new Error('Nie udało się sparsować odpowiedzi AI')
   if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error('Nieprawidłowa struktura odpowiedzi AI')

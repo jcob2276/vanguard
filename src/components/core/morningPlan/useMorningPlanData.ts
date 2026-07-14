@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../../lib/supabase';
-import { getWeekStartWarsaw, shiftWeekStart } from '../../../lib/growth/growth';
+import { fetchMorningPlanData } from '../../../lib/morningPlanApi';
 import { TodoSlot, CalEvent } from './types';
 
 export const PRIORITY_COLORS: Record<string, string> = {
-  urgent: 'text-rose-500',
-  high: 'text-orange-400',
+  urgent: 'text-danger',
+  high: 'text-warning',
   normal: 'text-primary',
   low: 'text-text-muted',
 };
@@ -38,89 +37,15 @@ export function useMorningPlanData({ userId, planningDate, isPlanningTomorrow }:
     queryKey: ['morning-plan-data', userId, planningDate, isPlanningTomorrow],
     queryFn: async () => {
       if (!userId) return null;
-
-      const pastPromise = supabase
-        .from('todo_items')
-        .select('id, title, priority, duration_minutes, due_date, scheduled_time, status')
-        .eq('user_id', userId)
-        .eq('status', 'open')
-        .lt('due_date', planningDate)
-        .order('priority', { ascending: true });
-
-      const orFilter = isPlanningTomorrow
-        ? `due_date.eq.${planningDate}`
-        : `due_date.eq.${planningDate},ai_bucket.eq.today`;
-      const currentPromise = supabase
-        .from('todo_items')
-        .select('id, title, priority, duration_minutes, due_date, scheduled_time, status')
-        .eq('user_id', userId)
-        .eq('status', 'open')
-        .or(orFilter)
-        .order('priority', { ascending: true });
-
-      const inboxPromise = supabase
-        .from('todo_items')
-        .select('id, title, priority, duration_minutes, due_date, scheduled_time, status')
-        .eq('user_id', userId)
-        .eq('status', 'open')
-        .is('due_date', null)
-        .order('created_at', { ascending: false });
-
-      const nutPromise = supabase
-        .from('nutrition_targets')
-        .select('target_kcal, protein_floor_g')
-        .eq('user_id', userId)
-        .eq('date', planningDate)
-        .maybeSingle();
-
-      const winPromise = supabase
-        .from('daily_wins')
-        .select('*, daily_win_tasks(*)')
-        .eq('user_id', userId)
-        .eq('date', planningDate)
-        .maybeSingle();
-
-      const weekStartLocal = getWeekStartWarsaw(planningDate);
-      const weekEndExclusive = shiftWeekStart(weekStartLocal, 1);
-
-      const weekCalPromise = supabase
-        .from('vanguard_calendar')
-        .select('start_time, end_time, summary')
-        .eq('user_id', userId)
-        .gte('start_time', weekStartLocal + 'T00:00:00')
-        .lt('start_time', weekEndExclusive + 'T00:00:00');
-
-      const weekTaskPromise = supabase
-        .from('todo_items')
-        .select('due_date')
-        .eq('user_id', userId)
-        .eq('status', 'open')
-        .not('due_date', 'is', null)
-        .gte('due_date', weekStartLocal)
-        .lt('due_date', weekEndExclusive);
-
-      const [pastRes, currentRes, inboxRes, nutRes, winRes, weekCalRes, weekTaskRes] = await Promise.all([
-        pastPromise,
-        currentPromise,
-        inboxPromise,
-        nutPromise,
-        winPromise,
-        weekCalPromise,
-        weekTaskPromise,
-      ]);
-
-      if (pastRes.error) throw pastRes.error;
-      if (currentRes.error) throw currentRes.error;
-      if (inboxRes.error) throw inboxRes.error;
-
+      const res = await fetchMorningPlanData(userId, planningDate, isPlanningTomorrow);
       return {
-        pastTasks: pastRes.data || [],
-        currentTasks: currentRes.data || [],
-        inboxTasks: inboxRes.data || [],
-        nutTarget: nutRes.data || null,
-        winData: winRes.data || null,
-        weekCalendarEvents: weekCalRes.data || [],
-        weekTaskData: weekTaskRes.data || [],
+        pastTasks: res.pastTasks,
+        currentTasks: res.currentTasks,
+        inboxTasks: res.inboxTasks,
+        nutTarget: res.nutritionTarget,
+        winData: res.dailyWin,
+        weekCalendarEvents: res.weekCalendarEvents,
+        weekTaskData: res.weekTasks,
       };
     },
     enabled: !!userId,

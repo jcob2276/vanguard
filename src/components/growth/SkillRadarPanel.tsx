@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { LearningSkill } from '../../lib/growth/growth';
 import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth/growth';
+import { Card } from '../ui/Card';
 
 const CHART_SIZE = 280;
 const CENTER = CHART_SIZE / 2;
@@ -56,9 +57,9 @@ export default function SkillRadarPanel({
 
   if (n === 0) {
     return (
-      <div className="rounded-2xl border border-border-custom bg-surface/50 p-8 text-center text-[12px] text-text-muted">
+      <Card variant="glass" padding="2rem" className="text-center text-[12px] text-text-muted">
         Dodaj skilli, żeby zobaczyć radar.
-      </div>
+      </Card>
     );
   }
 
@@ -148,7 +149,7 @@ export default function SkillRadarPanel({
                 <span className="shrink-0 font-black text-primary">
                   {val}/5
                   {delta != null && delta !== 0 && (
-                    <span className={`ml-1 text-[9px] ${delta > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    <span className={`ml-1 text-[9px] ${delta > 0 ? 'text-success' : 'text-danger'}`}>
                       {delta > 0 ? `+${delta}` : delta}
                     </span>
                   )}

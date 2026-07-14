@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { fetchRecentDoneTasks } from '../../lib/insightsApi';
 import { BarChartWidget } from '../widgets/BarChart';
 import { CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import { formatWarsawDate, getDaysAgoWarsaw, getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { useUserId } from '../../store/useStore';
+import { Card } from '../ui/Card';
+import Badge from '../ui/Badge';
 
 interface DoneTask {
   completed_at: string | null;
   duration_minutes: number | null;
-  priority: string;
+  priority: string | null;
 }
 
 const DAY_LABELS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
@@ -30,13 +32,8 @@ export default function TaskAnalyticsCard() {
 
     (async () => {
       try {
-        const { data } = await supabase
-          .from('todo_items')
-          .select('completed_at, duration_minutes, priority')
-          .eq('user_id', userId)
-          .eq('status', 'done')
-          .gte('completed_at', sinceISO);
-        setTasks((data as DoneTask[]) || []);
+        const data = await fetchRecentDoneTasks(userId, sinceISO);
+        setTasks(data);
       } catch {
         // ignore
       } finally {
@@ -95,24 +92,24 @@ export default function TaskAnalyticsCard() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border-custom bg-surface-solid/30 p-4">
+      <Card variant="glass" padding="1rem">
         <div className="h-4 w-32 bg-border-custom/40 rounded animate-pulse mb-4" />
         <div className="h-[140px] bg-border-custom/20 rounded-xl animate-pulse" />
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface-solid/30 p-4 space-y-4">
+    <Card variant="glass" padding="1rem" className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[11px] font-black text-text-muted uppercase tracking-widest">Zadania · ostatnie 7 dni</p>
           <p className="text-[16px] font-black text-text-primary mt-0.5">Czas pracy</p>
         </div>
-        <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black ${streak > 0 ? 'bg-orange-500/10 text-orange-500' : 'bg-surface-solid text-text-muted'}`}>
+        <Badge variant="tag" color={streak > 0 ? '#f97316' : undefined} className="px-3 py-1.5">
           🔥 {streak} dni
-        </div>
+        </Badge>
       </div>
 
       {/* KPI row */}
@@ -124,8 +121,8 @@ export default function TaskAnalyticsCard() {
             <p className="text-[9px] text-text-muted font-semibold">wykonanych</p>
           </div>
         </div>
-        <div className="rounded-xl bg-amber-500/8 px-3 py-2.5 flex items-center gap-2">
-          <Clock size={14} className="text-amber-500 shrink-0" />
+        <div className="rounded-xl bg-warning/8 px-3 py-2.5 flex items-center gap-2">
+          <Clock size={14} className="text-warning shrink-0" />
           <div>
             <p className="text-[18px] font-black text-text-primary leading-none">{totalHours}h</p>
             <p className="text-[9px] text-text-muted font-semibold">zalogowane</p>
@@ -135,7 +132,7 @@ export default function TaskAnalyticsCard() {
 
       {/* Bar chart */}
       {totalCount > 0 ? (
-        <BarChartWidget data={{ points: chartData, color: '#5B6CFF' }} />
+        <BarChartWidget data={{ points: chartData, color: 'var(--color-primary)' }} />
       ) : (
         <div className="h-[140px] flex flex-col items-center justify-center gap-2">
           <TrendingUp size={24} className="text-text-muted/30" />
@@ -144,6 +141,6 @@ export default function TaskAnalyticsCard() {
           </p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

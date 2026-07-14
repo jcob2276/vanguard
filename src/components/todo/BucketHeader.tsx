@@ -69,7 +69,7 @@ export default function BucketHeader({
             onClick={(e) => e.stopPropagation()}
             className="min-w-0 flex-1 rounded-md border border-primary/40 bg-surface-solid px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary outline-none"
           />
-          <button onClick={commitRename} className="p-1 text-emerald-400 hover:text-emerald-300 shrink-0" title="Zapisz">
+          <button onClick={commitRename} className="p-1 text-success hover:text-success-hover shrink-0" title="Zapisz">
             <Check size={12} />
           </button>
           <button onClick={() => setRenaming(false)} className="p-1 text-text-muted/40 hover:text-text-primary shrink-0" title="Anuluj">
@@ -126,7 +126,7 @@ export default function BucketHeader({
                 e.stopPropagation();
                 setConfirmingDelete(true);
               }}
-              className="p-1 text-text-muted/40 hover:text-rose-400 transition-colors cursor-pointer"
+              className="p-1 text-text-muted/40 hover:text-danger transition-colors cursor-pointer"
               title="Usuń sekcję"
             >
               <Trash2 size={11} />
@@ -157,7 +157,7 @@ export default function BucketHeader({
                 setConfirmingDelete(false);
                 onDelete?.();
               }}
-              className="rounded-lg bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-400 hover:bg-rose-500/20 transition-colors"
+              className="rounded-lg bg-danger/10 px-3 py-1.5 text-[11px] font-bold text-danger hover:bg-danger/20 transition-colors"
             >
               Usuń
             </button>

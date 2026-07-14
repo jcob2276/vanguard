@@ -8,10 +8,10 @@ import ProjectCardCollapsed from './ProjectCardCollapsed';
 import { useProjectsContext } from './context/projectsContextStore';
 
 const MOMENTUM_META: Record<string, { label: string; color: string }> = {
-  accelerating: { label: '↑ Momentum', color: '#10b981' },
+  accelerating: { label: '↑ Momentum', color: 'var(--color-success)' },
   steady:       { label: '→ Steady',   color: '#3b82f6' },
-  slipping:     { label: '↓ Slipuje',  color: '#f59e0b' },
-  stalled:      { label: '✕ Stale',   color: '#f43f5e' },
+  slipping:     { label: '↓ Slipuje',  color: 'var(--color-warning)' },
+  stalled:      { label: '✕ Stale',   color: 'var(--color-danger)' },
 };
 
 const emptyStats: ProjectStats = {
@@ -53,7 +53,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       padding="0"
       className={`overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10)] ${
         healthLevel === 'critical' && project.status === 'active'
-          ? 'border-rose-500/30 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]'
+          ? 'border-danger/30 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]'
           : 'border-border-custom'
       }`}
       style={{ borderRadius: '22px' }}

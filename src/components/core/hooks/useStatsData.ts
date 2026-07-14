@@ -10,7 +10,8 @@ import type { NewMetricState } from '../stats/BodyMetricsSection';
 import { mergeBodyMetricSavePayload } from '../../../lib/health/bodyMetrics';
 import type { FoodAnalysisResult } from '../stats/FoodAnalysisSection';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
-import { useStatsOverviewQuery, statsOverviewKeys } from '../../../lib/statsOverviewApi';
+import { useStatsOverviewQuery } from '../../../lib/statsOverviewApi';
+import { statsOverviewKeys } from '../../../lib/queryKeys';
 import type { TrainingAnalysis } from '../stats/TrainingAnalysisSection';
 
 type ExerciseLogRow = Tables<'exercise_logs'>;
@@ -104,8 +105,6 @@ export function useStatsData() {
     mutationFn: async () => {
       setAnalyzeResult(null);
       const res = await analyzeFoodQuality({
-        supabase,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
         userId: userId!,
         analyzeDate,
         analyzePeriod
@@ -133,8 +132,6 @@ export function useStatsData() {
     mutationFn: async () => {
       setTrainingAnalysis(null);
       const res = await requestTrainingLoad({
-        supabase,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
         userId: userId!,
         from: dateRange.from,
         to: dateRange.to

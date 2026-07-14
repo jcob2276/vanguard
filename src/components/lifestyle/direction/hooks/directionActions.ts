@@ -18,7 +18,7 @@ import {
   saveWeeklyReviewReflection,
   updateDailyWin,
 } from '../../../../lib/goal/goalSpine';
-import { supabase } from '../../../../lib/supabase';
+import { supabase, invokeEdge } from '../../../../lib/supabase';
 import { useHaptics } from '../../../../hooks/useHaptics';
 import { notify } from '../../../../lib/notify';
 import { TIMEOUTS } from '../../../../lib/constants';
@@ -87,7 +87,7 @@ export function createDirectionActions(params: {
   fetchData: (opts?: { silent?: boolean }) => Promise<void>;
 }) {
   const {
-    userId, session, haptics,
+    userId, haptics,
     closingWeekStart, closingMonthStart, isSunday, planTargetWeekStart,
     setHistory, setCurrentReview, setReflectionPersisted,
     setPhase2, setPhase2Loading, setSavingReflection,
@@ -98,28 +98,22 @@ export function createDirectionActions(params: {
   } = params;
 
   const callWeekRecap = async (phase: 'before' | 'after') => {
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recap?type=weekly-recap`, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await invokeEdge<any>('recap?type=weekly-recap', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ weekStart: closingWeekStart, phase }),
+      body: { weekStart: closingWeekStart, phase },
       signal: AbortSignal.timeout(TIMEOUTS.heavy),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Błąd generowania przeglądu tygodnia');
-    return data;
   };
 
   const callMonthRecap = async () => {
     if (!closingMonthStart) return null;
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recap?type=weekly-recap`, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await invokeEdge<any>('recap?type=weekly-recap', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ monthStart: closingMonthStart, phase: 'month' }),
+      body: { monthStart: closingMonthStart, phase: 'month' },
       signal: AbortSignal.timeout(TIMEOUTS.heavy),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Błąd generowania przeglądu miesiąca');
-    return data;
   };
 
   async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {

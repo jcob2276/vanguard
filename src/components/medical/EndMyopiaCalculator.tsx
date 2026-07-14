@@ -8,6 +8,7 @@ import GlassesCabinet from './GlassesCabinet';
 import StabilityRing from './StabilityRing';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useUserId } from '../../store/useStore';
+import { STORAGE_KEYS } from '../../lib/constants';
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
 
@@ -27,7 +28,7 @@ export default function EndMyopiaCalculator() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sizeLevel, setSizeLevel] = useState(4); // 1=smallest … 6=largest
   const [autoCapture, setAutoCapture] = useState(() =>
-    localStorage.getItem('endmyopia_auto_capture') !== 'false'
+    localStorage.getItem(STORAGE_KEYS.ENDMYOPIA_AUTO_CAPTURE) !== 'false'
   );
 
   const FOCUS_SIZES = [1.5, 2.2, 3.2, 4.5, 6.0, 8.0];
@@ -73,7 +74,7 @@ export default function EndMyopiaCalculator() {
 
   const toggleAutoCapture = () => {
     setAutoCapture(!autoCapture);
-    localStorage.setItem('endmyopia_auto_capture', String(!autoCapture));
+    localStorage.setItem(STORAGE_KEYS.ENDMYOPIA_AUTO_CAPTURE, String(!autoCapture));
   };
 
   // Camera setup
@@ -174,9 +175,9 @@ export default function EndMyopiaCalculator() {
               <ArrowLeft size={18} />
             </button>
             <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
-              faceDetected ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+              faceDetected ? 'bg-success text-success' : 'bg-danger text-danger'
             }`}>
-              <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-emerald-500' : 'bg-red-400 animate-pulse'}`} />
+              <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-success' : 'bg-danger animate-pulse'}`} />
               {faceDetected ? `${distance!.toFixed(1)} cm` : 'Brak twarzy'}
             </div>
           </div>
@@ -216,7 +217,7 @@ export default function EndMyopiaCalculator() {
                 <button
                   onClick={handleManualCapture}
                   disabled={!faceDetected}
-                  className="bg-blue-500 text-white font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-30 active:scale-95 transition-all shadow-lg"
+                  className="bg-info text-white font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-30 active:scale-95 transition-all shadow-lg"
                 >
                   Złap pomiar
                 </button>
@@ -235,7 +236,7 @@ export default function EndMyopiaCalculator() {
               onClick={toggleAutoCapture}
               className={`text-[10px] font-black px-3 py-1.5 rounded-full transition-all ${
                 autoCapture
-                  ? 'bg-blue-50 text-blue-500 border border-blue-200'
+                  ? 'bg-info text-info border border-info'
                   : 'bg-gray-100 text-gray-400 border border-gray-200'
               }`}
             >
@@ -269,7 +270,7 @@ export default function EndMyopiaCalculator() {
           </div>
 
           {saveError && (
-            <div className="w-full max-w-xs flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+            <div className="w-full max-w-xs flex items-center gap-2 text-xs text-danger bg-danger/10 border border-danger/20 rounded-xl px-4 py-3">
               <AlertCircle size={14} className="shrink-0" />
               Błąd zapisu. Spróbuj ponownie.
             </div>
@@ -300,12 +301,12 @@ export default function EndMyopiaCalculator() {
       ══════════════════════════════════════════════ */}
       {phase === 'saved' && (
         // NOTE: custom overlay — see 'measure' phase comment above.
-        <div className="fixed inset-0 z-50 bg-emerald-950 flex flex-col items-center justify-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <Check size={36} className="text-emerald-400" />
+        <div className="fixed inset-0 z-50 bg-success flex flex-col items-center justify-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center">
+            <Check size={36} className="text-success" />
           </div>
-          <p className="text-2xl font-black text-emerald-400">Zapisano!</p>
-          <p className="text-sm text-emerald-700">
+          <p className="text-2xl font-black text-success">Zapisano!</p>
+          <p className="text-sm text-success">
             {selectedEye === 'left' ? 'Przechodzę do prawego oka...' : 'Pomiary zakończone!'}
           </p>
         </div>
@@ -333,22 +334,22 @@ export default function EndMyopiaCalculator() {
             {/* Calibration */}
             {phase === 'calibrate' && (
               <div className="w-full max-w-sm bg-surface border border-border-custom rounded-3xl p-7 text-center shadow-xl">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-5">
-                  <Ruler className="text-amber-400" size={24} />
+                <div className="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto mb-5">
+                  <Ruler className="text-warning" size={24} />
                 </div>
                 <h2 className="text-xl font-black mb-2">Kalibracja jednorazowa</h2>
                 <p className="text-sm text-text-muted mb-6 leading-relaxed">
                   Wyciągnij rękę, trzymaj telefon dokładnie <span className="text-text-primary font-bold">40 cm</span> od twarzy. Twarz prosto w kamerę.
                 </p>
                 {isReady && !faceDetected && (
-                  <div className="flex items-center gap-2 text-xs text-amber-400/80 mb-5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-warning/80 mb-5 bg-warning/10 border border-warning/20 rounded-xl px-3 py-2.5">
+                    <div className="w-2 h-2 rounded-full bg-warning animate-pulse shrink-0" />
                     Skieruj twarz na kamerę
                   </div>
                 )}
                 {isReady && faceDetected && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-400 mb-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-success mb-5 bg-success/10 border border-success/20 rounded-xl px-3 py-2.5">
+                    <div className="w-2 h-2 rounded-full bg-success shrink-0" />
                     Twarz wykryta — gotowy do kalibracji
                   </div>
                 )}

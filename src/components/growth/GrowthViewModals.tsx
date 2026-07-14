@@ -1,5 +1,6 @@
 import { Save } from 'lucide-react';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import PinPickerModal from './PinPickerModal';
 import FocusEditorModal from './FocusEditorModal';
 import SkillTreePanel from './SkillTreePanel';
@@ -88,14 +89,16 @@ export default function GrowthViewModals({
         >
           <div className="flex justify-end gap-2 -mt-1 mb-2">
             {editingScores && (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => void saveScores()}
                 disabled={savingScores}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[9px] font-black uppercase text-white cursor-pointer"
+                loading={savingScores}
+                icon={<Save size={10} />}
               >
-                <Save size={10} /> Zapisz
-              </button>
+                Zapisz
+              </Button>
             )}
           </div>
           <SkillTreePanel

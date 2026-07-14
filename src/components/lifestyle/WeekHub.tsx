@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { CalendarDays, Target, AlertCircle, ChevronRight } from 'lucide-react';
+import Button from '../ui/Button';
 import { MagazineBar } from '../shared/MagazineBar';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
 import ProjectWeekKpis from './ProjectWeekKpis';
@@ -82,7 +83,9 @@ export default function WeekHub({
   return (
     <div className="space-y-5">
       {sundayReviewCta && (
-        <button
+        <Button
+          variant="tonal"
+          size="md"
           type="button"
           onClick={onStartWeeklyReview}
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3.5 text-left transition-colors hover:bg-primary/15 active:scale-[0.99]"
@@ -96,30 +99,32 @@ export default function WeekHub({
             </p>
           </div>
           <ChevronRight size={18} className="shrink-0 text-primary" />
-        </button>
+        </Button>
       )}
 
       {overdueReviewCue && (
-        <button
+        <Button
+          variant="outline"
+          size="md"
           type="button"
           onClick={onStartWeeklyReview}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3.5 text-left transition-colors hover:bg-amber-500/10 active:scale-[0.99]"
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-warning/25 bg-warning/[0.06] px-4 py-3.5 text-left transition-colors hover:bg-warning/10 active:scale-[0.99]"
         >
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Refleksja tygodnia</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-warning">Refleksja tygodnia</p>
             <p className="mt-1 text-[12px] text-text-secondary leading-relaxed">
               {guidance?.primaryCue?.includes('refleksji')
                 ? guidance.primaryCue
                 : 'Zamknij tydzień tutaj — refleksja + plan następnego tygodnia.'}
             </p>
           </div>
-          <ChevronRight size={18} className="shrink-0 text-amber-600" />
-        </button>
+          <ChevronRight size={18} className="shrink-0 text-warning" />
+        </Button>
       )}
 
       {proposals.length > 0 && (
         <section className="space-y-3">
-          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-amber-600">
+          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-warning">
             <AlertCircle size={12} /> Do decyzji ({proposals.length})
           </p>
           {proposals.slice(0, 2).map((p) => (
@@ -133,13 +138,15 @@ export default function WeekHub({
             />
           ))}
           {proposals.length > 2 && onOpenActionCenter && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={onOpenActionCenter}
               className="text-[11px] font-semibold text-primary"
             >
               +{proposals.length - 2} więcej w Action Center
-            </button>
+            </Button>
           )}
         </section>
       )}

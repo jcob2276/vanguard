@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { format, parseISO } from 'date-fns';
-import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
+import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 
 interface ExerciseLog {
   exercise_name: string;
@@ -53,7 +53,6 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   } | null>(null);
 
   const todayStr = getTodayWarsaw();
-  const today = new Date(todayStr + 'T12:00:00Z');
 
   const dateMap: Record<string, HeatmapCellData> = {};
   for (const s of sessions) {
@@ -72,21 +71,18 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     runMap[d] = (runMap[d] || 0) + (Number(a.distance) || 0) / 1000;
   }
 
-  const dow = today.getUTCDay();
-  const thisMonday = new Date(today);
-  thisMonday.setUTCDate(today.getUTCDate() - (dow === 0 ? 6 : dow - 1));
-
-  const start = new Date(thisMonday);
-  start.setUTCDate(thisMonday.getUTCDate() - 12 * 7);
-
+  const dow = new Date(todayStr + 'T12:00:00Z').getUTCDay();
+  const offsetToMonday = -(dow === 0 ? 6 : dow - 1);
+  const mondayStr = shiftDateStr(todayStr, offsetToMonday);
+  const startStr = shiftDateStr(mondayStr, -12 * 7);
+ 
   const weeks: HeatmapDay[][] = [];
-  const cur = new Date(start);
+  let currentStr = startStr;
   while (weeks.length < 13) {
     const week = [];
     for (let d = 0; d < 7; d++) {
-      const ds = formatWarsawDate(cur);
-      week.push({ date: ds, future: ds > todayStr, data: dateMap[ds] || null });
-      cur.setUTCDate(cur.getUTCDate() + 1);
+      week.push({ date: currentStr, future: currentStr > todayStr, data: dateMap[currentStr] || null });
+      currentStr = shiftDateStr(currentStr, 1);
     }
     weeks.push(week);
   }
@@ -99,17 +95,17 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
     if (data?.wellness && !hasRun) return 'bg-teal-500/50';
     if (hasRun && !hasGym) {
       const km = runMap[date];
-      if (km < 5)  return 'bg-amber-400/40';
-      if (km < 12) return 'bg-amber-500/60';
-      return 'bg-amber-600/80';
+      if (km < 5)  return 'bg-warning/40';
+      if (km < 12) return 'bg-warning/60';
+      return 'bg-warning/80';
     }
     // both gym + run
-    if (hasRun && hasGym) return 'bg-violet-500/70';
+    if (hasRun && hasGym) return 'bg-primary/70';
     const v = data!.vol;
-    if (v < 3000)  return 'bg-indigo-400/30';
-    if (v < 8000)  return 'bg-indigo-500/55';
-    if (v < 15000) return 'bg-indigo-600/80';
-    return 'bg-indigo-700';
+    if (v < 3000)  return 'bg-primary/30';
+    if (v < 8000)  return 'bg-primary/55';
+    if (v < 15000) return 'bg-primary/80';
+    return 'bg-primary';
   };
 
   const DAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'];
@@ -158,7 +154,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
         >
           <p className="text-[9px] font-black text-text-muted mb-1">{tooltip.day.date}</p>
           {tooltip.kmRun > 0 && (
-            <p className="text-[11px] font-bold text-amber-400 mt-0.5">{tooltip.kmRun.toFixed(1)} km biegu</p>
+            <p className="text-[11px] font-bold text-warning mt-0.5">{tooltip.kmRun.toFixed(1)} km biegu</p>
           )}
           {tooltip.day.data && (
             <>
@@ -167,7 +163,7 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
                 <p className="text-[10px] text-teal-500 font-bold mt-0.5">Wellness</p>
               ) : (
                 <>
-                  {tooltip.day.data.vol > 0 && <p className="text-[11px] font-bold text-indigo-400 mt-0.5">{(tooltip.day.data.vol / 1000).toFixed(1)} Mg</p>}
+                  {tooltip.day.data.vol > 0 && <p className="text-[11px] font-bold text-primary mt-0.5">{(tooltip.day.data.vol / 1000).toFixed(1)} Mg</p>}
                   {tooltip.day.data.rpe && <p className="text-[9px] text-text-muted mt-0.5">RPE <span className="font-black">{tooltip.day.data.rpe}</span></p>}
                 </>
               )}
@@ -185,14 +181,14 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
         {[
           { color: 'bg-border-custom',  label: 'Odpoczynek' },
           { color: 'bg-teal-500/50',    label: 'Wellness' },
-          { color: 'bg-amber-400/40',   label: 'Bieg <5km' },
-          { color: 'bg-amber-500/60',   label: 'Bieg 5-12km' },
-          { color: 'bg-amber-600/80',   label: 'Bieg >12km' },
-          { color: 'bg-indigo-400/30',  label: '<3 Mg' },
-          { color: 'bg-indigo-500/55',  label: '3–8 Mg' },
-          { color: 'bg-indigo-600/80',  label: '8–15 Mg' },
-          { color: 'bg-indigo-700',     label: '>15 Mg' },
-          { color: 'bg-violet-500/70',  label: 'Bieg+Siłownia' },
+          { color: 'bg-warning/40',   label: 'Bieg <5km' },
+          { color: 'bg-warning/60',   label: 'Bieg 5-12km' },
+          { color: 'bg-warning/80',   label: 'Bieg >12km' },
+          { color: 'bg-primary/30',  label: '<3 Mg' },
+          { color: 'bg-primary/55',  label: '3–8 Mg' },
+          { color: 'bg-primary/80',  label: '8–15 Mg' },
+          { color: 'bg-primary',     label: '>15 Mg' },
+          { color: 'bg-primary/70',  label: 'Bieg+Siłownia' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className={`w-3 h-3 rounded-sm ${color}`} />

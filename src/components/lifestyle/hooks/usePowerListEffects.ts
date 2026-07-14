@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
+import { parseDailyWinWithTasks } from '../../../lib/db-json-guards';
 import { listTodoItems, listTodoSections, type TodoItemRow } from '../../../lib/todo/todo';
 import { listProjects } from '../../../lib/projects/projects';
 import { getYesterdayWarsaw } from '../../../lib/date';
@@ -105,7 +106,7 @@ export function usePowerListEffects({
         .eq('user_id', userId)
         .eq('date', yesterday)
         .maybeSingle();
-      return (data as unknown as DailyWinWithTasks) ?? null;
+      return parseDailyWinWithTasks(data);
     },
     enabled: !!userId && !todayWin,
   });

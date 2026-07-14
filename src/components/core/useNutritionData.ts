@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useUserId } from '../../store/useStore';
 import type { Database } from '../../lib/database.types';
-import type { Session } from '@supabase/supabase-js';
 
 export type TodayEntry = Database['public']['Tables']['daily_food_entries']['Row'];
 export type DailyNutritionRow = Database['public']['Tables']['daily_nutrition']['Row'];
@@ -19,13 +19,12 @@ const MEAL_LABEL: Record<string, string> = {
 };
 
 export interface UseNutritionDataProps {
-  session: Session;
   weeklyCalories: number;
   refreshSignal?: number;
 }
 
-export function useNutritionData({ session, weeklyCalories, refreshSignal }: UseNutritionDataProps) {
-  const userId = session?.user?.id;
+export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutritionDataProps) {
+  const userId = useUserId();
   const todayRaw = getTodayWarsaw();
   const haptics = useHaptics();
   const queryClient = useQueryClient();

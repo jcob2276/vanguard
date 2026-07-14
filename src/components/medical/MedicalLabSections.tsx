@@ -13,13 +13,14 @@ import {
   type MedicalLabRow,
 } from '../../lib/health/medicalAnalytics';
 import { formatOptimalRange, optimalStatus } from '../../lib/getBased/markerBridge';
+import { Card } from '../ui/Card';
 
 export function ValueCell({ row }: { row: MedicalLabRow }) {
   const tone =
     row.flag && /high|above/i.test(row.flag)
-      ? 'text-amber-600 dark:text-amber-400'
+      ? 'text-warning dark:text-warning'
       : row.flag && /low|below/i.test(row.flag)
-        ? 'text-sky-600 dark:text-sky-400'
+        ? 'text-info dark:text-info'
         : 'text-text-primary';
 
   return (
@@ -40,7 +41,7 @@ function TrendBadge({ series }: { series: MarkerSeries }) {
   const Icon = rising ? TrendingUp : TrendingDown;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[9px] font-bold tabular-nums ${rising ? 'text-amber-600 dark:text-amber-400' : 'text-sky-600 dark:text-sky-400'}`}
+      className={`inline-flex items-center gap-0.5 text-[9px] font-bold tabular-nums ${rising ? 'text-warning dark:text-warning' : 'text-info dark:text-info'}`}
     >
       <Icon size={10} />
       {rising ? '+' : ''}
@@ -83,10 +84,10 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
                     <span
                       className={
                         optSt === 'in'
-                          ? 'text-emerald-600 dark:text-emerald-400'
+                          ? 'text-success dark:text-success'
                           : optSt === 'unknown'
                             ? 'text-text-muted'
-                            : 'text-amber-600 dark:text-amber-400'
+                            : 'text-warning dark:text-warning'
                       }
                     >
                       {opt}
@@ -114,7 +115,7 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
 export function CategorySection({ catKey, series }: { catKey: string; series: MarkerSeries[] }) {
   const [open, setOpen] = useState(true);
   return (
-    <section className="rounded-2xl border border-border-custom bg-surface/30 overflow-hidden">
+    <Card variant="glass" className="bg-surface/30 border-border-custom overflow-hidden" padding="0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -137,7 +138,7 @@ export function CategorySection({ catKey, series }: { catKey: string; series: Ma
           <MarkerTable rows={series} />
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 

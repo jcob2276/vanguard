@@ -11,6 +11,7 @@
 import { serveJson } from "../_shared/http.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 
 // Auth note: serveJson implicitly enforces resolveUserScope
 Deno.serve(serveJson(async (req, ctx) => {
@@ -65,14 +66,13 @@ Deno.serve(serveJson(async (req, ctx) => {
 
   const { content } = await deepseekChat({
     apiKey,
+    ...LLM_TASKS.structured,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    model: "deepseek-v4-flash",
     maxTokens: 600,
     temperature: 0.3,
-    responseFormat: { type: "json_object" },
   });
 
   const parsed = parseJsonFromContent(content);

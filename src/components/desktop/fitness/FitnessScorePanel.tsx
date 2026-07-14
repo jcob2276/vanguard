@@ -21,16 +21,21 @@ interface FitnessScorePanelProps {
   heightCm: number | null;
   theme: string;
   grid: string;
+  personalTargets: { proteinFloorG: number; targetKcal: number | null; sleepTargetH: number } | null;
 }
 
 export default function FitnessScorePanel({
   oura, nutrition, sessions, strava, habits, habitLogs,
-  volData, body, heightCm, theme, grid,
+  volData, body, heightCm, theme, grid, personalTargets,
 }: FitnessScorePanelProps) {
   const today = getTodayWarsaw();
   const profile = useMemo(
-    () => computeFitnessProfile({ oura, nutrition, sessions, strava, habits, habitLogs, volData, body, heightCm, today }),
-    [oura, nutrition, sessions, strava, habits, habitLogs, volData, body, heightCm, today],
+    () => computeFitnessProfile({
+      oura, nutrition, sessions, strava, habits, habitLogs, volData, body, heightCm, today,
+      proteinTargetG: personalTargets?.proteinFloorG ?? undefined,
+      sleepTargetH: personalTargets?.sleepTargetH ?? undefined,
+    }),
+    [oura, nutrition, sessions, strava, habits, habitLogs, volData, body, heightCm, today, personalTargets],
   );
 
   return (

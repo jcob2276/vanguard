@@ -124,7 +124,7 @@ export default function ProjectCardExpanded({
                 <Badge variant="tag" color={
                   project.deadline
                     ? s.daysLeft !== null && s.daysLeft < 0
-                      ? '#f43f5e'
+                      ? 'var(--color-danger)'
                       : 'var(--color-primary)'
                     : undefined
                 }>
@@ -184,7 +184,7 @@ export default function ProjectCardExpanded({
                 <button
                   onClick={() => handlers.handleToggleCheckpoint(cp)}
                   className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${
-                    cp.status === 'done' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-border-custom text-transparent'
+                    cp.status === 'done' ? 'border-success bg-success text-white' : 'border-border-custom text-transparent'
                   }`}
                 >
                   <Check size={10} strokeWidth={3} />
@@ -199,7 +199,7 @@ export default function ProjectCardExpanded({
                   variant="ghost"
                   size="sm"
                   onClick={() => handlers.deleteCheckpoint(cp.id)}
-                  className="shrink-0 rounded-full p-1 text-text-muted/35 hover:bg-rose-500/10 hover:text-rose-500"
+                  className="shrink-0 rounded-full p-1 text-text-muted/35 hover:bg-danger/10 hover:text-danger"
                   icon={<Trash2 size={11} />}
                 />
               </div>
@@ -255,7 +255,7 @@ export default function ProjectCardExpanded({
               <div className="h-1.5 w-1.5 rounded-full bg-transparent" />
             </div>
             <span className="flex-1 truncate text-[13px] text-text-primary">{item.title}</span>
-            {item.recurrence && <Repeat2 size={10} className="shrink-0 text-violet-400" />}
+            {item.recurrence && <Repeat2 size={10} className="shrink-0 text-primary" />}
           </button>
         ))}
         {s.doneItems.slice(0, 2).map((item) => (
@@ -264,7 +264,7 @@ export default function ProjectCardExpanded({
             onClick={() => handlers.handleToggleTask(item)}
             className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left opacity-35"
           >
-            <div className="h-[18px] w-[18px] shrink-0 rounded-full bg-emerald-500 flex items-center justify-center">
+            <div className="h-[18px] w-[18px] shrink-0 rounded-full bg-success flex items-center justify-center">
               <Check size={10} className="text-white" strokeWidth={3} />
             </div>
             <span className="flex-1 truncate text-[13px] line-through text-text-muted">{item.title}</span>
@@ -294,7 +294,7 @@ export default function ProjectCardExpanded({
               variant="ghost"
               size="sm"
               onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as typeof RECURRENCE_CYCLE[number]) + 1) % RECURRENCE_CYCLE.length] } : t)}
-              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask!.recurrence ? 'bg-violet-500/15 text-violet-500' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${newTask!.recurrence ? 'bg-primary/15 text-primary' : 'bg-surface-solid text-text-muted hover:text-text-secondary'}`}
               icon={<Repeat2 size={10} />}
             >
               {RECURRENCE_LABEL[newTask!.recurrence]}
@@ -354,7 +354,7 @@ export default function ProjectCardExpanded({
           size="sm"
           onClick={() => handlers.handleDelete(project.id)}
           disabled={busy}
-          className="rounded-full p-1.5 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+          className="rounded-full p-1.5 text-text-muted/40 hover:text-danger hover:bg-danger/10 transition-colors"
           icon={<Trash2 size={13} />}
         />
       </div>

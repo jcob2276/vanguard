@@ -4,6 +4,7 @@ import { CalendarDays, ListChecks, Target, TrendingUp } from 'lucide-react';
 import type { DirectionContextData } from '../../lib/dailyPlanProposal';
 import { formatSprintWeekBridge } from '../../lib/goal/goalSpine';
 import { formatSprintFromLongTerm } from '../../lib/goal/longTermBridge';
+import { Card } from '../ui/Card';
 
 export default function WeekLoopSummary({
   ctx,
@@ -34,7 +35,7 @@ export default function WeekLoopSummary({
   const longTermBridge = formatSprintFromLongTerm(ctx.bhagLine ?? null, ctx.sprintGoal);
 
   return (
-    <section className={`rounded-2xl border border-border-custom bg-surface/40 ${compact ? 'p-3.5 space-y-2' : 'p-5 space-y-3'}`}>
+    <Card className={compact ? 'space-y-2' : 'space-y-3'} padding={compact ? '0.875rem' : '1.25rem'}>
       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Pętla tygodnia</p>
 
       {longTermBridge && (
@@ -45,7 +46,7 @@ export default function WeekLoopSummary({
 
       {ctx.monthTheme && (
         <p className={`text-text-secondary leading-snug ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
-          <span className="font-black uppercase tracking-wider text-indigo-600">
+          <span className="font-black uppercase tracking-wider text-primary">
             Temat miesiąca{ctx.monthLabel ? ` · ${ctx.monthLabel}` : ''}:{' '}
           </span>
           {ctx.monthTheme}
@@ -61,7 +62,7 @@ export default function WeekLoopSummary({
         <div className="space-y-1">
           <p className={`font-bold text-text-primary leading-snug ${compact ? 'text-[12px]' : 'text-[13px]'}`}>{intention}</p>
           {ctx.weekGoalsMeta?.source === 'fallback' && (
-            <p className="text-[10px] font-semibold text-amber-600">
+            <p className="text-[10px] font-semibold text-warning">
               Plan z poprzedniego tygodnia — uzupełnij w niedzielnym przeglądzie.
             </p>
           )}
@@ -112,12 +113,12 @@ export default function WeekLoopSummary({
 
       {(ctx.weekGoals.cialo || ctx.weekGoals.duch || ctx.weekGoals.konto) && !compact && (
         <div className="flex flex-wrap gap-2 pt-1 border-t border-border-custom/50">
-          {ctx.weekGoals.cialo && <PillarChip label="Ciało" text={ctx.weekGoals.cialo} cls="text-emerald-600" />}
-          {ctx.weekGoals.duch && <PillarChip label="Duch" text={ctx.weekGoals.duch} cls="text-indigo-600" />}
-          {ctx.weekGoals.konto && <PillarChip label="Konto" text={ctx.weekGoals.konto} cls="text-amber-600" />}
+          {ctx.weekGoals.cialo && <PillarChip label="Ciało" text={ctx.weekGoals.cialo} cls="text-success" />}
+          {ctx.weekGoals.duch && <PillarChip label="Duch" text={ctx.weekGoals.duch} cls="text-primary" />}
+          {ctx.weekGoals.konto && <PillarChip label="Konto" text={ctx.weekGoals.konto} cls="text-warning" />}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 

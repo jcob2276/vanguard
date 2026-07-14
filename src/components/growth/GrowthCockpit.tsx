@@ -6,6 +6,8 @@ import type { GrowthPrevWeekSummary, PowerListWeekStats } from '../../lib/growth
 import type { FocusProposal } from '../../lib/growth/growthOverview';
 import type { LearningWeekPin } from '../../lib/growth/growth';
 import { computeTheoryPracticeBalance } from '../../lib/growth/growthMastery';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 export default function GrowthCockpit({
   context,
@@ -41,7 +43,7 @@ export default function GrowthCockpit({
   const mustPct = mustTotal > 0 ? Math.round((mustDone / mustTotal) * 100) : 0;
 
   return (
-    <section className="rounded-2xl border border-border-custom bg-surface/30 p-5 space-y-4">
+    <Card variant="glass" padding="1.25rem" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-text-muted">Tydzień · podsumowanie</p>
@@ -95,10 +97,12 @@ export default function GrowthCockpit({
       </div>
 
       {focusProposal ? (
-        <button
-          type="button"
+        <Card
+          variant="outline"
+          padding="0.75rem"
           onClick={!readOnly ? onSetFocus : undefined}
-          className={`w-full text-left rounded-xl border border-primary/25 bg-primary/[0.05] px-4 py-3 flex items-center justify-between gap-3 ${!readOnly ? 'hover:bg-primary/[0.09] cursor-pointer' : 'cursor-default'} transition-all`}
+          className="w-full text-left bg-primary/[0.05] flex items-center justify-between gap-3"
+          style={{ borderColor: 'rgba(79, 70, 229, 0.25)' }}
         >
           <div className="min-w-0">
             <p className="text-[8px] font-black uppercase text-primary tracking-wider">
@@ -116,15 +120,15 @@ export default function GrowthCockpit({
             </p>
           </div>
           {!readOnly && <ArrowRight size={16} className="text-primary shrink-0" />}
-        </button>
+        </Card>
       ) : !readOnly ? (
-        <button
-          type="button"
+        <Button
+          variant="outline"
           onClick={onSetFocus}
-          className="w-full rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.07] py-3 text-[11px] font-black uppercase text-primary transition-all cursor-pointer"
+          className="w-full border-dashed border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.07] text-primary"
         >
           Ustaw focus tygodnia
-        </button>
+        </Button>
       ) : null}
 
       {hasDirection && (weekGoals.cialo || weekGoals.duch || weekGoals.konto) && (
@@ -139,7 +143,7 @@ export default function GrowthCockpit({
         {balance.total > 0 && (
           <span>
             Praktyka:{' '}
-            <span className={`font-bold ${balance.practice >= balance.theory ? 'text-emerald-500' : 'text-amber-500'}`}>
+            <span className={`font-bold ${balance.practice >= balance.theory ? 'text-success' : 'text-warning'}`}>
               {balance.practiceShare}%
             </span>
             {balance.practice < balance.theory && ' — więcej praktyki, mniej teorii'}
@@ -151,7 +155,7 @@ export default function GrowthCockpit({
             {prevWeek.mustTotal ? ` · MUST ${prevWeek.mustDone}/${prevWeek.mustTotal}` : ''}
           </span>
         )}
-        {readOnly && <span className="text-amber-600 dark:text-amber-400">Archiwum</span>}
+        {readOnly && <span className="text-warning dark:text-warning">Archiwum</span>}
       </div>
 
       <p className="text-[10px] text-text-muted leading-relaxed border-t border-border-custom/60 pt-3">
@@ -161,7 +165,7 @@ export default function GrowthCockpit({
         </Link>
         {' '}przy „Zacznij dzień” — jedno miejsce, zero dubli.
       </p>
-    </section>
+    </Card>
   );
 }
 
@@ -181,8 +185,8 @@ function StatChip({
   bar?: { value: number; max: number };
 }) {
   const colorMap = {
-    emerald: 'text-emerald-500',
-    amber: 'text-amber-500',
+    emerald: 'text-success',
+    amber: 'text-warning',
     primary: 'text-primary',
     muted: 'text-text-muted',
   };
@@ -199,7 +203,7 @@ function StatChip({
       {bar && (
         <div className="mt-2 h-1 rounded-full bg-border-custom overflow-hidden">
           <div
-            className="h-full bg-emerald-500 rounded-full transition-all"
+            className="h-full bg-success rounded-full transition-all"
             style={{ width: `${Math.round((bar.value / bar.max) * 100)}%` }}
           />
         </div>

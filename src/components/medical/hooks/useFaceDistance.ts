@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { STORAGE_KEYS } from '../../../lib/constants';
 
 const SMOOTHING_FRAMES = 10;
 const AUTO_CAPTURE_THRESHOLD_CM = 1.0;  // max jitter to consider "stable"
@@ -9,7 +10,7 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
   const [distance, setDistance] = useState<number | null>(null);
   const [stability, setStability] = useState(0); // 0–1, how close to auto-capture
   const [calibrationFactor, setCalibrationFactor] = useState<number | null>(() => {
-    const saved = localStorage.getItem('endmyopia_calibration');
+    const saved = localStorage.getItem(STORAGE_KEYS.ENDMYOPIA_CALIBRATION);
     return saved ? parseFloat(saved) : null;
   });
   const [isReady, setIsReady] = useState(false);
@@ -65,7 +66,7 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
         const pixelDist = measurePixelDist(results.faceLandmarks[0]);
         const factor = knownDistanceCm * pixelDist;
         setCalibrationFactor(factor);
-        localStorage.setItem('endmyopia_calibration', factor.toString());
+        localStorage.setItem(STORAGE_KEYS.ENDMYOPIA_CALIBRATION, factor.toString());
         bufferRef.current = [];
         stableStartRef.current = null;
         lastStableValueRef.current = null;
@@ -76,7 +77,7 @@ export function useFaceDistance(videoRef: React.RefObject<HTMLVideoElement | nul
 
   const resetCalibration = useCallback(() => {
     setCalibrationFactor(null);
-    localStorage.removeItem('endmyopia_calibration');
+    localStorage.removeItem(STORAGE_KEYS.ENDMYOPIA_CALIBRATION);
     bufferRef.current = [];
     stableStartRef.current = null;
     lastStableValueRef.current = null;

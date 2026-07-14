@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, invokeEdgeStream } from './supabase';
 import { getTodayWarsaw } from './date';
 import { sweepPastEventsInState } from '../types/schedule';
 import type { ScheduleViewData } from '../types/schedule';
@@ -226,16 +226,12 @@ export async function sendOracleChatPrompt({
   history,
   current_query,
   user_id,
-  accessToken,
+  accessToken: _accessToken,
   onChunk,
 }: OracleChatRequest): Promise<OracleChatResponse> {
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanguard-oracle`, {
+  const response = await invokeEdgeStream('vanguard-oracle', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`
-    },
-    body: JSON.stringify({
+    body: {
       history,
       current_query,
       user_id,
@@ -243,13 +239,8 @@ export async function sendOracleChatPrompt({
       agent_run_mode: getAgentRunMode(),
       user_conf: getOracleUserConf() || undefined,
       stream: true
-    })
+    }
   });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Oracle error: ${response.status} ${errText}`);
-  }
 
   const reader = response.body?.getReader();
   const decoder = new TextDecoder();

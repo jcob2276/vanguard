@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { useNutritionData, TodayEntry } from '../useNutritionData';
+import { Card } from '../../ui/Card';
 import NutritionMealGroupCard from './NutritionMealGroupCard';
 
 type NutritionData = ReturnType<typeof useNutritionData>;
@@ -19,9 +20,9 @@ const MEAL_ICON: Record<string, string> = {
 };
 
 function qualityColor(score: number): string {
-  if (score >= 75) return 'text-emerald-400 border-emerald-500/25 bg-emerald-500/10';
-  if (score >= 55) return 'text-amber-400 border-amber-500/25 bg-amber-500/10';
-  return 'text-rose-400 border-rose-500/25 bg-rose-500/10';
+  if (score >= 75) return 'text-success border-success/25 bg-success/10';
+  if (score >= 55) return 'text-warning border-warning/25 bg-warning/10';
+  return 'text-danger border-danger/25 bg-danger/10';
 }
 
 interface NutritionMealLogProps {
@@ -65,10 +66,11 @@ export default function NutritionMealLog({
       <div className="my-4 border-t border-border-custom/50" />
 
       {/* Expandable / Collapsible toggle card banner */}
-      <div
-        onClick={() => { haptics.light(); setIsExpanded(!isExpanded); }}
-        className="flex flex-col p-3.5 rounded-2xl border border-border-custom bg-surface-solid/15 cursor-pointer group select-none hover:bg-surface-solid/25 active:scale-[0.99] transition-all mb-4"
-      >
+        <Card
+          onClick={() => { haptics.light(); setIsExpanded(!isExpanded); }}
+          className="flex flex-col cursor-pointer group select-none hover:bg-surface-solid/25 mb-4"
+          padding="0.875rem"
+        >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-black uppercase tracking-[0.12em] text-text-secondary font-display flex items-center gap-2">
@@ -85,8 +87,8 @@ export default function NutritionMealLog({
           </div>
           <span className={`text-[12px] font-black font-display ${
             todayMissingData ? 'text-text-muted'
-            : remainingKcalToday >= -75 ? 'text-emerald-500'
-            : 'text-rose-400'
+            : remainingKcalToday >= -75 ? 'text-success'
+            : 'text-danger'
           }`}>
             {todayMissingData
               ? `cel ${kcalTarget} kcal`
@@ -114,7 +116,7 @@ export default function NutritionMealLog({
             )}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Grouped meal sections */}
       {isExpanded && (

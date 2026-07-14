@@ -122,7 +122,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
                   isSelected
                     ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
                     : isToday
-                    ? 'bg-rose-500/10 text-rose-500 font-black border border-rose-500/30 hover:scale-[1.08]'
+                    ? 'bg-danger/10 text-danger font-black border border-danger/30 hover:scale-[1.08]'
                     : item.isCurrentMonth
                     ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[1.08]'
                     : 'text-text-muted/30 hover:bg-primary/10 hover:text-primary/70'

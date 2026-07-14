@@ -11,6 +11,7 @@
 import { serveJson } from "../_shared/http.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 
 const ACTIONS = new Set(["keep", "archive", "todo"]);
 const CATEGORIES = new Set(["Kariera", "Zdrowie", "Technologia", "Biznes", "Inne"]);
@@ -62,14 +63,13 @@ Deno.serve(serveJson(async (req, ctx) => {
 
   const { content } = await deepseekChat({
     apiKey,
+    ...LLM_TASKS.structured,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: linksBlock },
     ],
-    model: "deepseek-chat",
     maxTokens: 2000,
     temperature: 0.2,
-    responseFormat: { type: "json_object" },
   });
 
   const parsed = parseJsonFromContent(content);

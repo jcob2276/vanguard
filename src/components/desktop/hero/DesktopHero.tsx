@@ -5,6 +5,8 @@ import type { SprintPanelProps } from '../fitness/SprintPanel';
 import { SPRINT_SEASON } from '../desktopUtils';
 import SprintMetricsGrid from '../fitness/SprintMetricsGrid';
 import { LIMITER_PL } from '../../../lib/constants';
+import { Card } from '../../ui/Card';
+import { readinessTier } from '@vanguard/domain';
 
 function cockpitDecision(status: string, limiter: string | null, strain: number | null, provisional: boolean | null) {
   const fuelLimiter = limiter === 'calories' || limiter === 'carbs';
@@ -52,24 +54,25 @@ export default function DesktopHero({
 
   const status = strain?.daily_status || 'unknown';
   const cfg = {
-    green: { bg: 'bg-emerald-500/[0.05] border-emerald-500/25', dot: 'bg-emerald-500', pulse: 'bg-emerald-400', tag: 'ZIELONY' },
-    yellow: { bg: 'bg-amber-500/[0.05] border-amber-500/25', dot: 'bg-amber-400', pulse: 'bg-amber-300', tag: 'ŻÓŁTY' },
-    red: { bg: 'bg-rose-500/[0.05] border-rose-500/25', dot: 'bg-rose-500', pulse: 'bg-rose-400', tag: 'CZERWONY' },
-  }[status] || { bg: 'bg-surface border-border-custom', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
+    green: { bg: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.25)', dot: 'bg-success', pulse: 'bg-success', tag: 'ZIELONY' },
+    yellow: { bg: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)', dot: 'bg-warning', pulse: 'bg-warning', tag: 'ŻÓŁTY' },
+    red: { bg: 'rgba(244,63,94,0.05)', border: '1px solid rgba(244,63,94,0.25)', dot: 'bg-danger', pulse: 'bg-danger', tag: 'CZERWONY' },
+  }[status] || { bg: 'rgba(26,26,46,0.6)', border: '1px solid rgba(153,161,175,0.3)', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
 
   const msg = strain ? cockpitDecision(status, strain.main_limiter, strain.strain_score, strain.fueling_provisional) : 'Obserwatorium — pełny obraz z SQL';
   const limiter = strain?.main_limiter && strain.main_limiter !== 'recovery_ok' ? LIMITER_PL[strain.main_limiter] : null;
-  const readColor = !latest?.readiness_score
+  const tier = latest?.readiness_score != null ? readinessTier(latest.readiness_score) : null;
+  const readColor = !tier
     ? 'text-text-muted'
-    : latest.readiness_score >= 70
-      ? 'text-emerald-500'
-      : latest.readiness_score >= 50
-        ? 'text-amber-500'
-        : 'text-rose-500';
+    : tier === 'green'
+      ? 'text-success'
+      : tier === 'yellow'
+        ? 'text-warning'
+        : 'text-danger';
 
   return (
     <section id="sprint" className="scroll-mt-28">
-      <div className={`rounded-[24px] border ${cfg.bg} border-primary/15 overflow-hidden`}>
+      <Card variant="glass" padding="0" className="overflow-hidden" style={{ borderRadius: '24px', background: cfg.bg, border: cfg.border }}>
         <div className="px-8 py-5 flex items-center justify-between gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5 mb-2">
@@ -156,7 +159,7 @@ export default function DesktopHero({
           </div>
         )}
         {closingWeek && sprintReview?.completed_at && (
-          <p className="mt-3 text-[10px] font-bold text-emerald-500">Sprint zamknięty w Tygodniu</p>
+          <p className="mt-3 text-[10px] font-bold text-success">Sprint zamknięty w Tygodniu</p>
         )}
 
         <SprintMetricsGrid
@@ -168,7 +171,7 @@ export default function DesktopHero({
           weight30ago={weight30ago}
         />
       </div>
-    </div>
+      </Card>
     </section>
   );
 }

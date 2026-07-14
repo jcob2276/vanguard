@@ -10,7 +10,7 @@ interface MetricCardData {
 }
 
 export function MetricCard({ data }: { data: MetricCardData }) {
-  const color = data.color ?? '#5B6CFF';
+  const color = data.color ?? 'var(--color-primary)';
   const trend = data.change == null ? null : data.change > 0 ? 'up' : data.change < 0 ? 'down' : 'flat';
   return (
     <div className="flex flex-col gap-1">

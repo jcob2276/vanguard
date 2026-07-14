@@ -3,6 +3,7 @@ import {
 } from 'recharts';
 import type { CorrelationResult } from '@vanguard/domain';
 import { CATEGORY_LABELS, CONFIDENCE_LABELS, formatLag, METHOD_LABELS, rColor } from '@vanguard/domain';
+import { Card } from '../ui/Card';
 
 interface Props {
   item: CorrelationResult;
@@ -26,10 +27,10 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
   const method = item.method ?? 'pearson';
 
   return (
-    <article
-      className={`rounded-[20px] border bg-surface p-4 shadow-sm transition-colors ${
-        item.significant ? 'border-primary/25' : 'border-border-custom'
-      }`}
+    <Card
+      variant="glass"
+      padding="1rem"
+      className={`border ${item.significant ? 'border-primary/25' : 'border-border-custom'}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
         <div className="min-w-0 flex-1">
@@ -38,12 +39,12 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
               {CATEGORY_LABELS[item.category] ?? item.category}
             </span>
             {item.cross_domain && (
-              <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600 px-1.5 py-0.5 rounded bg-emerald-500/10">
+              <span className="text-[8px] font-black uppercase tracking-widest text-success px-1.5 py-0.5 rounded bg-success/10">
                 Cross
               </span>
             )}
             {item.discovered && !item.cross_domain && (
-              <span className="text-[8px] font-black uppercase tracking-widest text-indigo-500 px-1.5 py-0.5 rounded bg-indigo-500/10">
+              <span className="text-[8px] font-black uppercase tracking-widest text-primary px-1.5 py-0.5 rounded bg-primary/10">
                 Odkryte
               </span>
             )}
@@ -51,8 +52,8 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
               {method === 'spearman' ? 'ρ' : 'r'}
             </span>
             <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
-              item.confidence === 'solid' ? 'bg-emerald-500/10 text-emerald-600' :
-              item.confidence === 'building' ? 'bg-amber-500/10 text-amber-600' :
+              item.confidence === 'solid' ? 'bg-success/10 text-success' :
+              item.confidence === 'building' ? 'bg-warning/10 text-warning' :
               'bg-slate-500/10 text-text-muted'
             }`}>
               {CONFIDENCE_LABELS[item.confidence]} · N={item.n}
@@ -72,7 +73,7 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
       <p className="text-[11px] text-text-secondary leading-relaxed mb-3">{item.note}</p>
 
       {!item.has_enough_data && (
-        <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400 mb-2">
+        <p className="text-[10px] font-medium text-warning dark:text-warning mb-2">
           Za mało par danych — loguj regularnie, sygnał pojawi się po kilku dniach.
         </p>
       )}
@@ -109,11 +110,11 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
           <span title="Pearson r">r={item.r_pearson.toFixed(2)}</span>
         )}
         {item.significant ? (
-          <span className="text-emerald-600 font-bold">p={item.p.toFixed(3)}</span>
+          <span className="text-success font-bold">p={item.p.toFixed(3)}</span>
         ) : (
           <span>p={item.p.toFixed(3)}</span>
         )}
       </div>
-    </article>
+    </Card>
   );
 }

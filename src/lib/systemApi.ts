@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { parseDataCoverage } from './db-json-guards';
 
 export interface AuditEvent {
   id: string;
@@ -65,7 +66,7 @@ export async function fetchSystemHealthData(userId: string): Promise<SystemHealt
   
   let coverage: DataCoverage | null = null;
   if (!covRes.error) {
-    coverage = covRes.data as unknown as DataCoverage;
+    coverage = parseDataCoverage(covRes.data);
   } else {
     console.error('[Coverage Error API]', covRes.error);
   }

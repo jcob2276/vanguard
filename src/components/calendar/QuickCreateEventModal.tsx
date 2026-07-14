@@ -4,6 +4,7 @@ import { useCalendarData } from './hooks/useCalendarData';
 import { monthLabel } from './calendarHelpers';
 
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
 
@@ -110,14 +111,15 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
         )}
 
         <div className="flex gap-2.5 pt-2">
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={handleQuickSave}
             disabled={saving}
-            className="flex-1 rounded-xl bg-primary hover:bg-primary-hover disabled:bg-slate-400 text-white py-3 text-[13px] font-black uppercase tracking-wider shadow-md shadow-primary/10 transition-colors"
+            className="flex-1 py-3 text-[13px] uppercase tracking-wider"
+            loading={saving}
           >
             {saving ? 'Zapisywanie...' : 'Zapisz'}
-          </button>
+          </Button>
         </div>
       </>}
     </Modal>

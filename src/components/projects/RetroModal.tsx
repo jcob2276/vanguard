@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import type { ProjectRow } from './projectUtils';
 
 export interface RetroModalProps {
@@ -61,19 +62,12 @@ export default function RetroModal({ retroProject, retroForm, setRetroForm, onSu
           </div>
         </div>
         <div className="flex gap-2 pt-1">
-          <button
-            onClick={() => onSubmit(true)}
-            className="flex-1 rounded-xl border border-border-custom py-3 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-          >
+          <Button variant="outline" onClick={() => onSubmit(true)} className="flex-1 py-3 text-[12px]">
             Pomiń
-          </button>
-          <button
-            onClick={() => onSubmit(false)}
-            disabled={busy}
-            className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white shadow-sm disabled:opacity-50 cursor-pointer"
-          >
+          </Button>
+          <Button onClick={() => onSubmit(false)} disabled={busy} loading={busy} className="flex-1 py-3 text-[12px]">
             Zapisz i zamknij
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

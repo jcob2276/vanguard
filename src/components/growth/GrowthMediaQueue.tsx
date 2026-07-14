@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 import type { GrowthLinkRow } from './hooks/useGrowthData';
 import { inferResourceType, RESOURCE_TYPE_META, type GrowthResourceType } from '../../lib/growth/growth';
+import { Card } from '../ui/Card';
 
 function linkMeta(row: GrowthLinkRow) {
   const rt = (row.resource_type as GrowthResourceType | null) ?? inferResourceType(row.url, row.domain);
@@ -16,7 +17,7 @@ export default function GrowthMediaQueue({ links }: { links: GrowthLinkRow[] }) 
   const rest = links.filter((l) => !videos.includes(l));
 
   return (
-    <section className="rounded-2xl border border-border-custom bg-surface/30 p-4 h-full flex flex-col">
+    <Card variant="glass" padding="1rem" className="h-full flex flex-col">
       <div className="flex items-center justify-between gap-2 mb-3">
         <div>
           <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-text-muted">
@@ -60,7 +61,7 @@ export default function GrowthMediaQueue({ links }: { links: GrowthLinkRow[] }) 
           )}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 

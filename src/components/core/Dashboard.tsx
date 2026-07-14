@@ -13,6 +13,7 @@ import PowerList from '../lifestyle/PowerList';
 import SearchModal from './SearchModal';
 import { useDashboardState } from './hooks/useDashboardState';
 import Spinner from '../ui/Spinner';
+import { DashboardContext } from './context/DashboardContext';
 
 const WorkoutLogger   = lazy(() => import('../biometrics/WorkoutLogger'));
 const SaunaLoggerModal = lazy(() => import('../biometrics/SaunaLoggerModal'));
@@ -51,7 +52,7 @@ export default function Dashboard({ session }: { session: Session }) {
   // ── Full-screen route views ──
   if (s.view === 'fundament') return (
     <Suspense fallback={<ViewFallback />}>
-      <Fundament session={session} onBack={s.goBack} onSyncCalendar={s.startGoogleAuth} isSyncing={s.isSyncing} />
+      <Fundament onBack={s.goBack} onSyncCalendar={s.startGoogleAuth} isSyncing={s.isSyncing} />
     </Suspense>
   );
   if (s.view === 'keep') return (
@@ -66,7 +67,7 @@ export default function Dashboard({ session }: { session: Session }) {
   );
   if (s.view === 'links') return (
     <Suspense fallback={<ViewFallback />}>
-      <LinksInbox session={session} onBack={s.goBack} onNavigateTo={dest => s.navigate('/' + dest)} />
+      <LinksInbox onBack={s.goBack} onNavigateTo={dest => s.navigate('/' + dest)} />
     </Suspense>
   );
   if (s.view === 'kalendarz') return (
@@ -106,12 +107,12 @@ export default function Dashboard({ session }: { session: Session }) {
   ];
 
   const weeklyReviewNudge = new Date().getDay() === 0 && !s.taskReviewDoneThisWeek && (
-    <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 flex items-center justify-between gap-4">
+    <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <h4 className="text-[12px] font-black text-indigo-500 uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
+        <h4 className="text-[12px] font-black text-primary uppercase tracking-wider">Tygodniowy Przegląd Zadań</h4>
         <p className="text-[10px] text-text-secondary mt-0.5 break-words">Niedziela to czas na oczyszczenie skrzynki i audyt projektów.</p>
       </div>
-      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm">
+      <button onClick={() => s.setShowWeeklyReview(true)} className="shrink-0 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-[10px] font-black transition-colors btn-press shadow-sm">
         Rozpocznij
       </button>
     </div>
@@ -120,120 +121,111 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !s.todayWin;
 
   const fastCaptureItems = [
-    { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/5', action: () => s.setShowQuickFoodEntry(true) },
-    { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-orange-500/20 text-orange-500 hover:bg-orange-500/5', action: () => { s.openWorkout(); } },
-    { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-amber-500/20 text-amber-500 hover:bg-amber-500/5', action: () => s.navigate('/sauna') },
+    { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'border-success/20 text-success hover:bg-success/5', action: () => s.setShowQuickFoodEntry(true) },
+    { label: 'Zaloguj Trening', emoji: '🏋️', color: 'border-warning/20 text-warning hover:bg-warning/5', action: () => { s.openWorkout(); } },
+    { label: 'Zaloguj Saunę', emoji: '🧖', color: 'border-warning/20 text-warning hover:bg-warning/5', action: () => s.navigate('/sauna') },
     { label: 'Zmierz Wzrok', emoji: '👁️', color: 'border-teal-500/20 text-teal-500 hover:bg-teal-500/5', action: () => s.navigate('/optics') },
   ];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
-        <DashboardHeader
-          userId={userId}
-          unreadCount={s.pendingActionCount}
-          onAvatarLongPress={() => s.setActionCenterOpen(true)}
-          onAvatarClick={() => s.navigate('/fundament')}
-          theme={s.theme}
-          toggleTheme={s.toggleTheme}
-          showLock={showLock}
-          view={s.view}
-          onShortcutClick={dest => s.navigate('/' + dest)}
-          onSearchClick={() => s.setShowSearch(true)}
-          staleNoteCount={s.staleNoteCount}
-          handleLogoPressStart={s.handleLogoPressStart}
-          handleLogoPressEnd={s.handleLogoPressEnd}
+    <DashboardContext.Provider value={s}>
+      <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-300">
+        <div className="mx-auto flex min-h-screen w-full max-w-md lg:max-w-4xl flex-col overflow-x-hidden border-x border-border-custom bg-background/40 backdrop-blur-3xl shadow-sm" style={{ paddingBottom: showLock ? '2rem' : 'calc(6rem + env(safe-area-inset-bottom))' }}>
+          <DashboardHeader
+            userId={userId}
+            unreadCount={s.pendingActionCount}
+            onAvatarLongPress={() => s.setActionCenterOpen(true)}
+            onAvatarClick={() => s.navigate('/fundament')}
+            theme={s.theme}
+            toggleTheme={s.toggleTheme}
+            showLock={showLock}
+            view={s.view}
+            onShortcutClick={dest => s.navigate('/' + dest)}
+            onSearchClick={() => s.setShowSearch(true)}
+            staleNoteCount={s.staleNoteCount}
+            handleLogoPressStart={s.handleLogoPressStart}
+            handleLogoPressEnd={s.handleLogoPressEnd}
+          />
+
+          <main className="flex-1 overflow-hidden vt-tab-main" onTouchStart={showLock ? undefined : s.handleMainTouchStart} onTouchEnd={showLock ? undefined : s.handleMainTouchEnd}>
+            {showLock ? (
+              <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
+                <OrientationFooter />
+                <SpineGuideStrip guidance={s.spineGuidance} loading={s.spineGuidanceLoading} onNavigate={s.handleSpineGuideNavigate} onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan} />
+                {weeklyReviewNudge}
+                <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
+                {s.todayWin && isAfter20() && (
+                  <button onClick={() => s.setShowShutdown(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-black uppercase tracking-wider text-primary hover:bg-primary/20 active:scale-95 transition-all shadow-sm mt-4">
+                    Domknij Dzień (Rytuał Wieczorny)
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <ErrorBoundary>
+                  {s.view === 'dzis' && (
+                    <Suspense fallback={<ViewFallback />}>
+                      <DashboardDzisTab />
+                    </Suspense>
+                  )}
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  {s.view === 'tydzien' && (
+                    <Suspense fallback={<ViewFallback />}>
+                      <DashboardTydzienTab
+                        weeklyCalories={s.weeklyCalories}
+                        nutritionKey={s.nutritionKey} onOpenActionCenter={() => s.setActionCenterOpen(true)}
+                      />
+                    </Suspense>
+                  )}
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  {s.view === 'historia' && (
+                    <Suspense fallback={<ViewFallback />}>
+                      <DashboardHistoriaTab
+                        historySubTab={s.historySubTab}
+                        onSetSubTab={s.setHistorySubTab}
+                      />
+                    </Suspense>
+                  )}
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  {s.view === 'projekty' && (
+                    <div className="p-5 pb-8">
+                      <Suspense fallback={<ViewFallback />}>
+                        <Projects reviewOverdueDays={s.reviewOverdueDays} onNavigateTo={dest => s.navigate('/' + dest)} />
+                      </Suspense>
+                    </div>
+                  )}
+                </ErrorBoundary>
+              </>
+            )}
+          </main>
+        </div>
+
+        {!showLock && (
+          <>
+            <DashboardFastCaptureMenu show={s.showFastCapture} onClose={() => s.setShowFastCapture(false)} items={fastCaptureItems} />
+            <DashboardNavBar view={s.view} navigateTo={s.navigateTo} urgentTodoCount={s.urgentTodoCount} navItems={navItems} tabOrder={TAB_ORDER} />
+            <DashboardFastCaptureFAB active={s.showFastCapture} onToggle={() => s.setShowFastCapture(v => !v)} />
+          </>
+        )}
+
+        <DashboardModals
+          showMorningPlan={s.showMorningPlan} setShowMorningPlan={s.setShowMorningPlan}
+          morningPlanTargetDate={s.morningPlanTargetDate} setMorningPlanTargetDate={s.setMorningPlanTargetDate}
+          showShutdown={s.showShutdown} setShowShutdown={s.setShowShutdown}
+          showWeeklyReview={s.showWeeklyReview} setShowWeeklyReview={s.setShowWeeklyReview}
+          setTaskReviewDoneThisWeek={s.setTaskReviewDoneThisWeek}
+          showQuickFoodEntry={s.showQuickFoodEntry} setShowQuickFoodEntry={s.setShowQuickFoodEntry}
+          foodEditEntry={s.foodEditEntry} setFoodEditEntry={s.setFoodEditEntry}
+          actionCenterOpen={s.actionCenterOpen} setActionCenterOpen={s.setActionCenterOpen}
+          reloadPendingActions={s.reloadPendingActions}
+          refresh={s.refresh} setNutritionKey={s.setNutritionKey}
         />
 
-        <main className="flex-1 overflow-hidden vt-tab-main" onTouchStart={showLock ? undefined : s.handleMainTouchStart} onTouchEnd={showLock ? undefined : s.handleMainTouchEnd}>
-          {showLock ? (
-            <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
-              <OrientationFooter />
-              <SpineGuideStrip guidance={s.spineGuidance} loading={s.spineGuidanceLoading} onNavigate={s.handleSpineGuideNavigate} onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan} />
-              {weeklyReviewNudge}
-              <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
-              {s.todayWin && isAfter20() && (
-                <button onClick={() => s.setShowShutdown(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-sm font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/20 active:scale-95 transition-all shadow-sm mt-4">
-                  Domknij Dzień (Rytuał Wieczorny)
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <ErrorBoundary>
-                {s.view === 'dzis' && (
-                  <Suspense fallback={<ViewFallback />}>
-                    <DashboardDzisTab
-                      todayWin={s.todayWin}
-                      spineGuidance={s.spineGuidance} spineGuidanceLoading={s.spineGuidanceLoading}
-                      weeklyReviewNudge={weeklyReviewNudge} planDaySignal={s.planDaySignal}
-                      nutritionKey={s.nutritionKey} workoutKey={s.workoutKey}
-                      onRefresh={s.refresh} onSetNutritionKey={s.setNutritionKey}
-                      onOpenFoodModal={() => s.setShowQuickFoodEntry(true)}
-                      onOpenShutdown={() => s.setShowShutdown(true)}
-                      onSpineGuideNavigate={s.handleSpineGuideNavigate}
-                      onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan}
-                    />
-                  </Suspense>
-                )}
-              </ErrorBoundary>
-              <ErrorBoundary>
-                {s.view === 'tydzien' && (
-                  <Suspense fallback={<ViewFallback />}>
-                    <DashboardTydzienTab
-                      weeklyCalories={s.weeklyCalories}
-                      nutritionKey={s.nutritionKey} onOpenActionCenter={() => s.setActionCenterOpen(true)}
-                    />
-                  </Suspense>
-                )}
-              </ErrorBoundary>
-              <ErrorBoundary>
-                {s.view === 'historia' && (
-                  <Suspense fallback={<ViewFallback />}>
-                    <DashboardHistoriaTab
-                      historySubTab={s.historySubTab}
-                      onSetSubTab={s.setHistorySubTab}
-                    />
-                  </Suspense>
-                )}
-              </ErrorBoundary>
-              <ErrorBoundary>
-                {s.view === 'projekty' && (
-                  <div className="p-5 pb-8">
-                    <Suspense fallback={<ViewFallback />}>
-                      <Projects reviewOverdueDays={s.reviewOverdueDays} onNavigateTo={dest => s.navigate('/' + dest)} />
-                    </Suspense>
-                  </div>
-                )}
-              </ErrorBoundary>
-            </>
-          )}
-        </main>
+        {s.showSearch && <SearchModal onClose={() => s.setShowSearch(false)} />}
       </div>
-
-      {!showLock && (
-        <>
-          <DashboardFastCaptureMenu show={s.showFastCapture} onClose={() => s.setShowFastCapture(false)} items={fastCaptureItems} />
-          <DashboardNavBar view={s.view} navigateTo={s.navigateTo} urgentTodoCount={s.urgentTodoCount} navItems={navItems} tabOrder={TAB_ORDER} />
-          <DashboardFastCaptureFAB active={s.showFastCapture} onToggle={() => s.setShowFastCapture(v => !v)} />
-        </>
-      )}
-
-      <DashboardModals
-        session={session}
-        showMorningPlan={s.showMorningPlan} setShowMorningPlan={s.setShowMorningPlan}
-        morningPlanTargetDate={s.morningPlanTargetDate} setMorningPlanTargetDate={s.setMorningPlanTargetDate}
-        showShutdown={s.showShutdown} setShowShutdown={s.setShowShutdown}
-        showWeeklyReview={s.showWeeklyReview} setShowWeeklyReview={s.setShowWeeklyReview}
-        setTaskReviewDoneThisWeek={s.setTaskReviewDoneThisWeek}
-        showQuickFoodEntry={s.showQuickFoodEntry} setShowQuickFoodEntry={s.setShowQuickFoodEntry}
-        foodEditEntry={s.foodEditEntry} setFoodEditEntry={s.setFoodEditEntry}
-        actionCenterOpen={s.actionCenterOpen} setActionCenterOpen={s.setActionCenterOpen}
-        reloadPendingActions={s.reloadPendingActions}
-        refresh={s.refresh} setNutritionKey={s.setNutritionKey}
-      />
-
-      {s.showSearch && <SearchModal session={session} onClose={() => s.setShowSearch(false)} />}
-    </div>
+    </DashboardContext.Provider>
   );
 }

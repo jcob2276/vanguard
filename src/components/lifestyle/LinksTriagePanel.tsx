@@ -31,13 +31,13 @@ export function LinksTriagePanel({
     <Modal
       isOpen
       onClose={() => { if (!triageLoading) setShowTriagePanel(false); }}
-      title={<span className="flex items-center gap-2 text-indigo-400"><Sparkles size={16} /> AI Triage - Sugestie Organizacji Linków</span>}
+      title={<span className="flex items-center gap-2 text-primary"><Sparkles size={16} /> AI Triage - Sugestie Organizacji Linków</span>}
       size="lg"
     >
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {triageLoading && (
-            <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
+            <div className="flex flex-col items-center justify-center py-20 text-primary">
               <Spinner size="md" className="mb-2" />
               <p className="text-[12px] font-bold">Analizowanie nieprzeczytanych linków...</p>
             </div>
@@ -59,13 +59,13 @@ export function LinksTriagePanel({
                 
                 <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase">
                   <span className={`px-2 py-0.5 rounded ${
-                    s.action === 'keep' ? 'bg-indigo-500/10 text-indigo-400' :
+                    s.action === 'keep' ? 'bg-primary/10 text-primary' :
                     s.action === 'archive' ? 'bg-slate-500/10 text-slate-400' :
-                    'bg-emerald-500/10 text-emerald-400'
+                    'bg-success/10 text-success'
                   }`}>
                     Sugerowana akcja: {s.action === 'keep' ? 'Zostaw' : s.action === 'archive' ? 'Archiwizuj' : 'Zrób Todo'}
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                  <span className="px-2 py-0.5 rounded bg-warning/10 text-warning">
                     Kategoria: {s.category}
                   </span>
                 </div>

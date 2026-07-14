@@ -11,6 +11,7 @@
 import { createServiceClient } from '../_shared/supabase.ts'
 import { serveJson } from '../_shared/http.ts'
 import { deepseekChat, parseJsonFromContent } from '../_shared/deepseek.ts'
+import { LLM_TASKS } from '../_shared/llm/tasks.ts'
 import { sendMessage } from '../_shared/telegram.ts'
 import { getVanguardUserId } from '../_shared/constants.ts'
 // Force upload of domain package for shared dependencies
@@ -67,13 +68,11 @@ Jeśli potrawa jest wysoce niestandardowa, spróbuj oszacować makro bazując na
     try {
       const response = await deepseekChat({
         apiKey,
-        model: 'deepseek-chat',
-        temperature: 0.1,
+        ...LLM_TASKS.structured,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Podaj makro na 100g dla: "${name}"` }
         ],
-        responseFormat: { type: 'json_object' }
       })
 
       const macro = parseJsonFromContent(response.content) as Record<string, unknown> | null

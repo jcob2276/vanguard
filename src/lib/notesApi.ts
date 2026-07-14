@@ -19,10 +19,7 @@ interface ApiError {
   message: string;
 }
 
-export const notesKeys = {
-  all: ['notes'] as const,
-  list: (userId: string) => [...notesKeys.all, 'list', userId] as const,
-};
+import { notesKeys } from './queryKeys';
 
 // ── QUERIES ──
 

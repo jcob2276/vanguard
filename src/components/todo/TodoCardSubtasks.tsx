@@ -25,7 +25,7 @@ export default function TodoCardSubtasks({ childTasks, onAddChildTask, onToggleC
               <button onClick={() => onToggleChildTask?.(child)} className="shrink-0 btn-press">
                 <div
                   className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center transition-all ${
-                    child.status === 'done' ? 'bg-emerald-500 border-emerald-500 todo-checkbox-pop' : 'border-border-custom'
+                    child.status === 'done' ? 'bg-success border-success todo-checkbox-pop' : 'border-border-custom'
                   }`}
                 >
                   {child.status === 'done' && <Check size={8} className="text-white" strokeWidth={3} />}

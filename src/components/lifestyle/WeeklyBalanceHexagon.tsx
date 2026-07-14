@@ -1,3 +1,5 @@
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 import { notify } from '../../lib/notify';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -142,7 +144,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border-custom/50 bg-surface-solid/20 p-4 space-y-4">
+    <Card padding="1rem" className="space-y-4" style={{ background: 'rgba(17, 24, 39, 0.2)' }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wider text-text-primary">Architektura Tygodnia</p>
@@ -248,21 +250,26 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             onKeyDown={(e) => { if (e.key === 'Enter') void saveTarget(); }}
             className="w-16 rounded-lg border border-border-custom/50 bg-surface-solid/60 px-2 py-1 text-[11px] text-text-primary outline-none focus:border-primary/30"
           />
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             type="button"
             onClick={() => void saveTarget()}
             disabled={saving}
-            className="rounded-lg bg-primary px-2.5 py-1 text-[10px] font-black text-white disabled:opacity-50 btn-press"
+            loading={saving}
+            className="rounded-lg px-2.5 py-1 text-[10px] font-black btn-press"
           >
             Zapisz
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             onClick={() => setEditingSphere(null)}
             className="text-[10px] font-semibold text-text-muted hover:text-text-primary"
           >
             Anuluj
-          </button>
+          </Button>
         </div>
       )}
 
@@ -295,6 +302,6 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

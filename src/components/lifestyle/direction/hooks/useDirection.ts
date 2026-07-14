@@ -13,6 +13,7 @@ import { createDirectionActions } from './directionActions';
 import { computeDirectionDateContext, directionDraftKeys } from './directionKeys';
 import type { SprintProjectDecision } from '../../../../lib/goal/goalSpine';
 import type { DirectionRawData } from './directionFetcher';
+import { directionKeys } from '../../../../lib/queryKeys';
 import type { MonthFacts } from '../../../../lib/growth/monthReview';
 import type { SprintReview } from '../../../../lib/goal/goalSpine.types';
 import type { SprintFacts } from '../../../../lib/growth/sprintReview';
@@ -25,10 +26,7 @@ type MonthRecap = Phase1Recap;
 type Phase2Recap = { narrative_check: string; deepening_questions?: string[]; block5_material?: { cialo: string; duch: string; konto: string } };
 type PillarScores = { cialo: number | null; duch: number | null; konto: number | null };
 
-export const directionKeys = {
-  all: ['direction'] as const,
-  data: (userId: string, weekStart: string) => [...directionKeys.all, userId, weekStart] as const,
-};
+
 
 export function useDirection(session: Session, _onOpenActionCenter?: () => void) {
   const haptics = useHaptics();

@@ -1,4 +1,4 @@
-import Spinner from '../../../ui/Spinner';
+import Button from '../../../ui/Button';
 import type { RecentEntry } from '../hooks/useFoodEntryData';
 
 const MEAL_TYPES = [
@@ -33,7 +33,14 @@ export default function EditScreen({
 }: EditScreenProps) {
   return (
     <div className="space-y-4">
-      <button onClick={() => setEditingEntry(null)} className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setEditingEntry(null)}
+        className="px-0 py-0 text-text-muted hover:text-text-primary"
+      >
+        ← Wstecz
+      </Button>
       <div>
         <p className="text-[15px] font-black text-text-primary leading-tight">{editingEntry.name}</p>
         {editingEntry.brand && <p className="text-[11px] text-text-muted">{editingEntry.brand}</p>}
@@ -88,16 +95,24 @@ export default function EditScreen({
           ))}
         </div>
       )}
-      {error && <p className="text-[11px] text-rose-500">{error}</p>}
+      {error && <p className="text-[11px] text-danger">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={deleteEntry} disabled={editDeleting || editSaving}
-          className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[12px] font-black uppercase tracking-wider text-rose-500 disabled:opacity-50 active:scale-95 transition-all cursor-pointer">
-          {editDeleting ? <Spinner size="sm" className="h-3.5 w-3.5 !border-white/30 !border-t-white" /> : 'Usuń'}
-        </button>
-        <button onClick={saveEntryEdit} disabled={editSaving || editDeleting}
-          className="flex-1 rounded-2xl bg-primary py-3 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer">
-          {editSaving ? 'Zapisuję...' : 'Zapisz'}
-        </button>
+        <Button
+          variant="danger"
+          onClick={deleteEntry}
+          loading={editDeleting}
+          className="bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20 shadow-none hover:translate-y-0"
+        >
+          Usuń
+        </Button>
+        <Button
+          variant="primary"
+          onClick={saveEntryEdit}
+          loading={editSaving}
+          className="flex-1"
+        >
+          Zapisz
+        </Button>
       </div>
     </div>
   );

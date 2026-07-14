@@ -59,7 +59,7 @@ export function computeSignals(oura: any = null, todayWin: any = null, nutrition
   }
 
   const executionRatio = Math.max(0, (completedTasks / 5) - timePenalty);
-  const proteinGoal = Number(nutrition?.protein_floor_g) || Number(nutrition?.protein_target) || 160;
+  const proteinGoal = Number(nutrition?.protein_floor_g) || Number(nutrition?.protein_target) || 150;
   const proteinConsumed = nutrition?.protein || 0;
   const proteinRatio = Math.min(proteinConsumed / proteinGoal, 1.2);
 

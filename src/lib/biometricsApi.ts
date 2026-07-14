@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { getTodayWarsaw } from './date';
-
-export const biometricsKeys = {
-  all: ['biometrics'] as const,
-  dailyStrainOura: (userId: string) => [...biometricsKeys.all, 'dailyStrainOura', userId] as const,
-};
+import { biometricsKeys } from './queryKeys';
 
 // ── QUERIES ──
 

@@ -8,6 +8,7 @@ import {
   useDeleteCalendarEvent,
 } from '../../../lib/calendarApi';
 import { calendarKeys } from '../../../lib/queryKeys';
+import { STORAGE_KEYS } from '../../../lib/constants';
 import {
   todayStr,
   weekMon,
@@ -93,7 +94,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('vanguard_calendar_sidebar_collapsed') === 'true';
+      return localStorage.getItem(STORAGE_KEYS.CALENDAR_SIDEBAR_COLLAPSED) === 'true';
     } catch {
       return false;
     }
@@ -103,7 +104,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     setSidebarCollapsed((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem('vanguard_calendar_sidebar_collapsed', String(next));
+        localStorage.setItem(STORAGE_KEYS.CALENDAR_SIDEBAR_COLLAPSED, String(next));
       } catch (err) {
         console.warn('[Calendar] Failed to save sidebar collapsed state to localStorage:', err);
       }

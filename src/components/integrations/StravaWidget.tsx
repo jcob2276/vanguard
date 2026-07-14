@@ -1,13 +1,13 @@
 import { TIMEZONE } from '../../lib/date';
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, invokeEdge } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { TIMEOUTS } from '../../lib/constants';
 import Spinner from '../ui/Spinner';
+import Badge from '../ui/Badge';
+import { Card } from '../ui/Card';
 import type { Session } from '@supabase/supabase-js';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface StravaActivityItem {
   strava_id: number | null;
@@ -58,7 +58,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
   const hrAvg = activity.hr_avg ? Math.round(activity.hr_avg) : null;
 
   return (
-    <article className="rounded-2xl border border-border-custom bg-surface/50 backdrop-blur-md p-4 shadow-sm">
+    <Card padding="1rem">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[8px] font-black uppercase tracking-[0.18em] text-text-muted">
@@ -69,9 +69,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
           </h3>
         </div>
         {activity.has_pr && (
-          <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-300 shadow-sm">
-            PR
-          </span>
+          <Badge variant="tag" color="var(--color-warning)">PR</Badge>
         )}
       </div>
 
@@ -81,7 +79,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
           <p className="text-[11px] font-black text-text-primary">{distance} km</p>
         </div>
         <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
-          <Activity size={11} className="mb-1 text-orange-500/80" />
+          <Activity size={11} className="mb-1 text-warning/80" />
           <p className="text-[11px] font-black text-text-primary">{fmtPace(activity.pace_sec_per_km)}</p>
         </div>
         <div className="rounded-xl bg-surface border border-border-custom p-2.5 shadow-sm">
@@ -93,7 +91,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
       {(hrAvg || activity.perceived_exertion || activity.total_elevation_gain != null) && (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-text-muted">
           {hrAvg && (
-            <span className="inline-flex items-center gap-1 text-rose-500/80">
+            <span className="inline-flex items-center gap-1 text-danger/80">
               <HeartPulse size={10} /> {hrAvg} bpm
             </span>
           )}
@@ -101,7 +99,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
           {activity.total_elevation_gain != null && <span>+{Math.round(activity.total_elevation_gain)}m</span>}
         </div>
       )}
-    </article>
+    </Card>
   );
 }
 
@@ -143,16 +141,10 @@ export default function StravaWidget({ session }: { session: Session }) {
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync?service=strava`, {
+      await invokeEdge('sync?service=strava', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
         signal: AbortSignal.timeout(TIMEOUTS.default),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setLoading(true);
       await fetchActivities();
     } catch (e: unknown) { console.error('[StravaWidget] sync error:', e); setError(e instanceof Error ? (e as Error).message : String(e)); } finally {
@@ -164,7 +156,7 @@ export default function StravaWidget({ session }: { session: Session }) {
     <section className="space-y-3">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-orange-500 font-display">Bieganie</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-warning font-display">Bieganie</p>
           <h2 className="mt-1 text-[16px] font-black uppercase tracking-tight text-text-primary font-display">Ostatnie 3 biegi</h2>
         </div>
         <button
@@ -178,20 +170,20 @@ export default function StravaWidget({ session }: { session: Session }) {
       </header>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-bold text-red-600 dark:text-red-300">
+        <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-[10px] font-bold text-danger dark:text-danger">
           <AlertTriangle size={12} />
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="rounded-2xl border border-border-custom bg-surface/50 p-6 shadow-sm">
+        <Card padding="1.5rem">
           <Spinner size="sm" className="!border-text-primary/10 !border-t-orange-500" />
-        </div>
+        </Card>
       ) : activities.length === 0 ? (
-        <div className="rounded-2xl border border-border-custom bg-surface/50 p-5 text-center shadow-sm">
+        <Card className="text-center" padding="1.25rem">
           <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Brak biegów w feedzie</p>
-        </div>
+        </Card>
       ) : (
         <div className="space-y-2">
           {activities.map((activity) => (

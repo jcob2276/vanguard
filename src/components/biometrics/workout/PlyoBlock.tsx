@@ -1,5 +1,6 @@
 import { Check, Zap } from 'lucide-react'
 import { useHaptics } from '../../../hooks/useHaptics'
+import { Card } from '../../ui/Card'
 import type { PlyoExercisePrescription, PlyoSessionPlan } from '../../../lib/health/plyoMarathonProgram'
 import { formatPlyoPrescription } from '../../../lib/health/plyoMarathonProgram'
 
@@ -15,7 +16,7 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
   const totalSets = session.exercises.reduce((s, ex) => s + ex.sets, 0)
   const completedSets = done.reduce((s, row) => s + row.filter(Boolean).length, 0)
   return (
-    <section className="rounded-[24px] border border-lime-500/25 bg-lime-500/[0.06] p-4 space-y-4 shadow-sm">
+    <Card variant="glass" className="border border-lime-500/25 space-y-4" style={{ background: 'rgba(132, 204, 22, 0.06)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -57,7 +58,7 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
           />
         ))}
       </div>
-    </section>
+    </Card>
   )
 }
 

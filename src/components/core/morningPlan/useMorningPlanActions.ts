@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
+import {
+  updateTodoDueDate,
+  deleteDailyWinTasks,
+  insertDailyWinTasks,
+  updateTodoScheduledTime,
+} from '../../../lib/morningPlanApi';
 import { useCalendarWrite } from '../../calendar/hooks/useCalendarWrite';
-import { combineDateTimeWarsawISO, shiftDateStr } from '../../../lib/date';
+import { combineDateTimeWarsawISO } from '../../../lib/date';
 import { insertDailyWin } from '../../../lib/goal/goalSpine.mutations';
 import { notify } from '../../../lib/notify';
 import { addMinutes, isoDateStr, isoDurationMin, isoMinutesOfDay } from './morningPlanHelpers';
@@ -63,20 +68,7 @@ export function useMorningPlanActions({
     };
 
     try {
-      let error;
-      if (action === 'today') {
-        ({ error } = await supabase.from('todo_items').update({ due_date: planningDate }).eq('id', taskId));
-      } else if (action === 'later') {
-        const laterDate = shiftDateStr(planningDate, 1);
-        ({ error } = await supabase.from('todo_items').update({ due_date: laterDate }).eq('id', taskId));
-      } else if (action === 'backlog') {
-        ({ error } = await supabase.from('todo_items').update({ due_date: null }).eq('id', taskId));
-      } else if (action === 'drop') {
-        ({ error } = await supabase.from('todo_items').update({ status: 'dropped' }).eq('id', taskId));
-      } else if (action === 'done') {
-        ({ error } = await supabase.from('todo_items').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', taskId));
-      }
-      if (error) throw error;
+      await updateTodoDueDate(taskId, action, planningDate);
     } catch (e: unknown) {
       console.error('Error handling yesterday task action:', e);
       notify('Nie udało się zaktualizować zadania', 'error');
@@ -173,12 +165,8 @@ export function useMorningPlanActions({
         currentWinId = parentWin.id;
       }
 
-      const { error: deleteErr } = await supabase
-        .from('daily_win_tasks')
-        .delete()
-        .eq('day_win_id', currentWinId);
-      if (deleteErr) throw deleteErr;
-
+      await deleteDailyWinTasks(currentWinId);
+ 
       const taskEntries = [];
       for (let idx = 0; idx < powerList.length; idx++) {
         const task = powerList[idx];
@@ -194,12 +182,9 @@ export function useMorningPlanActions({
           });
         }
       }
-
+ 
       if (taskEntries.length > 0) {
-        const { error: tasksErr } = await supabase
-          .from('daily_win_tasks')
-          .insert(taskEntries);
-        if (tasksErr) throw tasksErr;
+        await insertDailyWinTasks(taskEntries);
       }
 
       const allSchedulable = [...todayTasks, ...powerList.filter(Boolean)] as TodoSlot[];
@@ -219,13 +204,11 @@ export function useMorningPlanActions({
             category: 'praca',
           });
 
-          await supabase
-            .from('todo_items')
-            .update({
-              scheduled_time: combineDateTimeWarsawISO(planningDate, startTime),
-              duration_minutes: dur,
-            })
-            .eq('id', taskId);
+          await updateTodoScheduledTime(
+            taskId,
+            combineDateTimeWarsawISO(planningDate, startTime),
+            dur
+          );
         }
       }
 

@@ -135,13 +135,98 @@ const LEGACY_REFACTORED_FILES = [
 // scripts/ops/check-frontend-ratchets.mjs fails CI if any of these lists grows.
 
 const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
-  'src/components/core/morningPlan/useMorningPlanActions.ts',
-  'src/components/core/morningPlan/useMorningPlanData.ts',
+]
+
+const NO_COLOR_GUARD_EXCEPTIONS = [
+  'src/components/biometrics/BrainHealth.tsx',
+  'src/components/biometrics/DailyStrainCard.tsx',
+  'src/components/biometrics/DailyStrainHeader.tsx',
+  'src/components/biometrics/DailyStrainMetricsRow.tsx',
+  'src/components/biometrics/workout/ExerciseStrengthSets.tsx',
+  'src/components/biometrics/workout/ExerciseWellnessSets.tsx',
+  'src/components/calendar/CalendarWeather.tsx',
+  'src/components/calendar/EditEventModal.tsx',
+  'src/components/calendar/MiniCalendar.tsx',
+  'src/components/calendar/QuickCreateEventModal.tsx',
+  'src/components/calendar/RecurrencePicker.tsx',
+  'src/components/calendar/SolarDayWidget.tsx',
+  'src/components/calendar/components/CalendarHeader.tsx',
+  'src/components/calendar/components/CalendarTodoModal.tsx',
+  'src/components/calendar/grid/CalendarAgendaView.tsx',
+  'src/components/calendar/grid/CalendarGridBlocks.tsx',
+  'src/components/calendar/grid/CalendarGridColumns.tsx',
+  'src/components/core/Auth.tsx',
+  'src/components/core/DashboardDzisTab.tsx',
+  'src/components/core/DashboardFastCapture.tsx',
+  'src/components/core/DashboardHeader.tsx',
+  'src/components/core/morningPlan/MorningPlanStep1Review.tsx',
+  'src/components/core/morningPlan/MorningPlanStep2PowerList.tsx',
+  'src/components/core/morningPlan/MorningPlanStep3TimeBox.tsx',
+  'src/components/core/nutrition/NutritionForecastPanel.tsx',
+  'src/components/core/nutrition/NutritionMacroBoxes.tsx',
+  'src/components/core/nutrition/NutritionMealGroupCard.tsx',
+  'src/components/core/nutrition/NutritionMealLog.tsx',
+  'src/components/core/nutrition/NutritionTargetsGrid.tsx',
+  'src/components/core/nutrition/foodEntryModal/BrowseScreen.tsx',
+  'src/components/core/nutrition/foodEntryModal/EditScreen.tsx',
+  'src/components/core/nutrition/foodEntryModal/FoodEntryHeader.tsx',
+  'src/components/core/nutrition/foodEntryModal/NLScreen.tsx',
+  'src/components/core/nutrition/foodEntryModal/PortionScreen.tsx',
+  'src/components/core/shutdown/ShutdownScoreSliders.tsx',
+  'src/components/core/stats/TrendArrow.tsx',
+  'src/components/core/stats/foodAnalysis/FoodAnalysisRange.tsx',
+  'src/components/core/stats/foodAnalysis/FoodAnalysisSingle.tsx',
+  'src/components/correlations/BehaviorEffectCard.tsx',
+  'src/components/correlations/CorrelationCard.tsx',
+  'src/components/correlations/CorrelationsSummary.tsx',
+  'src/components/desktop/fitness/ScoreboardPanel.tsx',
+  'src/components/desktop/fitness/SprintMetricsGrid.tsx',
+  'src/components/desktop/general/BehaviorCapturePanel.tsx',
+  'src/components/desktop/general/generalView/GeneralHealthCharts.tsx',
+  'src/components/desktop/general/generalView/GeneralMemexPanels.tsx',
+  'src/components/desktop/general/generalView/GeneralRecommendationsPanel.tsx',
+  'src/components/desktop/health/LeniePanelMini.tsx',
+  'src/components/desktop/health/SupplementAddForm.tsx',
+  'src/components/desktop/health/SupplementCard.tsx',
+  'src/components/desktop/hero/DesktopHero.tsx',
+  'src/components/growth/GrowthProjectsPanel.tsx',
+  'src/components/growth/SkillTreePanel.tsx',
+  'src/components/growth/SlotPinCard.tsx',
   'src/components/insights/TaskAnalyticsCard.tsx',
+  'src/components/lifestyle/DirectionMonthlyMode.tsx',
+  'src/components/lifestyle/LinksTriagePanel.tsx',
+  'src/components/lifestyle/directionPlan/DirectionPlanBlocks.tsx',
+  'src/components/lifestyle/directionPlan/DirectionPlanReflection.tsx',
+  'src/components/lifestyle/directionPlan/DirectionPlanWeekPlan.tsx',
+  'src/components/lifestyle/powerList/PowerListActive.tsx',
+  'src/components/lifestyle/powerList/PowerListSetup.tsx',
+  'src/components/lifestyle/powerList/TodoPicker.tsx',
   'src/components/medical/GlassesCabinet.tsx',
+  'src/components/medical/MedicalBiologyScores.tsx',
+  'src/components/medical/MedicalLabSections.tsx',
+  'src/components/medical/MedicalTrendCharts.tsx',
+  'src/components/medical/PrescriptionCard.tsx',
   'src/components/medical/VisionJournal.tsx',
-  'src/components/settings/SettingsView.tsx',
-  'src/components/shared/ActionCenterSheet.tsx',
+  'src/components/notes/KeepNotesList.tsx',
+  'src/components/notes/KeepSidebar.tsx',
+  'src/components/projects/FocusProjectBanner.tsx',
+  'src/components/projects/PriorityTasksPanel.tsx',
+  'src/components/projects/ProjectCardCollapsed.tsx',
+  'src/components/shared/MagazineBar.tsx',
+  'src/components/shared/PlanningCheckpointsStrip.tsx',
+  'src/components/shared/SystemProposalCard.tsx',
+  'src/components/shared/WeekLoopSummary.tsx',
+  'src/components/todo/BucketHeader.tsx',
+  'src/components/todo/TimelineView.tsx',
+  'src/components/todo/TodoBatchClassifyChip.tsx',
+  'src/components/todo/TodoCardSubtasks.tsx',
+  'src/components/todo/TodoTodayZone.tsx',
+  'src/components/todo/weekly/WeeklyReviewInboxTriage.tsx',
+  'src/components/todo/weekly/WeeklyReviewPredictions.tsx',
+  'src/components/todo/weekly/WeeklyReviewSectionAudit.tsx',
+  'src/components/todo/weekly/WeeklyReviewStreamReview.tsx',
+  'src/components/todo/weekly/WeeklyReviewSuccess.tsx',
+  'src/components/todo/weekly/WeeklyReviewSynthesis.tsx',
 ]
 
 // Canonical date-label formatters — these files ARE the wrapper, so calling
@@ -272,7 +357,8 @@ export default defineConfig([
   // selector array — do not split them into separate blocks, it will silently disable one.
 
   {
-    // Component boundary: no direct Supabase calls, no inline pl-PL date formatting.
+    // Component boundary: no direct Supabase calls, no inline pl-PL date formatting,
+    // and no hardcoded Tailwind palette colors.
     // Hooks under components/*/hooks/ are exempt — they are the data-fetching layer
     // (see docs/FRONTEND_GUIDE.md §1: "src/hooks/ = fetch orchestration").
     files: ['src/components/**/*.{ts,tsx}'],
@@ -280,8 +366,38 @@ export default defineConfig([
       ...LEGACY_FILES,
       ...LEGACY_REFACTORED_FILES,
       ...NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS,
+      ...NO_COLOR_GUARD_EXCEPTIONS,
       ...CANONICAL_DATE_FORMATTERS,
       'src/components/**/hooks/**',
+      'src/components/ui/**', // UI components are exempt from hardcoded Tailwind color check
+    ],
+    rules: {
+      'no-restricted-syntax': ['error', {
+        selector: "CallExpression[callee.object.name='supabase'][callee.property.name='from']",
+        message: 'No direct supabase.from() in components — add/use a *Api.ts data-access module. See docs/FRONTEND_GUIDE.md.',
+      }, {
+        selector: "CallExpression[callee.object.object.name='supabase'][callee.object.property.name='storage'][callee.property.name='from']",
+        message: 'No direct supabase.storage.from() in components — wrap it in a *Api.ts data-access module. See docs/FRONTEND_GUIDE.md.',
+      }, {
+        selector: "CallExpression[callee.property.name='toLocaleDateString'][arguments.0.value='pl-PL']",
+        message: "No inline toLocaleDateString('pl-PL', ...) — use lib/date.ts (getTodayWarsaw/formatWarsawDate) or the module's canonical *Helpers.ts formatter. See docs/FRONTEND_GUIDE.md.",
+      }, {
+        selector: "JSXAttribute[name.name='className'] Literal[value=/\\b(bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke)-(red|blue|green|amber|rose|emerald|indigo|slate)-\\d{3}\\b/]",
+        message: 'No hardcoded Tailwind palette colors (red/blue/green/amber/rose/emerald/indigo/slate) in className. Use CSS variables or theme tokens. See docs/FRONTEND_GUIDE.md.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\b(bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke)-(red|blue|green|amber|rose|emerald|indigo|slate)-\\d{3}\\b/]",
+        message: 'No hardcoded Tailwind palette colors (red/blue/green/amber/rose/emerald/indigo/slate) in className. Use CSS variables or theme tokens. See docs/FRONTEND_GUIDE.md.',
+      }],
+    },
+  },
+  {
+    // UI components: allow hardcoded Tailwind palette colors, but enforce no direct Supabase calls and no inline pl-PL date formatting.
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    ignores: [
+      ...LEGACY_FILES,
+      ...LEGACY_REFACTORED_FILES,
+      ...NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS,
+      ...CANONICAL_DATE_FORMATTERS,
     ],
     rules: {
       'no-restricted-syntax': ['error', {

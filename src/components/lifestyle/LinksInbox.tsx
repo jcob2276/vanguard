@@ -12,18 +12,18 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
-import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
+import Button from '../ui/Button';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useLinksInboxData } from './links/useLinksInboxData';
 import { LinksTriagePanel } from './LinksTriagePanel';
 import { LinksInboxItem } from './links/LinksInboxItem';
 
 const CATEGORY_COLORS: Record<string, { pill: string }> = {
-  Kariera:    { pill: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-  Zdrowie:    { pill: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  Technologia:{ pill: 'bg-sky-500/10 text-sky-600 dark:text-sky-400' },
-  Biznes:     { pill: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+  Kariera:    { pill: 'bg-primary/10 text-primary dark:text-primary' },
+  Zdrowie:    { pill: 'bg-success/10 text-success dark:text-success' },
+  Technologia:{ pill: 'bg-info/10 text-info dark:text-info' },
+  Biznes:     { pill: 'bg-warning/10 text-warning dark:text-warning' },
   Inne:       { pill: 'bg-slate-500/10 text-slate-500 dark:text-slate-400' },
 };
 
@@ -37,12 +37,12 @@ const CATEGORIES = ['Kariera', 'Zdrowie', 'Technologia', 'Biznes', 'Inne'];
 
 
 
-export default function LinksInbox({ session, onBack, onNavigateTo }: { session: Session; onBack: () => void; onNavigateTo?: (dest: string) => void }) {
+export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const haptics = useHaptics();
   const haptic = (pattern: number | number[]) => {
     haptics.vibrate(pattern);
   };
-  const d = useLinksInboxData(session, haptic);
+  const d = useLinksInboxData(haptic);
 
   const goTo = (view: string) => {
     if (onNavigateTo) onNavigateTo(view);
@@ -93,10 +93,10 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                 onClick={() => d.setCategoryFilter(p => p === cat ? null : cat)}
               >
                 <span className={`h-2 w-2 rounded-full shrink-0 ${
-                  cat === 'Kariera' ? 'bg-indigo-500' :
-                  cat === 'Zdrowie' ? 'bg-emerald-500' :
-                  cat === 'Technologia' ? 'bg-sky-500' :
-                  cat === 'Biznes' ? 'bg-amber-500' : 'bg-slate-400'
+                  cat === 'Kariera' ? 'bg-primary' :
+                  cat === 'Zdrowie' ? 'bg-success' :
+                  cat === 'Technologia' ? 'bg-info' :
+                  cat === 'Biznes' ? 'bg-warning' : 'bg-slate-400'
                 }`} />
                 <span>{cat}</span>
               </button>
@@ -127,19 +127,21 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
           >
             {d.viewMode === 'card' ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
           </button>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={d.handleAiTriage}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary dark:text-primary hover:bg-primary/20 transition-colors"
             title="Automatyczny Triage AI"
-          >
-            <Sparkles size={15} />
-          </button>
-          <button
+            icon={<Sparkles size={15} />}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { d.setShowAddForm(p => !p); d.setAddUrl(''); }}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-          >
-            {d.showAddForm ? <X size={15} /> : <Plus size={15} />}
-          </button>
+            icon={d.showAddForm ? <X size={15} /> : <Plus size={15} />}
+          />
         </header>
 
         {/* Inline add-link form */}
@@ -160,13 +162,15 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
               />
               {d.addLoading
                 ? <Spinner size="sm" className="shrink-0" />
-                : <button
+                : <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={d.handleAddLink}
                     disabled={!d.addUrl.trim()}
                     className="shrink-0 text-[12px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-opacity"
                   >
                     Zapisz
-                  </button>
+                  </Button>
               }
             </div>
           </div>
@@ -185,9 +189,7 @@ export default function LinksInbox({ session, onBack, onNavigateTo }: { session:
                 className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/40 outline-none w-full"
               />
               {d.search && (
-                <button onClick={() => d.setSearch('')} className="p-1 text-text-muted/50 hover:text-text-primary">
-                  <X size={15} />
-                </button>
+                <Button variant="ghost" size="sm" onClick={() => d.setSearch('')} className="p-1 text-text-muted/50 hover:text-text-primary" icon={<X size={15} />} />
               )}
             </div>
 

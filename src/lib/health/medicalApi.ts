@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import { fetchSprintContext } from '../goal/goalSpine';
 import { computeAgeFromBirthDate, type MedicalUserContext } from './medicalRetestSuggestions';
+import { HEALTH_THRESHOLDS } from '@vanguard/domain';
 
 const medicalContextKeys = {
   all: ['medicalUserContext'] as const,
@@ -26,7 +27,7 @@ async function fetchMedicalUserContext(userId: string): Promise<MedicalUserConte
   let trainingHint: string | null = null;
   if (strain?.strain_score != null && strain.strain_score >= 14) {
     trainingHint = `wysokie obciążenie (strain ${strain.strain_score})`;
-  } else if (strain?.recovery_score != null && strain.recovery_score < 40) {
+  } else if (strain?.recovery_score != null && strain.recovery_score < HEALTH_THRESHOLDS.RECOVERY_MEDICAL_ALERT) {
     trainingHint = `niska recovery (${strain.recovery_score})`;
   }
 

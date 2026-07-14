@@ -1,6 +1,6 @@
-import type { Session } from '@supabase/supabase-js';
 import { Suspense, lazy } from 'react';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
+import { STORAGE_KEYS } from '../../lib/constants';
 import type { RecentEntry } from './nutrition/hooks/useFoodEntryData';
 
 const MorningPlanModal = lazy(() => import('./MorningPlanModal'));
@@ -10,7 +10,6 @@ const FoodEntryModal = lazy(() => import('./nutrition/FoodEntryModal'));
 const ActionCenterSheet = lazy(() => import('../shared/ActionCenterSheet').then(m => ({ default: m.ActionCenterSheet })));
 
 interface DashboardModalsProps {
-  session: Session;
   showMorningPlan: boolean;
   setShowMorningPlan: (val: boolean) => void;
   morningPlanTargetDate: string | null;
@@ -32,7 +31,6 @@ interface DashboardModalsProps {
 }
 
 export function DashboardModals({
-  session,
   showMorningPlan,
   setShowMorningPlan,
   morningPlanTargetDate,
@@ -56,7 +54,6 @@ export function DashboardModals({
     <Suspense fallback={null}>
       {showMorningPlan && (
         <MorningPlanModal
-          session={session}
           targetDate={morningPlanTargetDate ?? undefined}
           onClose={() => {
             setShowMorningPlan(false);
@@ -67,9 +64,8 @@ export function DashboardModals({
 
       {showShutdown && (
         <DailyShutdownModal
-          session={session}
           onClose={() => {
-            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e: unknown) {
+            try { localStorage.setItem(STORAGE_KEYS.SHUTDOWN_DISMISSED, getTodayWarsaw()); } catch (e: unknown) {
       console.warn('[DashboardModals] Failed to save shutdown dismissed date to localStorage:', e);
     }
             setShowShutdown(false);
@@ -77,7 +73,7 @@ export function DashboardModals({
           onSaved={refresh}
           onPlanTomorrow={() => {
             const tomorrowStr = shiftDateStr(getTodayWarsaw(), 1);
-            try { localStorage.setItem('vanguard_shutdown_dismissed', getTodayWarsaw()); } catch (e: unknown) {
+            try { localStorage.setItem(STORAGE_KEYS.SHUTDOWN_DISMISSED, getTodayWarsaw()); } catch (e: unknown) {
               console.warn('[DashboardModals] Failed to save shutdown dismissed date to localStorage:', e);
             }
             setShowShutdown(false);
@@ -89,7 +85,6 @@ export function DashboardModals({
 
       {showWeeklyReview && (
         <WeeklyReviewModal
-          session={session}
           onClose={() => setShowWeeklyReview(false)}
           onFinished={() => {
             setTaskReviewDoneThisWeek(true);
@@ -100,7 +95,6 @@ export function DashboardModals({
 
       {showQuickFoodEntry && (
         <FoodEntryModal
-          session={session}
           onClose={() => {
             setShowQuickFoodEntry(false);
             setFoodEditEntry(null);
@@ -113,14 +107,11 @@ export function DashboardModals({
         />
       )}
 
-      {session && (
-        <ActionCenterSheet
-          session={session}
-          open={actionCenterOpen}
-          onClose={() => setActionCenterOpen(false)}
-          onUpdated={() => void reloadPendingActions()}
-        />
-      )}
+      <ActionCenterSheet
+        open={actionCenterOpen}
+        onClose={() => setActionCenterOpen(false)}
+        onUpdated={() => void reloadPendingActions()}
+      />
     </Suspense>
   );
 }

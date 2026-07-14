@@ -75,7 +75,7 @@ export default function PortionScreen({
           ))}
         </Card>
       )}
-      {error && <p className="text-[11px] text-rose-500">{error}</p>}
+      {error && <p className="text-[11px] text-danger">{error}</p>}
       <Button
         variant="primary"
         onClick={save}

@@ -1,5 +1,6 @@
 import { Plus, X } from 'lucide-react';
-import Spinner from '../../ui/Spinner';
+import Button from '../../ui/Button';
+import { Card } from '../../ui/Card';
 import type { useNutritionData, TodayEntry } from '../useNutritionData';
 
 type NutritionData = ReturnType<typeof useNutritionData>;
@@ -32,32 +33,36 @@ export default function NutritionMealGroupCard({
   const hasEntries = group.entries.length > 0;
 
   return (
-    <div className="rounded-2xl border border-border-custom/70 bg-surface-solid/5 p-4 space-y-3">
+    <Card className="space-y-4">
       {/* Meal group header with subtotals and quick add button */}
-      <div className="flex items-center justify-between border-b border-border-custom/40 pb-2">
-        <span className="text-[11px] font-black uppercase tracking-wider text-text-secondary font-display flex items-center gap-1.5">
-          <span className="text-[14px]">{MEAL_ICON[mealKey] || '🍽️'}</span>
-          {group.label}
-        </span>
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <span className="text-[16px] leading-none shrink-0" role="img" aria-label={group.label}>
+            {MEAL_ICON[mealKey] || '🍽️'}
+          </span>
+          <span className="text-[13px] font-black uppercase tracking-wider text-text-primary">{group.label}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           {hasEntries && (
-            <div className="flex items-center gap-1.5 text-[9px] font-black text-text-muted">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-text-muted">
               <span className="rounded bg-surface-solid border border-border-custom/40 px-1.5 py-0.5 text-text-primary">{group.totalKcal} kcal</span>
               <span>·</span>
               <span className="text-primary">{group.totalProtein}B</span>
               <span>·</span>
-              <span className="text-amber-500">{group.totalCarbs}W</span>
+              <span className="text-warning">{group.totalCarbs}W</span>
               <span>·</span>
-              <span className="text-rose-400">{group.totalFat}T</span>
+              <span className="text-danger">{group.totalFat}T</span>
             </div>
           )}
-          <button
+          <Button
+            variant="tonal"
+            size="sm"
             onClick={onAddToMeal}
-            className="rounded-full border border-primary/20 bg-primary/[0.04] p-1 text-primary hover:bg-primary/10 active:scale-90 transition-all cursor-pointer flex items-center justify-center"
+            className="rounded-full p-1"
             title={`Dodaj do posiłku: ${group.label}`}
           >
             <Plus size={12} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -81,12 +86,12 @@ export default function NutritionMealGroupCard({
                     </span>
                   )}
                   {e.carbs != null && e.carbs > 0.05 && (
-                    <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-black text-amber-500">
+                    <span className="rounded bg-warning/10 px-1.5 py-0.5 text-[8px] font-black text-warning">
                       {Math.round(e.carbs * 10) / 10}W
                     </span>
                   )}
                   {e.fat != null && e.fat > 0.05 && (
-                    <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[8px] font-black text-rose-500">
+                    <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[8px] font-black text-danger">
                       {Math.round(e.fat * 10) / 10}T
                     </span>
                   )}
@@ -95,13 +100,16 @@ export default function NutritionMealGroupCard({
               <span className="shrink-0 text-[11px] font-black text-text-secondary bg-surface-solid/60 px-2 py-0.5 rounded-lg border border-border-custom/30">
                 {e.calories ?? '?'} kcal
               </span>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => deleteEntry(e.id)}
-                disabled={!!deletingId}
-                className="shrink-0 rounded-full p-1 text-text-muted/50 hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer disabled:opacity-40"
+                loading={deletingId === e.id}
+                disabled={!!deletingId && deletingId !== e.id}
+                className="shrink-0 rounded-full p-1 text-text-muted/50 hover:text-danger hover:bg-danger/10 active:scale-95 transition-all"
+                size="sm"
               >
-                {deletingId === e.id ? <Spinner size="sm" className="h-3 w-3" /> : <X size={12} />}
-              </button>
+                <X size={12} />
+              </Button>
             </div>
           ))}
         </div>
@@ -116,6 +124,6 @@ export default function NutritionMealGroupCard({
           </span>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

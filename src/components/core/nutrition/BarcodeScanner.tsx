@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'lucide-react';
 import Spinner from '../../ui/Spinner';
+import Button from '../../ui/Button';
 
 declare global {
   interface Window {
@@ -67,8 +68,7 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
             inputMode="numeric" placeholder="Wpisz kod kreskowy..."
             className="w-full rounded-xl border border-border-custom bg-surface-solid/40 pl-9 pr-2 py-2.5 text-[13px] text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
         </div>
-        <button onClick={() => manualCode.trim() && onDetected(manualCode.trim())} disabled={!manualCode.trim() || loading}
-          className="rounded-xl bg-primary px-4 py-2.5 text-[12px] font-black text-white disabled:opacity-40 cursor-pointer">Szukaj</button>
+        <Button onClick={() => manualCode.trim() && onDetected(manualCode.trim())} disabled={!manualCode.trim() || loading} size="sm">Szukaj</Button>
       </div>
     </div>
   );

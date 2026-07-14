@@ -13,6 +13,7 @@ import { createServiceClient } from "../_shared/supabase.ts"
 import { serveJson } from "../_shared/http.ts"
 import { getVanguardUserId } from "../_shared/constants.ts"
 import { deepseekChat } from "../_shared/deepseek.ts"
+import { LLM_TASKS } from "../_shared/llm/tasks.ts"
 
 const getOpenAIKey = () => Deno.env.get('OPENAI_API_KEY') ?? '';
 const getDeepSeekKey = () => Deno.env.get('DEEPSEEK_API_KEY') ?? '';
@@ -65,7 +66,7 @@ async function generateHypeQuestions(factText: string): Promise<string> {
   try {
     const result = await deepseekChat({
       apiKey: getDeepSeekKey(),
-      model: "deepseek-v4-flash",
+      ...LLM_TASKS.classify,
       maxTokens: 80,
       temperature: 0.2,
       timeoutMs: 5000,

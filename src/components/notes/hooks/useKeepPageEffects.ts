@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { STORAGE_KEYS } from '../../../lib/constants';
 
 interface UseKeepPageEffectsProps {
   search: string;
@@ -18,11 +19,11 @@ export function useKeepPageEffects({
   setVisibleCount, setColumns, handleNewNote, handleCreate,
 }: UseKeepPageEffectsProps) {
   const autoNewNote = new URLSearchParams(window.location.search).get('new') === '1'
-    || localStorage.getItem('vanguard_keep_new') === '1';
+    || localStorage.getItem(STORAGE_KEYS.KEEP_NEW_DRAFT) === '1';
 
   useEffect(() => {
-    if (localStorage.getItem('vanguard_keep_new') === '1') {
-      try { localStorage.removeItem('vanguard_keep_new'); } catch { /* storage unavailable — ignored */ }
+    if (localStorage.getItem(STORAGE_KEYS.KEEP_NEW_DRAFT) === '1') {
+      try { localStorage.removeItem(STORAGE_KEYS.KEEP_NEW_DRAFT); } catch { /* storage unavailable — ignored */ }
     }
   }, []);
 
@@ -55,7 +56,7 @@ export function useKeepPageEffects({
     if (autoNewNote && !autoNewNoteHandled.current) {
       autoNewNoteHandled.current = true;
       window.history.replaceState({}, '', window.location.pathname);
-      try { localStorage.removeItem('vanguard_keep_new'); } catch (err) { console.debug('[useKeepPageEffects] failed to remove new note draft', err); }
+      try { localStorage.removeItem(STORAGE_KEYS.KEEP_NEW_DRAFT); } catch (err) { console.debug('[useKeepPageEffects] failed to remove new note draft', err); }
       void handleNewNote().then(id => {
         if (id) setEditingId(id);
       });

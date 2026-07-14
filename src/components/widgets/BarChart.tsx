@@ -6,7 +6,7 @@ export interface BarChartData {
 }
 
 export function BarChartWidget({ data }: { data: BarChartData }) {
-  const color = data.color ?? '#5B6CFF';
+  const color = data.color ?? 'var(--color-primary)';
   if (!data.points?.length) {
     return <p className="text-[11px] text-text-tertiary py-4 text-center">Brak danych</p>;
   }

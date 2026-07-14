@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
+import Button from '../ui/Button';
 
 interface CorrelationsHeaderProps {
   loading: boolean;
@@ -24,15 +25,13 @@ export default function CorrelationsHeader({ loading, onRefresh }: CorrelationsH
             Skan odkrywczy · 90 dni · obserwacje, nie diagnozy
           </p>
         </div>
-        <button
-          type="button"
+        <Button
           onClick={onRefresh}
-          disabled={loading}
-          className="rounded-xl border border-border-custom p-2.5 text-primary hover:bg-primary/5 disabled:opacity-40"
+          variant="ghost"
+          icon={<RefreshCw size={16} className={loading ? 'animate-spin' : ''} />}
+          className="rounded-xl p-2.5 text-primary"
           title="Odśwież"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-        </button>
+        />
       </div>
     </header>
   );

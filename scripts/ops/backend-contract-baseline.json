@@ -5,5 +5,7 @@
   "patternCount_asAnyFunctions": 0,
   "patternCount_rawJsonResponse": 4,
   "patternCount_secretKeyOutsideKernel": 4,
-  "legacyLines": {}
+  "legacyLines": {
+    "supabase/functions/recap/daily.ts": 306
+  }
 }

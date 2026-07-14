@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { ShieldCheck, AlertTriangle, AlertOctagon, Info, RefreshCw, ChevronDown, ChevronUp, Moon, Apple, Award, Zap, Target, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import { fetchSystemHealthData } from '../../../lib/systemApi';
+import Button from '../../ui/Button';
+import Spinner from '../../ui/Spinner';
+import { Card } from '../../ui/Card';
 
 export default function SystemHealth({ userId }: { userId: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -21,24 +24,24 @@ export default function SystemHealth({ userId }: { userId: string }) {
     switch (sev) {
       case 'critical':
       case 'error':
-        return <AlertOctagon className="text-rose-500 shrink-0" size={16} />;
+        return <AlertOctagon className="text-danger shrink-0" size={16} />;
       case 'warning':
-        return <AlertTriangle className="text-amber-500 shrink-0" size={16} />;
+        return <AlertTriangle className="text-warning shrink-0" size={16} />;
       default:
-        return <Info className="text-sky-400 shrink-0" size={16} />;
+        return <Info className="text-info shrink-0" size={16} />;
     }
   };
 
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
       case 'critical':
-        return <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">CRITICAL</span>;
+        return <span className="bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">CRITICAL</span>;
       case 'error':
-        return <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">ERROR</span>;
+        return <span className="bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">ERROR</span>;
       case 'warning':
-        return <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">WARNING</span>;
+        return <span className="bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">WARNING</span>;
       default:
-        return <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">INFO</span>;
+        return <span className="bg-info/10 text-info border border-info/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">INFO</span>;
     }
   };
 
@@ -53,19 +56,19 @@ export default function SystemHealth({ userId }: { userId: string }) {
     const pct90 = val90 != null ? Math.round(val90 * 100) : 0;
 
     const getStatusColor = (v: number) => {
-      if (v >= 85) return 'text-emerald-500 dark:text-emerald-400';
-      if (v >= 60) return 'text-amber-500 dark:text-amber-400';
-      return 'text-rose-500';
+      if (v >= 85) return 'text-success dark:text-success';
+      if (v >= 60) return 'text-warning dark:text-warning';
+      return 'text-danger';
     };
 
     const getBarColor = (v: number) => {
-      if (v >= 85) return 'bg-emerald-500 dark:bg-emerald-400';
-      if (v >= 60) return 'bg-amber-500 dark:bg-amber-400';
-      return 'bg-rose-500';
+      if (v >= 85) return 'bg-success dark:bg-success';
+      if (v >= 60) return 'bg-warning dark:bg-warning';
+      return 'bg-danger';
     };
 
     return (
-      <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 space-y-3.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+      <Card padding="1rem" className="space-y-3.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
         <div className="flex items-center justify-between">
           <span className="text-[12px] font-black text-text-secondary">{title}</span>
           <div className={`${colorClass} opacity-80`}>{icon}</div>
@@ -94,7 +97,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     );
   };
 
@@ -105,17 +108,17 @@ export default function SystemHealth({ userId }: { userId: string }) {
         <div className="space-y-3.5">
           <div>
             <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
-              <Zap className="text-amber-400 fill-amber-400/20" size={18} />
+              <Zap className="text-warning fill-warning/20" size={18} />
               Pokrycie Danych (Logging Hygiene)
             </h2>
             <p className="text-[11px] text-text-muted mt-0.5">Kompletność danych wejściowych w oknach czasowych 30 i 90 dni.</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {renderCoverageCard('Oura summary', coverage.oura_30, coverage.oura_90, <Moon size={16} />, 'text-indigo-400')}
-            {renderCoverageCard('Odżywianie', coverage.nutrition_30, coverage.nutrition_90, <Apple size={16} />, 'text-emerald-400')}
-            {renderCoverageCard('Dziennik / Wins', coverage.wins_30, coverage.wins_90, <Award size={16} />, 'text-amber-400')}
-            {renderCoverageCard('Higiena ogólna', coverage.overall_30, coverage.overall_90, <Zap size={16} />, 'text-rose-400')}
+            {renderCoverageCard('Oura summary', coverage.oura_30, coverage.oura_90, <Moon size={16} />, 'text-primary')}
+            {renderCoverageCard('Odżywianie', coverage.nutrition_30, coverage.nutrition_90, <Apple size={16} />, 'text-success')}
+            {renderCoverageCard('Dziennik / Wins', coverage.wins_30, coverage.wins_90, <Award size={16} />, 'text-warning')}
+            {renderCoverageCard('Higiena ogólna', coverage.overall_30, coverage.overall_90, <Zap size={16} />, 'text-danger')}
           </div>
         </div>
       )}
@@ -127,7 +130,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
         <div className="space-y-4">
           <div>
             <h2 className="text-[15px] font-black text-text-primary flex items-center gap-2">
-              <Target className="text-indigo-500" size={18} />
+              <Target className="text-primary" size={18} />
               Kalibracja Modelu (Prediction Accuracy)
             </h2>
             <p className="text-[11px] text-text-muted mt-0.5">
@@ -136,42 +139,42 @@ export default function SystemHealth({ userId }: { userId: string }) {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
               <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Snu</span>
-              <span className="text-[18px] font-black text-indigo-500">
+              <span className="text-[18px] font-black text-primary">
                 {healthQuery.data.calibrationSummary.sleep_mae !== null
                   ? `±${healthQuery.data.calibrationSummary.sleep_mae} h`
                   : 'brak'}
               </span>
               <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) snu</span>
-            </div>
+            </Card>
 
-            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
               <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Gotowości</span>
-              <span className="text-[18px] font-black text-indigo-500">
+              <span className="text-[18px] font-black text-primary">
                 {healthQuery.data.calibrationSummary.readiness_mae !== null
                   ? `±${healthQuery.data.calibrationSummary.readiness_mae} pkt`
                   : 'brak'}
               </span>
               <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) gotowości</span>
-            </div>
+            </Card>
 
-            <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
               <span className="text-[9.5px] font-black text-text-muted uppercase tracking-wider">Błąd Wykonania</span>
-              <span className="text-[18px] font-black text-indigo-500">
+              <span className="text-[18px] font-black text-primary">
                 {healthQuery.data.calibrationSummary.execution_mae !== null
                   ? `±${healthQuery.data.calibrationSummary.execution_mae}%`
                   : 'brak'}
               </span>
               <span className="text-[9px] text-text-muted leading-snug">Średni błąd (MAE) zadań</span>
-            </div>
+            </Card>
           </div>
 
           {healthQuery.data.calibrationHistory.length > 0 && (
             <div className="bg-surface border border-border-custom/50 rounded-2xl p-4 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider flex items-center gap-1">
-                  <TrendingUp size={12} className="text-emerald-500" />
+                  <TrendingUp size={12} className="text-success" />
                   Trend błędu predykcji
                 </span>
                 <span className="text-[9px] text-text-muted">Chronologicznie</span>
@@ -192,8 +195,8 @@ export default function SystemHealth({ userId }: { userId: string }) {
                     />
                     <Legend wrapperStyle={{ fontSize: '10px' }} />
                     <Line type="monotone" name="Błąd Snu (h)" dataKey="sleep_error" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
-                    <Line type="monotone" name="Błąd Gotowości" dataKey="readiness_error" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
-                    <Line type="monotone" name="Błąd Wykonania (%)" dataKey="execution_error" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" name="Błąd Gotowości" dataKey="readiness_error" stroke="var(--color-success)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" name="Błąd Wykonania (%)" dataKey="execution_error" stroke="var(--color-warning)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -212,26 +215,26 @@ export default function SystemHealth({ userId }: { userId: string }) {
           </h2>
           <p className="text-[11px] text-text-muted mt-0.5">Ostatnie 50 zarejestrowanych operacji, błędów i potoków synchronizacji.</p>
         </div>
-        <button
+        <Button
           onClick={() => void healthQuery.refetch()}
-          disabled={loading}
-          className="btn-press flex items-center gap-1.5 bg-surface border border-border-custom/80 px-3.5 py-2 rounded-xl text-[11px] font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+          variant="secondary"
+          icon={<RefreshCw size={12} className={loading ? 'animate-spin' : ''} />}
+          className="rounded-xl px-3.5 py-2 text-[11px]"
         >
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           Odśwież
-        </button>
+        </Button>
       </div>
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 text-text-muted">
-          <RefreshCw className="animate-spin mb-2 text-primary" size={24} />
-          <p className="text-[12px] font-bold">Ładowanie zdarzeń audytowych...</p>
+          <Spinner size="md" />
+          <p className="text-[12px] font-bold mt-2">Ładowanie zdarzeń audytowych...</p>
         </div>
       )}
 
       {!loading && events.length === 0 && (
         <div className="text-center py-20 border border-dashed border-border-custom/60 rounded-2xl bg-surface/20">
-          <ShieldCheck className="mx-auto mb-2 text-emerald-400" size={32} />
+          <ShieldCheck className="mx-auto mb-2 text-success" size={32} />
           <p className="text-[12px] font-bold text-text-primary">System w pełni zdrowy!</p>
           <p className="text-[10px] text-text-muted mt-1">Brak zapisanych zdarzeń w dzienniku audytu.</p>
         </div>

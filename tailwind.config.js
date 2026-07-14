@@ -9,10 +9,10 @@ export default {
       colors: {
         background: '#0a0a0a',
         surface: '#171717',
-        primary: '#4f46e5',
+        primary: 'var(--primary)',
         dayA: '#3b82f6', // blue-500
-        dayB: '#ef4444', // red-500
-        dayC: '#22c55e', // green-500
+        dayB: '#f43f5e', // rose-500 (matches index.css)
+        dayC: '#10b981', // emerald-500 (matches index.css)
         dayD: '#f59e0b', // amber-500
       }
     },

@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import { useStore } from '../../../store/useStore';
 import { useDashboardData } from './useDashboardData';
 import { getTodayWarsaw, TIMEZONE } from '../../../lib/date';
+import { STORAGE_KEYS } from '../../../lib/constants';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { useNudgeData } from './useNudgeData';
 import { useSyncActions } from '../../../hooks/useSyncActions';
@@ -98,14 +99,14 @@ export function useDashboardState(session: Session) {
   const isPopStateRef = useRef(false);
 
   // Theme
-  const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
+  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEYS.THEME) || 'light');
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    try { localStorage.setItem('vanguard_theme', theme); } catch (e: unknown) {
+    try { localStorage.setItem(STORAGE_KEYS.THEME, theme); } catch (e: unknown) {
       console.warn('[useDashboardState] Failed to save theme to localStorage:', e);
     }
   }, [theme]);
@@ -226,7 +227,7 @@ export function useDashboardState(session: Session) {
   }, []);
 
   // Data
-  const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount(session);
+  const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount();
   const { isSyncing, setSyncing } = useStore();
   const { weeklyCalories, todayWin, loading, refresh } = useDashboardData(session);
   const { guidance: spineGuidance, loading: spineGuidanceLoading } = useSpineGuidance(userId, todayWin);
@@ -239,7 +240,7 @@ export function useDashboardState(session: Session) {
     if (todayWin.day_note?.trim()) return;
     const today = getTodayWarsaw();
     try {
-      if (localStorage.getItem('vanguard_shutdown_dismissed') === today) return;
+      if (localStorage.getItem(STORAGE_KEYS.SHUTDOWN_DISMISSED) === today) return;
     } catch (e: unknown) { console.warn('[useDashboardState] Failed to read shutdown dismissed date from localStorage:', e); }
     const warsawHour = parseInt(
       new Date().toLocaleTimeString('en-CA', { timeZone: TIMEZONE, hour: 'numeric', hour12: false }),

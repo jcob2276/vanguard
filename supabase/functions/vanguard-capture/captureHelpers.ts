@@ -1,5 +1,6 @@
 import { getEmbedding } from "../_shared/openai.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 
 type Triad = {
   source: string;
@@ -82,9 +83,8 @@ Zasady:
   try {
     const result = await deepseekChat({
       apiKey,
-      model: "deepseek-v4-flash",
+      ...LLM_TASKS.classify,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
       maxTokens: 1800,
     });
     const content = result.content;

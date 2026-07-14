@@ -1,4 +1,5 @@
 import { getTodayWarsaw, shiftDateStr, TIMEZONE } from '../../lib/date';
+import { CATEGORY_COLORS } from '../../lib/projects/lifeSpheres';
 
 const warsawOffsetFormatter = new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE, timeZoneName: 'shortOffset' });
 
@@ -157,50 +158,35 @@ export function computeBudgetBarState(
       statusText: `${spent.toFixed(1)}h / ${minVal}–${maxVal}h`,
       barColor:
         spent < minVal
-          ? 'bg-amber-500 dark:bg-amber-400'
+          ? 'bg-warning dark:bg-warning'
           : spent > maxVal
-          ? 'bg-rose-500 dark:bg-rose-400'
-          : 'bg-emerald-500 dark:bg-emerald-400',
+          ? 'bg-danger dark:bg-danger'
+          : 'bg-success dark:bg-success',
     };
   }
   if (minVal != null && minVal > 0) {
     return {
       pct: Math.min(100, (spent / minVal) * 100),
       statusText: `${spent.toFixed(1)}h / min ${minVal}h`,
-      barColor: spent >= minVal ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-amber-500 dark:bg-amber-400',
+      barColor: spent >= minVal ? 'bg-success dark:bg-success' : 'bg-warning dark:bg-warning',
     };
   }
   if (maxVal != null && maxVal > 0) {
     return {
       pct: Math.min(100, (spent / maxVal) * 100),
       statusText: `${spent.toFixed(1)}h / max ${maxVal}h`,
-      barColor: spent > maxVal ? 'bg-rose-500 dark:bg-rose-400' : baseColor,
+      barColor: spent > maxVal ? 'bg-danger dark:bg-danger' : baseColor,
     };
   }
   return { pct: 0, statusText: `${spent.toFixed(1)}h`, barColor: baseColor };
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  praca: 'bg-blue-600 dark:bg-blue-700 text-white font-black border border-blue-700/20 shadow-sm',
-  cialo_trening: 'bg-emerald-600 dark:bg-emerald-700 text-white font-black border border-emerald-700/20 shadow-sm',
-  duch_refleksja: 'bg-sky-500 dark:bg-sky-600 text-white font-black border border-sky-600/20 shadow-sm',
-  finanse: 'bg-amber-600 dark:bg-amber-700 text-white font-black border border-amber-700/20 shadow-sm',
-  relacje_rodzina: 'bg-violet-500 dark:bg-violet-600 text-white font-black border border-violet-600/20 shadow-sm',
-  odpoczynek_regeneracja: 'bg-indigo-600 dark:bg-indigo-700 text-white font-black border border-indigo-700/20 shadow-sm',
-
-  // Legacy Fallbacks
-  work: 'bg-blue-600 dark:bg-blue-700 text-white font-black border border-blue-700/20 shadow-sm',
-  health: 'bg-emerald-600 dark:bg-emerald-700 text-white font-black border border-emerald-700/20 shadow-sm',
-  personal: 'bg-violet-500 dark:bg-violet-600 text-white font-black border border-violet-600/20 shadow-sm',
-  sport: 'bg-orange-500 dark:bg-orange-600 text-white font-black border border-orange-600/20 shadow-sm',
-  study: 'bg-sky-500 dark:bg-sky-600 text-white font-black border border-sky-600/20 shadow-sm',
-};
 
 export function eventColor(ev: CalRow) {
   const summaryLower = ev.summary?.toLowerCase() || '';
   const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
   if (isFocusTime) {
-    return 'bg-indigo-700 dark:bg-indigo-800 text-white border border-indigo-800/20 font-black shadow-sm';
+    return 'bg-primary dark:bg-primary text-white border border-primary/20 font-black shadow-sm';
   }
 
   // 1. Explicit database category
@@ -227,7 +213,7 @@ export function eventColor(ev: CalRow) {
     }
   }
 
-  return 'bg-primary dark:bg-indigo-600 text-white font-black border border-primary/20 shadow-sm';
+  return 'bg-primary dark:bg-primary text-white font-black border border-primary/20 shadow-sm';
 }
 
 export function layoutDayEvents(dayEvents: CalRow[]) {

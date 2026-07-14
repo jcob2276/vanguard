@@ -3,6 +3,7 @@ import { createPrescription } from '../../lib/health/medicalApi';
 import { notify } from '../../lib/notify';
 import { getTodayWarsaw } from '../../lib/date';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 
 interface AddPrescriptionModalProps {
   onClose: () => void;
@@ -100,9 +101,9 @@ export default function AddPrescriptionModal({ onClose, onSaved, userId }: AddPr
           </div>
         </div>
 
-        <button type="submit" disabled={isSubmitting} className="w-full bg-primary text-white rounded-xl py-3 font-bold uppercase tracking-wider hover:bg-primary-hover active:scale-95 transition-all">
-          {isSubmitting ? 'Zapisywanie...' : 'Zapisz Szkła'}
-        </button>
+        <Button type="submit" loading={isSubmitting} className="w-full py-3 font-bold uppercase tracking-wider">
+          Zapisz Szkła
+        </Button>
       </form>
     </Modal>
   );

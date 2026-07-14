@@ -25,10 +25,7 @@ export interface DashboardData {
   readiness: number;
 }
 
-export const dashboardKeys = {
-  all: ['dashboard'] as const,
-  main: (userId: string) => [...dashboardKeys.all, 'main', userId] as const,
-};
+import { dashboardKeys } from './queryKeys';
 
 /**
  * Fetch dashboard data: checks cached world state first, falls back to live queries and vanguard core state determination.

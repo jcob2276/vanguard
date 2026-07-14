@@ -1,4 +1,5 @@
 import { useSolarData } from './hooks/useSolarData';
+import { Card } from '../ui/Card';
 
 interface Props {
   dateStr: string; // YYYY-MM-DD
@@ -24,7 +25,7 @@ export default function SolarDayWidget({ dateStr }: Props) {
   const sunsetPct = (sunTimes.sunsetMin / 1440) * 100;
 
   return (
-    <div className="rounded-xl border border-border-custom/30 bg-surface/20 px-3 py-3 space-y-2.5 select-none">
+    <Card variant="glass" padding="0.75rem" className="space-y-2.5 select-none">
       {/* Wschód / Zachód */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
@@ -55,23 +56,23 @@ export default function SolarDayWidget({ dateStr }: Props) {
       <div className="relative h-[6px] rounded-full overflow-hidden bg-black/10 dark:bg-white/8">
         {/* Noc — lewa */}
         <div
-          className="absolute inset-y-0 left-0 bg-indigo-950/60 dark:bg-indigo-900/50"
+          className="absolute inset-y-0 left-0 bg-primary/60 dark:bg-primary/50"
           style={{ width: `${sunrisePct}%` }}
         />
         {/* Dzień — środek */}
         <div
-          className="absolute inset-y-0 bg-gradient-to-r from-amber-300/80 via-amber-400/90 to-orange-400/80"
+          className="absolute inset-y-0 bg-gradient-to-r from-warning/80 via-warning/90 to-warning/80"
           style={{ left: `${sunrisePct}%`, width: `${sunsetPct - sunrisePct}%` }}
         />
         {/* Noc — prawa */}
         <div
-          className="absolute inset-y-0 right-0 bg-indigo-950/60 dark:bg-indigo-900/50"
+          className="absolute inset-y-0 right-0 bg-primary/60 dark:bg-primary/50"
           style={{ width: `${100 - sunsetPct}%` }}
         />
         {/* Kursor "teraz" — tylko dla dzisiaj */}
         {dayProgressPct > 0 && dayProgressPct < 100 && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-[3px] h-[10px] rounded-full bg-white shadow-sm shadow-amber-300/80 z-10"
+            className="absolute top-1/2 -translate-y-1/2 w-[3px] h-[10px] rounded-full bg-white shadow-sm shadow-warning/80 z-10"
             style={{
               left: `calc(${sunrisePct + (dayProgressPct / 100) * (sunsetPct - sunrisePct)}% - 1.5px)`,
             }}
@@ -89,6 +90,6 @@ export default function SolarDayWidget({ dateStr }: Props) {
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -18,7 +18,7 @@ export function TimelineWidget({ data }: { data: TimelineWidgetData }) {
         <li key={`${ev.title}-${i}`} className="relative pl-3">
           <span
             className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface-solid"
-            style={{ background: ev.color ?? '#5B6CFF' }}
+            style={{ background: ev.color ?? 'var(--color-primary)' }}
           />
           {ev.time && (
             <p className="text-[10px] font-mono text-text-muted">{ev.time}</p>

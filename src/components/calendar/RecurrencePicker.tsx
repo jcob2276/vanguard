@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { X, Repeat } from 'lucide-react';
+import Button from '../ui/Button';
 
 interface RecurrencePickerProps {
   recurrence: '' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -75,13 +76,13 @@ export default function RecurrencePicker({
             className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
           {endDate && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setEndDate('')}
-              className="shrink-0 text-text-muted/50 hover:text-rose-400 transition-colors"
-            >
-              <X size={13} />
-            </button>
+              icon={<X size={13} />}
+              className="shrink-0 text-text-muted/50 hover:text-danger"
+            />
           )}
         </div>
       )}

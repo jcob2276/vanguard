@@ -1,3 +1,5 @@
+import { Card } from '../../ui/Card';
+
 interface NutritionTargetsGridProps {
   weeklyCalories: number;
   weeklyBudget: number;
@@ -22,7 +24,7 @@ export default function NutritionTargetsGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
       {/* Weekly calories budget */}
-      <div className="rounded-2xl border border-border-custom/50 bg-surface-solid/10 p-3.5 flex flex-col justify-between">
+      <Card className="flex flex-col justify-between" padding="0.875rem">
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[9px] font-black uppercase tracking-wider text-text-muted">Bilans tygodniowy</span>
@@ -30,7 +32,7 @@ export default function NutritionTargetsGrid({
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-border-custom">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-400 shadow-[0_2px_8px_rgba(249,115,22,0.15)] transition-all duration-1000"
+              className="h-full rounded-full bg-gradient-to-r from-warning to-warning shadow-[0_2px_8px_rgba(249,115,22,0.15)] transition-all duration-1000"
               style={{ width: `${caloriesProgress}%` }}
             />
           </div>
@@ -39,19 +41,19 @@ export default function NutritionTargetsGrid({
           <span>Pozostało w budżecie: <strong className="text-text-secondary">{Math.max(weeklyBudget - weeklyCalories, 0).toLocaleString('pl-PL')} kcal</strong></span>
           <span>{Math.round(caloriesProgress)}%</span>
         </div>
-      </div>
+      </Card>
 
       {/* Protein today */}
-      <div className="rounded-2xl border border-border-custom/50 bg-surface-solid/10 p-3.5 flex flex-col justify-between">
+      <Card className="flex flex-col justify-between" padding="0.875rem">
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
               <span className="text-[9px] font-black uppercase tracking-wider text-text-muted">Białko dzisiaj</span>
               {todayInsulinLoad != null && (
                 <span className={`rounded-full border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider ${
-                  todayInsulinLoad > 70 ? 'border-rose-500/25 bg-rose-500/10 text-rose-500'
-                  : todayInsulinLoad > 40 ? 'border-amber-500/25 bg-amber-500/10 text-amber-500'
-                  : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-500'
+                  todayInsulinLoad > 70 ? 'border-danger/25 bg-danger/10 text-danger'
+                  : todayInsulinLoad > 40 ? 'border-warning/25 bg-warning/10 text-warning'
+                  : 'border-success/25 bg-success/10 text-success'
                 }`}>
                   IL {Math.round(todayInsulinLoad)}
                 </span>
@@ -70,7 +72,7 @@ export default function NutritionTargetsGrid({
           <span>{avgProtein7d != null ? `śr. 7d: ${avgProtein7d}g/d` : 'brak średniej'}</span>
           <span>{Math.round(proteinPct)}%</span>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

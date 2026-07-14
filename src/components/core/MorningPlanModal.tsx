@@ -4,7 +4,8 @@ import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
-import type { Session } from '@supabase/supabase-js';
+import Button from '../ui/Button';
+import { useUserId } from '../../store/useStore';
 import { useMorningPlanData } from './morningPlan/useMorningPlanData';
 import { useMorningPlanActions } from './morningPlan/useMorningPlanActions';
 import MorningPlanWeekStrip from './morningPlan/MorningPlanWeekStrip';
@@ -14,15 +15,14 @@ import MorningPlanStep2PowerList from './morningPlan/MorningPlanStep2PowerList';
 import MorningPlanStep3TimeBox from './morningPlan/MorningPlanStep3TimeBox';
 
 interface Props {
-  session: Session;
   onClose: () => void;
   /** Date being planned (YYYY-MM-DD). Defaults to today; pass tomorrow's date
    * to chain this straight out of the evening shutdown ritual. */
   targetDate?: string;
 }
 
-export default function MorningPlanModal({ session, onClose, targetDate }: Props) {
-  const userId = session?.user?.id as string | undefined;
+export default function MorningPlanModal({ onClose, targetDate }: Props) {
+  const userId = useUserId();
   const actualToday = getTodayWarsaw();
   const planningDate = targetDate ?? actualToday;
   const isPlanningTomorrow = planningDate !== actualToday;
@@ -90,9 +90,7 @@ export default function MorningPlanModal({ session, onClose, targetDate }: Props
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">Krok {step} z 3</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary transition-colors">
-            <X size={18} />
-          </button>
+          <Button onClick={onClose} variant="ghost" icon={<X size={18} />} className="p-1.5" />
         </div>
 
         {/* Week-at-a-glance strip */}

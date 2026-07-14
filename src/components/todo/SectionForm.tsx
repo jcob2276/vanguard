@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card } from '../ui/Card';
 
 interface SectionFormProps {
   name: string;
@@ -18,7 +19,7 @@ export default function SectionForm({
   onCancel,
 }: SectionFormProps) {
   return (
-    <div className="border border-border-custom bg-surface-solid/40 rounded-2xl p-4.5 mb-3 flex flex-col gap-3 shadow-lg">
+    <Card className="border border-border-custom bg-surface-solid/40 mb-3 flex flex-col gap-3 shadow-lg" padding="1.125rem">
       <input
         autoFocus
         value={name}
@@ -50,6 +51,6 @@ export default function SectionForm({
           Anuluj
         </button>
       </div>
-    </div>
+    </Card>
   );
 }

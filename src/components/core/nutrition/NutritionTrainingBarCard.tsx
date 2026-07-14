@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import type { Session } from '@supabase/supabase-js'
 import { getTodayWarsaw } from '../../../lib/date'
 import {
   fetchNutritionDayContext,
@@ -9,20 +8,21 @@ import {
 } from '../../../lib/health/nutritionContext'
 import NutritionTrainingBar from './NutritionTrainingBar'
 
+import { useSession } from '../../../store/useStore'
+
 export default function NutritionTrainingBarCard({
-  session,
   refreshSignal = 0,
 }: {
-  session: Session
   refreshSignal?: number
 }) {
-  const userId = session.user.id
+  const session = useSession()
+  const userId = session?.user.id
   const today = getTodayWarsaw()
-  const [logClosed, setLogClosed] = useState(() => isFoodLogClosed(userId, today))
+  const [logClosed, setLogClosed] = useState(() => isFoodLogClosed(userId || '', today))
 
   const ctxQuery = useQuery({
     queryKey: ['nutrition-day-context', userId, today, refreshSignal],
-    queryFn: () => fetchNutritionDayContext(userId, today, session.access_token),
+    queryFn: () => fetchNutritionDayContext(userId!, today, session!.access_token),
     enabled: !!userId,
   })
 
@@ -34,7 +34,7 @@ export default function NutritionTrainingBarCard({
       onToggleLogClosed={() => {
         const next = !logClosed
         setLogClosed(next)
-        setFoodLogClosed(userId, today, next)
+        setFoodLogClosed(userId!, today, next)
       }}
     />
   )

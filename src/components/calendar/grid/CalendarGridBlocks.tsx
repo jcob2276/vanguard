@@ -118,7 +118,7 @@ export const renderTodoBlock = ({
             handleToggleTodo(todo.id);
             setToastMessage(`Ukończono: "${todo.title}" ✅`);
           }}
-          className={`relative after:absolute after:-inset-2 mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-emerald-500 border-emerald-500' : 'border-primary/50 hover:bg-primary/20'}`}
+          className={`relative after:absolute after:-inset-2 mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
         >
           {isCompleting && <Check size={6} className="text-white" strokeWidth={4} />}
         </button>

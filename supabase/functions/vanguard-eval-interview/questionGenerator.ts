@@ -1,4 +1,5 @@
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 
 export function isUsableQuestion(text: string): boolean {
   const t = text.replace(/\s+/g, " ").trim();
@@ -94,10 +95,9 @@ proposed_memory powinno reprezentować fakt, który zostanie potwierdzony/zaktua
   try {
     const reform = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: "deepseek-chat",
+      ...LLM_TASKS.structured,
       userId,
       feature: "eval-interview-active-learning",
-      responseFormat: { type: "json_object" },
       messages: [
         { role: "system", content: systemContent },
         { role: "user", content: userContent },
@@ -122,7 +122,8 @@ export async function generateDeepeningQuestion(
   try {
     const result = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: "deepseek-chat",
+      ...LLM_TASKS.structured,
+      responseFormat: undefined,
       userId,
       feature: "eval-interview-deepening",
       maxTokens: 120,

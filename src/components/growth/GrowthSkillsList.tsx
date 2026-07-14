@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, ExternalLink, Target } from 'lucide-react';
 import type { SkillInventoryRow } from '../../lib/growth/growthOverview';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 function scoreBar(val: number) {
   return (
@@ -50,20 +52,22 @@ export default function GrowthSkillsList({
   }
 
   return (
-    <section className="rounded-2xl border border-border-custom bg-surface/30 p-4 h-full flex flex-col">
+    <Card variant="glass" padding="1rem" className="h-full flex flex-col">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <p className="text-[9px] font-black uppercase tracking-wider text-text-muted">Umiejętności</p>
           <p className="text-[10px] text-text-muted mt-0.5">Twoja ocena 0–5 · pod-skilli po rozwinięciu</p>
         </div>
         {!readOnly && onEditScores && (
-          <button
+          <Button
             type="button"
             onClick={onEditScores}
-            className="shrink-0 text-[9px] font-black uppercase text-primary hover:underline cursor-pointer"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-[9px] font-black uppercase text-primary hover:underline"
           >
             Oceń →
-          </button>
+          </Button>
         )}
       </div>
 
@@ -141,13 +145,15 @@ export default function GrowthSkillsList({
                                 <ExternalLink size={10} />
                               </a>
                               {!readOnly && onQuickPinLink && (
-                                <button
+                                <Button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); onQuickPinLink(link.id, 'active'); }}
-                                  className="rounded bg-primary/10 px-1.5 py-0.5 text-[8.5px] font-black uppercase text-primary hover:bg-primary/20"
+                                  variant="tonal"
+                                  size="sm"
+                                  className="rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase"
                                 >
                                   Przypnij
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </li>
@@ -161,6 +167,6 @@ export default function GrowthSkillsList({
           );
         })}
       </ul>
-    </section>
+    </Card>
   );
 }

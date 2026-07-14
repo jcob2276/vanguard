@@ -3,6 +3,7 @@ import { getWarsawDateString } from '../time.ts';
 import { ewmaBaseline } from './baselines.ts';
 import { byKey, type OuraDailySummaryRow, type OuraEnhancedRow, type OuraHrZonesDailyRow, type DailyNutritionRow, type WorkoutSessionRow, type StravaActivityRow, type DailyFoodEntryRow, type BehaviorLogRow, type DailyReconciliationRow } from './metricsTypes.ts';
 import { buildIllnessDates, computePerDay } from './computePerDay.ts';
+import { resolvePersonalTargets } from '../personalTargets.ts';
 
 export const runComputeDailyStrain = async (
   supabase: SupabaseClient,
@@ -29,6 +30,9 @@ export const runComputeDailyStrain = async (
     const computeForUser = async (u: { user_id: string }) => {
       const uid = u.user_id;
       try {
+        const targets = await resolvePersonalTargets(supabase, uid);
+        const sleepTargetH = targets.sleepTargetH;
+
         const { data: bw } = await supabase.from('body_metrics').select('weight').eq('user_id', uid).not('weight', 'is', null).order('date', { ascending: false }).limit(1).maybeSingle();
         const weight = Number(bw?.weight) || 75;
 
@@ -94,7 +98,7 @@ export const runComputeDailyStrain = async (
           const { row, strain } = computePerDay({
             date, todayWarsaw, now, zones, enh, summ, nutr, workouts, strava, recon, food,
             baseByDate, respByDate, skinTempByDate, sleepByDate, strainHistRunning, illnessDates,
-            weight, sex, ageYears, algoVersion, uid, getBaselinesForDate,
+            weight, sex, ageYears, algoVersion, uid, getBaselinesForDate, sleepTargetH,
           });
           upserts.push(row);
           if (strain != null) strainHistRunning.push({ date, strain_score: strain });

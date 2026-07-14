@@ -1,4 +1,5 @@
 import { notify } from '../../../lib/notify';
+import { STORAGE_KEYS } from '../../../lib/constants';
 import { getTodayWarsaw, TIMEZONE } from '../../../lib/date';
 import { mergeLatestBodyMetrics } from '../../../lib/health/bodyMetrics';
 import { syncOura, syncCalendar, syncStrava, computeDailyStrain } from '../../../lib/syncApi';
@@ -6,6 +7,8 @@ import { Suspense, lazy, useEffect, useState, useCallback, useMemo, useRef } fro
 import SmartAlerts from '../hero/SmartAlerts';
 import DesktopHero from '../hero/DesktopHero';
 import Spinner from '../../ui/Spinner';
+import Button from '../../ui/Button';
+import Skeleton from '../../ui/Skeleton';
 import DesktopSectionNav from './DesktopSectionNav';
 import Heatmap from '../fitness/Heatmap';
 import { format, parseISO } from 'date-fns';
@@ -49,7 +52,7 @@ const MedicalDesktopTeaser = lazy(() => import('../../medical/MedicalDesktopTeas
 export default function DesktopDashboard({ session }: { session: Session }) {
   const userId      = session?.user?.id;
   const { pendingGrowthMustCount } = useNudgeData(userId);
-  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wiki, knowledge, lenieLogs, marathon, refresh } = useDesktopData(userId);
+  const { loading, oura, nutrition, sessions, body, heightCm, strain, strava, projects, moves, goals, sprintGoals, patterns, wiki, knowledge, lenieLogs, marathon, personalTargets, refresh } = useDesktopData(userId);
 
   const {
     habits, habitLogs, isAddingHabit, setIsAddingHabit,
@@ -87,15 +90,15 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   }, [userId]);
   const [showFundament, setShowFundament] = useState(false);
   const [showHealth, setShowHealth] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('vanguard_theme') || 'light');
+  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEYS.THEME) || 'light');
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    try { localStorage.setItem('vanguard_theme', theme); } catch (e: unknown) { console.warn('[DesktopDashboard] Failed to save theme to localStorage:', e); }
+    try { localStorage.setItem(STORAGE_KEYS.THEME, theme); } catch (e: unknown) { console.warn('[DesktopDashboard] Failed to save theme to localStorage:', e); }
   }, [theme]);
 
   const grid = theme === 'dark' ? '#2d3748' : '#e5e7eb';
-  const tick = theme === 'dark' ? '#9ca3af' : '#6b7280';
+  const tick = theme === 'dark' ? 'var(--color-text-muted)' : '#6b7280';
 
   const syncAll = useCallback(async () => {
     if (syncing || !userId) return;
@@ -162,7 +165,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   if (showHealth) return (
     <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
       <header className="mb-6 flex items-center gap-4">
-        <button onClick={() => setShowHealth(false)} className="btn-press px-4 py-2 border border-border-custom bg-surface rounded-xl text-[12px] font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer">← Powrót do Pulpitu</button>
+        <Button onClick={() => setShowHealth(false)} variant="secondary" size="sm" className="rounded-xl">← Powrót do Pulpitu</Button>
       </header>
       <SystemHealth userId={userId ?? ''} />
     </div>
@@ -171,7 +174,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
   if (showFundament) return (
     <div className="min-h-screen bg-background text-text-primary p-8 max-w-4xl mx-auto">
       <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Spinner size="md" /></div>}>
-        <Fundament session={session} onBack={() => { setShowFundament(false); refresh(); }} onSyncCalendar={startGoogleAuth} isSyncing={syncing} />
+        <Fundament onBack={() => { setShowFundament(false); refresh(); }} onSyncCalendar={startGoogleAuth} isSyncing={syncing} />
       </Suspense>
     </div>
   );
@@ -212,8 +215,8 @@ export default function DesktopDashboard({ session }: { session: Session }) {
               <div className="space-y-5">
                 <Panel title="Konsekwencja treningowa — 13 tygodni"><Heatmap sessions={sessions} strava={strava} /></Panel>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-                  <FitnessScorePanel oura={oura} nutrition={nutrition} sessions={sessions} strava={strava} habits={habits} habitLogs={habitLogs} volData={volData} body={body} heightCm={heightCm} theme={theme} grid={grid} />
-                  <Suspense fallback={<div className="h-[450px] animate-pulse bg-surface rounded-[24px] border border-border-custom" />}><MuscleHeatmap session={session} /></Suspense>
+                  <FitnessScorePanel oura={oura} nutrition={nutrition} sessions={sessions} strava={strava} habits={habits} habitLogs={habitLogs} volData={volData} body={body} heightCm={heightCm} theme={theme} grid={grid} personalTargets={personalTargets} />
+                  <Suspense fallback={<Skeleton variant="card" className="h-[450px] rounded-[24px]" />}><MuscleHeatmap session={session} /></Suspense>
                 </div>
               </div>
             </section>
@@ -223,7 +226,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
 
             <section id="badania" className="scroll-mt-28 space-y-5">
               <div className="flex items-center gap-3"><div className="h-px flex-1 bg-border-custom" /><span className="pixel-label">Badania i analityka</span><div className="h-px flex-1 bg-border-custom" /></div>
-              <Suspense fallback={<div className="h-32 animate-pulse bg-surface rounded-[24px] border border-border-custom" />}><MedicalDesktopTeaser userId={userId} /></Suspense>
+              <Suspense fallback={<Skeleton variant="card" className="h-32 rounded-[24px]" />}><MedicalDesktopTeaser userId={userId} /></Suspense>
             </section>
 
             <section id="kierunek" className="scroll-mt-28 space-y-5">

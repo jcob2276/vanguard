@@ -35,8 +35,8 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
       className={`rounded-2xl p-2 transition-all duration-200 ${
         draggingItem !== null
           ? dragTarget === 'today'
-            ? 'border border-orange-500/40 bg-orange-500/10 scale-[1.01] shadow-[0_4px_25px_rgba(249,115,22,0.12)]'
-            : 'border border-dashed border-orange-500/20 bg-orange-500/5'
+            ? 'border border-warning/40 bg-warning/10 scale-[1.01] shadow-[0_4px_25px_rgba(249,115,22,0.12)]'
+            : 'border border-dashed border-warning/20 bg-warning/5'
           : 'border border-transparent bg-transparent'
       }`}
     >
@@ -52,11 +52,11 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
         <div className="mb-2 -mt-1 px-0.5">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted/40">Zaplanowane</span>
-            <span className={`text-[9px] font-bold tabular-nums ${over ? 'text-rose-400' : 'text-text-muted/50'}`}>{label} / 8h</span>
+            <span className={`text-[9px] font-bold tabular-nums ${over ? 'text-danger' : 'text-text-muted/50'}`}>{label} / 8h</span>
           </div>
           <div className="h-[3px] rounded-full bg-surface-solid overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-rose-400/70' : 'bg-orange-400/60'}`}
+              className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-danger/70' : 'bg-warning/60'}`}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -76,14 +76,14 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
               {focus && (
                 <button
                   onClick={() => toggleExpand(focus.id)}
-                  className="w-full mb-2 flex items-center gap-2.5 rounded-xl border border-orange-500/20 bg-orange-500/6 px-3 py-2.5 text-left hover:bg-orange-500/10 transition-all btn-press"
+                  className="w-full mb-2 flex items-center gap-2.5 rounded-xl border border-warning/20 bg-warning/6 px-3 py-2.5 text-left hover:bg-warning/10 transition-all btn-press"
                 >
                   <span className="text-[16px] leading-none shrink-0">{focusEmoji || '🎯'}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/70 mb-0.5">Co teraz?</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-warning/70 mb-0.5">Co teraz?</p>
                     <p className="text-[13px] font-semibold text-text-primary leading-snug truncate">{focusLabel}</p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400">Zacznij →</span>
+                  <span className="shrink-0 rounded-lg bg-warning/15 px-2 py-1 text-[10px] font-bold text-warning">Zacznij →</span>
                 </button>
               )}
               {todayItems.map((i) => (

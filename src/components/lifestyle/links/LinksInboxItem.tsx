@@ -7,6 +7,7 @@ import {
   StickyNote
 } from 'lucide-react';
 import Spinner from '../../ui/Spinner';
+import Button from '../../ui/Button';
 import type { SavedLink } from '../../../lib/linksApi';
 import type { useLinksInboxData } from './useLinksInboxData';
 
@@ -76,7 +77,7 @@ export function LinksInboxItem({
               onClick={() => d.toggleReadStatus(link.id, link.status)}
               className={`btn-press rounded-full p-1.5 transition-all ${
                 link.status === 'read'
-                  ? 'bg-emerald-500/10 text-emerald-500'
+                  ? 'bg-success/10 text-success'
                   : 'text-text-muted/40 hover:text-text-primary hover:bg-surface-solid/60'
               }`}
               title={link.status === 'unread' ? 'Oznacz jako przeczytane' : 'Oznacz jako nieprzeczytane'}
@@ -94,7 +95,7 @@ export function LinksInboxItem({
             </a>
             <button
               onClick={() => d.deleteLink(link.id)}
-              className="btn-press rounded-full p-1.5 text-text-muted/40 hover:text-rose-400 hover:bg-rose-500/10"
+              className="btn-press rounded-full p-1.5 text-text-muted/40 hover:text-danger hover:bg-danger/10"
             >
               <Trash2 size={13} />
             </button>
@@ -204,24 +205,28 @@ export function LinksInboxItem({
 
             {/* Konwersja */}
             <div className="flex flex-wrap gap-2 border-t border-border-custom/40 pt-3">
-              <button
+              <Button
+                variant="tonal"
+                size="sm"
                 type="button"
                 disabled={d.convertingLinkId === link.id}
                 onClick={() => d.handleLinkToTodo(link)}
-                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl bg-primary/10 px-3 py-2 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-all disabled:opacity-50"
+                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-semibold transition-all disabled:opacity-50"
+                icon={d.convertingLinkId === link.id ? <Spinner size="sm" className="h-3 w-3" /> : <ListTodo size={12} />}
               >
-                {d.convertingLinkId === link.id ? <Spinner size="sm" className="h-3 w-3" /> : <ListTodo size={12} />}
                 Zrób zadanie
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 disabled={d.convertingLinkId === link.id}
                 onClick={() => d.handleLinkToNote(link)}
-                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl border border-border-custom px-3 py-2 text-[11px] font-semibold text-text-muted hover:text-text-primary transition-all disabled:opacity-50"
+                className="btn-press flex flex-1 min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-semibold transition-all disabled:opacity-50"
+                icon={<StickyNote size={12} />}
               >
-                <StickyNote size={12} />
                 Do notatek
-              </button>
+              </Button>
             </div>
 
             {/* Kategoria */}
@@ -255,7 +260,7 @@ export function LinksInboxItem({
                   <PenLine size={10} /> Przemyślenia
                 </p>
                 {d.savedNoteId === link.id && (
-                  <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-500">
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-success">
                     <Check size={10} /> Zapisano
                   </span>
                 )}

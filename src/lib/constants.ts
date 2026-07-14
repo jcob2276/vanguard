@@ -26,3 +26,15 @@ export const LIMITER_PL: Record<string, string> = {
 export const SYSTEM_VERSION = '3.0';
 export const NEURAL_LINK_VERSION = '3.1';
 
+/** Fixed (non-parameterized) localStorage keys shared across components. */
+export const STORAGE_KEYS = {
+  THEME: 'vanguard_theme',
+  KEEP_NOTES_LOCAL: 'vanguard_local_keep_notes',
+  KEEP_NEW_DRAFT: 'vanguard_keep_new',
+  SHUTDOWN_DISMISSED: 'vanguard_shutdown_dismissed',
+  CALENDAR_SIDEBAR_COLLAPSED: 'vanguard_calendar_sidebar_collapsed',
+  LAST_REMINDER_DATE: 'last_reminder_date',
+  ENDMYOPIA_CALIBRATION: 'endmyopia_calibration',
+  ENDMYOPIA_AUTO_CAPTURE: 'endmyopia_auto_capture',
+} as const;
+

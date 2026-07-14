@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
 import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth/growth';
+import Button from '../ui/Button';
 import SlotPinCard from './SlotPinCard';
 
 export default function SlotSection({
@@ -42,17 +43,18 @@ export default function SlotSection({
   const empty = max - slotPins.length;
 
   const renderEmpty = (i: number) => (
-    <button
+    <Button
       key={`empty-${slot}-${i}`}
-      type="button"
+      variant="outline"
+      size="sm"
       onClick={onAdd}
-      className={`rounded-xl border border-dashed border-border-custom text-[11px] font-bold text-text-muted hover:border-primary/40 hover:text-primary cursor-pointer flex flex-col items-center justify-center gap-1 ${
+      icon={<Plus size={14} />}
+      className={`rounded-xl border-dashed font-bold text-text-muted hover:border-primary/40 hover:text-primary flex flex-col items-center justify-center gap-1 ${
         gridMode ? 'min-h-[100px] py-6' : 'w-full py-4 flex-row'
       }`}
     >
-      <Plus size={14} />
       {gridMode ? <span>MUST {slotPins.length + i + 1}</span> : <span>Przypnij</span>}
-    </button>
+    </Button>
   );
 
   const renderPin = (pin: LearningWeekPin) => (

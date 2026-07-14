@@ -3,11 +3,11 @@ import { Clock } from 'lucide-react';
 import { useTodayCalendarEvents } from '../calendar/hooks/useTodayCalendarEvents';
 
 const CAT_DOT: Record<string, string> = {
-  work:     'bg-blue-500',
-  health:   'bg-emerald-500',
-  sport:    'bg-orange-500',
-  personal: 'bg-violet-500',
-  study:    'bg-amber-500',
+  work:     'bg-info',
+  health:   'bg-success',
+  sport:    'bg-warning',
+  personal: 'bg-primary',
+  study:    'bg-warning',
 };
 
 function fmt(iso: string) {

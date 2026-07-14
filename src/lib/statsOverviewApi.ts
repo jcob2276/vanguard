@@ -20,10 +20,7 @@ export interface StatsOverviewData {
   projections: ProjectionState | null;
 }
 
-export const statsOverviewKeys = {
-  all: ['statsOverview'] as const,
-  forUser: (userId: string) => [...statsOverviewKeys.all, userId] as const,
-};
+import { statsOverviewKeys } from './queryKeys';
 
 async function fetchStatsOverview(userId: string): Promise<StatsOverviewData> {
   const [

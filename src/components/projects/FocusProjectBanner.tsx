@@ -1,4 +1,6 @@
 import { Zap } from 'lucide-react';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 import { calculateHealthScore, getHealthLevel, HEALTH_COLORS, ProjectStats, ProjectRow, GoalKpiRow } from './projectUtils';
 
 interface Props {
@@ -24,9 +26,7 @@ export function FocusProjectBanner({ focusProject, activeFilteredFirst, stats, k
   const hc = HEALTH_COLORS[level];
 
   return (
-    <div className={`rounded-[20px] border p-4 ${hc.bg} ${
-      level === 'critical' ? 'border-rose-500/30' : 'border-amber-500/25'
-    }`}>
+    <Card variant="outline" padding="1rem" className={hc.bg} style={{ borderColor: level === 'critical' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.25)' }}>
       <div className="flex items-center gap-2 mb-2">
         <Zap size={12} className={hc.text} />
         <p className={`text-[9px] font-black uppercase tracking-widest ${hc.text}`}>
@@ -38,18 +38,20 @@ export function FocusProjectBanner({ focusProject, activeFilteredFirst, stats, k
         <p className="text-[11px] text-text-muted mt-0.5 italic line-clamp-1">{focusProject.goal}</p>
       )}
       <div className="mt-3 flex items-center gap-2">
-        <button
+        <Button
+          variant="tonal"
+          size="sm"
           onClick={() => onOpen(focusProject.id)}
-          className={`text-[11px] font-semibold px-3 py-1.5 rounded-full ${hc.bg} ${hc.text} border ${
-            level === 'critical' ? 'border-rose-500/30' : 'border-amber-500/25'
+          className={`text-[11px] px-3 py-1.5 rounded-full ${hc.text} ${
+            level === 'critical' ? 'border-danger/30' : 'border-warning/25'
           }`}
         >
           Otwórz projekt
-        </button>
+        </Button>
         {s.openItems?.[0] && (
           <p className="text-[11px] text-text-muted truncate">→ {s.openItems[0].title}</p>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

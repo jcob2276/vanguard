@@ -79,7 +79,7 @@ export default function NutritionCard({
       <div className="flex flex-col items-center justify-center py-4 bg-surface-solid/35 border border-border-custom/50 rounded-2xl mb-4 text-center">
         <span className="text-[9px] font-black uppercase tracking-[0.15em] text-text-muted">Pozostało dzisiaj</span>
         <p className={`font-display text-[32px] font-black tracking-tight leading-none my-1.5 ${
-          remainingKcalToday >= -75 ? 'text-emerald-500' : 'text-rose-500'
+          remainingKcalToday >= -75 ? 'text-success' : 'text-danger'
         }`}>
           {remainingKcalToday >= 0 ? `${remainingKcalToday}` : `+${Math.abs(remainingKcalToday)}`}
           <span className="text-[12px] font-bold text-text-secondary ml-1">kcal</span>

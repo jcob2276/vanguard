@@ -107,9 +107,9 @@ function KpiRows({
 }
 
 const PILLAR_HEX_COLORS: Record<string, string> = {
-  emerald: '#10b981',
+  emerald: 'var(--color-success)',
   indigo: '#6366f1',
-  amber: '#f59e0b',
+  amber: 'var(--color-warning)',
 };
 
 export default function ProjectCardCollapsed({
@@ -149,7 +149,7 @@ export default function ProjectCardCollapsed({
               </Badge>
             )}
             {s.slipping && (
-              <Badge variant="tag" color="#f59e0b">
+              <Badge variant="tag" color="var(--color-warning)">
                 <AlertTriangle size={8} /> {s.daysSince}d temu
               </Badge>
             )}
@@ -250,9 +250,9 @@ export default function ProjectCardCollapsed({
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
               s.daysLeft < 0
-                ? 'bg-rose-500/10 text-rose-500'
+                ? 'bg-danger/10 text-danger'
                 : s.daysLeft <= 7
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                ? 'bg-warning/10 text-warning dark:text-warning'
                 : 'bg-surface-solid text-text-muted'
             }`}
           >

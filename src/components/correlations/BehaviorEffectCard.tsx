@@ -1,5 +1,6 @@
 import type { BehaviorEffectResult } from '@vanguard/domain';
 import { behaviorLabel, CONFIDENCE_LABELS } from '@vanguard/domain';
+import { Card } from '../ui/Card';
 
 export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResult }) {
   const label = behaviorLabel(item.behavior_key);
@@ -7,7 +8,7 @@ export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResul
   const deltaStr = delta != null ? (delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)) : '—';
 
   return (
-    <article className="rounded-[20px] border border-border-custom bg-surface p-4 shadow-sm">
+    <Card variant="glass" padding="1rem">
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <span className="text-[8px] font-black uppercase tracking-widest text-text-muted">
@@ -16,8 +17,8 @@ export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResul
           <h3 className="text-[13px] font-bold text-text-primary capitalize mt-0.5">{label}</h3>
         </div>
         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${
-          item.confidence === 'solid' ? 'bg-emerald-500/10 text-emerald-600' :
-          item.confidence === 'building' ? 'bg-amber-500/10 text-amber-600' :
+          item.confidence === 'solid' ? 'bg-success/10 text-success' :
+          item.confidence === 'building' ? 'bg-warning/10 text-warning' :
           'bg-slate-500/10 text-text-muted'
         }`}>
           {CONFIDENCE_LABELS[item.confidence]}
@@ -37,7 +38,7 @@ export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResul
         </div>
         <div className="rounded-xl bg-primary/5 p-2 text-center">
           <p className="text-[8px] font-black uppercase text-text-muted">Δ recovery</p>
-          <p className={`text-[15px] font-black ${delta != null && delta > 0 ? 'text-emerald-600' : delta != null && delta < 0 ? 'text-rose-500' : 'text-text-primary'}`}>
+          <p className={`text-[15px] font-black ${delta != null && delta > 0 ? 'text-success' : delta != null && delta < 0 ? 'text-danger' : 'text-text-primary'}`}>
             {deltaStr}
           </p>
           {item.pct_change != null && (
@@ -59,6 +60,6 @@ export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResul
           ? `Istotne statystycznie (p=${item.p_value?.toFixed(3)}, d=${item.cohens_d?.toFixed(2) ?? '—'})`
           : `Obserwacja robocza — za mało dni lub brak istotności (p=${item.p_value?.toFixed(3) ?? '—'})`}
       </p>
-    </article>
+    </Card>
   );
 }

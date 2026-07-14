@@ -1,4 +1,5 @@
 import Spinner from '../../ui/Spinner';
+import { Card } from '../../ui/Card';
 import ProjectWeekKpis from '../ProjectWeekKpis';
 
 type Phase1Recap = { narrative: string; longterm_motif: string | null; question: string };
@@ -26,10 +27,10 @@ function Divider({ title }: { title: string }) {
 
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <div className="bg-surface rounded-xl px-3 py-2.5 border border-border-custom">
+    <Card padding="0.625rem 0.75rem">
       <div className="text-xl font-bold text-text-primary">{value}</div>
       <div className="text-[10px] text-text-muted mt-0.5">{label}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -47,8 +48,8 @@ export function Block1Narrative({ phase1, phase1Loading }: { phase1: Phase1Recap
         <div className="space-y-3">
           <p className="text-sm text-text-primary leading-relaxed">{phase1.narrative}</p>
           {phase1.longterm_motif && (
-            <div className="border-l-2 border-amber-500 pl-3 py-1">
-              <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider mb-1">Długoterminowy motyw</p>
+            <div className="border-l-2 border-warning pl-3 py-1">
+              <p className="text-[10px] text-warning font-bold uppercase tracking-wider mb-1">Długoterminowy motyw</p>
               <p className="text-sm text-text-primary leading-relaxed">{phase1.longterm_motif}</p>
             </div>
           )}
@@ -96,12 +97,12 @@ export function Block2WeekStats({
         <div className="space-y-1 mt-1">
           {weekFacts.doneTasks.map((t, i) => (
             <div key={i} className="flex items-start gap-2 text-xs text-text-secondary">
-              <span className="text-emerald-500 mt-0.5 shrink-0">✓</span><span>{t}</span>
+              <span className="text-success mt-0.5 shrink-0">✓</span><span>{t}</span>
             </div>
           ))}
           {weekFacts.droppedTasks.map((t, i) => (
             <div key={i} className="flex items-start gap-2 text-xs text-text-muted">
-              <span className="text-red-400 mt-0.5 shrink-0">↯</span><span>{t}</span>
+              <span className="text-danger mt-0.5 shrink-0">↯</span><span>{t}</span>
             </div>
           ))}
         </div>

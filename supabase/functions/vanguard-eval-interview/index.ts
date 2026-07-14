@@ -11,6 +11,7 @@
 import { serveJson } from "../_shared/http.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { sendMessageParsed } from "../_shared/telegram.ts";
 import { getStreamBySource, insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 import { isUsableQuestion, buildDeterministicMemoryQuestion, generateActiveLearningQuestion, generateDeepeningQuestion } from "./questionGenerator.ts";
@@ -225,7 +226,7 @@ Deno.serve(serveJson(async (req, ctx) => {
   try {
     const reformulationResult = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: "deepseek-v4-flash",
+      ...LLM_TASKS.synthesis,
       maxTokens: 120,
       temperature: 0.3,
       timeoutMs: 6000,

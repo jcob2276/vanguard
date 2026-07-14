@@ -1,4 +1,5 @@
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 
 export type SourceRef = {
   table: string;
@@ -205,11 +206,10 @@ JSON:
 
   const { content } = await deepseekChat({
     apiKey: Deno.env.get("DEEPSEEK_API_KEY") || "",
-    model: "deepseek-v4-flash",
+    ...LLM_TASKS.structured,
     temperature: 0.0,
     maxTokens: 1800,
     timeoutMs: 45000,
-    responseFormat: { type: "json_object" },
     messages: [
       { role: "system", content: system },
       { role: "user", content: `EXISTING PAGES:\n${JSON.stringify(params.existingPages, null, 2)}\n\nSOURCES:\n${JSON.stringify(params.sources, null, 2)}` },

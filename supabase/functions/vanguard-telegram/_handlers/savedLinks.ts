@@ -1,5 +1,6 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { getStreamByTelegramMessageId, insertStreamRecord } from "../../_shared/repos/streamRepo.ts";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -115,9 +116,7 @@ export async function generateLinkAnalysis(
   try {
     const { content } = await deepseekChat({
       apiKey,
-      model: 'deepseek-v4-flash',
-      temperature: 0.2,
-      maxTokens: 250,
+      ...LLM_TASKS.structured,
       messages: [{
         role: 'user',
         content:
@@ -125,7 +124,8 @@ export async function generateLinkAnalysis(
           `Zwróć JSON: {"takeaways":["wniosek1","wniosek2","wniosek3"],"category":"Kariera|Zdrowie|Technologia|Biznes|Inne"} — ` +
           `dokładnie 3 krótkie wnioski po polsku i jedna kategoria.`,
       }],
-      responseFormat: { type: 'json_object' },
+      maxTokens: 250,
+      temperature: 0.2,
       timeoutMs: 12000,
     });
     const parsed = parseJsonFromContent(content || '{}') ?? {};

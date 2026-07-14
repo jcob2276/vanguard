@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Activity, Sparkles } from 'lucide-react';
 import { useSession } from '../../store/useStore';
 import Spinner from '../ui/Spinner';
+import Tabs from '../ui/Tabs';
 
 const Stats             = lazy(() => import('./Stats'));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
@@ -26,35 +27,26 @@ interface Props {
 export function DashboardHistoriaTab({ historySubTab, onSetSubTab }: Props) {
   const session = useSession();
   if (!session) return null;
+
+  const tabs = [
+    { key: 'chronicle', label: 'Kronika', icon: <Sparkles size={14} /> },
+    { key: 'bio', label: 'Trener & Bio', icon: <Activity size={14} /> },
+  ];
+
   return (
     <div className="p-5 pb-8">
       <Suspense fallback={<ViewFallback />}>
         <div className="space-y-6">
-          <div className="flex justify-center px-1">
-            <div className="flex w-full p-0.75 bg-slate-100 dark:bg-white/[0.04] rounded-2xl border border-border-custom/50">
-              <button
-                type="button"
-                onClick={() => onSetSubTab('chronicle')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer text-[12px] font-bold ${historySubTab === 'chronicle' ? 'bg-bg-secondary shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-primary' : 'text-text-muted hover:text-text-primary'}`}
-              >
-                <Sparkles size={14} />
-                <span>Kronika</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSetSubTab('bio')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer text-[12px] font-bold ${historySubTab === 'bio' ? 'bg-bg-secondary shadow-[0_4px_12px_rgba(0,0,0,0.05)] text-primary' : 'text-text-muted hover:text-text-primary'}`}
-              >
-                <Activity size={14} />
-                <span>Trener & Bio</span>
-              </button>
-            </div>
+          <div className="px-1">
+            <Tabs tabs={tabs} active={historySubTab} onChange={onSetSubTab as (key: string) => void} />
           </div>
 
-          <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
+          <div className={historySubTab === 'chronicle' ? 'lg:grid lg:grid-cols-2 lg:gap-5 space-y-7 lg:space-y-0' : 'hidden'}>
             <TaskAnalyticsCard />
             <InsightsDashboard />
-            <Photos />
+            <div className="lg:col-span-2">
+              <Photos />
+            </div>
           </div>
           <div className={historySubTab === 'bio' ? '' : 'hidden'}>
             <Stats runningSlot={<StravaWidget session={session} />} />

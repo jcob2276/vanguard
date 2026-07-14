@@ -3,6 +3,7 @@ import GrowthLearningPanel from './GrowthLearningPanel';
 import GrowthMediaQueue from './GrowthMediaQueue';
 import GrowthProjectsPanel from './GrowthProjectsPanel';
 import GrowthSkillsList from './GrowthSkillsList';
+import Skeleton from '../ui/Skeleton';
 import GrowthCockpit from './GrowthCockpit';
 import GrowthWeekPlan from './GrowthWeekPlan';
 import WeekLoopSummary from '../shared/WeekLoopSummary';
@@ -43,7 +44,7 @@ export default function GrowthViewMainContent({
   const { startEditScores, handleAddMustForProject, openPicker, handleQuickPinLink, handleQuickPinTodo, handleDonePin, handleRemovePin } = actions;
 
   if (loading) {
-    return <div className="h-64 animate-pulse rounded-2xl bg-surface border border-border-custom" />;
+    return <Skeleton variant="card" className="h-64 rounded-2xl" />;
   }
 
   return (

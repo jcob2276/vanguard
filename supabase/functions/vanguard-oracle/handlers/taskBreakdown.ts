@@ -1,5 +1,6 @@
 import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 
 const TASK_BREAKDOWN_SYSTEM = `Jestes asystentem Jakuba. Dostajesz jedno zadanie i zwracasz liste 3-6 konkretnych podzadan potrzebnych do jego wykonania.
 
@@ -28,13 +29,13 @@ export async function handleTaskBreakdown(req: Request, body: any): Promise<unkn
 
   const result = await deepseekChat({
     apiKey,
+    ...LLM_TASKS.structured,
     messages: [
       { role: "system", content: TASK_BREAKDOWN_SYSTEM },
       { role: "user", content: userMsg },
     ],
     maxTokens: 300,
     temperature: 0.3,
-    responseFormat: { type: "json_object" },
   });
 
   const parsed = parseJsonFromContent(result.content) || {};

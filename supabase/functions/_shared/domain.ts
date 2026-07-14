@@ -28,6 +28,19 @@ export const ALLOWED_FRICTION_TYPES = [
 ] as const;
 export type FrictionType = typeof ALLOWED_FRICTION_TYPES[number];
 
+// Musi zgadzać się z CHECK constraintami vanguard_wiki_pages (page_type / status) —
+// wartości pochodzą z LLM, więc każdy zapis musi przejść przez clamp na te listy.
+export const ALLOWED_WIKI_PAGE_TYPES = [
+  'identity', 'behavior_pattern', 'person', 'project', 'training', 'health',
+  'decision', 'friction_loop', 'concept', 'source_summary', 'operating_model', 'goal',
+] as const;
+export type WikiPageType = typeof ALLOWED_WIKI_PAGE_TYPES[number];
+
+export const ALLOWED_WIKI_STATUSES = [
+  'hypothesis', 'active', 'needs_review', 'user_confirmed', 'user_rejected', 'archived',
+] as const;
+export type WikiStatus = typeof ALLOWED_WIKI_STATUSES[number];
+
 // Centralized color mapping for UI
 export const FRICTION_COLOR: Record<FrictionType, string> = {
   sleep_disruption: '#f59e0b',

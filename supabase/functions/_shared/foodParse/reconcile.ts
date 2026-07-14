@@ -1,4 +1,5 @@
 import { deepseekChat, parseJsonFromContent } from "../deepseek.ts";
+import { LLM_TASKS } from "../llm/tasks.ts";
 import { lookupGenericFood, scoreFoodNameMatch } from "../foodGeneric.ts";
 import { lookupReferencePl } from "../foodReferencePl.ts";
 import type { ParsedFoodItem, UserParseContext, FoodCorrection } from "../foodParseCore.ts";
@@ -80,7 +81,15 @@ async function lookupOffFast(name: string): Promise<{ match: Per100gFood; score:
 
 async function verifyMatchWithLLM(query: string, candidate: string, apiKey: string): Promise<boolean> {
   try {
-    const res = await deepseekChat({ apiKey, model: 'deepseek-chat', temperature: 0, maxTokens: 5, timeoutMs: 5000, messages: [{ role: 'user', content: `Czy "${query}" odpowiada "${candidate}"? TAK lub NIE.` }] });
+    const res = await deepseekChat({
+      apiKey,
+      ...LLM_TASKS.structured,
+      responseFormat: undefined,
+      temperature: 0,
+      maxTokens: 5,
+      timeoutMs: 5000,
+      messages: [{ role: 'user', content: `Czy "${query}" odpowiada "${candidate}"? TAK lub NIE.` }]
+    });
     return res.content.trim().toUpperCase().includes('TAK');
   } catch { return true; }
 }
@@ -110,7 +119,13 @@ async function reconcileOne(item: ParsedFoodItem, opts: ReconcileOpts): Promise<
 export async function reconcileItems(items: ParsedFoodItem[], opts: ReconcileOpts): Promise<ParsedFoodItem[]> { return Promise.all(items.map((item) => reconcileOne(item, opts))); }
 
 export async function callParseLLM(apiKey: string, system: string, userText: string, maxTokens?: number): Promise<unknown> {
-  const result = await deepseekChat({ apiKey, model: 'deepseek-chat', temperature: 0.1, maxTokens: maxTokens ?? 1200, timeoutMs: 32000, responseFormat: { type: 'json_object' }, messages: [{ role: 'system', content: system }, { role: 'user', content: userText }] });
+  const result = await deepseekChat({
+    apiKey,
+    ...LLM_TASKS.structured,
+    maxTokens: maxTokens ?? 1200,
+    timeoutMs: 32000,
+    messages: [{ role: 'system', content: system }, { role: 'user', content: userText }]
+  });
   return parseJsonFromContent(result.content);
 }
 

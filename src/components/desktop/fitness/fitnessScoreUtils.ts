@@ -37,8 +37,14 @@ export function computeFitnessProfile(input: {
   body: BodyRow[];
   heightCm: number | null;
   today: string;
+  /** Personal protein floor (g/day) from nutrition_targets. Defaults to 140 when unavailable. */
+  proteinTargetG?: number;
+  /** Personal sleep need (h) from nutrition_profile. Defaults to 8.0 when unavailable. */
+  sleepTargetH?: number;
 }) {
-  const { oura, nutrition, sessions: rawSessions, strava, habits, habitLogs: rawHabitLogs, volData, body, heightCm, today } = input;
+  const { oura, nutrition, sessions: rawSessions, strava, habits, habitLogs: rawHabitLogs, volData, body, heightCm, today, proteinTargetG, sleepTargetH } = input;
+  const resolvedProteinG = proteinTargetG ?? 140;
+  const resolvedSleepH = sleepTargetH ?? 8.0;
   const since7 = daysBefore(7);
   const since14 = daysBefore(14);
   const weekStart = getWeekStartWarsaw(getTodayWarsaw());
@@ -138,7 +144,7 @@ export function computeFitnessProfile(input: {
       ? oura7d.reduce((sum, o) => {
           const sleepScore =
             o.sleep_score ??
-            (o.total_sleep_hours ? Math.min(100, (o.total_sleep_hours / 8) * 100) : null) ??
+            (o.total_sleep_hours ? Math.min(100, (o.total_sleep_hours / resolvedSleepH) * 100) : null) ??
             o.readiness_score ??
             70;
           return sum + sleepScore;
@@ -147,7 +153,7 @@ export function computeFitnessProfile(input: {
   const sleepPoints = (avgSleepScore - 50) / 5;
 
   const nutr7d = nutrition.filter((n) => n.date >= since7);
-  const proteinDays = nutr7d.filter((n) => (n.protein ?? 0) >= 140).length;
+  const proteinDays = nutr7d.filter((n) => (n.protein ?? 0) >= resolvedProteinG).length;
   const proteinTargetMetRate = proteinDays / 7;
   const nutritionPoints = proteinTargetMetRate * 4;
 
@@ -286,8 +292,8 @@ export function computeFitnessProfile(input: {
           ? `${bodyBonus.detail}. `
           : '') +
         (saunaCount7d > 0
-          ? `Sen: śr. ${avgSleepScore.toFixed(0)}/100. Białko ≥140 g: ${proteinDays}/7 dni (${Math.round(proteinTargetMetRate * 100)}%). Sauna: ${saunaCount7d}× / ${saunaMinutes7d} min → +${saunaPoints.toFixed(1)} pkt.`
-          : `Sen: śr. ${avgSleepScore.toFixed(0)}/100. Białko ≥140 g: ${proteinDays}/7 dni (${Math.round(proteinTargetMetRate * 100)}%). Sauna: brak w 7 dniach.`),
+          ? `Sen: śr. ${avgSleepScore.toFixed(0)}/100. Białko ≥${resolvedProteinG} g: ${proteinDays}/7 dni (${Math.round(proteinTargetMetRate * 100)}%). Sauna: ${saunaCount7d}× / ${saunaMinutes7d} min → +${saunaPoints.toFixed(1)} pkt.`
+          : `Sen: śr. ${avgSleepScore.toFixed(0)}/100. Białko ≥${resolvedProteinG} g: ${proteinDays}/7 dni (${Math.round(proteinTargetMetRate * 100)}%). Sauna: brak w 7 dniach.`),
     },
     {
       key: 'progress',

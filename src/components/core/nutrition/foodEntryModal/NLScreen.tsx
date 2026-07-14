@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { Sparkles, Trash2, Check } from 'lucide-react';
-import Spinner from '../../../ui/Spinner';
+import Button from '../../../ui/Button';
 import { confidenceLabel } from '../../../../lib/health/foodLogging';
 import type { ParsedFoodItem } from '../../../../lib/health/foodLogging';
 
@@ -40,8 +40,14 @@ export default function NLScreen({
 
   return (
     <div className="space-y-4">
-      <button onClick={() => { setNlMode(false); setError(null); }}
-        className="text-[11px] font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => { setNlMode(false); setError(null); }}
+        className="px-0 py-0 text-text-muted hover:text-text-primary"
+      >
+        ← Wstecz
+      </Button>
 
       <div className="flex gap-1.5 flex-wrap mb-1">
         {MEAL_TYPES.map((m) => (
@@ -65,15 +71,18 @@ export default function NLScreen({
         <span className="absolute bottom-2 right-2 text-[9px] text-text-muted/40">Ctrl+Enter</span>
       </div>
 
-      <button
+      <Button
+        variant="tonal"
         onClick={parseNL}
-        disabled={!nlText.trim() || nlParsing}
-        className="w-full rounded-2xl border border-primary/30 bg-primary/[0.08] py-2.5 text-[12px] font-black uppercase tracking-wider text-primary disabled:opacity-40 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+        loading={nlParsing}
+        disabled={!nlText.trim()}
+        icon={<Sparkles size={14} />}
+        className="w-full"
       >
-        {nlParsing ? <><Spinner size="sm" className="h-3.5 w-3.5" />Parsowanie...</> : <><Sparkles size={14} />Parsuj</>}
-      </button>
+        Parsuj
+      </Button>
 
-      {error && <p className="text-[11px] text-rose-500">{error}</p>}
+      {error && <p className="text-[11px] text-danger">{error}</p>}
 
       {nlItems && (
         <div className="space-y-2">
@@ -90,8 +99,8 @@ export default function NLScreen({
                     <span>{item.grams}g</span>
                     {confidenceLabel(item) && (
                       <span className={`rounded px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide ${
-                        item.confidence === 'low' ? 'bg-amber-500/15 text-amber-400' :
-                        item.source === 'library' || item.source === 'database' ? 'bg-emerald-500/15 text-emerald-400' :
+                        item.confidence === 'low' ? 'bg-warning/15 text-warning' :
+                        item.source === 'library' || item.source === 'database' ? 'bg-success/15 text-success' :
                         'bg-primary/10 text-primary/80'
                       }`}>
                         {confidenceLabel(item)}
@@ -99,7 +108,7 @@ export default function NLScreen({
                     )}
                   </p>
                   {item.assumptions?.length ? (
-                    <p className="text-[9px] text-amber-600/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>
+                    <p className="text-[9px] text-warning/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>
                   ) : null}
                 </div>
                 <div className="shrink-0 text-right">
@@ -108,16 +117,17 @@ export default function NLScreen({
                     {item.protein}B · {item.carbs ?? '?'}W · {item.fat ?? '?'}T
                   </p>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setNlRemovedIdx(prev => {
                     const next = new Set(prev);
                     if (next.has(i)) next.delete(i); else next.add(i);
                     return next;
                   })}
-                  className="shrink-0 rounded-full p-1 transition-all cursor-pointer text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
+                  className="shrink-0 rounded-full p-1 text-text-muted hover:text-danger hover:bg-danger/10 active:scale-95 transition-all"
                 >
-                  {removed ? <Check size={13} className="text-emerald-400" /> : <Trash2 size={13} />}
-                </button>
+                  {removed ? <Check size={13} className="text-success" /> : <Trash2 size={13} />}
+                </Button>
               </div>
             );
           })}
@@ -134,19 +144,21 @@ export default function NLScreen({
                   <span className="text-[10px] text-text-muted">
                     Łącznie: <span className="font-black text-text-secondary">{totKcal} kcal</span>
                     {' · '}<span className="font-bold text-primary">{totB}B</span>
-                    {' · '}<span className="font-bold text-amber-400">{totW}W</span>
+                    {' · '}<span className="font-bold text-warning">{totW}W</span>
                     {' · '}<span className="font-bold text-text-secondary">{totT}T</span>
                   </span>
                 );
               })()}
             </div>
-            <button
+            <Button
+              variant="primary"
               onClick={saveNLItems}
-              disabled={nlSaving || nlActiveCount === 0}
-              className="w-full rounded-2xl bg-primary py-3 text-[12px] font-black uppercase tracking-wider text-white disabled:opacity-50 active:scale-95 transition-all cursor-pointer"
+              loading={nlSaving}
+              disabled={nlActiveCount === 0}
+              className="w-full"
             >
-              {nlSaving ? 'Zapisuję...' : `Dodaj ${nlActiveCount} ${nlActiveCount === 1 ? 'produkt' : nlActiveCount < 5 ? 'produkty' : 'produktów'}`}
-            </button>
+              Dodaj {nlActiveCount} {nlActiveCount === 1 ? 'produkt' : nlActiveCount < 5 ? 'produkty' : 'produktów'}
+            </Button>
           </div>
         </div>
       )}

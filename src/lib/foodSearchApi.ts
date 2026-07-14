@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from './supabase';
+import { supabase, invokeEdge } from './supabase';
 import { NETWORK_TIMEOUT_MS } from './constants';
 
 // Mirrors components/core/nutrition/hooks/foodEntryUtils.ts's FoodBase --
@@ -34,17 +34,13 @@ async function fetchFoodSearch(userId: string, query: string): Promise<FoodBase[
     .ilike('name', `%${trimmed}%`)
     .limit(10);
 
-  const { data: { session: authSession } } = await supabase.auth.getSession();
-  const offPromise = fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?q=${encodeURIComponent(trimmed)}`,
+  const offPromise = invokeEdge<{ results?: FoodBase[] }>(
+    `lookup-food?q=${encodeURIComponent(trimmed)}`,
     {
-      headers: { Authorization: `Bearer ${authSession?.access_token}` },
+      method: 'GET',
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-    },
-  ).then((res) => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  });
+    }
+  );
 
   const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
   if (libraryRes.error) {

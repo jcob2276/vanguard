@@ -1,5 +1,6 @@
 import { resolveUserScope } from "../../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 
 export async function handleGoalCreate(req: Request, body: any): Promise<unknown> {
   const { userId: scopeId } = await resolveUserScope(req, body.userId ?? null);
@@ -53,14 +54,13 @@ WAŻNE: Checkpointy muszą być w kolejności rosnącej dat. Żaden checkpoint n
 
   const { content } = await deepseekChat({
     apiKey,
+    ...LLM_TASKS.structured,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    model: "deepseek-v4-flash",
     maxTokens: 800,
     temperature: 0.4,
-    responseFormat: { type: "json_object" },
   });
 
   const parsed = parseJsonFromContent(content);

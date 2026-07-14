@@ -26,7 +26,7 @@ export default function GeneralMemexPanels({
               <Card key={i} variant="outline" padding="0.625rem" className="hover:border-primary/20 hover:shadow-sm transition-all duration-150">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="text-[11px] font-bold text-text-primary leading-tight">{p.title || p.pattern_type}</span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${p.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${p.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'}`}>
                     {p.status}
                   </span>
                 </div>
@@ -68,7 +68,7 @@ export default function GeneralMemexPanels({
           {wiki.map((w, i) => (
             <Card key={i} variant="outline" padding="0.625rem">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${w.status === 'active' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${w.status === 'active' ? 'bg-success' : 'bg-warning'}`} />
                 <span className="text-[10px] font-bold text-text-primary truncate">{w.title}</span>
               </div>
               <div className="flex gap-2 text-[9px] text-text-muted">

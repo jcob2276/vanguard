@@ -65,7 +65,7 @@ export default function DailyStrainCard({
 
   if (queryError) {
     return (
-      <div className="card border-red-500/20 p-4">
+      <div className="card border-danger/20 p-4">
         <DataStateNotice
           tone="warning"
           title="Obciążenie niedostępne"
@@ -89,8 +89,8 @@ export default function DailyStrainCard({
   const { row, oura } = dbData;
   const strainScore = row.strain_score ?? 0;
   const recoveryScore = row.recovery_score ?? 0;
-  const strainTone = strainScore >= 15 ? 'text-orange-500 dark:text-orange-400' : strainScore >= 8 ? 'text-text-primary' : 'text-text-secondary';
-  const recovTone = recoveryScore >= 75 ? 'text-emerald-600 dark:text-emerald-400' : recoveryScore >= 55 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
+  const strainTone = strainScore >= 15 ? 'text-warning dark:text-warning' : strainScore >= 8 ? 'text-text-primary' : 'text-text-secondary';
+  const recovTone = recoveryScore >= 75 ? 'text-success dark:text-success' : recoveryScore >= 55 ? 'text-warning dark:text-warning' : 'text-danger dark:text-danger';
   const missingSignals = [
     row.strain_score == null ? 'strain niepoliczony' : null,
     row.recovery_score == null ? 'recovery bez danych Oura' : null,
@@ -133,7 +133,7 @@ export default function DailyStrainCard({
 
       {wellnessLoad != null && wellnessLoad > 0 && (
         <p className="text-[9.5px] text-text-muted relative z-10">
-          Wellness (sauna / zimno): <span className="font-bold text-orange-500">{wellnessLoad}</span> pkt w strain
+          Wellness (sauna / zimno): <span className="font-bold text-warning">{wellnessLoad}</span> pkt w strain
         </p>
       )}
 

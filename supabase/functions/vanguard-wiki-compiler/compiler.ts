@@ -1,6 +1,8 @@
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
 import { getEmbedding } from "../_shared/openai.ts";
+import { ALLOWED_WIKI_PAGE_TYPES, ALLOWED_WIKI_STATUSES } from "../_shared/domain.ts";
 import {
   type SourceRef, type WikiPageDraft, type ReviewDraft,
   clamp, slugify, safeArray, trimText, compactSources, sourceRefs,
@@ -40,8 +42,9 @@ export async function compileForUser(supabase: any, userId: string, opts: { mode
 
   const chatResult = await deepseekChat({
     apiKey: Deno.env.get("DEEPSEEK_API_KEY") || "",
-    model: "deepseek-v4-flash", temperature: 0.1, maxTokens: 8000, timeoutMs: 75000,
-    responseFormat: { type: "json_object" },
+    ...LLM_TASKS.structured,
+    maxTokens: 8000,
+    timeoutMs: 75000,
     messages: [{ role: "system", content: system }, { role: "user", content: user }],
   });
   const content = chatResult.content;
@@ -204,9 +207,13 @@ async function persistResults(supabase: any, userId: string, now: Date, pages: W
     const slug = slugify(draft.slug || draft.title);
     try {
       const refs = safeArray<SourceRef>(draft.source_refs).slice(0, 12);
+      // page_type/status pochodzą z LLM — clamp na słowniki zgodne z CHECK constraintami,
+      // inaczej nielegalna wartość = cichy skip całej strony (catch niżej).
+      const pageType = (ALLOWED_WIKI_PAGE_TYPES as readonly string[]).includes(draft.page_type ?? "") ? draft.page_type : "concept";
+      const pageStatus = (ALLOWED_WIKI_STATUSES as readonly string[]).includes(draft.status ?? "") ? draft.status : "hypothesis";
       const payload = {
         user_id: userId, slug, title: trimText(draft.title || slug, 120),
-        page_type: draft.page_type || "concept", status: draft.status || "hypothesis",
+        page_type: pageType, status: pageStatus,
         confidence: clamp(Number(draft.confidence ?? 0.55)),
         summary: trimText(draft.summary || "", 600),
         content_md: String(draft.content_md || draft.summary || ""),
@@ -231,11 +238,11 @@ async function persistResults(supabase: any, userId: string, now: Date, pages: W
           const embedding = await getEmbedding(knowledgeContent, openaiKey);
           if (embedding) {
             const importanceScore = Math.round(clamp(Number(draft.confidence ?? 0.55)) * 10);
-            const isVerified = draft.status === "user_confirmed" || draft.status === "active";
+            const isVerified = pageStatus === "user_confirmed" || pageStatus === "active";
             const { data: existingKn } = await supabase.from("vanguard_knowledge").select("id").eq("user_id", userId).eq("metadata->>slug", slug).maybeSingle();
             const payloadKn: any = {
               user_id: userId, title: titleText, content: knowledgeContent,
-              category: draft.page_type || "concept", importance_score: importanceScore,
+              category: pageType, importance_score: importanceScore,
               is_verified: isVerified, embedding, metadata: { slug, wiki_page_id: data.id },
               updated_at: now.toISOString(),
             };

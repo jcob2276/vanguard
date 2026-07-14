@@ -20,7 +20,7 @@ export default function WeeklyReviewInboxTriage() {
     <div className="space-y-4">
       <div>
         <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
-          <Inbox size={15} className="text-indigo-500" />
+          <Inbox size={15} className="text-primary" />
           Krok 1: Triaż Skrzynki Odbiorczej
         </h3>
         <p className="text-[10px] text-text-muted mt-0.5">
@@ -78,7 +78,7 @@ export default function WeeklyReviewInboxTriage() {
                         completed_at: new Date().toISOString(),
                       })
                     }
-                    className="p-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 hover:bg-emerald-500/10 transition-colors btn-press"
+                    className="p-1 rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/10 transition-colors btn-press"
                     title="Wykonaj"
                   >
                     <Check size={12} />
@@ -87,7 +87,7 @@ export default function WeeklyReviewInboxTriage() {
                   {/* Drop Button */}
                   <button
                     onClick={() => stageUpdate(item.id, { status: 'dropped' })}
-                    className="p-1 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+                    className="p-1 rounded-lg border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 transition-colors btn-press"
                     title="Odpuść"
                   >
                     <Trash2 size={12} />

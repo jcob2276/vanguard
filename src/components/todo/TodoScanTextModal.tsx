@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { createTodoItem } from '../../lib/todo/todo';
 import type { TodoItemRow } from './useTodoData';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import Badge from '../ui/Badge';
 
 interface ExtractedTask {
   title: string;
@@ -84,9 +86,9 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
       size="sm"
     >
       <div className="flex items-center gap-2 mb-1">
-        <ScanText size={17} className="text-indigo-400" />
+        <ScanText size={17} className="text-primary" />
         <h3 className="text-[15px] font-bold text-text-primary">Skan Tekstu</h3>
-        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-500">Beta</span>
+        <Badge variant="tag" color="var(--color-success)" className="tracking-wider">Beta</Badge>
       </div>
 
       {!tasks ? (
@@ -109,16 +111,18 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
               </p>
             ))}
           </div>
-          {error && <p className="text-[11px] font-semibold text-rose-400">{error}</p>}
+          {error && <p className="text-[11px] font-semibold text-danger">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="todoist-btn-secondary">Anuluj</button>
-            <button
+            <Button onClick={onClose} variant="ghost" size="sm">Anuluj</Button>
+            <Button
               onClick={processText}
               disabled={extracting || !text.trim()}
-              className="flex items-center gap-1.5 todoist-btn-primary disabled:opacity-40"
+              loading={extracting}
+              icon={!extracting ? <Sparkles size={13} /> : undefined}
+              size="sm"
             >
-              {extracting ? <span className="animate-pulse">Przetwarzam…</span> : <><Sparkles size={13} /> Przetwórz tekst</>}
-            </button>
+              {extracting ? 'Przetwarzam…' : 'Przetwórz tekst'}
+            </Button>
           </div>
         </>
       ) : (
@@ -141,16 +145,17 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
               </button>
             ))}
           </div>
-          {error && <p className="text-[11px] font-semibold text-rose-400">{error}</p>}
+          {error && <p className="text-[11px] font-semibold text-danger">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button onClick={() => setTasks(null)} className="todoist-btn-secondary">Wstecz</button>
-            <button
+            <Button onClick={() => setTasks(null)} variant="ghost" size="sm">Wstecz</Button>
+            <Button
               onClick={addSelected}
               disabled={creating || selectedCount === 0}
-              className="todoist-btn-primary disabled:opacity-40"
+              loading={creating}
+              size="sm"
             >
               {creating ? 'Dodaję…' : `Dodaj zadania (${selectedCount})`}
-            </button>
+            </Button>
           </div>
         </>
       )}

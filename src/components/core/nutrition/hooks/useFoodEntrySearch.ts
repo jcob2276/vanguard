@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '../../../../lib/supabase';
+import { supabase, invokeEdge } from '../../../../lib/supabase';
 import { NETWORK_TIMEOUT_MS } from '../../../../lib/constants';
 import { type FoodBase, scale } from './foodEntryUtils';
 import { useHaptics } from '../../../../hooks/useHaptics';
@@ -19,17 +19,13 @@ async function searchFood(query: string, userId: string): Promise<FoodBase[]> {
     .ilike('name', `%${query.trim()}%`)
     .limit(10);
 
-  const { data: { session: authSession } } = await supabase.auth.getSession();
-  const offPromise = fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?q=${encodeURIComponent(query.trim())}`,
+  const offPromise = invokeEdge<{ results: FoodBase[] }>(
+    `lookup-food?q=${encodeURIComponent(query.trim())}`,
     {
-      headers: { Authorization: `Bearer ${authSession?.access_token}` },
+      method: 'GET',
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     }
-  ).then((res) => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  });
+  );
 
   const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
   if (libraryRes.error) {
@@ -56,16 +52,13 @@ async function searchFood(query: string, userId: string): Promise<FoodBase[]> {
 }
 
 async function lookupBarcodeApi(code: string): Promise<FoodBase | null> {
-  const { data: { session: authSession } } = await supabase.auth.getSession();
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-food?barcode=${encodeURIComponent(code)}`,
+  const json = await invokeEdge<{ results: FoodBase[] }>(
+    `lookup-food?barcode=${encodeURIComponent(code)}`,
     {
-      headers: { Authorization: `Bearer ${authSession?.access_token}` },
+      method: 'GET',
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     }
   );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
   return (json.results || [])[0] ?? null;
 }
 

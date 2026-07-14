@@ -1,4 +1,5 @@
 import { BarChart2 } from 'lucide-react';
+import { Card } from '../ui/Card';
 import type { UserStatsSnapshot } from './hooks/useUserStatsSnapshot';
 
 interface MetricPillProps { value: number; label: string; color: string; }
@@ -43,11 +44,10 @@ interface Props { snapshot: UserStatsSnapshot | null; loading?: boolean; }
 
 export function UserStatsOverviewCard({ snapshot, loading }: Props) {
   return (
-    <div className="rounded-[20px] border p-4 space-y-3"
-      style={{ background: 'white', borderColor: 'rgba(153,161,175,0.12)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+    <Card variant="glass" padding="1rem" className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(91,108,255,0.08)' }}>
-          <BarChart2 size={13} style={{ color: '#5B6CFF' }} />
+          <BarChart2 size={13} style={{ color: 'var(--color-primary)' }} />
         </div>
         <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Aktywność</span>
         {snapshot && (
@@ -64,14 +64,14 @@ export function UserStatsOverviewCard({ snapshot, loading }: Props) {
           </p>
 
           <div className="flex gap-2">
-            <MetricPill value={snapshot.totalInputs} label="Rekordy" color="#5B6CFF" />
-            <MetricPill value={snapshot.totalCards} label="Karty" color="#10B981" />
-            <MetricPill value={snapshot.totalCompletedTodos} label="Zadania" color="#F59E0B" />
+            <MetricPill value={snapshot.totalInputs} label="Rekordy" color="var(--color-primary)" />
+            <MetricPill value={snapshot.totalCards} label="Karty" color="var(--color-success)" />
+            <MetricPill value={snapshot.totalCompletedTodos} label="Zadania" color="var(--color-warning)" />
           </div>
 
           <MiniBarChart data={snapshot.daily} />
         </>
       )}
-    </div>
+    </Card>
   );
 }

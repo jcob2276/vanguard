@@ -23,18 +23,26 @@ export interface DeepSeekTool {
   };
 }
 
-export interface DeepSeekChatParams {
+export type DeepSeekChatParams = {
   apiKey: string;
   messages: DeepSeekMessage[];
-  model?: string;
   maxTokens?: number | null;
   temperature?: number | null;
   timeoutMs?: number;
-  responseFormat?: { type: 'json_object' };
   tools?: DeepSeekTool[];
   userId?: string;
   feature?: string;
-}
+} & (
+  | {
+      model?: 'deepseek-chat';
+      responseFormat?: { type: 'json_object' };
+    }
+  | {
+      model: 'deepseek-v4-flash' | 'deepseek-reasoner';
+      responseFormat?: never;
+    }
+);
+
 
 export interface DeepSeekChatResult {
   content: string;

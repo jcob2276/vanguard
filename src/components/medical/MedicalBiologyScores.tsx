@@ -1,13 +1,16 @@
 import type { BiologyScoreResult } from '../../lib/getBased/biologyScoresLite';
 import { toneColorClass } from '../../lib/getBased/biologyScoresLite';
+import { Card } from '../ui/Card';
 
 function ScoreCard({ score }: { score: BiologyScoreResult }) {
   const noData = score.score == null && score.toneLabel === 'Brak danych';
   return (
-    <article
-      className={`rounded-2xl border border-border-custom p-4 flex flex-col gap-2 ${
+    <Card
+      variant="glass"
+      className={`border-border-custom flex flex-col gap-2 ${
         noData ? 'bg-surface/15 opacity-90' : 'bg-surface/30'
       }`}
+      padding="1rem"
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -34,13 +37,13 @@ function ScoreCard({ score }: { score: BiologyScoreResult }) {
       {score.flags.length > 0 && (
         <ul className="space-y-1 mt-1">
           {score.flags.slice(0, 3).map((f) => (
-            <li key={f} className="text-[10px] text-amber-700 dark:text-amber-400 leading-snug">
+            <li key={f} className="text-[10px] text-warning dark:text-warning leading-snug">
               {f}
             </li>
           ))}
         </ul>
       )}
-    </article>
+    </Card>
   );
 }
 

@@ -20,7 +20,7 @@ export default function WeeklyReviewSectionAudit() {
     <div className="space-y-4">
       <div>
         <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
-          <Folder size={15} className="text-indigo-500" />
+          <Folder size={15} className="text-primary" />
           Krok 2: Audyt Sekcji i Projektów
         </h3>
         <p className="text-[10px] text-text-muted mt-0.5">
@@ -40,7 +40,7 @@ export default function WeeklyReviewSectionAudit() {
                 onClick={() => setCurrentSectionIdx(idx)}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
                   idx === currentSectionIdx
-                    ? 'bg-indigo-500 border-transparent text-white'
+                    ? 'bg-primary border-transparent text-white'
                     : 'border-border-custom/60 text-text-muted bg-surface-solid/20'
                 }`}
               >
@@ -63,7 +63,7 @@ export default function WeeklyReviewSectionAudit() {
             return (
               <div className="space-y-2.5">
                 <div className="p-3 bg-slate-50 dark:bg-white/[0.01] rounded-xl border border-border-custom/30">
-                  <span className="text-[11px] font-black text-indigo-500 uppercase tracking-wider block">
+                  <span className="text-[11px] font-black text-primary uppercase tracking-wider block">
                     Bieżący Projekt:
                   </span>
                   <span className="text-[13px] font-bold text-text-primary mt-0.5 block">
@@ -117,7 +117,7 @@ export default function WeeklyReviewSectionAudit() {
                                   completed_at: new Date().toISOString(),
                                 })
                               }
-                              className="p-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 hover:bg-emerald-500/10 transition-colors btn-press"
+                              className="p-1 rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/10 transition-colors btn-press"
                             >
                               <Check size={12} />
                             </button>
@@ -125,7 +125,7 @@ export default function WeeklyReviewSectionAudit() {
                             {/* Drop */}
                             <button
                               onClick={() => stageUpdate(item.id, { status: 'dropped' })}
-                              className="p-1 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+                              className="p-1 rounded-lg border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 transition-colors btn-press"
                             >
                               <Trash2 size={12} />
                             </button>

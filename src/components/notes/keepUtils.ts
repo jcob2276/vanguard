@@ -106,7 +106,7 @@ export function highlightHtml(html: string, query: string): string {
   const regex = new RegExp(`(<[^>]+>)|(${esc})`, 'gi');
   return html.replace(regex, (match, p1, p2) => {
     if (p1) return p1;
-    return `<mark class="bg-yellow-300 dark:bg-yellow-600/50 text-black dark:text-white px-0.5 rounded">${p2}</mark>`;
+    return `<mark class="bg-warning dark:bg-warning/50 text-black dark:text-white px-0.5 rounded">${p2}</mark>`;
   });
 }
 

@@ -82,7 +82,7 @@ export default function KeepSidebar({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onConfirmDeleteTag(tag); }}
-            className="hidden group-hover:flex p-1 rounded hover:bg-rose-500/10 text-text-muted hover:text-rose-500 transition-colors cursor-pointer"
+            className="hidden group-hover:flex p-1 rounded hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"
             title="Usuń tag ze wszystkich notatek"
           >
             <Trash2 size={12} />

@@ -30,27 +30,27 @@ export const PRIORITY_ORDER = ['low', 'normal', 'high', 'urgent'];
 
 export const PRIORITY: Record<string, { ring: string; fill: string; chip: string; label: string }> = {
   low: {
-    ring: 'border-emerald-400',
-    fill: 'bg-emerald-500',
-    chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    ring: 'border-success',
+    fill: 'bg-success',
+    chip: 'bg-success/10 text-success dark:text-success',
     label: 'Quick Win'
   },
   normal: {
-    ring: 'border-sky-400',
-    fill: 'bg-sky-500',
-    chip: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    ring: 'border-info',
+    fill: 'bg-info',
+    chip: 'bg-info/10 text-info dark:text-info',
     label: 'Focus'
   },
   high: {
-    ring: 'border-violet-500',
-    fill: 'bg-violet-500',
-    chip: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    ring: 'border-primary',
+    fill: 'bg-primary',
+    chip: 'bg-primary/10 text-primary dark:text-primary',
     label: 'Deep Work'
   },
   urgent: {
-    ring: 'border-rose-500',
-    fill: 'bg-rose-500',
-    chip: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+    ring: 'border-danger',
+    fill: 'bg-danger',
+    chip: 'bg-danger/10 text-danger dark:text-danger',
     label: 'Urgent'
   }
 };
@@ -72,12 +72,12 @@ export function formatUpcomingDateHeader(dateStr: string): string {
 
 export function relativeDate(dateStr: string | null | undefined, today: string) {
   if (!dateStr) return null;
-  if (dateStr === today) return { text: 'Dziś', color: 'text-emerald-500' };
+  if (dateStr === today) return { text: 'Dziś', color: 'text-success' };
   const diff = Math.round(
     (new Date(dateStr + 'T12:00:00Z').getTime() - new Date(today + 'T12:00:00Z').getTime()) / 86400000
   );
-  if (diff < 0) return { text: `${Math.abs(diff)}d po terminie`, color: 'text-rose-500 font-black' };
-  if (diff === 1) return { text: 'Jutro', color: 'text-sky-500' };
+  if (diff < 0) return { text: `${Math.abs(diff)}d po terminie`, color: 'text-danger font-black' };
+  if (diff === 1) return { text: 'Jutro', color: 'text-info' };
   if (diff <= 7) return { text: `za ${diff} dni`, color: 'text-text-muted' };
   return { text: format(new Date(dateStr + 'T00:00:00'), 'd MMM'), color: 'text-text-muted' };
 }

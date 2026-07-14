@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Plus } from 'lucide-react';
+import { Card } from '../../ui/Card';
 import {
   WorkoutExercise,
   useExerciseHistory,
@@ -75,7 +76,7 @@ export default function ExerciseCard({
   }, 0);
 
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface overflow-hidden shadow-sm">
+    <Card variant="glass" className="border border-border-custom" padding="0">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border-custom bg-text-primary/[0.01]">
         <ExerciseNameInput
@@ -91,7 +92,7 @@ export default function ExerciseCard({
         </button>
         <button
           onClick={removeExercise}
-          className="p-1 text-text-muted hover:text-rose-500 transition-colors cursor-pointer"
+          className="p-1 text-text-muted hover:text-danger transition-colors cursor-pointer"
         >
           <Trash2 size={14} />
         </button>
@@ -114,7 +115,7 @@ export default function ExerciseCard({
             return s ? (
               <span
                 className={`ml-auto text-[10px] font-black ${
-                  progressed ? 'text-emerald-500' : 'text-text-secondary'
+                  progressed ? 'text-success' : 'text-text-secondary'
                 }`}
               >
                 → {s}kg{progressed ? ' ↑' : ''}
@@ -156,6 +157,6 @@ export default function ExerciseCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

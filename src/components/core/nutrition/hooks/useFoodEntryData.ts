@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../../lib/date';
 import { useHaptics } from '../../../../hooks/useHaptics';
+import { useUserId } from '../../../../store/useStore';
 import { defaultMealType } from '../../../../lib/health/foodLogging';
-import type { Session } from '@supabase/supabase-js';
 
 // Re-export types and utilities for backward compatibility
 export * from './foodEntryUtils';
@@ -17,7 +17,6 @@ import { useFoodEntryEdit } from './useFoodEntryEdit';
 import { useFoodEntryActions } from './useFoodEntryActions';
 
 export interface UseFoodEntryDataProps {
-  session: Session;
   onClose: () => void;
   onSaved?: () => void;
   initialEditEntry?: RecentEntry;
@@ -26,14 +25,13 @@ export interface UseFoodEntryDataProps {
 }
 
 export function useFoodEntryData({
-  session,
   onClose: _onClose,
   onSaved,
   initialEditEntry,
   initialMealType,
   searchInputRef,
 }: UseFoodEntryDataProps) {
-  const userId = session?.user?.id;
+  const userId = useUserId();
   const haptics = useHaptics();
 
   const [mealType, setMealType] = useState(
@@ -75,7 +73,6 @@ export function useFoodEntryData({
 
   const nl = useFoodEntryNL({
     userId,
-    session,
     mealType,
     setError,
     onSaved,

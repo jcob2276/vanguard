@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Button from '../ui/Button';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection } from './stats/BodyMetricsSection';
@@ -110,9 +111,14 @@ export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?
           isAnalyzing={isAnalyzing}
         />
 
-        <button onClick={exportOuraCSV} disabled={isExportingOura} className="w-full rounded-xl border border-border-custom px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-text-muted transition-colors hover:border-primary/45 hover:text-primary cursor-pointer">
+        <Button
+          variant="outline"
+          onClick={exportOuraCSV}
+          disabled={isExportingOura}
+          className="w-full"
+        >
           {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
-        </button>
+        </Button>
       </section>
 
       {topSlot}

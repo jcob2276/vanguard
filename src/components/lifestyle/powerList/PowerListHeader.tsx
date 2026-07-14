@@ -1,3 +1,5 @@
+import { Card } from '../../ui/Card';
+
 interface PowerListHeaderProps {
   today: string;
 }
@@ -20,7 +22,7 @@ export default function PowerListHeader({ today }: PowerListHeaderProps) {
   })();
 
   return (
-    <div className="flex items-center gap-3.5 rounded-2xl border border-border-custom bg-surface-solid/50 p-3">
+    <Card padding="0.75rem" className="flex items-center gap-3.5" style={{ background: 'rgba(17, 24, 39, 0.5)' }}>
       <div className="flex h-12 w-12 flex-col overflow-hidden rounded-xl border border-border-custom bg-surface text-center shadow-sm">
         <span className="bg-primary py-0.5 text-[8px] font-black uppercase tracking-wider text-white">
           {MONTHS_SHORT[parsedDate.getMonth()]}
@@ -37,6 +39,6 @@ export default function PowerListHeader({ today }: PowerListHeaderProps) {
           {parsedDate.getDate()} {MONTHS_FULL[parsedDate.getMonth()]} {parsedDate.getFullYear()}
         </p>
       </div>
-    </div>
+    </Card>
   );
 }

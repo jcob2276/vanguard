@@ -8,7 +8,7 @@ interface InsightSummaryData {
   action?: string;
 }
 
-const CONF_COLOR = { high: '#10B981', medium: '#F59E0B', low: '#99A1AF' };
+const CONF_COLOR = { high: 'var(--color-success)', medium: 'var(--color-warning)', low: 'var(--color-text-tertiary)' };
 
 export function InsightSummaryCard({ data }: { data: InsightSummaryData }) {
   const color = CONF_COLOR[data.confidence ?? 'medium'];

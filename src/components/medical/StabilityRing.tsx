@@ -9,7 +9,7 @@ export default function StabilityRing({ progress, size = 64 }: StabilityRingProp
   const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
   const dash = circ * progress;
-  const color = progress === 1 ? '#22c55e' : progress > 0.5 ? '#f59e0b' : '#3b82f6';
+  const color = progress === 1 ? '#22c55e' : progress > 0.5 ? 'var(--color-warning)' : '#3b82f6';
 
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>

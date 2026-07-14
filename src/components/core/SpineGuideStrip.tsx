@@ -1,6 +1,8 @@
 import { ChevronRight, Sparkles } from 'lucide-react';
 
 import type { SpineGuidance, SpineGuideTarget } from '../../lib/goal/goalSpineGuide';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 
 
@@ -50,18 +52,10 @@ export function SpineGuideStrip({
 
   return (
 
-    <div
-
-      className={`rounded-[20px] border px-4 py-3.5 ${
-
-        readyForDay
-
-          ? 'border-primary/10 bg-primary/[0.02]'
-
-          : 'border-primary/30 bg-primary/[0.06]'
-
-      }`}
-
+    <Card
+      className={readyForDay ? 'border border-primary/10' : 'border border-primary/30'}
+      style={{ background: readyForDay ? 'color-mix(in oklch, var(--color-primary) 2%, transparent)' : 'color-mix(in oklch, var(--color-primary) 6%, transparent)' }}
+      padding="0.875rem 1rem"
     >
 
       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 mb-1.5">
@@ -110,13 +104,15 @@ export function SpineGuideStrip({
 
       {primaryAction.type === 'navigate' && (
 
-        <button
+        <Button
 
-          type="button"
+          variant="primary"
+
+          size="sm"
 
           onClick={() => onNavigate(primaryAction.target)}
 
-          className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-white cursor-pointer hover:bg-primary-hover"
+          className="!mt-3 !rounded-full"
 
         >
 
@@ -124,7 +120,7 @@ export function SpineGuideStrip({
 
           <ChevronRight size={12} />
 
-        </button>
+        </Button>
 
       )}
 
@@ -132,21 +128,23 @@ export function SpineGuideStrip({
 
       {primaryAction.type === 'plan_day' && onPlanDay && (
 
-        <button
+        <Button
 
-          type="button"
+          variant="primary"
+
+          size="sm"
 
           onClick={onPlanDay}
 
-          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-white cursor-pointer hover:bg-primary-hover"
+          icon={<Sparkles size={12} />}
+
+          className="!mt-3 !rounded-full"
 
         >
 
-          <Sparkles size={12} />
-
           {primaryAction.label}
 
-        </button>
+        </Button>
 
       )}
 
@@ -154,13 +152,15 @@ export function SpineGuideStrip({
 
       {primaryAction.type === 'focus_plan' && onFocusPlan && (
 
-        <button
+        <Button
 
-          type="button"
+          variant="tonal"
+
+          size="sm"
 
           onClick={onFocusPlan}
 
-          className="mt-3 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-primary cursor-pointer hover:bg-primary/20"
+          className="!mt-3 !rounded-full border border-primary/30"
 
         >
 
@@ -168,7 +168,7 @@ export function SpineGuideStrip({
 
           <ChevronRight size={12} />
 
-        </button>
+        </Button>
 
       )}
 
@@ -184,10 +184,8 @@ export function SpineGuideStrip({
 
       )}
 
-    </div>
+    </Card>
 
   );
 
 }
-
-

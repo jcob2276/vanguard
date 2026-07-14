@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { notify } from '../lib/notify';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
+import { invokeEdge } from '../lib/supabase';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
@@ -23,7 +24,7 @@ export function startGoogleAuth(): void {
 
 export function useSyncActions({
   userId,
-  accessToken,
+  accessToken: _accessToken,
   onRefresh,
   setSyncing,
 }: {
@@ -32,20 +33,13 @@ export function useSyncActions({
   onRefresh: () => void;
   setSyncing: (v: boolean) => void;
 }) {
-  const base = import.meta.env.VITE_SUPABASE_URL as string;
-
   const callFn = useCallback(async (fn: string, body: Record<string, unknown> = {}) => {
-    const res = await fetch(`${base}/functions/v1/${fn}`, {
+    await invokeEdge(fn, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify(body),
+      body,
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     });
-    if (!res.ok) {
-      const p = await res.json().catch(() => ({}));
-      throw new Error(`${fn} failed: ${p.error || res.status}`);
-    }
-  }, [base, accessToken]);
+  }, []);
 
   const syncCalendar = useCallback(async () => {
     setSyncing(true);
@@ -64,13 +58,11 @@ export function useSyncActions({
     setSyncing(true);
     window.history.replaceState({}, document.title, window.location.pathname);
     try {
-      const response = await fetch(`${base}/functions/v1/sync?service=calendar`, {
+      const res = await invokeEdge<{ success?: boolean; error?: string }>('sync?service=calendar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ userId, code, redirectUri: window.location.origin }),
+        body: { userId, code, redirectUri: window.location.origin },
         signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });
-      const res = await response.json();
       if (res?.success) {
         await syncCalendar();
       } else {
@@ -83,7 +75,7 @@ export function useSyncActions({
     } finally {
       setSyncing(false);
     }
-  }, [base, accessToken, userId, syncCalendar, setSyncing]);
+  }, [userId, syncCalendar, setSyncing]);
 
   // Delegate to the standalone exported startGoogleAuth — avoids duplicating OAuth redirect logic.
   // Wrapped in useCallback to maintain a stable reference for callers using it as a prop.

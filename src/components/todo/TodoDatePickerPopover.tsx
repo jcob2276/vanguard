@@ -134,7 +134,7 @@ export default function TodoDatePickerPopover({
           onClick={() => pickDate(today)}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors ${dueDate === today ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
         >
-          <CalendarDays size={14} className="text-emerald-500" />
+          <CalendarDays size={14} className="text-success" />
           <span className="flex-1 text-left">Dziś</span>
           <span className="text-[10px] font-medium text-text-muted/50">{weekdayShort(today)}.</span>
         </button>
@@ -143,7 +143,7 @@ export default function TodoDatePickerPopover({
           onClick={() => pickDate(tomorrowKey)}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors ${dueDate === tomorrowKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
         >
-          <Sun size={14} className="text-amber-500" />
+          <Sun size={14} className="text-warning" />
           <span className="flex-1 text-left">Jutro</span>
           <span className="text-[10px] font-medium text-text-muted/50">{weekdayShort(tomorrowKey)}.</span>
         </button>
@@ -152,7 +152,7 @@ export default function TodoDatePickerPopover({
           onClick={() => pickDate(weekendKey)}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors ${dueDate === weekendKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
         >
-          <Sofa size={14} className="text-sky-500" />
+          <Sofa size={14} className="text-info" />
           <span className="flex-1 text-left">Następny weekend</span>
           <span className="text-[10px] font-medium text-text-muted/50">{weekdayShort(weekendKey)}.</span>
         </button>
@@ -219,7 +219,7 @@ export default function TodoDatePickerPopover({
             <button
               type="button"
               onClick={() => { setShowTime(false); onChange({ scheduled_time: null }); }}
-              className="shrink-0 text-text-muted/50 hover:text-rose-400 transition-colors"
+              className="shrink-0 text-text-muted/50 hover:text-danger transition-colors"
             >
               <X size={12} />
             </button>
@@ -231,7 +231,7 @@ export default function TodoDatePickerPopover({
         <button
           type="button"
           onClick={() => pickDate(null)}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 py-1.5 text-[11px] font-semibold text-text-muted hover:text-rose-400 transition-colors"
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 py-1.5 text-[11px] font-semibold text-text-muted hover:text-danger transition-colors"
         >
           <X size={11} /> Usuń termin
         </button>

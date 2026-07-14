@@ -7,6 +7,7 @@ import CalendarBudgetPanel from '../CalendarBudgetPanel';
 import CalendarSidebarTodos from '../CalendarSidebarTodos';
 import { LIFE_SPHERES } from '../../../lib/projects/lifeSpheres';
 import { weekMon } from '../calendarHelpers';
+import Button from '../../ui/Button';
 
 interface CalendarSidebarProps {
   onBack: () => void;
@@ -43,30 +44,39 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
     <div className="w-[280px] shrink-0 border-r border-border-custom/50 flex flex-col bg-surface/10 select-none">
       {/* Back Navigation header */}
       <div className="h-[60px] shrink-0 border-b border-border-custom/20 flex items-center px-4 gap-2">
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onBack}
-          className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors shrink-0 cursor-pointer"
+          icon={<ChevronLeft size={16} />}
+          className="text-[11px] font-black uppercase tracking-wider text-text-muted hover:text-text-primary shrink-0"
         >
-          <ChevronLeft size={16} /> Powrót
-        </button>
+          Powrót
+        </Button>
 
         <div className="flex-1" />
 
         {/* Shortcuts */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onNavigateTo?.('todo')}
           title="Zadania"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20 cursor-pointer"
+          icon={<Check size={13} />}
+          className="text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
         >
-          <Check size={13} /> Todo
-        </button>
-        <button
+          Todo
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onNavigateTo?.('keep')}
           title="Notatki"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20 cursor-pointer"
+          icon={<Sparkles size={13} />}
+          className="text-[10px] font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
         >
-          <Sparkles size={13} /> Notatki
-        </button>
+          Notatki
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">

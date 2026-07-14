@@ -49,8 +49,8 @@ export default function GeneralFrictionPanels({
                 <span
                   className="font-bold px-1.5 py-0.5 rounded text-[9px] shrink-0"
                   style={{
-                    backgroundColor: (frictionColor[f.friction_type ?? 'other'] || '#9ca3af') + '22',
-                    color: frictionColor[f.friction_type ?? 'other'] || '#9ca3af',
+                    backgroundColor: (frictionColor[f.friction_type ?? 'other'] || 'var(--color-text-muted)') + '22',
+                    color: frictionColor[f.friction_type ?? 'other'] || 'var(--color-text-muted)',
                   }}
                 >
                   {(f.friction_type || 'other').replace(/_/g, ' ')}

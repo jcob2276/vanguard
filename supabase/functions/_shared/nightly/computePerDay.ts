@@ -3,6 +3,7 @@ import { computeReadiness, type ReadinessDay } from './readiness.ts';
 import { computeRecoveryScore } from './recovery_score.ts';
 import { computeStrainScore } from './strain_score.ts';
 import { estimateCaffeineMg } from '../caffeineEstimate.ts';
+import { HEALTH_THRESHOLDS } from '@vanguard/domain';
 
 const ILLNESS_KEYS = /chorob|illness|unwell|sick|przezi|grypa|flu/i;
 
@@ -31,10 +32,11 @@ export function computePerDay(opts: {
   weight: number; sex: string; ageYears: number;
   algoVersion: number; uid: string;
   getBaselinesForDate: (d: string) => any;
+  sleepTargetH?: number;
 }) {
   const { date, todayWarsaw, now, zones, enh, summ, nutr, workouts, strava, recon, food,
     baseByDate, respByDate, skinTempByDate, sleepByDate, strainHistRunning, illnessDates,
-    weight, sex, ageYears, algoVersion, uid, getBaselinesForDate } = opts;
+    weight, sex, ageYears, algoVersion, uid, getBaselinesForDate, sleepTargetH } = opts;
 
   const { hrvEwma, rhrEwma, sleepScoreEwma, respEwma, hrvBase, rhrBase } = getBaselinesForDate(date);
   const fuelingProvisional = date === todayWarsaw;
@@ -55,7 +57,7 @@ export function computePerDay(opts: {
   const skinTempToday = skinTempByDate[date] ?? null;
 
   const strainScoreResult = computeStrainScore({ z, runs, wsets, steps: e?.steps ?? null, kcal, carbs, protein, fuelingProvisional, weight });
-  const recoveryScoreResult = computeRecoveryScore({ sleep, sleepByDate, date, respToday, skinTempToday, hrvAvg: s?.hrv_avg ?? null, rhrAvg: s?.rhr_avg ?? null, sleepScore: s?.sleep_score ?? null, readinessScore: s?.readiness_score ?? null, hrvEwma, rhrEwma, sleepScoreEwma, respEwma, hrvBase, rhrBase, subjectiveScore, ageYears, sex: (sex === 'F' || sex === 'M') ? sex : 'M', steps: e?.steps ?? null });
+  const recoveryScoreResult = computeRecoveryScore({ sleep, sleepByDate, date, respToday, skinTempToday, hrvAvg: s?.hrv_avg ?? null, rhrAvg: s?.rhr_avg ?? null, sleepScore: s?.sleep_score ?? null, readinessScore: s?.readiness_score ?? null, hrvEwma, rhrEwma, sleepScoreEwma, respEwma, hrvBase, rhrBase, subjectiveScore, ageYears, sex: (sex === 'F' || sex === 'M') ? sex : 'M', steps: e?.steps ?? null, sleepTargetH });
 
   let recovery = recoveryScoreResult.recovery;
   const strain = strainScoreResult.strain;
@@ -64,8 +66,8 @@ export function computePerDay(opts: {
 
   // Status
   let status = 'yellow';
-  if ((recovery != null && recovery < 55) || (strain != null && strain > 15 && recovery != null && recovery < 70) || (fuelingScore != null && fuelingScore < 40 && hadLoad && !fuelingProvisional)) status = 'red';
-  else if (recovery != null && recovery >= 75 && (strain == null || strain < 14)) status = 'green';
+  if ((recovery != null && recovery < HEALTH_THRESHOLDS.RECOVERY_YELLOW) || (strain != null && strain > 15 && recovery != null && recovery < HEALTH_THRESHOLDS.RECOVERY_HIGH_STRAIN_ALERT) || (fuelingScore != null && fuelingScore < 40 && hadLoad && !fuelingProvisional)) status = 'red';
+  else if (recovery != null && recovery >= HEALTH_THRESHOLDS.RECOVERY_GREEN && (strain == null || strain < 14)) status = 'green';
 
   // Limiter
   const mentalLoad: number | null = null;
@@ -73,7 +75,7 @@ export function computePerDay(opts: {
   if (hadLoad && kcal != null && kcal < 1700 && !fuelingProvisional) limiter = 'calories';
   else if (strainScoreResult.isRunDay && carbs != null && carbs < 150 && !fuelingProvisional) limiter = 'carbs';
   else if (sleep != null && sleep < 6.0) limiter = 'sleep';
-  else if (strain != null && strain > 15 && recovery != null && recovery < 65) limiter = strainScoreResult.cardioRaw >= strainScoreResult.strengthPts ? 'cardio_load' : 'strength_load';
+  else if (strain != null && strain > 15 && recovery != null && recovery < HEALTH_THRESHOLDS.RECOVERY_LIMITER) limiter = strainScoreResult.cardioRaw >= strainScoreResult.strengthPts ? 'cardio_load' : 'strength_load';
   else if (mentalLoad != null && mentalLoad >= 7) limiter = 'mental_load';
   else if (sleep != null && sleep < 6.8) limiter = 'sleep';
   else if (kcal != null && kcal < 1500 && !fuelingProvisional) limiter = 'calories';

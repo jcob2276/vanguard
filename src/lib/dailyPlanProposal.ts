@@ -1,5 +1,6 @@
 import type { EnrichedCheckpoint } from './checkpoints';
 import type { PowerListWeekStats, WeekDirectionGoals } from './growth/growthWeek';
+import { HEALTH_THRESHOLDS } from '@vanguard/domain';
 
 export type DirectionMustPin = {
   id: string;
@@ -133,8 +134,8 @@ export function buildDailyPlanProposal(
   const focusIds = ctx.sprintFocusProjectIds ?? [];
 
   const lowEnergy =
-    (ctx.readinessScore != null && ctx.readinessScore < 60) ||
-    (ctx.recoveryScore != null && ctx.recoveryScore < 50);
+    (ctx.readinessScore != null && ctx.readinessScore < HEALTH_THRESHOLDS.READINESS_PLAN_LOW) ||
+    (ctx.recoveryScore != null && ctx.recoveryScore < HEALTH_THRESHOLDS.RECOVERY_PLAN_LOW);
 
   const maxSlots = lowEnergy ? 3 : 5;
 

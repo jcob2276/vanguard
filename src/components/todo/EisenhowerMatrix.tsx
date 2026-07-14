@@ -24,9 +24,9 @@ const QUADRANTS = [
     sub: 'Pilne + Ważne',
     urgent: true,
     important: true,
-    color: 'border-rose-500/30 bg-rose-500/5',
-    badge: 'bg-rose-500/15 text-rose-500',
-    dot: 'bg-rose-500',
+    color: 'border-danger/30 bg-danger/5',
+    badge: 'bg-danger/15 text-danger',
+    dot: 'bg-danger',
   },
   {
     key: 'q2',
@@ -34,9 +34,9 @@ const QUADRANTS = [
     sub: 'Niepilne + Ważne',
     urgent: false,
     important: true,
-    color: 'border-blue-500/30 bg-blue-500/5',
-    badge: 'bg-blue-500/15 text-blue-500',
-    dot: 'bg-blue-500',
+    color: 'border-info/30 bg-info/5',
+    badge: 'bg-info/15 text-info',
+    dot: 'bg-info',
   },
   {
     key: 'q3',
@@ -44,9 +44,9 @@ const QUADRANTS = [
     sub: 'Pilne + Nieważne',
     urgent: true,
     important: false,
-    color: 'border-amber-500/30 bg-amber-500/5',
-    badge: 'bg-amber-500/15 text-amber-600',
-    dot: 'bg-amber-500',
+    color: 'border-warning/30 bg-warning/5',
+    badge: 'bg-warning/15 text-warning',
+    dot: 'bg-warning',
   },
   {
     key: 'q4',
@@ -145,7 +145,7 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                           <span className="text-[9px] text-text-muted">{item.due_date}</span>
                         )}
                         {item.duration_minutes && (
-                          <span className="text-[9px] text-amber-500 font-semibold">
+                          <span className="text-[9px] text-warning font-semibold">
                             {item.duration_minutes < 60
                               ? `${item.duration_minutes}min`
                               : `${Math.floor(item.duration_minutes / 60)}h${item.duration_minutes % 60 ? item.duration_minutes % 60 + 'min' : ''}`}

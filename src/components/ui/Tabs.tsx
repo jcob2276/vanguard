@@ -1,6 +1,9 @@
+import { ReactNode } from 'react';
+
 interface Tab {
   key: string;
   label: string;
+  icon?: ReactNode;
 }
 
 export interface TabsProps {
@@ -12,19 +15,20 @@ export interface TabsProps {
 
 export default function Tabs({ tabs, active, onChange, className = '' }: TabsProps) {
   return (
-    <div className={`flex gap-1 p-1 rounded-xl bg-surface-solid/50 border border-border-custom/40 ${className}`}>
+    <div className={`flex gap-1 p-1 rounded-[var(--radius-md)] bg-surface-solid/50 border border-border-custom/40 ${className}`}>
       {tabs.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 rounded-lg transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 rounded-[var(--radius-sm)] transition-all cursor-pointer ${
             active === tab.key
               ? 'bg-background text-text-primary shadow-sm'
               : 'text-text-muted hover:text-text-primary'
           }`}
         >
-          {tab.label}
+          {tab.icon && <span className="shrink-0">{tab.icon}</span>}
+          <span>{tab.label}</span>
         </button>
       ))}
     </div>

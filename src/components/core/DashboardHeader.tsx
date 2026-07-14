@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { formatDashboardDate } from '../../lib/date';
+import Badge from '../ui/Badge';
 import {
   Moon,
   Sun,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
+import Button from '../ui/Button';
 
 interface DashboardHeaderProps {
   userId: string | undefined;
@@ -56,7 +58,7 @@ export function DashboardHeader({
           onContextMenu={(e) => e.preventDefault()}
         >
           <BrandTitle />
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" title="System Online" />
+          <span className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_var(--color-success)] animate-pulse" title="System Online" />
         </h1>
         <p className="mt-1 text-[8.5px] font-black uppercase tracking-wider text-text-muted/65">
           {formatDashboardDate()}
@@ -71,13 +73,14 @@ export function DashboardHeader({
             onClick={onAvatarClick}
           />
         )}
-        <button
+        <Button
           onClick={toggleTheme}
-          className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-90 cursor-pointer flex items-center justify-center"
+          variant="ghost"
+          className="!rounded-full border border-border-custom bg-surface-solid/5 !p-2.5 hover:bg-surface-solid/15 active:scale-90"
           title="Przełącz motyw"
         >
-          {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-yellow-500" />}
-        </button>
+          {theme === 'light' ? <Moon size={15} /> : <Sun size={15} className="text-warning" />}
+        </Button>
         {!showLock && (
           <>
             <button
@@ -113,8 +116,8 @@ export function DashboardHeader({
             >
               <StickyNote size={15} />
               {staleNoteCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-0.5 text-[8px] font-black text-white shadow-sm ring-1 ring-background">
-                  {staleNoteCount > 9 ? '9+' : staleNoteCount}
+                <span className="absolute -top-0.5 -right-0.5 shadow-sm ring-1 ring-background">
+                  <Badge count={staleNoteCount} color="var(--color-warning)" />
                 </span>
               )}
             </button>
@@ -130,13 +133,14 @@ export function DashboardHeader({
               <Bookmark size={15} />
             </button>
 
-            <button
+            <Button
               onClick={onSearchClick}
-              className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center"
+              variant="ghost"
+              className="!rounded-full border border-border-custom bg-surface-solid/5 !p-2.5 hover:bg-surface-solid/15 active:scale-95"
               title="Szukaj (Ctrl+K)"
             >
               <Search size={15} />
-            </button>
+            </Button>
 
             <Link
               to="/dashboard"

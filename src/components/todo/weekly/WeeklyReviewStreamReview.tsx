@@ -21,7 +21,7 @@ export default function WeeklyReviewStreamReview() {
     <div className="space-y-4">
       <div>
         <h3 className="text-[13px] font-black text-text-primary flex items-center gap-1.5 uppercase tracking-wider">
-          <Mic size={15} className="text-indigo-500" />
+          <Mic size={15} className="text-primary" />
           Krok 3: Kontrola Wpisów Strumienia
         </h3>
         <p className="text-[10px] text-text-muted mt-0.5">
@@ -42,7 +42,7 @@ export default function WeeklyReviewStreamReview() {
                 className="p-3 rounded-xl border border-border-custom/50 bg-surface-solid/30 space-y-2"
               >
                 <div className="flex items-center gap-1.5 text-[9px] font-bold text-text-muted uppercase tracking-wider">
-                  {voice && <Mic size={10} className="text-indigo-500 shrink-0" />}
+                  {voice && <Mic size={10} className="text-primary shrink-0" />}
                   <span>{formatStreamEntryDate(entry.created_at)}</span>
                 </div>
                 {isEditing ? (
@@ -52,7 +52,7 @@ export default function WeeklyReviewStreamReview() {
                       value={editingStreamText}
                       onChange={(e) => setEditingStreamText(e.target.value)}
                       rows={3}
-                      className="w-full bg-slate-50 dark:bg-white/[0.02] border border-indigo-500/40 rounded-lg px-2.5 py-2 text-[12px] font-medium text-text-primary outline-none resize-none"
+                      className="w-full bg-slate-50 dark:bg-white/[0.02] border border-primary/40 rounded-lg px-2.5 py-2 text-[12px] font-medium text-text-primary outline-none resize-none"
                     />
                     <div className="flex gap-2 justify-end">
                       <button
@@ -63,7 +63,7 @@ export default function WeeklyReviewStreamReview() {
                       </button>
                       <button
                         onClick={saveEditStream}
-                        className="text-[10px] font-black text-white bg-indigo-600 rounded-lg px-3 py-1"
+                        className="text-[10px] font-black text-white bg-primary rounded-lg px-3 py-1"
                       >
                         Zapisz
                       </button>
@@ -77,14 +77,14 @@ export default function WeeklyReviewStreamReview() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => startEditStream(entry)}
-                        className="p-1 rounded-lg border border-border-custom/50 text-text-muted hover:text-indigo-500 hover:border-indigo-500/30 transition-colors btn-press"
+                        className="p-1 rounded-lg border border-border-custom/50 text-text-muted hover:text-primary hover:border-primary/30 transition-colors btn-press"
                         title="Edytuj"
                       >
                         <Pencil size={12} />
                       </button>
                       <button
                         onClick={() => handleDeleteStream(entry.id)}
-                        className="p-1 rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10 transition-colors btn-press"
+                        className="p-1 rounded-lg border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 transition-colors btn-press"
                         title="Usuń"
                       >
                         <Trash2 size={12} />

@@ -1,3 +1,4 @@
+import { EPISTEMIC_THRESHOLDS } from '@vanguard/domain';
 import { getWarsawDateString } from '../time.ts';
 import {
   detectRecurringBlockers,
@@ -27,8 +28,9 @@ function insightToDetector(insight: PatternInsight): DetectorResult {
   const signature = `${insight.type}:${insight.title.toLowerCase().replace(/\s+/g, "_").substring(0, 80)}`;
   const visible =
     insight.type === "plan_adherence_gap"
-      ? insight.confidence >= 0.6
-      : insight.confidence >= 0.6 && insight.sampleSize >= 3;
+      ? insight.confidence >= EPISTEMIC_THRESHOLDS.PATTERN_VISIBLE_MIN_CONFIDENCE
+      : insight.confidence >= EPISTEMIC_THRESHOLDS.PATTERN_VISIBLE_MIN_CONFIDENCE &&
+        insight.sampleSize >= EPISTEMIC_THRESHOLDS.PATTERN_VISIBLE_MIN_SAMPLE_SIZE;
 
   return {
     signature,

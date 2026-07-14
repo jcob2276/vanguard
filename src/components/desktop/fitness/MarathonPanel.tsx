@@ -66,7 +66,7 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
           {targetTime && (
             <div className="mt-2.5">
               <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Cel czasowy</p>
-              <p className="font-display text-[15px] font-black text-amber-500 leading-none mt-0.5">
+              <p className="font-display text-[15px] font-black text-warning leading-none mt-0.5">
                 {targetTime}
               </p>
             </div>
@@ -76,7 +76,7 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
           {avgKm !== null && (
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-text-muted">Avg 4 tygodnie</p>
-              <p className="font-display text-[22px] font-black text-amber-500 leading-none">
+              <p className="font-display text-[22px] font-black text-warning leading-none">
                 {avgKm} <span className="text-[11px] text-text-muted">km/tyg</span>
               </p>
             </div>

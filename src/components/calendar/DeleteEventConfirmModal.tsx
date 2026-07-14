@@ -1,4 +1,5 @@
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import { recurringSeriesBaseId } from './calendarHelpers';
 import type { CalRow } from './calendarHelpers';
 
@@ -22,42 +23,49 @@ export default function DeleteEventConfirmModal({ selectedEvent, deleting, onClo
       </p>
       {isRecurringInstance ? (
         <div className="space-y-2 pt-2">
-          <button
+          <Button
+            variant="danger"
             onClick={() => executeDelete('this')}
             disabled={deleting}
-            className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
+            className="w-full py-2.5 text-[11.5px]"
+            loading={deleting}
           >
             {deleting ? 'Usuwanie...' : 'Usuń tylko to wystąpienie'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => executeDelete('all')}
             disabled={deleting}
-            className="w-full rounded-xl border border-rose-500/40 hover:bg-rose-500/10 disabled:opacity-50 text-rose-500 py-2.5 text-[11.5px] font-bold transition-colors"
+            className="w-full py-2.5 text-[11.5px] text-danger border-danger/40 hover:bg-danger/10"
           >
             {deleting ? 'Usuwanie...' : 'Usuń całą serię'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="w-full rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
+            className="w-full py-2.5 text-[11.5px] text-text-muted hover:text-text-primary"
           >
             Anuluj
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex gap-2.5 pt-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-border-custom/60 py-2.5 text-[11.5px] font-bold text-text-muted hover:text-text-primary hover:bg-surface-solid/40 transition-colors"
+            className="flex-1 py-2.5 text-[11.5px] text-text-muted hover:text-text-primary"
           >
             Anuluj
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             onClick={() => executeDelete('this')}
             disabled={deleting}
-            className="flex-1 rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-400 text-white py-2.5 text-[11.5px] font-bold transition-colors"
+            className="flex-1 py-2.5 text-[11.5px]"
+            loading={deleting}
           >
             {deleting ? 'Usuwanie...' : 'Usuń'}
-          </button>
+          </Button>
         </div>
       )}
     </Modal>

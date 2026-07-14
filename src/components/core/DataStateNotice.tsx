@@ -13,10 +13,10 @@ const TONES = {
   },
   warning: {
     icon: AlertTriangle,
-    border: 'border-amber-500/20',
-    bg: 'bg-amber-500/5',
-    iconTone: 'text-amber-500/80',
-    titleTone: 'text-amber-600 dark:text-amber-300/85',
+    border: 'border-warning/20',
+    bg: 'bg-warning/5',
+    iconTone: 'text-warning/80',
+    titleTone: 'text-warning dark:text-warning/85',
   },
   loading: {
     icon: RefreshCw,

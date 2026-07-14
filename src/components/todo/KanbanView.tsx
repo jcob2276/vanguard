@@ -50,7 +50,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
     const overdue = item.due_date < today;
     const isToday = item.due_date === today;
     return (
-      <span className={`text-[9px] font-bold ${overdue ? 'text-rose-500' : isToday ? 'text-orange-400' : 'text-text-muted'}`}>
+      <span className={`text-[9px] font-bold ${overdue ? 'text-danger' : isToday ? 'text-warning' : 'text-text-muted'}`}>
         {isToday ? 'Dziś' : overdue ? `⚠ ${item.due_date}` : item.due_date}
       </span>
     );
@@ -106,7 +106,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
                       </span>
                       <div className="flex items-center gap-1.5">
                         {item.duration_minutes && (
-                          <span className="text-[9px] text-amber-500 font-semibold">
+                          <span className="text-[9px] text-warning font-semibold">
                             {item.duration_minutes < 60
                               ? `${item.duration_minutes}m`
                               : `${Math.floor(item.duration_minutes / 60)}h`}

@@ -2,6 +2,7 @@ import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { LIFE_SPHERES } from '../../../lib/projects/lifeSpheres';
 import Modal from '../../ui/Modal';
+import Button from '../../ui/Button';
 
 export default function CalendarBudgetModal() {
   const {
@@ -92,13 +93,13 @@ export default function CalendarBudgetModal() {
         })}
       </div>
 
-      <button
-        type="button"
+      <Button
+        variant="primary"
         onClick={handleSaveAll}
-        className="w-full rounded-xl bg-primary py-3 text-[12px] font-black uppercase text-white shadow-md shadow-primary/20 hover:bg-primary/95 transition-all active:scale-[0.98] cursor-pointer"
+        className="w-full py-3 text-[12px] uppercase"
       >
         Zapisz Budżety
-      </button>
+      </Button>
     </Modal>
   );
 }

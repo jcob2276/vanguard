@@ -24,6 +24,7 @@ import { resolvePastPredictions, generateTomorrowPredictions } from '../_shared/
 import { resolveOracleRecommendations } from '../_shared/nightly/recommendations.ts';
 import { runRescoreWorkoutSessions, runRescoreWorkoutSessionsInternal } from '../_shared/nightly/rescore.ts';
 import { runGraphInvariantCheck } from '../_shared/nightly/graphInvariants.ts';
+import { resolvePersonalTargets } from '../_shared/personalTargets.ts';
 
 async function runLedgerStep(
   supabase: any,
@@ -82,8 +83,8 @@ Deno.serve(serveJson(async (req, ctx) => {
 
     if (action) {
       // Actions accept both service-role and user tokens
-      const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null);
-      if (!scopedUserId) throw new Error("Unauthorized");
+      const { userId: scopedUserId, isServiceRole } = await resolveUserScope(req, body.userId ?? null);
+      if (!scopedUserId) throw new Error("Unauthorized: missing user_id");
 
       switch (action) {
         case 'compute-daily-strain':
@@ -172,7 +173,9 @@ Deno.serve(serveJson(async (req, ctx) => {
       await runComputeIllnessSignal(supabase, userId, dateFrom, dateTo, days, algoVersion);
     });
     await runLedgerStep(supabase, userId, runId, 'compute-recovery-forecast', true, async () => {
-      await runComputeRecoveryForecast(supabase, userId, body.plannedSleepHours ?? null, body.needSleepHours ?? 8.0);
+      const targets = await resolvePersonalTargets(supabase, userId);
+      const sleepTarget = body.needSleepHours ?? targets.sleepTargetH;
+      await runComputeRecoveryForecast(supabase, userId, body.plannedSleepHours ?? null, sleepTarget);
     });
 
     // 4. vanguard-detect-patterns

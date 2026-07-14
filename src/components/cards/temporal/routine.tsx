@@ -5,9 +5,9 @@ export function RoutineCard({ data }: { data: RoutineData }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
-        <Repeat size={13} style={{ color: '#5B6CFF' }} />
+        <Repeat size={13} style={{ color: 'var(--color-primary)' }} />
         <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
-        {data.frequency && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,108,255,0.08)', color: '#5B6CFF' }}>{data.frequency}</span>}
+        {data.frequency && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,108,255,0.08)', color: 'var(--color-primary)' }}>{data.frequency}</span>}
       </div>
       <div className="space-y-2">
         {data.items.map((item, i) => (

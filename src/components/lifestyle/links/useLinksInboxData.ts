@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { notify, confirmDialog } from '../../../lib/notify';
@@ -17,13 +16,14 @@ import {
   type TriageSuggestion,
 } from '../../../lib/linksApi';
 
-export const linksKeys = {
-  all: ['links-inbox'] as const,
-  list: (userId: string) => [...linksKeys.all, userId] as const,
-};
+import { useSession } from '../../../store/useStore';
+import { linksKeys } from '../../../lib/queryKeys';
 
-export function useLinksInboxData(session: Session, haptic: (pattern: number | number[]) => void) {
-  const userId = session.user.id;
+
+
+export function useLinksInboxData(haptic: (pattern: number | number[]) => void) {
+  const session = useSession();
+  const userId = session?.user.id ?? '';
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('unread');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);

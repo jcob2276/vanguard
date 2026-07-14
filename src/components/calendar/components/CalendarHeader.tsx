@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { RefreshCw } from 'lucide-react';
+import Button from '../../ui/Button';
 
 export default function CalendarHeader() {
   const {
@@ -48,14 +49,14 @@ export default function CalendarHeader() {
 
       <div className="flex items-center gap-2">
         {/* Sync buttons */}
-        <button
+        <Button
           onClick={onSyncCalendar}
-          disabled={isSyncing}
-          className="flex items-center gap-1.5 rounded-xl border border-border-custom/60 hover:bg-surface-solid px-3.5 py-2 text-[11.5px] font-bold text-text-secondary transition-colors cursor-pointer outline-none"
+          variant="secondary"
+          icon={<RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />}
+          className="rounded-xl px-3.5 py-2 text-[11.5px]"
         >
-          <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-          <span>{isSyncing ? 'Synchronizuję...' : 'GCal'}</span>
-        </button>
+          {isSyncing ? 'Synchronizuję...' : 'GCal'}
+        </Button>
       </div>
     </div>
   );

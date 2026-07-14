@@ -1,4 +1,5 @@
 import { ChevronRight, ChevronLeft, Send } from 'lucide-react';
+import Button from '../../ui/Button';
 
 interface MorningPlanFooterActionsProps {
   step: 1 | 2 | 3;
@@ -12,34 +13,38 @@ export default function MorningPlanFooterActions({ step, setStep, dayWordCap, se
   return (
     <div className="p-4 border-t border-border-custom/20 flex items-center justify-between shrink-0">
       {step > 1 ? (
-        <button
+        <Button
           onClick={() => setStep((prev) => (prev - 1) as 1 | 2 | 3)}
-          className="px-4 py-3 rounded-xl border border-border-custom/80 text-text-primary text-[12px] font-black hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-all flex items-center gap-1.5"
+          variant="outline"
+          size="sm"
+          icon={<ChevronLeft size={16} />}
         >
-          <ChevronLeft size={16} />
           Wróć
-        </button>
+        </Button>
       ) : (
         <div />
       )}
 
       {step < 3 ? (
-        <button
+        <Button
           onClick={() => setStep((prev) => (prev + 1) as 1 | 2 | 3)}
-          className="px-5 py-3 rounded-xl bg-primary text-white text-[12px] font-black hover:bg-primary/95 transition-all flex items-center gap-1.5 ml-auto"
+          size="sm"
+          icon={<ChevronRight size={16} />}
+          iconPosition="right"
+          className="ml-auto"
         >
           Dalej
-          <ChevronRight size={16} />
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
           onClick={onSubmit}
-          disabled={sending}
-          className="px-5 py-3 rounded-xl bg-primary text-white text-[12px] font-black hover:bg-primary/95 transition-all flex items-center gap-1.5 ml-auto shadow-lg shadow-primary/10 disabled:opacity-40"
+          loading={sending}
+          icon={<Send size={14} />}
+          size="sm"
+          className="ml-auto"
         >
-          <Send size={14} />
           {sending ? 'Zapisuję plan...' : `Zatwierdź Plan${dayWordCap === 'Jutro' ? ' na Jutro' : ''}`}
-        </button>
+        </Button>
       )}
     </div>
   );

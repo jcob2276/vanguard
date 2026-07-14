@@ -1,6 +1,7 @@
 import type { TelegramRouterContext } from "./config.ts";
 import { getEmbedding } from "../../_shared/openai.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { logCriticalError } from "../../_shared/errorLogging.ts";
 import { getReconciliationById } from "../../_shared/repos/reconciliationsRepo.ts";
 import { getStreamByTelegramMessageId, insertStreamRecord as insertStreamRow } from "../../_shared/repos/streamRepo.ts";
@@ -129,14 +130,12 @@ export async function insertStreamRecord(
         getEmbedding(cleanText, openAiKey),
         deepseekChat({
           apiKey: deepseekApiKey,
-          model: 'deepseek-v4-flash',
-          temperature: 0.1,
-          maxTokens: 100,
-          responseFormat: { type: 'json_object' },
+          ...LLM_TASKS.structured,
           messages: [{
             role: 'user',
             content: `Oceń emocje w tekście. Odpowiedz TYLKO JSON: {"valence":0.0,"arousal":0.0,"energy_level":3,"stress_level":3,"state":"nazwa"}\nvalence: -1.0(negatywny)→1.0(pozytywny), arousal: 0.0(spokojny)→1.0(pobudzony), energy_level: 1(wyczerpanie)→5(wysoka energia/czujność), stress_level: 1(spokój/luz)→5(silny stres/napięcie/frustracja), state: jedno słowo po polsku (Entuzjazm/Frustracja/Spokój/Zmęczenie/Euforia/Złość/Smutek/Determinacja/Stres/Radość/Nuda).\nTEKST: "${cleanText.substring(0, 400)}"`
-          }]
+          }],
+          maxTokens: 100,
         }).catch((e) => {
           console.error('[telegram] Deepseek emotion fetch exception:', e);
           return null;

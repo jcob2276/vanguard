@@ -11,12 +11,7 @@ export interface CalendarEvent {
   category?: string;
   recurrence?: string[];
 }
-
-export const calendarKeys = {
-  all: ['calendar'] as const,
-  events: (userId: string, rangeStart: string, rangeEnd: string) =>
-    [...calendarKeys.all, 'events', userId, rangeStart, rangeEnd] as const,
-};
+import { calendarKeys } from './queryKeys';
 
 // ── QUERIES ──
 

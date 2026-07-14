@@ -27,16 +27,26 @@ export interface LifeSphere {
   text: string;
   border: string;
   bgSoft: string;
+  calClass: string;
 }
 
 export const LIFE_SPHERES: LifeSphere[] = [
-  { id: 'praca', label: 'Praca', dot: 'bg-blue-500', bar: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', bgSoft: 'bg-blue-500/8' },
-  { id: 'cialo_trening', label: 'Ciało / Trening', dot: 'bg-emerald-500', bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', bgSoft: 'bg-emerald-500/8' },
-  { id: 'duch_refleksja', label: 'Duch / Refleksja', dot: 'bg-sky-500', bar: 'bg-sky-500', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20', bgSoft: 'bg-sky-500/8' },
-  { id: 'finanse', label: 'Finanse', dot: 'bg-amber-500', bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20', bgSoft: 'bg-amber-500/8' },
-  { id: 'relacje_rodzina', label: 'Relacje / Rodzina', dot: 'bg-violet-500', bar: 'bg-violet-500', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-500/20', bgSoft: 'bg-violet-500/8' },
-  { id: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', dot: 'bg-rose-500', bar: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', bgSoft: 'bg-rose-500/8' },
+  { id: 'praca', label: 'Praca', dot: 'bg-blue-500', bar: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', bgSoft: 'bg-blue-500/8', calClass: 'bg-blue-500 dark:bg-blue-600 text-white font-black border border-blue-500/20 shadow-sm' },
+  { id: 'cialo_trening', label: 'Ciało / Trening', dot: 'bg-emerald-500', bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', bgSoft: 'bg-emerald-500/8', calClass: 'bg-emerald-500 dark:bg-emerald-600 text-white font-black border border-emerald-500/20 shadow-sm' },
+  { id: 'duch_refleksja', label: 'Duch / Refleksja', dot: 'bg-sky-500', bar: 'bg-sky-500', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20', bgSoft: 'bg-sky-500/8', calClass: 'bg-sky-500 dark:bg-sky-600 text-white font-black border border-sky-500/20 shadow-sm' },
+  { id: 'finanse', label: 'Finanse', dot: 'bg-amber-500', bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20', bgSoft: 'bg-amber-500/8', calClass: 'bg-amber-500 dark:bg-amber-600 text-white font-black border border-amber-500/20 shadow-sm' },
+  { id: 'relacje_rodzina', label: 'Relacje / Rodzina', dot: 'bg-violet-500', bar: 'bg-violet-500', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-500/20', bgSoft: 'bg-violet-500/8', calClass: 'bg-violet-500 dark:bg-violet-600 text-white font-black border border-violet-500/20 shadow-sm' },
+  { id: 'odpoczynek_regeneracja', label: 'Odpoczynek / Regeneracja', dot: 'bg-rose-500', bar: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', bgSoft: 'bg-rose-500/8', calClass: 'bg-rose-500 dark:bg-rose-600 text-white font-black border border-rose-500/20 shadow-sm' },
 ];
+
+export const CATEGORY_COLORS: Record<string, string> = {
+  ...Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, s.calClass])),
+  work: LIFE_SPHERES.find((s) => s.id === 'praca')!.calClass,
+  health: LIFE_SPHERES.find((s) => s.id === 'cialo_trening')!.calClass,
+  sport: LIFE_SPHERES.find((s) => s.id === 'cialo_trening')!.calClass,
+  personal: LIFE_SPHERES.find((s) => s.id === 'relacje_rodzina')!.calClass,
+  study: LIFE_SPHERES.find((s) => s.id === 'duch_refleksja')!.calClass,
+};
 
 /** Pre-2026-07-04 category values, kept only for reference — do not write these anymore. */
 export const LEGACY_CATEGORY_TO_SPHERE: Record<string, LifeSphereId> = {

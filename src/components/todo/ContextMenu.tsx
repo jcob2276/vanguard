@@ -109,7 +109,7 @@ export default function ContextMenu({
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
             title="Dziś"
           >
-            <Calendar size={14} className="text-emerald-500" />
+            <Calendar size={14} className="text-success" />
           </button>
           {/* Jutro */}
           <button
@@ -120,7 +120,7 @@ export default function ContextMenu({
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
             title="Jutro"
           >
-            <Sun size={14} className="text-amber-500" />
+            <Sun size={14} className="text-warning" />
           </button>
           {/* Następny weekend */}
           <button
@@ -131,7 +131,7 @@ export default function ContextMenu({
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
             title="Następny weekend"
           >
-            <CalendarDays size={14} className="text-sky-500" />
+            <CalendarDays size={14} className="text-info" />
           </button>
           {/* Wyczyść termin */}
           <button
@@ -158,7 +158,7 @@ export default function ContextMenu({
         <div className="flex gap-1">
           {['urgent', 'high', 'normal', 'low'].map((p) => {
             const active = item.priority === p;
-            const flagColor = p === 'urgent' ? 'text-rose-500' : p === 'high' ? 'text-amber-500' : p === 'normal' ? 'text-sky-500' : 'text-text-muted/40';
+            const flagColor = p === 'urgent' ? 'text-danger' : p === 'high' ? 'text-warning' : p === 'normal' ? 'text-info' : 'text-text-muted/40';
             const borderActive = active ? 'border-primary bg-primary/5' : 'border-border-custom/80';
             return (
               <button
@@ -239,13 +239,13 @@ export default function ContextMenu({
           onDelete();
           onClose();
         }}
-        className="flex w-full items-center justify-between px-3 py-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer font-semibold"
+        className="flex w-full items-center justify-between px-3 py-2 rounded-xl text-danger hover:bg-danger/10 transition-colors cursor-pointer font-semibold"
       >
         <div className="flex items-center gap-2.5">
-          <Trash2 size={14} className="text-rose-500" />
+          <Trash2 size={14} className="text-danger" />
           <span>Usuń</span>
         </div>
-        <span className="text-[9px] text-rose-400/40 font-mono tracking-wider">↑ Usuń</span>
+        <span className="text-[9px] text-danger/40 font-mono tracking-wider">↑ Usuń</span>
       </button>
     </div>
   );

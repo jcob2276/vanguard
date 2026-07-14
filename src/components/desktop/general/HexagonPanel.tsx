@@ -1,4 +1,5 @@
 import { Pencil, X } from 'lucide-react';
+import Button from '../../ui/Button';
 import { getTodayWarsaw } from '../../../lib/date';
 import { Panel } from '../shell/Panel';
 import HexagonChart from './HexagonChart';
@@ -54,14 +55,17 @@ export default function HexagonPanel({
           )}
         </p>
         {!editing && (
-          <button
+          <Button
+            variant="tonal"
+            size="sm"
             type="button"
             onClick={startEdit}
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-40"
+            icon={<Pencil size={11} />}
           >
-            <Pencil size={11} /> Edytuj
-          </button>
+            Edytuj
+          </Button>
         )}
       </div>
 
@@ -106,22 +110,28 @@ export default function HexagonPanel({
 
           {editing && (
             <div className="pt-2 flex gap-2">
-              <button
+              <Button
+                variant="primary"
+                size="lg"
                 type="button"
                 onClick={() => void saveScores()}
                 disabled={saving}
-                className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-black uppercase tracking-wider text-white hover:bg-primary-hover active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                loading={saving}
+                className="flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-wider hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
               >
                 {saving ? 'Zapisywanie…' : 'Zapisz'}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
                 type="button"
                 onClick={cancelEdit}
                 disabled={saving}
-                className="inline-flex items-center justify-center gap-1 rounded-xl border border-border-custom px-3 py-2.5 text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1 rounded-xl border border-border-custom px-3 py-2.5 text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary cursor-pointer"
+                icon={<X size={12} />}
               >
-                <X size={12} /> Anuluj
-              </button>
+                Anuluj
+              </Button>
             </div>
           )}
 

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatWeekRange, isCurrentWeek } from '../../lib/growth/growth';
+import Button from '../ui/Button';
 
 interface GrowthViewHeaderProps {
   weekStart: string;
@@ -34,9 +35,9 @@ export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onE
           </div>
         </div>
         {!readOnly && (
-          <button type="button" onClick={onEditScores} className="rounded-xl border border-border-custom px-3 py-2 text-[10px] font-black uppercase text-text-muted hover:text-text-primary cursor-pointer shrink-0">
+          <Button variant="outline" size="sm" onClick={onEditScores} className="shrink-0 uppercase font-black">
             Oceń skilli
-          </button>
+          </Button>
         )}
       </div>
     </header>

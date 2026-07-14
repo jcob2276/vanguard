@@ -3,12 +3,12 @@ import { Check, Link2 } from 'lucide-react';
 type SphereIconType = React.ComponentType<{ size?: number | string; className?: string }>;
 
 const COLOR_DOT: Record<string, string> = {
-  indigo: 'bg-indigo-500',
-  violet: 'bg-violet-500',
-  sky: 'bg-sky-500',
-  emerald: 'bg-emerald-500',
-  amber: 'bg-amber-500',
-  rose: 'bg-rose-500',
+  indigo: 'bg-primary',
+  violet: 'bg-primary',
+  sky: 'bg-info',
+  emerald: 'bg-success',
+  amber: 'bg-warning',
+  rose: 'bg-danger',
 };
 
 export interface PowerListTaskProps {

@@ -6,7 +6,7 @@ export function DurationCard({ data }: { data: DurationData }) {
   return (
     <div className="flex items-center gap-3">
       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-[rgba(245,158,11,0.1)]">
-        <Clock size={14} style={{ color: '#F59E0B' }} />
+        <Clock size={14} style={{ color: 'var(--color-warning)' }} />
       </div>
       <div>
         <p className="text-[12px] font-medium" style={{ color: 'var(--color-text-tertiary)' }}>{data.label}</p>

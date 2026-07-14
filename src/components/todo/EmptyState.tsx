@@ -15,12 +15,12 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const activeClass =
     dragColor === 'orange'
-      ? 'border-orange-500 bg-orange-500/5 text-orange-500 scale-[1.01] shadow-lg shadow-orange-500/5'
+      ? 'border-warning bg-warning/5 text-warning scale-[1.01] shadow-lg shadow-warning/5'
       : 'border-primary bg-primary/5 text-primary scale-[1.01] shadow-lg shadow-primary/5';
 
   const inactiveClass =
     dragColor === 'orange'
-      ? 'border-orange-500/25 text-orange-500/40 bg-surface-solid/10'
+      ? 'border-warning/25 text-warning/40 bg-surface-solid/10'
       : 'border-border-custom/25 text-text-muted/30 bg-surface-solid/10';
 
   return (

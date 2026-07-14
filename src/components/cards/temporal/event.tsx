@@ -11,7 +11,7 @@ interface EventCardData {
 }
 
 export function EventCard({ data }: { data: EventCardData }) {
-  const color = data.color ?? '#5B6CFF';
+  const color = data.color ?? 'var(--color-primary)';
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">

@@ -1,4 +1,5 @@
 import { createServiceClient } from '../supabase.ts';
+import { HEALTH_THRESHOLDS } from '@vanguard/domain';
 
 const supabase = createServiceClient();
 
@@ -39,7 +40,7 @@ const isMetricSuccessful = (metric: string, value: number): boolean => {
     case 'sleep_hours':
       return value >= 7.0;
     case 'readiness_score':
-      return value >= 75.0;
+      return value >= HEALTH_THRESHOLDS.READINESS_SUCCESS;
     case 'execution_score':
       return value >= 0.80;
     case 'identity_score':
@@ -71,7 +72,7 @@ const formatAvg = (m: string, val: number): string => {
 const thresholdLabel = (m: string): string => {
   switch (m) {
     case 'sleep_hours': return '>= 7.0h';
-    case 'readiness_score': return '>= 75';
+    case 'readiness_score': return `>= ${HEALTH_THRESHOLDS.READINESS_SUCCESS}`;
     case 'execution_score': return '>= 80%';
     case 'identity_score': return '>= 70%';
     case 'screen_time_min': return '<= 150m';

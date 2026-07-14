@@ -17,10 +17,10 @@ import { C } from '../../desktopUtils';
 import ScoreBar from './ScoreBar';
 
 const READINESS_COLOR: Record<string, string> = {
-  primed: '#10b981',
+  primed: 'var(--color-success)',
   balanced: '#38bdf8',
-  strained: '#f59e0b',
-  rundown: '#f43f5e',
+  strained: 'var(--color-warning)',
+  rundown: 'var(--color-danger)',
   insufficient: '#6b7280',
 };
 
@@ -176,8 +176,8 @@ export default function GeneralHealthCharts({
           </AreaChart>
         </ResponsiveContainer>
         <div className="flex gap-4 mt-2 text-[10px] text-text-muted">
-          <span><span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1" />Recovery</span>
-          <span><span className="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1" />Strain</span>
+          <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Recovery</span>
+          <span><span className="inline-block w-2 h-2 rounded-full bg-danger mr-1" />Strain</span>
           <span className="ml-auto opacity-60">linia: 70 (dobry recovery) / 40 (niski)</span>
         </div>
       </Panel>
@@ -187,9 +187,9 @@ export default function GeneralHealthCharts({
         <Panel title="VitalBands z-scores — 90 dni">
           <VitalBandsChart timelineData={timelineData} tick={tick} />
           <div className="flex gap-3 mt-1 text-[10px] text-text-muted">
-            <span><span className="text-emerald-400">●</span> HRV z</span>
-            <span><span className="text-indigo-400">●</span> RHR z</span>
-            <span><span className="text-sky-400">●</span> Sleep z</span>
+            <span><span className="text-success">●</span> HRV z</span>
+            <span><span className="text-primary">●</span> RHR z</span>
+            <span><span className="text-info">●</span> Sleep z</span>
           </div>
         </Panel>
 
@@ -238,8 +238,8 @@ export default function GeneralHealthCharts({
         <Panel title="HRV & RHR — 90 dni">
           <HrvRhrChart timelineData={timelineData} tick={tick} />
           <div className="flex gap-4 mt-1 text-[10px] text-text-muted">
-            <span><span className="text-emerald-400">●</span> HRV (L)</span>
-            <span><span className="text-rose-400">●</span> RHR (R)</span>
+            <span><span className="text-success">●</span> HRV (L)</span>
+            <span><span className="text-danger">●</span> RHR (R)</span>
           </div>
         </Panel>
       </div>

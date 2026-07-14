@@ -1,4 +1,5 @@
 import type { CorrelationStats } from '@vanguard/domain';
+import { Card } from '../ui/Card';
 
 interface SparseMetric {
   key: string;
@@ -47,9 +48,9 @@ export default function CorrelationsSummary({ loading, stats, includeWeak, error
       )}
 
       {error && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[12px] text-rose-600">
-          {error}
-        </div>
+        <Card variant="danger" padding="0.75rem 1rem">
+          <p className="text-[12px] text-danger">{error}</p>
+        </Card>
       )}
 
       {loading && correlationsCount === 0 && (
@@ -61,8 +62,8 @@ export default function CorrelationsSummary({ loading, stats, includeWeak, error
       )}
 
       {!loading && sparseMetrics.length > 0 && (
-        <section className="rounded-[18px] border border-amber-500/20 bg-amber-500/[0.04] p-4 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+        <Card variant="notice" as="section" padding="1rem" className="space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-warning dark:text-warning">
             Zbieranie danych
           </p>
           <ul className="space-y-1">
@@ -72,7 +73,7 @@ export default function CorrelationsSummary({ loading, stats, includeWeak, error
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       )}
     </>
   );

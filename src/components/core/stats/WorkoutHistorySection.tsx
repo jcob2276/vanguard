@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { Trash2, Zap } from 'lucide-react';
+import Button from '../../ui/Button';
 import type { WorkoutSessionRow, EditFormState, EditableExerciseLog } from '../hooks/useStatsData';
 
 export function WorkoutHistorySection({
@@ -113,27 +114,33 @@ export function WorkoutHistorySection({
                               />
                             </>
                           )}
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => deleteLog(log.id)}
-                            className="text-rose-500/70 hover:text-rose-500 ml-auto p-1 transition-colors"
+                            className="ml-auto p-1 text-danger/70 hover:text-danger hover:bg-danger/10"
                           >
                             <Trash2 size={10} />
-                          </button>
+                          </Button>
                         </div>
                         );
                       })}
-                      <button 
-                        onClick={updateSession} 
-                        className="w-full bg-primary text-white py-2 rounded-lg text-[8px] font-black uppercase tracking-wider shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all"
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={updateSession}
+                        className="w-full"
                       >
                         Zapisz Zmiany
-                      </button>
-                      <button 
-                        onClick={() => setEditingSession(null)} 
-                        className="w-full text-text-muted hover:text-text-primary py-1 text-[8px] font-black uppercase transition-colors"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingSession(null)}
+                        className="w-full"
                       >
                         Anuluj
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     s.workout_day
@@ -142,18 +149,22 @@ export function WorkoutHistorySection({
                 <td className="p-3 text-right">
                   {editingSession !== s.id && (
                     <div className="flex justify-end gap-1">
-                      <button 
-                        onClick={() => startEditing(s)} 
-                        className="text-text-secondary hover:text-primary p-2 transition-colors rounded-full hover:bg-primary/5"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditing(s)}
+                        className="p-2 rounded-full"
                       >
                         <Zap size={12} />
-                      </button>
-                      <button 
-                        onClick={() => deleteSession(s.id)} 
-                        className="text-text-secondary hover:text-rose-500 p-2 transition-colors rounded-full hover:bg-rose-500/5"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteSession(s.id)}
+                        className="p-2 rounded-full text-danger/70 hover:text-danger hover:bg-danger/5"
                       >
                         <Trash2 size={12} />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </td>
@@ -162,12 +173,14 @@ export function WorkoutHistorySection({
           </tbody>
         </table>
         {recentSessions.length > 4 && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setShowAllSessions(v => !v)}
-            className="w-full py-3 text-[9px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary transition-colors border-t border-border-custom bg-text-primary/[0.01]"
+            className="w-full py-3 rounded-none border-t border-border-custom text-[9px]"
           >
             {showAllSessions ? 'Zwiń ↑' : `Pokaż więcej (${recentSessions.length - 4}) ↓`}
-          </button>
+          </Button>
         )}
       </div>
     </section>

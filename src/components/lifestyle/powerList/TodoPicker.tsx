@@ -48,7 +48,7 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
                   <BookOpen size={8} /> {item.category}
                 </Badge>
               ) : (
-                <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[item.priority] || 'bg-blue-500'}`} />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[item.priority] || 'bg-info'}`} />
               )}
               <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-text-primary">{item.title}</span>
               {item.due_date && (

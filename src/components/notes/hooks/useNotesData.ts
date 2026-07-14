@@ -3,11 +3,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNotes, Note, updateNoteApi, createNoteApi, sortNotes } from '../../../lib/notesApi';
 import { notesKeys } from '../../../lib/queryKeys';
 import { notify } from '../../../lib/notify';
+import { STORAGE_KEYS } from '../../../lib/constants';
 import { useNotesMutations } from './useNotesMutations';
 
 function readLocalFallback(): Note[] {
   try {
-    const local = localStorage.getItem('vanguard_local_keep_notes');
+    const local = localStorage.getItem(STORAGE_KEYS.KEEP_NOTES_LOCAL);
     return local ? (JSON.parse(local) as Note[]) : [];
   } catch {
     return [];
@@ -36,7 +37,7 @@ export function useNotesData(userId: string) {
   useEffect(() => {
     if (serverNotes !== undefined) {
       try {
-        localStorage.setItem('vanguard_local_keep_notes', JSON.stringify(serverNotes));
+        localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(serverNotes));
       } catch {
         // ignore quota errors
       }

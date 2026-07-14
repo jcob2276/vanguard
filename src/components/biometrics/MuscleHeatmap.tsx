@@ -6,6 +6,7 @@ import { notify } from '../../lib/notify';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { MUSCLE_TAGS, rirEffectiveness, stimulusForExercise, tagsForExercise } from '../../data/exercises';
 import { BODY_BASE, HEAT_SCALE, RB_MUSCLE_TO_TAGS, buildHighlighterData } from '../../lib/health/muscleMapData';
+import { Card } from '../ui/Card';
 import './workout/muscleHeatmap.css';
 
 const PERIODS = [
@@ -161,7 +162,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
   }, [exercisesByTag, loadByTag]);
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-border-custom bg-surface backdrop-blur-md shadow-sm">
+    <Card variant="glass" className="border border-border-custom backdrop-blur-md" padding="0">
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -175,7 +176,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                 onClick={() => setPeriod(p.days)}
                 className={`h-9 min-w-12 rounded-xl border px-3 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
                   period === p.days
-                    ? 'border-sky-400/40 bg-sky-400/15 text-sky-600 dark:text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.1)]'
+                    ? 'border-info/40 bg-info/15 text-info dark:text-info shadow-[0_0_12px_rgba(56,189,248,0.1)]'
                     : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'
                 }`}
               >
@@ -273,6 +274,6 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }

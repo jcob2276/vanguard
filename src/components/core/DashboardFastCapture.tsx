@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import Fab from '../ui/Fab';
 
 interface FastCaptureItem {
   label: string;
@@ -25,29 +26,32 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
         className="fixed inset-0 z-35 bg-black/40 backdrop-blur-[2.5px] transition-all animate-fadeIn"
         onClick={onClose}
       />
-      {/* Actions Menu */}
+
+      {/* Menu overlay */}
       <div
-        className="fixed left-1/2 z-40 flex flex-col items-center gap-2.5 transition-all"
-        style={{
-          bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 4.5rem)',
-          transform: 'translateX(-50%)'
-        }}
+        className="fixed left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-3 transition-all duration-300 pointer-events-none"
+        style={{ bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 5.6rem)' }}
       >
         {items.map((item, idx) => (
-          <button
+          <div
             key={item.label}
-            onClick={() => { onClose(); item.action(); }}
-            className={`fast-capture-menu-item flex items-center gap-2.5 px-5 py-3 rounded-full border border-border-custom bg-surface/90 text-[11.5px] font-black uppercase tracking-wider text-text-primary shadow-xl hover:scale-105 active:scale-95 transition cursor-pointer ${item.color.split(' ').slice(1).join(' ')}`}
-            style={{
-              animation: `fade-in-up 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
-              animationDelay: `${idx * 0.04}s`,
-              opacity: 0,
-              transform: 'translateY(15px)'
-            }}
+            className="flex items-center gap-2 animate-in slide-in-from-bottom-5 duration-200 pointer-events-auto"
+            style={{ animationDelay: `${idx * 40}ms` }}
           >
-            <span className="text-[13px]">{item.emoji}</span>
-            <span>{item.label}</span>
-          </button>
+            <button
+              onClick={() => {
+                item.action();
+                onClose();
+              }}
+              style={{ backgroundColor: item.color }}
+              className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg active:scale-90 transition-transform cursor-pointer"
+            >
+              <span className="text-[20px]">{item.emoji}</span>
+            </button>
+            <span className="rounded-lg bg-slate-900/90 border border-slate-800 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-md">
+              {item.label}
+            </span>
+          </div>
         ))}
       </div>
     </>
@@ -61,14 +65,16 @@ interface FabProps {
 
 export function DashboardFastCaptureFAB({ active, onToggle }: FabProps) {
   return (
-    <button
+    <Fab
+      position="bottom-center"
+      size="sm"
       onClick={onToggle}
-      className="fast-capture-btn fixed left-1/2 z-50 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-white hover:scale-110 active:scale-95 transition duration-300 cursor-pointer"
+      className="fast-capture-btn"
       style={{ bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 1.95rem)' }}
     >
       <div className={`transition-transform duration-300 ${active ? 'rotate-[135deg]' : ''}`}>
         <Plus size={18} strokeWidth={3.5} />
       </div>
-    </button>
+    </Fab>
   );
 }

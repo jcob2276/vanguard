@@ -3,6 +3,7 @@ import { createServiceClient, safeExecute } from "../_shared/supabase.ts";
 import { getVanguardUserId } from "../_shared/constants.ts";
 import { getRecentStrongBehavioralPatterns } from "../_shared/vanguardPatterns.ts";
 import { deepseekChat } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
 import { getStreamForWeeklySynthesis, insertStreamRecord } from "../_shared/repos/streamRepo.ts";
 
@@ -159,7 +160,7 @@ export async function runWeeklySynthesis(req: Request): Promise<unknown> {
     // --- LLM synthesis ---
     const { content: synthesisText } = await deepseekChat({
       apiKey: Deno.env.get('DEEPSEEK_API_KEY') ?? '',
-      model: 'deepseek-v4-flash',
+      ...LLM_TASKS.synthesis,
       temperature: 0.4,
       maxTokens: 700,
       messages: [

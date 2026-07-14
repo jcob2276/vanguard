@@ -108,6 +108,35 @@ const patternDefinitions = {
       return (content.match(/\bsession\s*:\s*Session\b/g) || []).length;
     },
   },
+  patternCount_asUnknown: {
+    label: "as unknown as casts in src/ (unvalidated JSONB/type bridges)",
+    // Counts every `as unknown as Foo` in src/ except known-safe browser-API casts.
+    // When you add a db-json-guards.ts parser and remove a cast: lower ratchet-baseline.json.
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/")) return 0;
+      if (/\.(test|spec)\.(ts|tsx)$/.test(relativePath)) return 0;
+      // These are WebAPI / browser-object casts — not DB type bridges.
+      // db-json-guards.ts is the guards source file — pattern appears in JSDoc/comments only.
+      const BROWSER_API_EXCEPTIONS = [
+        "src/hooks/usePushNotifications.ts",
+        "src/components/core/hooks/useDashboardState.ts",
+        "src/components/core/shutdown/useShutdownData.ts",
+        "src/lib/db-json-guards.ts",
+      ];
+      if (BROWSER_API_EXCEPTIONS.some((a) => relativePath.replace(/\\/g, "/").endsWith(a.replace(/\\/g, "/")))) return 0;
+      return (content.match(/\bas\s+unknown\s+as\b/g) || []).length;
+    },
+  },
+  patternCount_inlineHex: {
+    label: "inline hex color files in src/components/",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/")) return 0;
+      if (relativePath.includes("/hooks/")) return 0;
+      if (!relativePath.endsWith(".tsx")) return 0;
+      const hasHex = /#(?:[0-9a-fA-F]{3}){1,2}\b/.test(content);
+      return hasHex ? 1 : 0;
+    },
+  },
 };
 
 // Recursive file walker for src/

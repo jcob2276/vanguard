@@ -8,14 +8,7 @@ import { listProjects } from '../projects/projects';
 import { supabase } from '../supabase';
 
 // Query Keys
-export const todoKeys = {
-  all: ['todo'] as const,
-  sections: (userId: string) => [...todoKeys.all, 'sections', userId] as const,
-  items: (userId: string) => [...todoKeys.all, 'items', userId] as const,
-  projects: (userId: string) => [...todoKeys.all, 'projects', userId] as const,
-  dreams: (userId: string) => [...todoKeys.all, 'dreams', userId] as const,
-  smartLists: (userId: string) => [...todoKeys.all, 'smartLists', userId] as const,
-};
+import { todoKeys } from '../queryKeys';
 
 // ── QUERIES ──
 

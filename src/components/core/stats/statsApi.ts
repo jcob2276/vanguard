@@ -1,12 +1,9 @@
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
-import { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../../../lib/database.types';
 import { TIMEOUTS } from '../../../lib/constants';
 import type { TrainingAnalysis } from './TrainingAnalysisSection';
+import { invokeEdge } from '../../../lib/supabase';
 
-export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyzeDate, analyzePeriod }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; analyzeDate: string; analyzePeriod: number }) {
-  const { data: { session: authSession } } = await supabase.auth.getSession();
-  if (!authSession) throw new Error('No active session found');
+export async function analyzeFoodQuality({ userId, analyzeDate, analyzePeriod }: { userId: string; analyzeDate: string; analyzePeriod: number }) {
   const body = analyzePeriod === 1
     ? { userId, date: analyzeDate }
     : (() => {
@@ -16,38 +13,24 @@ export async function analyzeFoodQuality({ supabase, supabaseUrl, userId, analyz
       })();
 
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-food-quality`, {
+    return await invokeEdge('analyze-food-quality', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authSession.access_token}`
-      },
-      body: JSON.stringify(body),
+      body,
       signal: AbortSignal.timeout(TIMEOUTS.heavy),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     console.error('analyzeFoodQuality error:', err);
     throw err;
   }
 }
 
-export async function analyzeTrainingLoad({ supabase, supabaseUrl, userId, from, to }: { supabase: SupabaseClient<Database>; supabaseUrl: string; userId: string; from: string; to: string }): Promise<TrainingAnalysis> {
-  const { data: { session: authSession } } = await supabase.auth.getSession();
-  if (!authSession) throw new Error('No active session found');
+export async function analyzeTrainingLoad({ userId, from, to }: { userId: string; from: string; to: string }): Promise<TrainingAnalysis> {
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-training-load`, {
+    return await invokeEdge<TrainingAnalysis>('analyze-training-load', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authSession.access_token}`
-      },
-      body: JSON.stringify({ userId, start_date: from, end_date: to }),
+      body: { userId, start_date: from, end_date: to },
       signal: AbortSignal.timeout(TIMEOUTS.heavy),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     console.error('analyzeTrainingLoad error:', err);
     throw err;

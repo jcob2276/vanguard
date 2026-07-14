@@ -5,7 +5,7 @@ export function TransactionCard({ data }: { data: TransactionData }) {
   const color = isIn ? 'var(--color-success)' : 'var(--color-danger)';
   return (
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${isIn ? '#10B981' : '#F43F5E'}14` }}>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${isIn ? 'var(--color-success)' : 'var(--color-danger)'}14` }}>
         {isIn ? <ArrowDownLeft size={14} style={{ color }} /> : <ArrowUpRight size={14} style={{ color }} />}
       </div>
       <div className="flex-1">

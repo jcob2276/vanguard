@@ -1,6 +1,7 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
+import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
 import { fetchWorldState } from "../../_shared/worldState.ts";
 
@@ -61,13 +62,12 @@ Zwróć TYLKO czysty obiekt JSON.`;
 
     const chatRes = await deepseekChat({
       apiKey: deepseekApiKey,
-      model: 'deepseek-v4-flash',
+      ...LLM_TASKS.structured,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: raw }
       ],
       temperature: 0.0,
-      responseFormat: { type: 'json_object' }
     }).catch((e) => {
       console.error('[commands] LLM parse failed, falling back to raw:', e);
       return null;

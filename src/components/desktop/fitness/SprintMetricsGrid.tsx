@@ -49,16 +49,16 @@ export default function SprintMetricsGrid({
   ];
 
   const PROJECTS = [
-    { label: 'Done w sprincie', val: projectMetrics?.doneInSprint, color: 'text-emerald-500' },
-    { label: 'W toku', val: projectMetrics?.inProgress, color: 'text-sky-400' },
-    { label: 'Zablokowane', val: projectMetrics?.blocked, color: projectMetrics?.blocked > 0 ? 'text-rose-500' : 'text-text-primary' },
-    { label: 'Projekty', val: projectMetrics?.activeProjects, color: 'text-amber-400' },
+    { label: 'Done w sprincie', val: projectMetrics?.doneInSprint, color: 'text-success' },
+    { label: 'W toku', val: projectMetrics?.inProgress, color: 'text-info' },
+    { label: 'Zablokowane', val: projectMetrics?.blocked, color: projectMetrics?.blocked > 0 ? 'text-danger' : 'text-text-primary' },
+    { label: 'Projekty', val: projectMetrics?.activeProjects, color: 'text-warning' },
   ];
 
   return (
     <div className="grid grid-cols-3 gap-6 pt-5 border-t border-primary/10">
       <div>
-        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-emerald-500 mb-3">Ciało · sprint</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-success mb-3">Ciało · sprint</p>
         <div className="grid grid-cols-2 gap-x-5 gap-y-3">
           {BODY.map(({ label, curr, prev, fmt, dec }) => {
             const d = curr != null && prev != null ? delta(curr, prev, dec ?? 0) : null;
@@ -69,7 +69,7 @@ export default function SprintMetricsGrid({
                   {curr != null ? fmt(curr) : '—'}
                 </p>
                 {d && (
-                  <p className={`text-[8px] font-bold mt-0.5 ${d.up ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  <p className={`text-[8px] font-bold mt-0.5 ${d.up ? 'text-success' : 'text-danger'}`}>
                     {d.up ? '↑' : '↓'} {fmt(d.abs)}
                   </p>
                 )}
@@ -80,7 +80,7 @@ export default function SprintMetricsGrid({
       </div>
 
       <div>
-        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-500 mb-3">Projekty · sprint</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-warning mb-3">Projekty · sprint</p>
         <div className="grid grid-cols-2 gap-x-5 gap-y-3">
           {PROJECTS.map(({ label, val, color }) => (
             <div key={label}>
@@ -92,17 +92,17 @@ export default function SprintMetricsGrid({
       </div>
 
       <div>
-        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-indigo-400 mb-3">Cele kierunkowe</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.25em] text-primary mb-3">Cele kierunkowe</p>
         <div className="space-y-2">
           {goals?.goal_konto && (
-            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-amber-500/[0.06] !border-amber-500/15 hover:scale-[1.03] hover:shadow-md hover:!border-amber-500/30 cursor-default">
-              <p className="text-[7px] font-black uppercase tracking-wider text-amber-400 mb-1">Konto</p>
+            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-warning/[0.06] !border-warning/15 hover:scale-[1.03] hover:shadow-md hover:!border-warning/30 cursor-default">
+              <p className="text-[7px] font-black uppercase tracking-wider text-warning mb-1">Konto</p>
               <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-2">{goals.goal_konto}</p>
             </Card>
           )}
           {goals?.goal_duch && (
-            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-indigo-500/[0.06] !border-indigo-500/15 hover:scale-[1.03] hover:shadow-md hover:!border-indigo-500/30 cursor-default">
-              <p className="text-[7px] font-black uppercase tracking-wider text-indigo-400 mb-1">Duch</p>
+            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-primary/[0.06] !border-primary/15 hover:scale-[1.03] hover:shadow-md hover:!border-primary/30 cursor-default">
+              <p className="text-[7px] font-black uppercase tracking-wider text-primary mb-1">Duch</p>
               <p className="text-[11px] font-semibold text-text-primary leading-snug line-clamp-2">{goals.goal_duch}</p>
             </Card>
           )}

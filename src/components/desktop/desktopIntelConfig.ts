@@ -12,42 +12,42 @@ export const INTEL_CFG: Record<
   data: {
     label: 'DANE',
     urgencyMap: {
-      high: 'border-rose-500/30 bg-rose-500/[0.04]',
-      medium: 'border-amber-500/30 bg-amber-500/[0.04]',
+      high: 'border-danger/30 bg-danger/[0.04]',
+      medium: 'border-warning/30 bg-warning/[0.04]',
       low: 'border-border-custom bg-surface-solid'
     },
-    dot: { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-text-muted' },
-    badge: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+    dot: { high: 'bg-danger', medium: 'bg-warning', low: 'bg-text-muted' },
+    badge: 'text-primary bg-primary/10 border-primary/20'
   },
   pattern: {
     label: 'WZORZEC',
     urgencyMap: {
-      high: 'border-rose-500/30 bg-rose-500/[0.04]',
-      medium: 'border-amber-500/30 bg-amber-500/[0.04]',
+      high: 'border-danger/30 bg-danger/[0.04]',
+      medium: 'border-warning/30 bg-warning/[0.04]',
       low: 'border-border-custom bg-surface-solid'
     },
-    dot: { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-text-muted' },
-    badge: 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+    dot: { high: 'bg-danger', medium: 'bg-warning', low: 'bg-text-muted' },
+    badge: 'text-danger bg-danger/10 border-danger/20'
   },
   wiki: {
     label: 'WIEDZA',
     urgencyMap: {
-      high: 'border-emerald-500/30 bg-emerald-500/[0.04]',
-      medium: 'border-emerald-500/20 bg-emerald-500/[0.03]',
+      high: 'border-success/30 bg-success/[0.04]',
+      medium: 'border-success/20 bg-success/[0.03]',
       low: 'border-border-custom bg-surface-solid'
     },
-    dot: { high: 'bg-emerald-500', medium: 'bg-emerald-400', low: 'bg-emerald-400/50' },
-    badge: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+    dot: { high: 'bg-success', medium: 'bg-success', low: 'bg-success/50' },
+    badge: 'text-success bg-success/10 border-success/20'
   },
   knowledge: {
     label: 'ZASADA',
     urgencyMap: {
-      high: 'border-amber-500/30 bg-amber-500/[0.04]',
-      medium: 'border-amber-500/20 bg-amber-500/[0.03]',
+      high: 'border-warning/30 bg-warning/[0.04]',
+      medium: 'border-warning/20 bg-warning/[0.03]',
       low: 'border-border-custom bg-surface-solid'
     },
-    dot: { high: 'bg-amber-500', medium: 'bg-amber-400', low: 'bg-amber-300' },
-    badge: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    dot: { high: 'bg-warning', medium: 'bg-warning', low: 'bg-warning' },
+    badge: 'text-warning bg-warning/10 border-warning/20'
   }
 };
 

@@ -2550,6 +2550,7 @@ export type Database = {
           philosophy_note: string | null
           protein_g_per_kg: number
           sex: string | null
+          sleep_target_hours: number | null
           updated_at: string
           user_id: string
           weekly_loss_kg: number
@@ -2565,6 +2566,7 @@ export type Database = {
           philosophy_note?: string | null
           protein_g_per_kg?: number
           sex?: string | null
+          sleep_target_hours?: number | null
           updated_at?: string
           user_id: string
           weekly_loss_kg?: number
@@ -2580,6 +2582,7 @@ export type Database = {
           philosophy_note?: string | null
           protein_g_per_kg?: number
           sex?: string | null
+          sleep_target_hours?: number | null
           updated_at?: string
           user_id?: string
           weekly_loss_kg?: number
@@ -4699,6 +4702,36 @@ export type Database = {
           long_term_mission?: string | null
           pillars?: Json | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vanguard_iron_rules: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          rule_key: string
+          rule_text: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          rule_key: string
+          rule_text: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          rule_key?: string
+          rule_text?: string
+          sort_order?: number | null
           user_id?: string
         }
         Relationships: []

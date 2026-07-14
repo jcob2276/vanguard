@@ -16,6 +16,7 @@ import {
 } from '../../lib/health/medicalAnalytics';
 import { GETBASED_OPTIMAL, bridgeForMarkerKey } from '../../lib/getBased/markerBridge';
 import { ValueCell } from './MedicalLabSections';
+import { Card } from '../ui/Card';
 
 function ChartTip({ active, payload }: { active?: boolean; payload?: { payload: { label: string; value: number } }[] }) {
   if (!active || !payload?.[0]) return null;
@@ -43,13 +44,13 @@ function MarkerTrendCard({ series }: { series: MarkerSeries }) {
     opt?.optimalMin != null && opt?.optimalMax != null && opt.optimalMin < opt.optimalMax;
 
   return (
-    <div className="rounded-2xl border border-border-custom bg-surface/30 p-4">
+    <Card variant="glass" className="bg-surface/30 border-border-custom" padding="1rem">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
           <p className="text-[12px] font-bold text-text-primary">{series.marker_name}</p>
           <p className="text-[10px] text-text-muted mt-0.5">Norma lab: {formatRef(series.latest)}</p>
           {bridge && opt && (
-            <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+            <p className="text-[10px] text-success/80 dark:text-success/80 mt-0.5">
               Optymalne (getbased): {opt.optimalMin}–{opt.optimalMax} {bridge.canonicalUnit}
             </p>
           )}
@@ -84,7 +85,7 @@ function MarkerTrendCard({ series }: { series: MarkerSeries }) {
         </LineChart>
       </ResponsiveContainer>
       <p className="text-[9px] text-text-muted mt-2">{data.length} pomiarów w historii</p>
-    </div>
+    </Card>
   );
 }
 

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { PILLARS, PILLAR_META, GOAL_QUESTIONS, PillarId } from './projectUtils';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import type { GoalCreatePreview } from './useProjectsData';
 
 export interface GoalCreateModalProps {
@@ -149,21 +150,22 @@ export default function GoalCreateModal({
                 />
                 <p className="text-[10px] text-text-muted/60">Enter = dalej · Shift+Enter = nowa linia</p>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => setGoalCreateStep(qIdx > 0 ? qIdx - 1 : 'pillar')}
-                    className="rounded-xl border border-border-custom px-4 py-3 text-[12px] font-bold text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                    className="px-4 py-3 text-[12px]"
                   >
                     ← Wstecz
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => {
                       if (val.trim()) handleGoalCreateNext(val);
                     }}
                     disabled={!val.trim()}
-                    className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white disabled:opacity-30 transition-opacity cursor-pointer"
+                    className="flex-1 py-3 text-[12px]"
                   >
                     {qIdx < GOAL_QUESTIONS.length - 1 ? 'Dalej →' : 'Generuj cel ✦'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             );
@@ -236,23 +238,25 @@ export default function GoalCreateModal({
                 </div>
               )}
               <div className="flex gap-2 pt-1">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setGoalCreateStep(GOAL_QUESTIONS.length - 1)}
-                  className="rounded-xl border border-border-custom px-4 py-3 text-[12px] font-bold text-text-muted hover:text-text-primary cursor-pointer"
+                  className="px-4 py-3 text-[12px]"
                 >
                   Zmień
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     if (goalCreatePillar) {
                       onConfirm(goalCreatePreview, goalCreatePillar);
                     }
                   }}
                   disabled={busy}
-                  className="flex-1 rounded-xl bg-primary py-3 text-[12px] font-bold text-white disabled:opacity-50 cursor-pointer"
+                  loading={busy}
+                  className="flex-1 py-3 text-[12px]"
                 >
                   Utwórz projekt ✦
-                </button>
+                </Button>
               </div>
             </div>
           )}

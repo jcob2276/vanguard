@@ -16,11 +16,11 @@ export default function SaunaRpePicker({ sessionRpe, setSessionRpe }: SaunaRpePi
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
           const color =
             n <= 4
-              ? 'border-sky-500/30 text-sky-650 bg-sky-500/8'
+              ? 'border-info/30 text-info bg-info/8'
               : n <= 6
-                ? 'border-yellow-500/35 text-yellow-600 bg-yellow-500/8'
+                ? 'border-warning/35 text-warning bg-warning/8'
                 : n <= 8
-                  ? 'border-orange-500/35 text-orange-600 bg-orange-500/8'
+                  ? 'border-warning/35 text-warning bg-warning/8'
                   : 'border-dayB/35 text-dayB bg-dayB/8';
           const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : 'opacity-80';
           return (

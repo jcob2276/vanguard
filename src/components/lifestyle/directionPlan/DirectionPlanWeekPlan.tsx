@@ -74,7 +74,7 @@ export default function DirectionPlanWeekPlan({
               {longTermBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
               {direction.monthTheme && (
                 <p className="text-[11px] text-text-secondary leading-relaxed">
-                  <span className="font-black uppercase tracking-wider text-indigo-600 text-[9px]">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
+                  <span className="font-black uppercase tracking-wider text-primary text-[9px]">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
                   {direction.monthTheme}
                 </p>
               )}
@@ -98,7 +98,7 @@ export default function DirectionPlanWeekPlan({
             {longTermBridge && <p className="text-[11px] font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
             {direction.monthTheme && (
               <p className="text-[11px] text-text-secondary leading-relaxed">
-                <span className="font-black uppercase tracking-wider text-indigo-600 text-[9px]">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
+                <span className="font-black uppercase tracking-wider text-primary text-[9px]">Temat miesiąca{direction.monthLabel ? ` · ${direction.monthLabel}` : ''}:{' '}</span>
                 {direction.monthTheme}
               </p>
             )}
@@ -107,17 +107,17 @@ export default function DirectionPlanWeekPlan({
         )}
         <div className="space-y-1">
           <p className="text-xs text-text-muted font-medium">Intencja tygodnia — jaki chcę być?</p>
-          {intentionFromMonth && weekIntention.trim() && <p className="text-[10px] font-semibold text-indigo-600">Wstępnie z tematu miesiąca — doprecyzuj pod ten tydzień.</p>}
+          {intentionFromMonth && weekIntention.trim() && <p className="text-[10px] font-semibold text-primary">Wstępnie z tematu miesiąca — doprecyzuj pod ten tydzień.</p>}
           <Textarea value={weekIntention} onChange={setWeekIntention} placeholder="Np. konsekwentny, spokojny, zdecydowany…" rows={2} />
         </div>
         <div className="space-y-1">
           <p className="text-xs text-text-muted font-medium">Zobowiązanie — co jest bezwzględne?</p>
-          {planCarriedFromMonth && weekCommitment.trim() && <p className="text-[10px] font-semibold text-indigo-600">Z korekty miesiąca — jedna rzecz do poprawy w tym tygodniu.</p>}
+          {planCarriedFromMonth && weekCommitment.trim() && <p className="text-[10px] font-semibold text-primary">Z korekty miesiąca — jedna rzecz do poprawy w tym tygodniu.</p>}
           <Textarea value={weekCommitment} onChange={setWeekCommitment} placeholder="Jedna rzecz której nie odpuszczę bez względu na wszystko…" rows={2} />
         </div>
         <div className="pt-3 space-y-3 border-t border-border-custom">
           <p className="text-[9px] font-black uppercase tracking-widest text-text-muted">3 duże cele na ten tydzień</p>
-          {planCarriedFromMonth && <p className="text-[10px] font-semibold text-indigo-600">Cele filarów wstępnie z przeglądu miesiąca (korekta / dźwignia).</p>}
+          {planCarriedFromMonth && <p className="text-[10px] font-semibold text-primary">Cele filarów wstępnie z przeglądu miesiąca (korekta / dźwignia).</p>}
           <div className="space-y-1">
             <p className="text-xs text-text-muted font-medium">Ciało</p>
             <Textarea value={weekGoalCialo} onChange={setWeekGoalCialo} placeholder="Jeden konkretny cel fizyczny…" rows={2} />

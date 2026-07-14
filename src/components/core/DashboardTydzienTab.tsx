@@ -26,10 +26,12 @@ export function DashboardTydzienTab({ weeklyCalories, nutritionKey, onOpenAction
   return (
     <div className="p-5 pb-8">
       <Suspense fallback={<ViewFallback />}>
-        <div className="space-y-7">
-          <NutritionTrainingBarCard session={session} refreshSignal={nutritionKey} />
-          <NutritionCard weeklyCalories={weeklyCalories} session={session} refreshSignal={nutritionKey} />
-          <Direction session={session} onOpenActionCenter={onOpenActionCenter} />
+        <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-7 lg:space-y-0">
+          <NutritionTrainingBarCard refreshSignal={nutritionKey} />
+          <NutritionCard weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />
+          <div className="lg:col-span-2">
+            <Direction session={session} onOpenActionCenter={onOpenActionCenter} />
+          </div>
         </div>
       </Suspense>
     </div>

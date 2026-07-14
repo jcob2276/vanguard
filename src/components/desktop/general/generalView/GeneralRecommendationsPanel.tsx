@@ -1,5 +1,6 @@
 import React from 'react';
 import { Panel } from '../../shell/Panel';
+import { Card } from '../../../ui/Card';
 import type { OracleRecommendation } from '../../../../lib/recommendationsApi';
 import { Target, CheckCircle2, XCircle, HelpCircle, Calendar } from 'lucide-react';
 import { getTodayWarsaw } from '../../../../lib/date';
@@ -27,14 +28,14 @@ function getOutcomeBadge(outcome: string | null) {
   switch (outcome) {
     case 'success':
       return (
-        <span className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-success/10 text-success border border-success/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
           <CheckCircle2 size={10} />
           Sukces
         </span>
       );
     case 'fail':
       return (
-        <span className="flex items-center gap-1 bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-danger/10 text-danger border border-danger/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
           <XCircle size={10} />
           Porażka
         </span>
@@ -48,7 +49,7 @@ function getOutcomeBadge(outcome: string | null) {
       );
     default:
       return (
-        <span className="flex items-center gap-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
           Ewaluacja
         </span>
       );
@@ -58,7 +59,7 @@ function getOutcomeBadge(outcome: string | null) {
 function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendation; todayStr: string }) {
   const daysLeft = getDaysRemaining(rec.created_at, rec.evaluation_window_days, todayStr);
   return (
-    <div className="rounded-xl border border-border-custom bg-surface-solid/40 p-3 hover:border-primary/20 hover:shadow-sm transition-all duration-150 space-y-2">
+    <Card padding="0.75rem" className="hover:border-primary/20 hover:shadow-sm transition-all duration-150 space-y-2">
       <p className="text-[11px] font-bold text-text-primary leading-relaxed">
         {rec.recommendation_text}
       </p>
@@ -76,7 +77,7 @@ function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendatio
           Dodano: {rec.created_at.slice(0, 10)}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -84,7 +85,7 @@ function RecommendationHistoryCard({ rec }: { rec: OracleRecommendation }) {
   const baselineVal = rec.baseline_value !== null ? rec.baseline_value.toFixed(1) : '—';
   const actualVal = rec.actual_value !== null ? rec.actual_value.toFixed(1) : '—';
   return (
-    <div className="rounded-xl border border-border-custom bg-surface-solid/30 p-3 flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-150">
+    <Card padding="0.75rem" className="flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-150">
       <p className="text-[10px] text-text-secondary leading-relaxed font-medium">
         {rec.recommendation_text}
       </p>
@@ -106,7 +107,7 @@ function RecommendationHistoryCard({ rec }: { rec: OracleRecommendation }) {
           </span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -156,18 +157,18 @@ export default function GeneralRecommendationsPanel({
                     Na podstawie {totalEvaluated} rozstrzygnięć
                   </span>
                 </div>
-                <span className="text-[22px] font-black text-emerald-500">
+                <span className="text-[22px] font-black text-success">
                   {successRate !== null ? `${successRate}%` : '—'}
                 </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2 flex flex-col justify-between">
-                  <span className="text-emerald-500 font-black">{successes}</span>
+                <div className="bg-success/5 border border-success/10 rounded-xl p-2 flex flex-col justify-between">
+                  <span className="text-success font-black">{successes}</span>
                   <span className="text-[8px] text-text-muted font-bold uppercase tracking-wide mt-0.5">Sukcesy</span>
                 </div>
-                <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-2 flex flex-col justify-between">
-                  <span className="text-rose-500 font-black">{fails}</span>
+                <div className="bg-danger/5 border border-danger/10 rounded-xl p-2 flex flex-col justify-between">
+                  <span className="text-danger font-black">{fails}</span>
                   <span className="text-[8px] text-text-muted font-bold uppercase tracking-wide mt-0.5">Błędy</span>
                 </div>
                 <div className="bg-slate-500/5 border border-border-custom rounded-xl p-2 flex flex-col justify-between">

@@ -43,7 +43,7 @@ export default function DragGhost({ item, posRef }: DragGhostProps) {
         {icon ? (
           <span className="text-[20px] leading-none">{icon}</span>
         ) : (
-          <div className={`h-4 w-4 rounded-full border-2 shrink-0 ${PRIORITY[item.priority]?.ring ?? 'border-sky-400'}`} />
+          <div className={`h-4 w-4 rounded-full border-2 shrink-0 ${PRIORITY[item.priority]?.ring ?? 'border-info'}`} />
         )}
         <p className="text-[13px] font-semibold text-text-primary truncate">{label}</p>
       </div>

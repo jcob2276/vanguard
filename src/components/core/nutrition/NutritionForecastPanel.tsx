@@ -1,3 +1,4 @@
+import { Card } from '../../ui/Card';
 import type { useNutritionData } from '../useNutritionData';
 
 type NutritionData = ReturnType<typeof useNutritionData>;
@@ -13,7 +14,7 @@ export default function NutritionForecastPanel({ forecast, forecastNote }: Nutri
   }
 
   return (
-    <div className="mt-3.5 rounded-xl border border-border-custom/50 bg-surface-solid/15 p-3">
+    <Card className="mt-3.5" padding="0.75rem">
       <p className="text-[9px] font-black uppercase tracking-wider text-text-muted mb-2">Prognoza przy obecnym tempie</p>
       {forecast.forecast_30d_weight_kg != null && (
         <div className="grid grid-cols-3 gap-2 mb-2">
@@ -37,12 +38,12 @@ export default function NutritionForecastPanel({ forecast, forecastNote }: Nutri
       )}
       {!!forecast.adaptive_correction_kcal && (
         <p className="text-[10.5px] text-text-secondary mb-1">
-          🔧 Adaptive correction: <strong className={forecast.adaptive_correction_kcal > 0 ? 'text-rose-400' : 'text-emerald-400'}>
+          🔧 Adaptive correction: <strong className={forecast.adaptive_correction_kcal > 0 ? 'text-danger' : 'text-success'}>
             {forecast.adaptive_correction_kcal > 0 ? '-' : '+'}{Math.abs(forecast.adaptive_correction_kcal)} kcal/dzień
           </strong> (tempo vs plan)
         </p>
       )}
       {forecastNote && <p className="text-[10.5px] text-text-secondary leading-snug mt-1">{forecastNote}</p>}
-    </div>
+    </Card>
   );
 }

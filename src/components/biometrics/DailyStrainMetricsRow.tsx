@@ -25,7 +25,7 @@ export default function DailyStrainMetricsRow({
           {strainScore ?? '--'}<span className="text-[9px] text-text-muted font-normal">/21</span>
         </p>
         <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
-          <div className="h-[2px] rounded-full bg-orange-400 transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
+          <div className="h-[2px] rounded-full bg-warning transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
         </div>
       </div>
 
@@ -35,18 +35,18 @@ export default function DailyStrainMetricsRow({
           {recoveryScore ?? '--'}<span className="text-[9px] text-text-muted font-normal">/100</span>
         </p>
         <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
-          <div className={`h-[2px] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-emerald-500' : recoveryScore >= 55 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
+          <div className={`h-[2px] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-success' : recoveryScore >= 55 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
         </div>
       </div>
 
       {fuelingScore != null && (
         <div>
           <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Fueling</p>
-          <p className={`text-[19px] font-black leading-none mt-0.5 ${fuelingScore >= 70 ? 'text-emerald-500' : 'text-amber-500'}`}>
+          <p className={`text-[19px] font-black leading-none mt-0.5 ${fuelingScore >= 70 ? 'text-success' : 'text-warning'}`}>
             {fuelingScore}<span className="text-[9px] text-text-muted font-normal">/100</span>
           </p>
           <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
-            <div className={`h-[2px] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
+            <div className={`h-[2px] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
           </div>
         </div>
       )}
@@ -56,7 +56,7 @@ export default function DailyStrainMetricsRow({
           <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">
             {sleepDebtH < 0 ? 'Dług snu' : 'Nadwyżka'}
           </p>
-          <p className={`text-[19px] font-black leading-none mt-0.5 ${sleepDebtH < -0.5 ? 'text-rose-500' : sleepDebtH > 0.5 ? 'text-emerald-500' : 'text-text-primary'}`}>
+          <p className={`text-[19px] font-black leading-none mt-0.5 ${sleepDebtH < -0.5 ? 'text-danger' : sleepDebtH > 0.5 ? 'text-success' : 'text-text-primary'}`}>
             {sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}
           </p>
         </div>

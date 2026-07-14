@@ -1,4 +1,6 @@
 import { COLORS } from './projectUtils';
+import Button from '../ui/Button';
+import { Card } from '../ui/Card';
 
 interface ProjectForm {
   name: string;
@@ -17,7 +19,7 @@ interface Props {
 
 export function ProjectCreateForm({ form, busy, onChange, onSubmit }: Props) {
   return (
-    <div className="rounded-[24px] border border-border-custom bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.07),0_2px_14px_rgba(0,0,0,0.04)] p-4 space-y-3">
+    <Card variant="glass" padding="1rem" className="space-y-3">
       <input
         autoFocus
         value={form.name}
@@ -49,13 +51,13 @@ export function ProjectCreateForm({ form, busy, onChange, onSubmit }: Props) {
           ))}
         </div>
       </div>
-      <button
+      <Button
         onClick={onSubmit}
         disabled={busy || !form.name.trim()}
-        className="w-full rounded-[12px] bg-primary py-2.5 text-[13px] font-semibold text-white disabled:opacity-40 hover:bg-primary-hover transition-colors"
+        className="w-full py-2.5 text-[13px]"
       >
         Utwórz projekt i sekcję w Zadaniach
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }

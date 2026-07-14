@@ -1,4 +1,5 @@
 import { ChevronLeft, ShieldCheck } from 'lucide-react';
+import Button from '../ui/Button';
 import BrainHealth from '../biometrics/BrainHealth';
 
 type DataHubProps = {
@@ -12,9 +13,9 @@ export default function DataHub({ onBack = null, embedded = false }: DataHubProp
       {!embedded && (
         <header className="flex items-center gap-4">
           {onBack && (
-            <button onClick={onBack} className="p-2 text-neutral-500 hover:text-white transition-colors">
+            <Button variant="ghost" size="sm" onClick={onBack} className="p-2">
               <ChevronLeft size={24} />
-            </button>
+            </Button>
           )}
           <div>
             <h1 className="font-black text-2xl text-white uppercase italic tracking-tighter">Data Hub</h1>

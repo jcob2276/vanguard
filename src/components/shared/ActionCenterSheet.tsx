@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Session } from '@supabase/supabase-js';
 import { HelpCircle, X } from 'lucide-react';
 import Modal from '../ui/Modal';
-import { supabase } from '../../lib/supabase';
+import Button from '../ui/Button';
+import { fetchActionCenterCount, fetchPendingClarificationRequests } from '../../lib/actionCenterApi';
+import { useUserId } from '../../store/useStore';
+import { actionCenterKeys } from '../../lib/queryKeys';
 import { ClarificationRequestCard } from '../ai/ClarificationRequestCard';
 import { SystemProposalCard } from './SystemProposalCard';
 import {
@@ -12,24 +14,11 @@ import {
   syncFrictionProposals,
 } from '../../lib/systemProposals';
 
-interface PendingClarification {
-  id: string;
-  question: string;
-  response_type: string;
-  options: Array<{ id: string; label: string; value: string }>;
-  proposed_memory?: string | null;
-  confidence?: number | null;
-}
 
-const actionCenterKeys = {
-  all: ['action-center'] as const,
-  count: (userId: string) => [...actionCenterKeys.all, 'count', userId] as const,
-  data: (userId: string) => [...actionCenterKeys.all, 'data', userId] as const,
-};
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function usePendingActionCount(session: Session) {
-  const userId = session?.user?.id ?? '';
+export function usePendingActionCount() {
+  const userId = useUserId() ?? '';
   const queryClient = useQueryClient();
 
   const countQuery = useQuery({
@@ -37,19 +26,7 @@ export function usePendingActionCount(session: Session) {
     queryFn: async () => {
       if (!userId) return 0;
       await syncFrictionProposals(userId);
-      const [clarRes, propRes] = await Promise.all([
-        supabase
-          .from('oracle_clarification_requests')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('status', 'pending'),
-        supabase
-          .from('system_proposals')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('status', 'pending'),
-      ]);
-      return (clarRes.count ?? 0) + (propRes.count ?? 0);
+      return fetchActionCenterCount(userId);
     },
     enabled: !!userId,
     refetchInterval: 60_000,
@@ -63,34 +40,27 @@ export function usePendingActionCount(session: Session) {
 }
 
 export function ActionCenterSheet({
-  session,
   open,
   onClose,
   onUpdated,
 }: {
-  session: Session;
   open: boolean;
   onClose: () => void;
   onUpdated?: () => void;
 }) {
   const queryClient = useQueryClient();
-  const userId = session.user.id;
+  const userId = useUserId() ?? '';
 
   const dataQuery = useQuery({
     queryKey: actionCenterKeys.data(userId),
     queryFn: async () => {
       await syncFrictionProposals(userId);
-      const [clarRes, props] = await Promise.all([
-        supabase
-          .from('oracle_clarification_requests')
-          .select('id, question, response_type, options, proposed_memory, confidence')
-          .eq('user_id', userId)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false }),
+      const [clarData, props] = await Promise.all([
+        fetchPendingClarificationRequests(userId),
         fetchPendingProposals(userId),
       ]);
       return {
-        clarifications: (clarRes.data ?? []) as PendingClarification[],
+        clarifications: clarData,
         proposals: props,
       };
     },
@@ -125,9 +95,14 @@ export function ActionCenterSheet({
         <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-text-muted">
           <HelpCircle size={14} /> Oczekujące
         </p>
-        <button type="button" onClick={onClose} className="rounded-full p-2 text-text-muted hover:bg-surface/80">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="rounded-full p-2 text-text-muted hover:bg-surface/80"
+        >
           <X size={16} />
-        </button>
+        </Button>
       </div>
 
       {loading && <p className="text-center text-[12px] text-text-muted py-6">Ładuję…</p>}

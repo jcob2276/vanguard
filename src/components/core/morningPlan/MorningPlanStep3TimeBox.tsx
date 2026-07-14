@@ -48,18 +48,18 @@ export default function MorningPlanStep3TimeBox({
       <div className="p-3.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-2xl space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Zapełnienie {dayWordGen} dnia</span>
-          <span className={`text-[11px] font-black ${isOverloaded ? 'text-rose-500' : 'text-primary'}`}>
+          <span className={`text-[11px] font-black ${isOverloaded ? 'text-danger' : 'text-primary'}`}>
             {capacityHoursPlanned}h / {CAPACITY_HOURS}h
           </span>
         </div>
         <div className="h-2 rounded-full bg-border-custom/30 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${isOverloaded ? 'bg-rose-500' : capacityPct > 75 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+            className={`h-full rounded-full transition-all duration-300 ${isOverloaded ? 'bg-danger' : capacityPct > 75 ? 'bg-warning' : 'bg-success'}`}
             style={{ width: `${capacityPct}%` }}
           />
         </div>
         {isOverloaded && (
-          <div className="flex items-start gap-1.5 p-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-[10px] font-semibold">
+          <div className="flex items-start gap-1.5 p-2 bg-danger/10 border border-danger/20 rounded-xl text-danger text-[10px] font-semibold">
             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
             <span>Ostrzeżenie przed przeładowaniem! Zaplanowany czas przekracza 8h. Rozważ odłożenie części zadań na inny dzień, by zapobiec wypaleniu.</span>
           </div>
@@ -88,7 +88,7 @@ export default function MorningPlanStep3TimeBox({
               <div className="min-w-0 flex-1">
                 <span className="text-[12px] font-semibold text-text-primary block truncate">{task!.title}</span>
                 {powerList.some((s) => s?.id === task!.id) && (
-                  <span className="inline-block mt-0.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 tracking-wider">
+                  <span className="inline-block mt-0.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-warning/10 text-warning tracking-wider">
                     Power List
                   </span>
                 )}

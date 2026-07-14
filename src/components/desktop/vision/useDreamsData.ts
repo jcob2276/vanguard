@@ -129,15 +129,15 @@ export function useDreamsData({ userId, loading }: UseDreamsDataProps) {
 
   const DREAM_CATEGORIES = ['all', 'finanse', 'ciało', 'relacje', 'doświadczenia', 'wolność', 'inne'];
   const DREAM_CAT_LABEL: Record<string, string> = { all: 'Wszystkie', finanse: 'Finanse', ciało: 'Ciało', relacje: 'Relacje', doświadczenia: 'Doświadczenia', wolność: 'Wolność', inne: 'Inne' };
-  const DREAM_CAT_COLOR: Record<string, string> = { finanse: 'text-emerald-500', ciało: 'text-rose-500', relacje: 'text-violet-500', doświadczenia: 'text-amber-500', wolność: 'text-sky-500', inne: 'text-text-muted' };
+  const DREAM_CAT_COLOR: Record<string, string> = { finanse: 'text-success', ciało: 'text-danger', relacje: 'text-primary', doświadczenia: 'text-warning', wolność: 'text-info', inne: 'text-text-muted' };
 
   const VB_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    indigo:  { bg: 'bg-indigo-500/10',  text: 'text-indigo-300',  border: 'border-indigo-500/25' },
-    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-300', border: 'border-emerald-500/25' },
-    amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-300',   border: 'border-amber-500/25' },
-    rose:    { bg: 'bg-rose-500/10',    text: 'text-rose-300',    border: 'border-rose-500/25' },
-    violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-300',  border: 'border-violet-500/25' },
-    sky:     { bg: 'bg-sky-500/10',     text: 'text-sky-300',     border: 'border-sky-500/25' },
+    indigo:  { bg: 'bg-primary/10',  text: 'text-primary',  border: 'border-primary/25' },
+    emerald: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/25' },
+    amber:   { bg: 'bg-warning/10',   text: 'text-warning',   border: 'border-warning/25' },
+    rose:    { bg: 'bg-danger/10',    text: 'text-danger',    border: 'border-danger/25' },
+    violet:  { bg: 'bg-primary/10',  text: 'text-primary',  border: 'border-primary/25' },
+    sky:     { bg: 'bg-info/10',     text: 'text-info',     border: 'border-info/25' },
   };
 
   const filteredDreams = dreamFilter === 'all' ? dreams : dreams.filter(d => d.category === dreamFilter);

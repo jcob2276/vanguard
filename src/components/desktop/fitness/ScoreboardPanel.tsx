@@ -1,5 +1,6 @@
 import { useLifeScoreboard, type SphereScore } from '../../projects/hooks/useLifeScoreboard';
 import { Panel } from '../shell/Panel';
+import Skeleton from '../../ui/Skeleton';
 
 const AXES = 5;
 const R = 84;
@@ -20,16 +21,16 @@ function polygonPoints(scores: (number | null)[]) {
 
 function scoreTone(s: number | null) {
   if (s == null) return 'text-text-muted/40';
-  if (s >= 75) return 'text-emerald-500';
-  if (s >= 55) return 'text-amber-500';
-  return 'text-rose-500';
+  if (s >= 75) return 'text-success';
+  if (s >= 55) return 'text-warning';
+  return 'text-danger';
 }
 
 function barTone(s: number | null) {
   if (s == null) return 'bg-border-custom/40';
-  if (s >= 75) return 'bg-emerald-500';
-  if (s >= 55) return 'bg-amber-500';
-  return 'bg-rose-500';
+  if (s >= 75) return 'bg-success';
+  if (s >= 55) return 'bg-warning';
+  return 'bg-danger';
 }
 
 function Delta({ cur, prev }: { cur: number | null; prev: number | null }) {
@@ -37,7 +38,7 @@ function Delta({ cur, prev }: { cur: number | null; prev: number | null }) {
   const d = cur - prev;
   if (Math.abs(d) < 2) return <span className="text-[9px] font-bold text-text-muted/40 tabular-nums">→</span>;
   return (
-    <span className={`text-[9px] font-black tabular-nums ${d > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+    <span className={`text-[9px] font-black tabular-nums ${d > 0 ? 'text-success' : 'text-danger'}`}>
       {d > 0 ? '▲' : '▼'}{Math.abs(Math.round(d))}
     </span>
   );
@@ -73,7 +74,7 @@ export default function ScoreboardPanel({ userId }: { userId: string | undefined
   if (loading || !data) {
     return (
       <Panel title="Scoreboard tygodnia">
-        <div className="h-[220px] animate-pulse rounded-xl bg-surface-solid/40" />
+        <Skeleton variant="card" className="h-[220px] rounded-xl" />
       </Panel>
     );
   }

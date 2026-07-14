@@ -27,7 +27,7 @@ function SubSkillRow({
         <span className="shrink-0 font-black text-primary tabular-nums">
           {val}/5
           {delta != null && delta !== 0 && (
-            <span className={`ml-1 text-[8px] ${delta > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            <span className={`ml-1 text-[8px] ${delta > 0 ? 'text-success' : 'text-danger'}`}>
               {delta > 0 ? `+${delta}` : delta}
             </span>
           )}

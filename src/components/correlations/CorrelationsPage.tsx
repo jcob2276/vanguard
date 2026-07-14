@@ -71,7 +71,7 @@ export default function CorrelationsPage() {
           <SleepDriversSection
             title="Co wpływa na sen głęboki (Oura)"
             subtitle="Wybrane z pełnego skanu — wszystko, co ma dane, vs deep sleep (Oura)."
-            titleColor="text-indigo-600 dark:text-indigo-400"
+            titleColor="text-primary dark:text-primary"
             drivers={deepSleepDrivers}
           />
         )}
@@ -80,7 +80,7 @@ export default function CorrelationsPage() {
           <SleepDriversSection
             title="Co wpływa na sen REM (Oura)"
             subtitle="To samo dla REM — pary, które wyszły ze skanu, nie z ręcznej listy hipotez."
-            titleColor="text-violet-600 dark:text-violet-400"
+            titleColor="text-primary dark:text-primary"
             drivers={remSleepDrivers}
           />
         )}

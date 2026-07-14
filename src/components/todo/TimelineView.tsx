@@ -25,9 +25,9 @@ const PX_PER_MIN = 2.4;
 const DEFAULT_DURATION = 30;
 
 const GOAL_COLOR: Record<string, { block: string; dot: string }> = {
-  cialo:  { block: 'bg-emerald-500/15 border-emerald-500/30', dot: 'bg-emerald-500' },
-  duch:   { block: 'bg-violet-500/15 border-violet-500/30',   dot: 'bg-violet-500'  },
-  konto:  { block: 'bg-amber-500/15 border-amber-500/30',     dot: 'bg-amber-500'   },
+  cialo:  { block: 'bg-success/15 border-success/30', dot: 'bg-success' },
+  duch:   { block: 'bg-primary/15 border-primary/30',   dot: 'bg-primary'  },
+  konto:  { block: 'bg-warning/15 border-warning/30',     dot: 'bg-warning'   },
 };
 const DEFAULT_COLOR = { block: 'bg-surface-solid border-border-custom/40', dot: 'bg-primary/60' };
 
@@ -112,8 +112,8 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                 className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
                 style={{ top: nowTop }}
               >
-                <div className="w-2 h-2 rounded-full bg-rose-500 -ml-1 shrink-0" />
-                <div className="flex-1 h-[1.5px] bg-rose-500/70" />
+                <div className="w-2 h-2 rounded-full bg-danger -ml-1 shrink-0" />
+                <div className="flex-1 h-[1.5px] bg-danger/70" />
               </div>
             )}
 
@@ -147,7 +147,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); onToggle(item); }}
-                      className="shrink-0 mt-0.5 w-4 h-4 rounded-full border-[1.5px] border-current opacity-30 hover:opacity-80 hover:bg-emerald-500 hover:border-emerald-500 transition-all"
+                      className="shrink-0 mt-0.5 w-4 h-4 rounded-full border-[1.5px] border-current opacity-30 hover:opacity-80 hover:bg-success hover:border-success transition-all"
                     />
                   </div>
                 </button>
@@ -165,7 +165,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                 const { icon, label } = splitEmoji(item.title);
                 return (
                   <div key={item.id} className="flex items-center gap-2 text-[11px] text-text-muted/40 line-through">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500/40 shrink-0" />
+                    <div className="w-3 h-3 rounded-full bg-success/40 shrink-0" />
                     {icon && <span className="opacity-60">{icon}</span>}
                     <span>{label}</span>
                   </div>

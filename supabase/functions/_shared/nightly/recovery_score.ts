@@ -26,6 +26,7 @@ export interface RecoveryInput {
   ageYears: number;
   sex: 'M' | 'F';
   steps: number | null;
+  sleepTargetH?: number;
 }
 
 export interface RecoveryResult {
@@ -65,8 +66,8 @@ export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
   } = input;
 
   // ── SLEEP DEBT (Strand SleepDebt.swift) 14-night rolling ledger ──
-  // Target: 7.5h (realistic). Positive = nadwyżka snu, Negative = dług.
-  const SLEEP_TARGET = 7.5;
+  // Target: sleepTargetH (or fallback 7.5h). Positive = nadwyżka snu, Negative = dług.
+  const SLEEP_TARGET = input.sleepTargetH ?? 7.5;
   if (sleep != null) {
     sleepByDate[date] = Number(sleep);
   }
@@ -104,7 +105,7 @@ export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
         ? (rhrEwma.center - Number(rhrAvg)) / Math.max(SIGMA * rhrEwma.spread, 1e-9)
         : null;
 
-    const sleepPerf = sleep != null ? Number(sleep) / 8.0 : null;
+    const sleepPerf = sleep != null ? Number(sleep) / (input.sleepTargetH ?? 8.0) : null;
     const zSleep = sleepPerf != null ? (sleepPerf - 0.85) / 0.12 : null;
 
     // Resp: wyższa wartość = gorzej (early illness signal), inwersja jak RHR

@@ -1,6 +1,7 @@
 import React from 'react';
 import { computeBudgetBarState } from './calendarHelpers';
 import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
+import Button from '../ui/Button';
 
 interface Budget {
   category: string;
@@ -35,7 +36,7 @@ export default function CalendarBudgetPanel({
     const prevSpent = categoryPrevWeeklyTotals[cat.key] || 0;
     const diff = spent - prevSpent;
     const diffText = diff > 0 ? `+${formatHours(diff)}` : diff < 0 ? `-${formatHours(Math.abs(diff))}` : '0h';
-    const diffColor = diff > 0 ? 'text-emerald-500/80 dark:text-emerald-400/80' : diff < 0 ? 'text-rose-500/85 dark:text-rose-400/80' : 'text-text-muted/40';
+    const diffColor = diff > 0 ? 'text-success/80 dark:text-success/80' : diff < 0 ? 'text-danger/85 dark:text-danger/80' : 'text-text-muted/40';
 
     const b = budgets.find((item) => item.category === cat.key);
     const minVal = b?.min_hours;
@@ -86,12 +87,9 @@ export default function CalendarBudgetPanel({
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Budżety czasu (Tydzień)</span>
         {onConfigure && (
-          <button
-            onClick={onConfigure}
-            className="text-[10px] text-primary font-black hover:underline"
-          >
+          <Button variant="ghost" size="sm" onClick={onConfigure} className="text-[10px] font-black hover:underline">
             Konfiguruj
-          </button>
+          </Button>
         )}
       </div>
       <div className="grid grid-cols-1 gap-2">

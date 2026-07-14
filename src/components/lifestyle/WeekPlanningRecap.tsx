@@ -1,6 +1,7 @@
 import WeekLoopSummary from '../shared/WeekLoopSummary';
 import ProjectWeekKpis from './ProjectWeekKpis';
 import { useDirectionContext } from './direction/hooks/useDirectionContext';
+import { Card } from '../ui/Card';
 
 /** Read-only week hub snapshot at the top of Sunday planning — same data as WeekHub radar. */
 export default function WeekPlanningRecap({
@@ -32,7 +33,7 @@ export default function WeekPlanningRecap({
   if (!hasProjects && !hasLoop) return null;
 
   return (
-    <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-4 space-y-4">
+    <Card variant="receipt" className="space-y-4" style={{ background: 'rgba(79,70,229,0.03)' }}>
       <div>
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
           Ten tydzień — zoom out
@@ -72,6 +73,6 @@ export default function WeekPlanningRecap({
           focusProjectIds={direction.sprintFocusProjectIds ?? []}
         />
       )}
-    </div>
+    </Card>
   );
 }

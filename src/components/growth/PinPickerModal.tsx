@@ -9,6 +9,7 @@ import {
   inferResourceType,
 } from '../../lib/growth/growth';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 
 export default function PinPickerModal({
   slot,
@@ -117,15 +118,17 @@ export default function PinPickerModal({
               <p className="text-[12px] text-text-muted text-center py-6">Brak nieprzeczytanych linków</p>
             ) : (
               availableLinks.map((link) => (
-                <button
+                <Button
                   key={link.id}
-                  type="button"
+                  variant="outline"
                   onClick={() => onPickLink(link.id, skillId || null, projectId || null)}
-                  className="w-full text-left rounded-xl border border-border-custom p-3 hover:border-primary/30 cursor-pointer"
+                  className="w-full text-left justify-start p-3 h-auto"
                 >
-                  <p className="text-[12px] font-bold text-text-primary line-clamp-2">{link.title || link.url}</p>
-                  <p className="text-[9px] text-text-muted mt-1">{link.category}</p>
-                </button>
+                  <div>
+                    <p className="text-[12px] font-bold text-text-primary line-clamp-2">{link.title || link.url}</p>
+                    <p className="text-[9px] text-text-muted mt-1">{link.category}</p>
+                  </div>
+                </Button>
               ))
             ))}
 
@@ -134,14 +137,14 @@ export default function PinPickerModal({
               <p className="text-[12px] text-text-muted text-center py-6">Brak otwartych zadań</p>
             ) : (
               availableTodos.map((todo) => (
-                <button
+                <Button
                   key={todo.id}
-                  type="button"
+                  variant="outline"
                   onClick={() => onPickTodo(todo.id, skillId || null, projectId || null)}
-                  className="w-full text-left rounded-xl border border-border-custom p-3 hover:border-primary/30 cursor-pointer"
+                  className="w-full text-left justify-start p-3 h-auto"
                 >
                   <p className="text-[12px] font-bold text-text-primary">{todo.title}</p>
-                </button>
+                </Button>
               ))
             ))}
 
@@ -167,17 +170,17 @@ export default function PinPickerModal({
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                disabled={!manualTitle.trim()}
+              <Button
+                variant="primary"
                 onClick={() => {
                   onPickManual(manualTitle.trim(), manualType, skillId || null, projectId || null);
                   onClose();
                 }}
-                className="w-full rounded-xl bg-primary py-2.5 text-[11px] font-black uppercase text-white disabled:opacity-40 cursor-pointer"
+                disabled={!manualTitle.trim()}
+                className="w-full"
               >
                 Dodaj
-              </button>
+              </Button>
             </div>
           )}
         </div>

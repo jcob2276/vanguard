@@ -1,5 +1,6 @@
 import { createServiceClient, resolveUserScope } from "../_shared/supabase.ts";
 import { deepseekChat, parseJsonFromContent } from "../_shared/deepseek.ts";
+import { LLM_TASKS } from "../_shared/llm/tasks.ts";
 import { addDaysStr } from "./helpers.ts";
 import { gatherWeekFacts } from "./gatherWeekFacts.ts";
 import { factsToPrompt } from "./prompts.ts";
@@ -46,7 +47,13 @@ Napisz narrację MIESIĄCA — wzorce, sprzeczności, energia. Nie listę statys
 6-8 zdań. "longterm_motif" tylko jeśli motyw wracał wielokrotnie. "question" — jedno ostre pytanie z konkretu.
 Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "question": "..."}`;
 
-      const { content } = await deepseekChat({ apiKey, model: "deepseek-v4-flash", maxTokens: 2000, temperature: 0.3, responseFormat: { type: "json_object" }, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: factsBlock }] });
+      const { content } = await deepseekChat({
+        apiKey,
+        ...LLM_TASKS.structured,
+        maxTokens: 2000,
+        temperature: 0.3,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: factsBlock }]
+      });
 
       const parsed = parseJsonFromContent(content);
       if (!parsed || typeof parsed.narrative !== "string" || typeof parsed.question !== "string") throw new Error(`Invalid AI JSON month: ${content.slice(0, 300)}`);
@@ -110,7 +117,13 @@ Zwróć TYLKO JSON: {"narrative": "...", "longterm_motif": "..." | null, "questi
 
       const userPrompt = `${factsBlock}\n\nPLAN Z ZESZŁEGO TYGODNIA (${prevWeekStart}): ${lastWeekPlan ?? "(brak planu)"}\n\nHISTORIA OSTATNICH TYGODNI:\n${reviewHistory.join("\n") || "(brak historii)"}\n\nGŁOSÓWKI Z POPRZEDNICH TYGODNI:\n${historicalVoice.join("\n\n") || "(brak)"}`;
 
-      const { content } = await deepseekChat({ apiKey, model: "deepseek-v4-flash", maxTokens: 2000, temperature: 0.3, responseFormat: { type: "json_object" }, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] });
+      const { content } = await deepseekChat({
+        apiKey,
+        ...LLM_TASKS.structured,
+        maxTokens: 2000,
+        temperature: 0.3,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }]
+      });
 
       const parsed = parseJsonFromContent(content);
       if (!parsed || typeof parsed.narrative !== "string" || typeof parsed.question !== "string") throw new Error(`Invalid AI JSON phase1: ${content.slice(0, 300)}`);
@@ -150,7 +163,13 @@ Zwróć TYLKO JSON: {"narrative_check": "...", "deepening_questions": ["...", ".
 
     const userPrompt = `${factsBlock}\n\n${facts.monthTheme ? `TEMAT MIESIĄCA: ${facts.monthTheme}\n` : ""}${sprintBridge ? `MOST SPRINT→TYDZIEŃ: ${sprintBridge}\n` : ""}PLAN TEGO TYGODNIA: ${weekPlanLines}\n\nOCENY WŁASNE JAKUBA (1-10): Ciało ${scores.cialo ?? "?"}, Duch ${scores.duch ?? "?"}, Konto ${scores.konto ?? "?"}\n\nQ1 — Co musi zejść: ${review.obligation || "(nie wypełnił)"}\nQ2 — Gdzie zawiodłem: ${review.do_differently || "(nie wypełnił)"}\nQ3 — Czego brakowało: ${review.proud_of || "(nie wypełnił)"}\nQ4 — Co unikałem: ${review.sabotage || "(nie wypełnił)"}\nQ5 — Co dało/zabrało: ${review.week_highlight || "(nie wypełnił)"}\nQ6 — Czego żałuję: ${review.week_regret || "(nie wypełnił)"}\nQ7 — Co myślę inaczej: ${review.new_belief || "(nie wypełnił)"}\n\nNARRACJA (Blok 1): ${review.ai_recap?.phase1?.narrative ?? "(brak)"}`;
 
-    const { content } = await deepseekChat({ apiKey, model: "deepseek-v4-flash", maxTokens: 2500, temperature: 0.3, responseFormat: { type: "json_object" }, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] });
+    const { content } = await deepseekChat({
+      apiKey,
+      ...LLM_TASKS.structured,
+      maxTokens: 2500,
+      temperature: 0.3,
+      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }]
+    });
 
     const parsed = parseJsonFromContent(content);
     if (!parsed || typeof parsed.narrative_check !== "string" || !Array.isArray(parsed.deepening_questions) || !parsed.block5_material) {
