@@ -23,11 +23,11 @@ const Keep            = lazy(() => import('../notes/Keep'));
 const Todo            = lazy(() => import('../todo/Todo'));
 const LinksInbox      = lazy(() => import('../lifestyle/LinksInbox'));
 const CalendarView    = lazy(() => import('../calendar/CalendarView'));
-const Projects        = lazy(() => import('../projects/Projects'));
 
 const DashboardDzisTab = lazy(() => import('./DashboardDzisTab').then(m => ({ default: m.DashboardDzisTab })));
 const DashboardTydzienTab = lazy(() => import('./DashboardTydzienTab').then(m => ({ default: m.DashboardTydzienTab })));
 const DashboardHistoriaTab = lazy(() => import('./DashboardHistoriaTab').then(m => ({ default: m.DashboardHistoriaTab })));
+const DashboardProjektyTab = lazy(() => import('./DashboardProjektyTab').then(m => ({ default: m.DashboardProjektyTab })));
 
 const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
@@ -74,11 +74,6 @@ export default function Dashboard({ session }: { session: Session }) {
   if (s.view === 'kalendarz') return (
     <Suspense fallback={<ViewFallback />}>
       <CalendarView session={session} onBack={s.goBack} onSyncCalendar={s.startGoogleAuth} onResyncCalendar={s.syncCalendar} isSyncing={s.isSyncing} onNavigateTo={dest => s.navigate('/' + dest)} />
-    </Suspense>
-  );
-  if (s.view === 'projekty') return (
-    <Suspense fallback={<ViewFallback />}>
-      <Projects onNavigateTo={dest => s.navigate('/' + dest)} reviewOverdueDays={s.reviewOverdueDays} />
     </Suspense>
   );
   if (s.view === 'sauna') return (
@@ -192,6 +187,13 @@ export default function Dashboard({ session }: { session: Session }) {
                         historySubTab={s.historySubTab}
                         onSetSubTab={s.setHistorySubTab}
                       />
+                    </Suspense>
+                  )}
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  {s.view === 'projekty' && (
+                    <Suspense fallback={<ViewFallback />}>
+                      <DashboardProjektyTab />
                     </Suspense>
                   )}
                 </ErrorBoundary>
