@@ -2,6 +2,7 @@ import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { Plus, Search, Inbox, CalendarDays, CalendarClock, ChevronDown, Pencil, Trash2, Bell, PanelLeft } from 'lucide-react';
 import WorkspaceNavigation from '../shared/WorkspaceNavigation';
+import type { WorkspaceDestination } from '../shared/WorkspaceNavigation';
 import WorkspaceSidebar from '../shared/WorkspaceSidebar';
 import SidebarSection from '../shared/SidebarSection';
 
@@ -21,7 +22,7 @@ export interface TodoSidebarProps {
   onDeleteSection: (id: string) => void;
   onQuickAdd: () => void;
   onFocusSearch: () => void;
-  onNavigateTo?: (dest: 'todo' | 'keep' | 'links' | 'kalendarz') => void;
+  onNavigateTo?: (dest: WorkspaceDestination) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
