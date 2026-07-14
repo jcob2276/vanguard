@@ -1,5 +1,5 @@
-import { Zap } from 'lucide-react';
 import Button from '../ui/Button';
+import { Zap } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { calculateHealthScore, getHealthLevel, HEALTH_COLORS, ProjectStats, ProjectRow, GoalKpiRow } from './projectUtils';
 
@@ -26,7 +26,7 @@ export function FocusProjectBanner({ focusProject, activeFilteredFirst, stats, k
   const hc = HEALTH_COLORS[level];
 
   return (
-    <Card variant="outline" padding="1rem" className={hc.bg} style={{ borderColor: level === 'critical' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.25)' }}>
+    <Card variant="outline" padding="1rem" className={hc.bg} style={{ borderColor: level === 'critical' ? 'var(--legacy-color-107)' : 'var(--legacy-color-122)' }}>
       <div className="flex items-center gap-2 mb-2">
         <Zap size={12} className={hc.text} />
         <p className={`text-2xs font-black uppercase tracking-widest ${hc.text}`}>

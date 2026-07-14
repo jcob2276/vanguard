@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Pencil, Trash2, Check, X } from 'lucide-react';
 
@@ -51,14 +52,14 @@ export default function BucketHeader({
 
   return (
     <div
-      className={`relative flex w-full items-center gap-2 py-1.5 transition-all duration-200 group/hdr ${
+      className={`relative flex w-full items-center gap-2 py-1.5 transition-all duration-[var(--motion-medium)] group/hdr ${
         isDropTarget ? 'text-primary' : 'text-text-primary'
       }`}
     >
       {renaming ? (
         <div className="flex flex-1 min-w-0 items-center gap-1.5">
           {icon && <span className="text-sm leading-none shrink-0 select-none">{icon}</span>}
-          <input
+          <ControlInput
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -69,21 +70,21 @@ export default function BucketHeader({
             onClick={(e) => e.stopPropagation()}
             className="min-w-0 flex-1 rounded-md border border-primary/40 bg-surface-solid px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary outline-none"
           />
-          <button onClick={commitRename} className="p-1 text-success hover:text-success-hover shrink-0" title="Zapisz">
+          <Pressable onClick={commitRename} className="p-1 text-success hover:text-success-hover shrink-0" title="Zapisz">
             <Check size={12} />
-          </button>
-          <button onClick={() => setRenaming(false)} className="p-1 text-text-muted/40 hover:text-text-primary shrink-0" title="Anuluj">
+          </Pressable>
+          <Pressable onClick={() => setRenaming(false)} className="p-1 text-text-muted/40 hover:text-text-primary shrink-0" title="Anuluj">
             <X size={12} />
-          </button>
+          </Pressable>
         </div>
       ) : (
-        <button
+        <Pressable
           onClick={onToggle}
-          className="flex flex-1 min-w-0 items-center gap-2 text-left transition-all duration-200 cursor-pointer"
+          className="flex flex-1 min-w-0 items-center gap-2 text-left transition-all duration-[var(--motion-medium)] cursor-pointer"
         >
           <ChevronRight
             size={12}
-            className={`text-text-muted/60 shrink-0 transition-transform duration-200 ${
+            className={`text-text-muted/60 shrink-0 transition-transform duration-[var(--motion-medium)] ${
               collapsed ? '' : 'rotate-90'
             }`}
           />
@@ -102,35 +103,35 @@ export default function BucketHeader({
               {count}
             </span>
           )}
-        </button>
+        </Pressable>
       )}
 
       {!renaming && (onRename || onDelete) && (
-        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/hdr:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-0.5 shrink-0 opacity-[var(--opacity-0)] group-hover/hdr:opacity-[var(--opacity-100)] transition-opacity duration-[var(--motion-medium)]">
           {onRename && (
-            <button
+            <Pressable
               onClick={(e) => {
                 e.stopPropagation();
                 setDraft(title);
                 setRenaming(true);
               }}
               className="p-1 text-text-muted/40 hover:text-primary transition-colors cursor-pointer"
-              title="Zmień nazwę sekcji"
+              title="ZmieĹ„ nazwÄ™ sekcji"
             >
               <Pencil size={11} />
-            </button>
+            </Pressable>
           )}
           {onDelete && (
-            <button
+            <Pressable
               onClick={(e) => {
                 e.stopPropagation();
                 setConfirmingDelete(true);
               }}
               className="p-1 text-text-muted/40 hover:text-danger transition-colors cursor-pointer"
-              title="Usuń sekcję"
+              title="UsuĹ„ sekcjÄ™"
             >
               <Trash2 size={11} />
-            </button>
+            </Pressable>
           )}
         </div>
       )}
@@ -139,28 +140,28 @@ export default function BucketHeader({
         <div
           ref={popoverRef}
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 top-full z-20 mt-1 w-64 rounded-2xl border border-border-custom bg-surface/95 p-3 shadow-2xl backdrop-blur-xl"
+          className="absolute right-0 top-full z-[var(--z-popover)] mt-1 w-64 rounded-2xl border border-border-custom bg-surface/95 p-3 shadow-2xl backdrop-blur-[var(--blur-xl)]"
         >
           <p className="text-xs font-semibold text-text-primary leading-snug">
-            Usunąć sekcję <span className="font-black">„{title}”</span>?
+            UsunÄ…Ä‡ sekcjÄ™ <span className="font-black">â€ž{title}â€ť</span>?
           </p>
-          <p className="mt-0.5 text-xs text-text-muted">Zadania w niej wrócą do skrzynki.</p>
+          <p className="mt-0.5 text-xs text-text-muted">Zadania w niej wrĂłcÄ… do skrzynki.</p>
           <div className="mt-2.5 flex justify-end gap-2">
-            <button
+            <Pressable
               onClick={() => setConfirmingDelete(false)}
               className="rounded-lg px-3 py-1.5 text-xs font-bold text-text-muted hover:bg-surface-solid/80 transition-colors"
             >
               Anuluj
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               onClick={() => {
                 setConfirmingDelete(false);
                 onDelete?.();
               }}
               className="rounded-lg bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger hover:bg-danger/20 transition-colors"
             >
-              Usuń
-            </button>
+              UsuĹ„
+            </Pressable>
           </div>
         </div>
       )}

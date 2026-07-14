@@ -42,7 +42,7 @@ export default function GeneralFrictionPanels({
 
       <div className="lg:col-span-2">
         <Panel title="Ostatnie tarcia">
-          <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-[var(--legacy-h-017)] overflow-y-auto pr-1">
             {friction.slice(-20).reverse().map((f, i) => (
               <div key={i} className="flex items-start gap-2 text-xs py-1 border-b border-border-custom/40 last:border-0">
                 <span className="shrink-0 font-mono text-text-muted">{f.occurred_at?.slice(5, 10)}</span>

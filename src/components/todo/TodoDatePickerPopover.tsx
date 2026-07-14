@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock3, X, CalendarDays, Sun, Sofa } from 'lucide-react';
 import { parseTodoQuickInput } from '../../lib/todo/todoParser';
@@ -118,9 +119,9 @@ export default function TodoDatePickerPopover({
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
-      className="absolute z-50 top-full left-0 mt-2 w-[280px] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-2.5 p-3 animate-in fade-in zoom-in-95 duration-150 origin-top-left"
+      className="absolute z-[var(--z-overlay)] top-full left-0 mt-2 w-[var(--legacy-w-083)] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-2.5 p-3 animate-in fade-in zoom-in-95 duration-[var(--motion-medium)] origin-top-left"
     >
-      <input
+      <ControlInput
         autoFocus
         value={freeText}
         onChange={(e) => handleFreeText(e.target.value)}
@@ -129,7 +130,7 @@ export default function TodoDatePickerPopover({
       />
 
       <div className="flex flex-col gap-0.5">
-        <button
+        <Pressable
           type="button"
           onClick={() => pickDate(today)}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${dueDate === today ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
@@ -137,8 +138,8 @@ export default function TodoDatePickerPopover({
           <CalendarDays size={14} className="text-success" />
           <span className="flex-1 text-left">Dziś</span>
           <span className="text-xs font-medium text-text-muted/50">{weekdayShort(today)}.</span>
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           type="button"
           onClick={() => pickDate(tomorrowKey)}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${dueDate === tomorrowKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
@@ -146,8 +147,8 @@ export default function TodoDatePickerPopover({
           <Sun size={14} className="text-warning" />
           <span className="flex-1 text-left">Jutro</span>
           <span className="text-xs font-medium text-text-muted/50">{weekdayShort(tomorrowKey)}.</span>
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           type="button"
           onClick={() => pickDate(weekendKey)}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${dueDate === weekendKey ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface/60'}`}
@@ -155,19 +156,19 @@ export default function TodoDatePickerPopover({
           <Sofa size={14} className="text-info" />
           <span className="flex-1 text-left">Następny weekend</span>
           <span className="text-xs font-medium text-text-muted/50">{weekdayShort(weekendKey)}.</span>
-        </button>
+        </Pressable>
       </div>
 
       <div className="border-t border-border-custom/40 pt-2">
         <div className="flex items-center justify-between mb-1.5 px-0.5">
           <span className="text-sm font-black text-text-primary">{MONTH_LABELS[viewMonth]} {viewYear}</span>
           <div className="flex gap-1">
-            <button type="button" onClick={goPrevMonth} className="p-1 rounded-lg hover:bg-surface/60 transition-colors">
+            <Pressable type="button" onClick={goPrevMonth} className="p-1 rounded-lg hover:bg-surface/60 transition-colors">
               <ChevronLeft size={13} className="text-text-muted" />
-            </button>
-            <button type="button" onClick={goNextMonth} className="p-1 rounded-lg hover:bg-surface/60 transition-colors">
+            </Pressable>
+            <Pressable type="button" onClick={goNextMonth} className="p-1 rounded-lg hover:bg-surface/60 transition-colors">
               <ChevronRight size={13} className="text-text-muted" />
-            </button>
+            </Pressable>
           </div>
         </div>
         <div className="grid grid-cols-7 gap-y-1 text-center mb-1">
@@ -180,19 +181,19 @@ export default function TodoDatePickerPopover({
             const isSelected = c.key === dueDate;
             const isToday = c.key === today;
             return (
-              <button
+              <Pressable
                 key={c.key}
                 type="button"
                 onClick={() => pickDate(c.key)}
                 className={`mx-auto h-6.5 w-6.5 rounded-lg text-xs font-semibold transition-colors ${
                   !c.inMonth ? 'text-text-muted/25' :
-                  isSelected ? 'bg-primary text-white' :
+                  isSelected ? 'bg-primary text-on-accent' :
                   isToday ? 'text-primary border border-primary/40' :
                   'text-text-primary hover:bg-surface/60'
                 }`}
               >
                 {c.dayNum}
-              </button>
+              </Pressable>
             );
           })}
         </div>
@@ -200,41 +201,41 @@ export default function TodoDatePickerPopover({
 
       <div className="border-t border-border-custom/40 pt-2 flex flex-col gap-1.5">
         {!showTime ? (
-          <button
+          <Pressable
             type="button"
             onClick={() => setShowTime(true)}
             className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-text-muted hover:bg-surface/60 hover:text-text-primary transition-colors"
           >
             <Clock3 size={13} /> Czas
-          </button>
+          </Pressable>
         ) : (
           <div className="flex items-center gap-2 rounded-xl border border-border-custom/50 px-2.5 py-1">
             <Clock3 size={13} className="text-primary shrink-0" />
-            <input
+            <ControlInput
               type="time"
               value={scheduledTime || ''}
               onChange={(e) => onChange({ scheduled_time: e.target.value || null })}
               className="flex-1 bg-transparent text-sm font-semibold text-text-primary outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
-            <button
+            <Pressable
               type="button"
               onClick={() => { setShowTime(false); onChange({ scheduled_time: null }); }}
               className="shrink-0 text-text-muted/50 hover:text-danger transition-colors"
             >
               <X size={12} />
-            </button>
+            </Pressable>
           </div>
         )}
       </div>
 
       {dueDate && (
-        <button
+        <Pressable
           type="button"
           onClick={() => pickDate(null)}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/50 py-1.5 text-xs font-semibold text-text-muted hover:text-danger transition-colors"
         >
           <X size={11} /> Usuń termin
-        </button>
+        </Pressable>
       )}
     </div>
   );

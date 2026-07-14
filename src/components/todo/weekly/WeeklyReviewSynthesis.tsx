@@ -1,3 +1,4 @@
+import { Pressable, ControlInput, ControlTextarea } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Sparkles, Trash2 } from 'lucide-react';
@@ -53,12 +54,12 @@ export default function WeeklyReviewSynthesis() {
         <span className="text-xs font-bold text-text-primary block uppercase tracking-wider">
           Notatka tygodniowa
         </span>
-        <textarea
+        <ControlTextarea
           value={weeklyNote}
           onChange={(e) => setWeeklyNote(e.target.value)}
           placeholder="Zapisz refleksje, np. 'Wyczyściłem 15 zaległych zadań, przełożyłem 3 projekty. W kolejnym tygodniu skupiam się na wdrożeniach Vanguard.'"
           rows={4}
-          className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors resize-none"
+          className="w-full bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors resize-none"
         />
       </div>
 
@@ -79,7 +80,7 @@ export default function WeeklyReviewSynthesis() {
             {stagedPredictions.map((staged, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-lg p-2.5"
+                className="flex items-center justify-between bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/50 rounded-lg p-2.5"
               >
                 <div className="flex flex-col border-none">
                   <span className="text-xs font-bold text-text-primary">{staged.metric}</span>
@@ -87,12 +88,12 @@ export default function WeeklyReviewSynthesis() {
                     Pewność: {(staged.value * 100).toFixed(0)}%
                   </span>
                 </div>
-                <button
+                <Pressable
                   onClick={() => setStagedPredictions((prev) => prev.filter((_, i) => i !== idx))}
                   className="p-1 text-text-muted hover:text-danger transition-colors"
                 >
                   <Trash2 size={13} />
-                </button>
+                </Pressable>
               </div>
             ))}
           </div>
@@ -101,29 +102,29 @@ export default function WeeklyReviewSynthesis() {
         {/* Add prediction inputs */}
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col space-y-1.5">
-            <input
+            <ControlInput
               type="text"
               value={newPredictionText}
               onChange={(e) => setNewPredictionText(e.target.value)}
               placeholder="np. Przebiegnę 10km w czasie < 50 min"
-              className="bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors"
+              className="bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors"
             />
             <div className="flex items-center justify-between">
               <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
                 Pewność: {(newPredictionConfidence * 100).toFixed(0)}%
               </span>
-              <input
+              <ControlInput
                 type="range"
                 min="0.5"
                 max="0.99"
                 step="0.05"
                 value={newPredictionConfidence}
                 onChange={(e) => setNewPredictionConfidence(parseFloat(e.target.value))}
-                className="w-24 accent-indigo-500"
+                className="w-24 accent-primary"
               />
             </div>
           </div>
-          <button
+          <Pressable
             type="button"
             onClick={() => {
               if (!newPredictionText.trim()) return;
@@ -137,7 +138,7 @@ export default function WeeklyReviewSynthesis() {
             className="px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold flex items-center justify-center transition-colors self-start shrink-0"
           >
             Dodaj
-          </button>
+          </Pressable>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { Pressable, ControlTextarea } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Mic, Trash2, Pencil } from 'lucide-react';
@@ -47,26 +48,26 @@ export default function WeeklyReviewStreamReview() {
                 </div>
                 {isEditing ? (
                   <div className="space-y-2">
-                    <textarea
+                    <ControlTextarea
                       autoFocus
                       value={editingStreamText}
                       onChange={(e) => setEditingStreamText(e.target.value)}
                       rows={3}
-                      className="w-full bg-slate-50 dark:bg-white/[0.02] border border-primary/40 rounded-lg px-2.5 py-2 text-sm font-medium text-text-primary outline-none resize-none"
+                      className="w-full bg-surface-2 dark:bg-on-accent/[0.02] border border-primary/40 rounded-lg px-2.5 py-2 text-sm font-medium text-text-primary outline-none resize-none"
                     />
                     <div className="flex gap-2 justify-end">
-                      <button
+                      <Pressable
                         onClick={() => setEditingStreamId(null)}
                         className="text-xs font-bold text-text-muted px-2 py-1"
                       >
                         Anuluj
-                      </button>
-                      <button
+                      </Pressable>
+                      <Pressable
                         onClick={saveEditStream}
-                        className="text-xs font-black text-white bg-primary rounded-lg px-3 py-1"
+                        className="text-xs font-black text-on-accent bg-primary rounded-lg px-3 py-1"
                       >
                         Zapisz
-                      </button>
+                      </Pressable>
                     </div>
                   </div>
                 ) : (
@@ -75,20 +76,20 @@ export default function WeeklyReviewStreamReview() {
                       {entry.content || '(pusty wpis)'}
                     </p>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
+                      <Pressable
                         onClick={() => startEditStream(entry)}
                         className="p-1 rounded-lg border border-border-custom/50 text-text-muted hover:text-primary hover:border-primary/30 transition-colors btn-press"
                         title="Edytuj"
                       >
                         <Pencil size={12} />
-                      </button>
-                      <button
+                      </Pressable>
+                      <Pressable
                         onClick={() => handleDeleteStream(entry.id)}
                         className="p-1 rounded-lg border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 transition-colors btn-press"
                         title="Usuń"
                       >
                         <Trash2 size={12} />
-                      </button>
+                      </Pressable>
                     </div>
                   </div>
                 )}

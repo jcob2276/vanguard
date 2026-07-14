@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { Check, Link2 } from 'lucide-react';
 
 type SphereIconType = React.ComponentType<{ size?: number | string; className?: string }>;
@@ -41,23 +42,23 @@ export default function PowerListTask({
   const targetValueLabel = targetValue ? (/^\d+$/.test(targetValue.trim()) ? `${targetValue.trim()}×` : targetValue.trim()) : null;
 
   return (
-    <button
+    <Pressable
       onClick={() => toggleTask(index)}
-      className={`group flex w-full cursor-pointer items-center justify-between rounded-[24px] border p-4 transition-all duration-200 active:scale-[0.98] ${
+      className={`group flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-xl)] border p-4 transition-all duration-[var(--motion-medium)] active:scale-[var(--legacy-arbitrary-001)] ${
         done
-          ? 'border-border-custom bg-surface/30 opacity-60 shadow-none'
+          ? 'border-border-custom bg-surface/30 opacity-[var(--opacity-60)] shadow-none'
           : 'border-border-custom bg-surface shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-surface-solid hover:shadow-md'
       }`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <div
-          className={`flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
+          className={`flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full border transition-all duration-[var(--motion-slow)] ${
             done
-              ? 'border-dayC bg-dayC text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)] scale-100'
+              ? 'border-dayC bg-dayC text-on-accent shadow-[var(--legacy-shadow-073)] scale-100'
               : 'border-border-custom bg-surface-solid text-transparent scale-95 group-hover:border-primary/40 group-active:scale-90'
           }`}
         >
-          <Check size={11} strokeWidth={3} className={`transition-transform duration-300 ${done ? 'scale-100' : 'scale-0'}`} />
+          <Check size={11} strokeWidth={3} className={`transition-transform duration-[var(--motion-slow)] ${done ? 'scale-100' : 'scale-0'}`} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -66,7 +67,7 @@ export default function PowerListTask({
                 <SphereIcon size={7} /> {sphere.label}
               </span>
             )}
-            <p className={`text-sm font-semibold tracking-normal transition-all duration-300 ${done ? 'text-text-muted line-through opacity-70' : 'text-text-primary'}`}>
+            <p className={`text-sm font-semibold tracking-normal transition-all duration-[var(--motion-slow)] ${done ? 'text-text-muted line-through opacity-[var(--opacity-70)]' : 'text-text-primary'}`}>
               {task}
             </p>
             {targetValueLabel && (
@@ -102,6 +103,6 @@ export default function PowerListTask({
           {projectMap[`task_project_${index + 1}`].name}
         </span>
       )}
-    </button>
+    </Pressable>
   );
 }

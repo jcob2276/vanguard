@@ -22,9 +22,9 @@ export default function PowerListHeader({ today }: PowerListHeaderProps) {
   })();
 
   return (
-    <Card padding="0.75rem" className="flex items-center gap-3.5" style={{ background: 'rgba(17, 24, 39, 0.5)' }}>
+    <Card padding="0.75rem" className="flex items-center gap-3.5" style={{ background: 'var(--legacy-color-103)' }}>
       <div className="flex h-12 w-12 flex-col overflow-hidden rounded-xl border border-border-custom bg-surface text-center shadow-sm">
-        <span className="bg-primary py-0.5 text-2xs font-black uppercase tracking-wider text-white">
+        <span className="bg-primary py-0.5 text-2xs font-black uppercase tracking-wider text-on-accent">
           {MONTHS_SHORT[parsedDate.getMonth()]}
         </span>
         <span className="flex-1 font-display text-lg font-black text-text-primary flex items-center justify-center leading-none">

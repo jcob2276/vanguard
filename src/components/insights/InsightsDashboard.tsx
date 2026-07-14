@@ -1,3 +1,4 @@
+import Button from '../ui/Button';
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStatsSnapshot } from './hooks/useUserStatsSnapshot';
@@ -16,7 +17,6 @@ import { TrendChart } from '../widgets/TrendChart';
 import { BarChartWidget } from '../widgets/BarChart';
 import { DetailPageLayout } from '../ui/DetailPageLayout';
 import { Card } from '../ui/Card';
-import Button from '../ui/Button';
 import { useUserId } from '../../store/useStore';
 
 import { insightCardsKeys } from '../../lib/queryKeys';
@@ -123,14 +123,14 @@ export function InsightsDashboard() {
 
       {activityTrend && (
         <Card variant="glass" padding="16px">
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — trend</p>
+          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)] text-text-tertiary mb-3">Aktywność — trend</p>
           <TrendChart data={activityTrend} />
         </Card>
       )}
 
       {activityBars && (
         <Card variant="glass" padding="16px">
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-text-tertiary mb-3">Aktywność — 7 dni</p>
+          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)] text-text-tertiary mb-3">Aktywność — 7 dni</p>
           <BarChartWidget data={activityBars} />
         </Card>
       )}
@@ -139,7 +139,7 @@ export function InsightsDashboard() {
 
       {cards.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-black uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)]" style={{ color: 'var(--color-text-tertiary)' }}>
             Insights ({cards.length})
           </p>
           {cards.map(card => (

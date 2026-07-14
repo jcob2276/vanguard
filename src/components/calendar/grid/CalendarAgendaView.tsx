@@ -1,6 +1,6 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { Check, Calendar, RefreshCw } from 'lucide-react';
-import Button from '../../ui/Button';
 import {
   eventColor,
   formatTime,
@@ -63,7 +63,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                 <div
                   key={ev.id}
                   onClick={() => handleEventClick(ev)}
-                  className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer hover:scale-[1.005] active:scale-[0.995] transition-all ${eventColor(ev).replace('bg-', 'border-').split(' ')[0]} bg-surface-solid/50`}
+                  className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer hover:scale-[var(--legacy-arbitrary-015)] active:scale-[var(--legacy-arbitrary-016)] transition-all ${eventColor(ev).replace('bg-', 'border-').split(' ')[0]} bg-surface-solid/50`}
                 >
                   <div className={`w-2 h-2 rounded-full shrink-0 ${eventColor(ev).split(' ')[0].replace('bg-', 'bg-')}`} />
                   <div className="min-w-0 flex-1">
@@ -83,9 +83,9 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                 return (
                   <div
                     key={todo.id}
-                    className={`flex items-center gap-3 rounded-xl border border-dashed border-primary/30 px-3 py-2.5 transition-all bg-primary/[0.03] ${isCompleting ? 'opacity-50' : ''}`}
+                    className={`flex items-center gap-3 rounded-xl border border-dashed border-primary/30 px-3 py-2.5 transition-all bg-primary/[0.03] ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
                   >
-                    <button
+                    <Pressable
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -94,16 +94,16 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                       }}
                       className={`relative after:absolute after:-inset-2 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/40 hover:bg-primary/10'}`}
                     >
-                      {isCompleting && <Check size={10} className="text-white" strokeWidth={3} />}
-                    </button>
+                      {isCompleting && <Check size={10} className="text-on-accent" strokeWidth={3} />}
+                    </Pressable>
                     <div className="min-w-0 flex-1">
                       <p className={`text-sm font-semibold text-text-primary line-clamp-1 ${isCompleting ? 'line-through' : ''}`}>{todo.title}</p>
                       <p className="text-2xs text-text-muted mt-0.5">
                         {todo.scheduled_time ? formatTime(todo.scheduled_time) : 'Cały dzień'}
-                        {chip?.dreamTitle && <span className="opacity-70"> · {chip.dreamTitle}</span>}
+                        {chip?.dreamTitle && <span className="opacity-[var(--opacity-70)]"> · {chip.dreamTitle}</span>}
                       </p>
                     </div>
-                    {GoalIcon && <GoalIcon size={11} className="shrink-0 opacity-60" />}
+                    {GoalIcon && <GoalIcon size={11} className="shrink-0 opacity-[var(--opacity-60)]" />}
                   </div>
                 );
               })}
@@ -119,14 +119,14 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
             <p className="text-sm font-bold text-text-muted">Brak wydarzeń</p>
             <p className="text-xs text-text-muted/60 mt-1">Zsynchronizuj Google Calendar</p>
           </div>
-          <Button
+          <Pressable
             onClick={onSyncCalendar}
             variant="tonal"
             icon={<RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />}
             className="rounded-full px-4 py-2 text-sm"
           >
             Synchronizuj
-          </Button>
+          </Pressable>
         </div>
       )}
     </div>

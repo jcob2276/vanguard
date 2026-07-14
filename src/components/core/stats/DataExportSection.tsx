@@ -1,5 +1,6 @@
-import { Clock, CheckSquare } from 'lucide-react';
 import Button from '../../ui/Button';
+import { ControlInput } from '../../ui/ControlPrimitives';
+import { Clock, CheckSquare } from 'lucide-react';
 
 interface DataExportSectionProps {
   dateRange: { from: string; to: string };
@@ -45,7 +46,7 @@ export function DataExportSection({
   return (
     <>
       <div>
-        <p className="text-2xs font-bold uppercase tracking-[0.15em] text-text-muted font-display">
+        <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">
           Eksport
         </p>
         <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">
@@ -58,7 +59,7 @@ export function DataExportSection({
             className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-hover:text-primary transition-colors"
             size={14}
           />
-          <input
+          <ControlInput
             type="date"
             value={dateRange.from}
             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
@@ -71,7 +72,7 @@ export function DataExportSection({
             className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-hover:text-primary transition-colors"
             size={14}
           />
-          <input
+          <ControlInput
             type="date"
             value={dateRange.to}
             onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
@@ -104,7 +105,7 @@ export function DataExportSection({
             <div
               className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
                 state
-                  ? 'bg-primary border-primary text-white shadow-[0_2px_6px_rgba(79,70,229,0.2)]'
+                  ? 'bg-primary border-primary text-on-accent shadow-[0_2px_6px_var(--primary-25)]'
                   : 'border-border-custom bg-surface-solid/35'
               }`}
             >

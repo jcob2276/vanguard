@@ -28,16 +28,16 @@ export default function DragGhost({ item, posRef }: DragGhostProps) {
       ref={ref}
       style={{
         position: 'fixed',
-        left: 0,
-        top: 0,
-        width: '80vw',
-        maxWidth: '310px',
-        zIndex: 9999,
+        left: 'var(--legacy-inline-style-039)',
+        top: 'var(--legacy-inline-style-082)',
+        width: 'var(--legacy-inline-style-098)',
+        maxWidth: 'var(--legacy-inline-style-057)',
+        zIndex: 'var(--legacy-inline-style-102)',
         pointerEvents: 'none',
         willChange: 'transform',
-        opacity: 0.93
+        opacity: 'var(--legacy-inline-style-067)'
       }}
-      className="rounded-2xl border border-primary/30 bg-surface/95 shadow-2xl px-4 py-3 backdrop-blur-xl"
+      className="rounded-2xl border border-primary/30 bg-surface/95 shadow-2xl px-4 py-3 backdrop-blur-[var(--blur-xl)]"
     >
       <div className="flex items-center gap-3">
         {icon ? (

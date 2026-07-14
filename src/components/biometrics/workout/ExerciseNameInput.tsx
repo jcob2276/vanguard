@@ -1,7 +1,8 @@
+import Button from '../../ui/Button';
+import { ControlInput } from '../../ui/ControlPrimitives';
 import React, { useState, useEffect, useRef } from 'react';
 import { EXERCISES, tagClass, normalize } from '../../../data/exercises';
 import { Card } from '../../ui/Card';
-import Button from '../../ui/Button';
 
 interface ExerciseNameInputProps {
   value: string;
@@ -43,7 +44,7 @@ export default function ExerciseNameInput({
 
   return (
     <div ref={ref} className="relative flex-1 min-w-0">
-      <input
+      <ControlInput
         type="text"
         value={query}
         onChange={handleChange}
@@ -56,8 +57,8 @@ export default function ExerciseNameInput({
         <Card
           variant="glass"
           padding="0"
-          className="absolute left-0 right-0 top-full mt-2 z-50 border border-border-custom shadow-lg"
-          style={{ borderRadius: '12px' }}
+          className="absolute left-0 right-0 top-full mt-2 z-[var(--z-overlay)] border border-border-custom shadow-lg"
+          style={{ borderRadius: 'var(--legacy-inline-style-005)' }}
         >
           {matches.map((ex) => (
             <Button

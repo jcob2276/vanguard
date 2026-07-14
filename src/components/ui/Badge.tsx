@@ -34,10 +34,10 @@ export default function Badge({ count, variant = 'count', color, className = '',
 
   return (
     <span
-      className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full px-1 text-xs font-black ${
-        color ? '' : 'bg-primary text-white'
+      className={`inline-flex items-center justify-center min-w-[var(--legacy-arbitrary-056)] h-[var(--legacy-arbitrary-057)] rounded-full px-1 text-xs font-black ${
+        color ? '' : 'bg-primary text-on-accent'
       } ${className}`}
-      style={color ? { backgroundColor: color, color: '#fff' } : undefined}
+      style={color ? { backgroundColor: color, color: 'var(--legacy-color-046)' } : undefined}
     >
       {count > 99 ? '99+' : count}
     </span>

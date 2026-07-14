@@ -1,6 +1,6 @@
+import Button from '../ui/Button';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
-import Button from '../ui/Button';
 
 interface CorrelationsHeaderProps {
   loading: boolean;
@@ -9,7 +9,7 @@ interface CorrelationsHeaderProps {
 
 export default function CorrelationsHeader({ loading, onRefresh }: CorrelationsHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border-custom bg-background/95 backdrop-blur-md">
+    <header className="sticky top-0 z-[var(--z-sticky)] w-full border-b border-border-custom bg-background/95 backdrop-blur-[var(--blur-md)]">
       <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
         <Link
           to="/"

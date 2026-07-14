@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import React, { useState, useEffect } from 'react';
 import { Check, Repeat2, Link2, Pencil, X, GripVertical, Clock, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
 import {
@@ -10,7 +11,6 @@ import TodoCardExpandedPanel from './TodoCardExpandedPanel';
 import { useTodoCardAttachments } from './useTodoCardAttachments';
 import { useTodoCardSwipe } from './useTodoCardSwipe';
 import type { TodoItemRow } from '../../lib/todo/todo';
-
 export interface TodoCardProps {
   item: TodoItemRow;
   onToggle: () => void;
@@ -121,29 +121,29 @@ export default function TodoCard({
 
   return (
     <div
-      className={`group relative ${isDone ? 'opacity-40' : ''} ${isDragging ? 'opacity-0 pointer-events-none' : ''}`}
+      className={`group relative ${isDone ? 'opacity-[var(--opacity-40)]' : ''} ${isDragging ? 'opacity-[var(--opacity-0)] pointer-events-none' : ''}`}
       style={
         swipe.completingOut
           ? {
               transform: 'translateX(28px)',
               opacity: 0,
               pointerEvents: 'none',
-              transition: 'transform 0.28s cubic-bezier(0.4,0,1,1), opacity 0.22s ease-out'
+              transition: 'var(--motion-todo-dismiss)'
             }
           : { transition: 'opacity 0.15s' }
       }
     >
       {/* Swipe hint overlays */}
       <div
-        className={`absolute inset-0 flex items-center justify-start pl-3 text-success pointer-events-none transition-opacity duration-150 ${
-          swipe.swipeDir === 'right' ? 'opacity-100' : 'opacity-0'
+        className={`absolute inset-0 flex items-center justify-start pl-3 text-success pointer-events-none transition-opacity duration-[var(--motion-medium)] ${
+          swipe.swipeDir === 'right' ? 'opacity-[var(--opacity-100)]' : 'opacity-[var(--opacity-0)]'
         }`}
       >
         <Check size={15} strokeWidth={3} />
       </div>
       <div
-        className={`absolute inset-0 flex items-center justify-end pr-3 text-danger pointer-events-none transition-opacity duration-150 ${
-          swipe.swipeDir === 'left' ? 'opacity-100' : 'opacity-0'
+        className={`absolute inset-0 flex items-center justify-end pr-3 text-danger pointer-events-none transition-opacity duration-[var(--motion-medium)] ${
+          swipe.swipeDir === 'left' ? 'opacity-[var(--opacity-100)]' : 'opacity-[var(--opacity-0)]'
         }`}
       >
         <X size={15} />
@@ -160,7 +160,7 @@ export default function TodoCard({
         }}
         style={{ transform: `translateX(${swipe.swipeOffset}px)` }}
         onClick={e => e.stopPropagation()}
-        className={`relative border-b border-border-custom/15 pr-2 py-4 pl-1 transition-all duration-200 ease-out group-hover:bg-text-primary/[0.015] ${leftBorder}`}
+        className={`relative border-b border-border-custom/15 pr-2 py-4 pl-1 transition-all duration-[var(--motion-medium)] ease-[var(--ease-out)] group-hover:bg-text-primary/[0.015] ${leftBorder}`}
       >
         <div className="flex items-start gap-3">
           {/* Drag grip */}
@@ -169,14 +169,14 @@ export default function TodoCard({
             onTouchEnd={swipe.onGripTouchEnd}
             onTouchMove={swipe.onGripTouchMove}
             onMouseDown={swipe.onGripMouseDown}
-            className="mt-0.5 shrink-0 touch-none cursor-grab text-text-muted/40 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none"
+            className="mt-0.5 shrink-0 touch-none cursor-grab text-text-muted/40 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] transition-opacity duration-[var(--motion-medium)] select-none"
           >
             <GripVertical size={13} />
           </div>
 
           {/* Emoji icon OR priority circle checkbox */}
           {icon ? (
-            <button
+            <Pressable
               onClick={e => {
                 e.stopPropagation();
                 swipe.handleComplete();
@@ -185,15 +185,15 @@ export default function TodoCard({
               className="shrink-0 mt-0.5 btn-press"
             >
               <span
-                className={`flex h-[18px] w-[18px] items-center justify-center text-sm leading-none transition-all ${
-                  isDone ? 'grayscale opacity-40' : ''
+                className={`flex h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] items-center justify-center text-sm leading-none transition-all ${
+                  isDone ? 'grayscale opacity-[var(--opacity-40)]' : ''
                 }`}
               >
                 {icon}
               </span>
-            </button>
+            </Pressable>
           ) : (
-            <button
+            <Pressable
               onClick={e => {
                 e.stopPropagation();
                 swipe.handleComplete();
@@ -202,7 +202,7 @@ export default function TodoCard({
               className="mt-0.5 shrink-0 btn-press cursor-pointer"
             >
               <div
-                className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
+                className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all duration-[var(--motion-medium)] ${
                   swipe.completing || isDone
                     ? 'bg-success border-success scale-100'
                     : item.priority === 'urgent'
@@ -211,12 +211,12 @@ export default function TodoCard({
                     ? 'border-warning hover:bg-warning/10'
                     : item.priority === 'normal'
                     ? 'border-info hover:bg-info/10'
-                    : 'border-slate-400 hover:bg-slate-400/10'
+                    : 'border-border-custom hover:bg-surface-2/10'
                 }`}
               >
-                {(swipe.completing || isDone) && <Check size={9} className="text-white" strokeWidth={3.5} />}
+                {(swipe.completing || isDone) && <Check size={9} className="text-on-accent" strokeWidth={3.5} />}
               </div>
-            </button>
+            </Pressable>
           )}
 
           {/* Content */}
@@ -225,7 +225,7 @@ export default function TodoCard({
             onMouseDown={swipe.handleContentMouseDown}
           >
             {isEditing ? (
-              <input
+              <ControlInput
                 autoFocus
                 value={editingTitle}
                 onChange={e => onEditChange(e.target.value)}
@@ -246,7 +246,7 @@ export default function TodoCard({
                   {label}
                 </p>
                 {expanded && (
-                  <Pencil size={10} className="text-text-muted opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" />
+                  <Pencil size={10} className="text-text-muted opacity-[var(--opacity-0)] group-hover/title:opacity-[var(--opacity-100)] transition-opacity shrink-0" />
                 )}
               </div>
             )}
@@ -289,14 +289,14 @@ export default function TodoCard({
               {(item.tags || []).map((tag: string) => (
                 <span
                   key={tag}
-                  className={`inline-flex items-center gap-1 text-2xs font-medium px-1 py-0.5 rounded bg-white/5 border border-white/5 transition-all opacity-70 ${
+                  className={`inline-flex items-center gap-1 text-2xs font-medium px-1 py-0.5 rounded bg-on-accent/5 border border-on-accent/5 transition-all opacity-[var(--opacity-70)] ${
                     tag.toLowerCase() === 'finanse' || tag.toLowerCase() === 'zdrowie'
                       ? 'text-success bg-success/10'
                       : tag.toLowerCase() === 'projekt'
                       ? 'text-primary bg-primary/10'
                       : tag.toLowerCase() === 'egzamin'
-                      ? 'text-pink-400 bg-pink-500/10'
-                      : 'text-text-muted bg-white/5'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-text-muted bg-on-accent/5'
                   }`}
                 >
                   <Tag size={9} className="shrink-0" />
@@ -323,7 +323,7 @@ export default function TodoCard({
                       {GoalIcon && <GoalIcon size={8} />}
                       <span className="uppercase">{sectionName}</span>
                       {dreamTitle && (
-                        <span className="opacity-60 truncate max-w-[80px]">· {dreamTitle}</span>
+                        <span className="opacity-[var(--opacity-60)] truncate max-w-[var(--legacy-maxw-063)]">· {dreamTitle}</span>
                       )}
                     </span>
                   );
@@ -333,8 +333,8 @@ export default function TodoCard({
 
           {/* Hover Quick Actions */}
           {!isDone && (
-            <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ml-2">
-              <button
+            <div className="shrink-0 flex items-center gap-1 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] transition-opacity duration-[var(--motion-medium)] ml-2">
+              <Pressable
                 onClick={e => {
                   e.stopPropagation();
                   onEditStart(item.title);
@@ -343,8 +343,8 @@ export default function TodoCard({
                 title="Edytuj zadanie (Ctrl E)"
               >
                 <Pencil size={13} />
-              </button>
-              <button
+              </Pressable>
+              <Pressable
                 onClick={e => {
                   e.stopPropagation();
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -354,8 +354,8 @@ export default function TodoCard({
                 title="Ustaw termin (T)"
               >
                 <Calendar size={13} />
-              </button>
-              <button
+              </Pressable>
+              <Pressable
                 onClick={e => {
                   e.stopPropagation();
                   onToggleExpand(item.id);
@@ -364,8 +364,8 @@ export default function TodoCard({
                 title="Szczegóły i komentarze"
               >
                 <MessageSquare size={13} />
-              </button>
-              <button
+              </Pressable>
+              <Pressable
                 onClick={e => {
                   e.stopPropagation();
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -375,7 +375,7 @@ export default function TodoCard({
                 title="Więcej opcji"
               >
                 <MoreHorizontal size={13} />
-              </button>
+              </Pressable>
             </div>
           )}
         </div>
@@ -385,7 +385,7 @@ export default function TodoCard({
           style={{
             display: 'grid',
             gridTemplateRows: expanded ? '1fr' : '0fr',
-            transition: 'grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1)',
+            transition: 'var(--legacy-inline-style-087)',
             overflow: transitionCompleted ? 'visible' : 'hidden'
           }}
         >

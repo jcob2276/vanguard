@@ -26,8 +26,8 @@ export default function DailyStrainVitalsRow({ oura, hrvZ, rhrZ, sleepZ, sleepSc
 
   return (
     <>
-      <div className="h-px bg-border-custom/30 relative z-10" />
-      <div className="flex items-center justify-between relative z-10">
+      <div className="h-px bg-border-custom/30 relative z-[var(--z-raised)]" />
+      <div className="flex items-center justify-between relative z-[var(--z-raised)]">
         {vitals.map(({ icon: Icon, label, value, color }, idx) => (
           <div key={label} className={`flex-1 flex flex-col items-center text-center ${idx > 0 ? 'border-l border-border-custom/30' : ''}`}>
             <div className="flex items-center gap-0.5">

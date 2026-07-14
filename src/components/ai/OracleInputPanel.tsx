@@ -1,6 +1,7 @@
+import Button from '../ui/Button';
+import { ControlInput } from '../ui/ControlPrimitives';
 import { Camera, Send, X } from 'lucide-react';
 import type { RefObject } from 'react';
-import Button from '../ui/Button';
 
 interface OracleInputPanelProps {
   input: string;
@@ -43,7 +44,7 @@ export function OracleInputPanel({
                 variant="ghost"
                 onClick={() => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
                 icon={<X size={10} />}
-                className="absolute inset-0 rounded-none p-0 min-w-0 bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-white hover:bg-black/40 hover:text-white"
+                className="absolute inset-0 rounded-none p-0 min-w-0 bg-scrim/40 opacity-[var(--opacity-100)] sm:opacity-[var(--opacity-0)] sm:group-hover:opacity-[var(--opacity-100)] text-on-accent hover:bg-scrim/40 hover:text-on-accent"
               />
             </div>
           ))}
@@ -54,7 +55,7 @@ export function OracleInputPanel({
       <div className="flex items-center gap-2 border-t border-border-custom px-4 py-3">
         <label className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-solid border border-border-custom text-text-secondary hover:text-text-primary active:scale-95 transition-all cursor-pointer">
           <Camera size={13} />
-          <input
+          <ControlInput
             ref={fileInputRef}
             type="file"
             accept="image/*"
@@ -63,7 +64,7 @@ export function OracleInputPanel({
             onChange={onAttachImage}
           />
         </label>
-        <input
+        <ControlInput
           ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -88,7 +89,7 @@ export function OracleInputPanel({
           onClick={onSubmit}
           disabled={(!input.trim() && pendingImages.length === 0) || loading}
           icon={<Send size={13} />}
-          className="h-8 w-8 shrink-0 rounded-full p-0 min-w-0 shadow-none hover:translate-y-0 disabled:opacity-30"
+          className="h-8 w-8 shrink-0 rounded-full p-0 min-w-0 shadow-none hover:translate-y-0 disabled:opacity-[var(--opacity-30)]"
         />
       </div>
     </>

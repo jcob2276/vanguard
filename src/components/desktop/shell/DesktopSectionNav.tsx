@@ -12,12 +12,12 @@ const SECTIONS: { id: string; label: string; href?: string }[] = [
 ];
 
 const linkClass =
-  'block rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted hover:text-primary hover:bg-primary/[0.08] transition-all duration-150';
+  'block rounded-lg px-2 py-1.5 text-xs font-bold text-text-muted hover:text-primary hover:bg-primary/[0.08] transition-all duration-[var(--motion-medium)]';
 
 export default function DesktopSectionNav() {
   return (
     <nav className="hidden xl:block sticky top-24 self-start w-36 shrink-0 pt-1">
-      <p className="text-2xs font-black uppercase tracking-[0.25em] text-text-muted mb-3 px-2">Sekcje</p>
+      <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted mb-3 px-2">Sekcje</p>
       <ul className="space-y-1">
         {SECTIONS.map(({ id, label, href }) => (
           <li key={id}>

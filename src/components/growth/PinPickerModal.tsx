@@ -1,3 +1,4 @@
+import { Pressable, ControlInput, ControlSelect } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { BookOpen, ListTodo, Plus } from 'lucide-react';
 import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
@@ -9,7 +10,6 @@ import {
   inferResourceType,
 } from '../../lib/growth/growth';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 
 export default function PinPickerModal({
   slot,
@@ -68,7 +68,7 @@ export default function PinPickerModal({
       <div className="px-0 pt-3 grid grid-cols-2 gap-2">
           <div>
             <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Skill</label>
-            <select
+            <ControlSelect
               value={skillId}
               onChange={(e) => setSkillId(e.target.value)}
               className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm"
@@ -76,11 +76,11 @@ export default function PinPickerModal({
               {skills.map((s) => (
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
-            </select>
+            </ControlSelect>
           </div>
           <div>
             <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Projekt</label>
-            <select
+            <ControlSelect
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
               className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm"
@@ -89,7 +89,7 @@ export default function PinPickerModal({
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </ControlSelect>
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export default function PinPickerModal({
             ['todo', 'Zadania', ListTodo],
             ['manual', 'Ręcznie', Plus],
           ] as const).map(([id, label, Icon]) => (
-            <button
+            <Pressable
               key={id}
               type="button"
               onClick={() => setTab(id)}
@@ -108,7 +108,7 @@ export default function PinPickerModal({
               }`}
             >
               <Icon size={12} /> {label}
-            </button>
+            </Pressable>
           ))}
         </div>
 
@@ -118,7 +118,7 @@ export default function PinPickerModal({
               <p className="text-sm text-text-muted text-center py-6">Brak nieprzeczytanych linków</p>
             ) : (
               availableLinks.map((link) => (
-                <Button
+                <Pressable
                   key={link.id}
                   variant="outline"
                   onClick={() => onPickLink(link.id, skillId || null, projectId || null)}
@@ -128,7 +128,7 @@ export default function PinPickerModal({
                     <p className="text-sm font-bold text-text-primary line-clamp-2">{link.title || link.url}</p>
                     <p className="text-2xs text-text-muted mt-1">{link.category}</p>
                   </div>
-                </Button>
+                </Pressable>
               ))
             ))}
 
@@ -137,20 +137,20 @@ export default function PinPickerModal({
               <p className="text-sm text-text-muted text-center py-6">Brak otwartych zadań</p>
             ) : (
               availableTodos.map((todo) => (
-                <Button
+                <Pressable
                   key={todo.id}
                   variant="outline"
                   onClick={() => onPickTodo(todo.id, skillId || null, projectId || null)}
                   className="w-full text-left justify-start p-3 h-auto"
                 >
                   <p className="text-sm font-bold text-text-primary">{todo.title}</p>
-                </Button>
+                </Pressable>
               ))
             ))}
 
           {tab === 'manual' && (
             <div className="space-y-3">
-              <input
+              <ControlInput
                 value={manualTitle}
                 onChange={(e) => setManualTitle(e.target.value)}
                 placeholder="Tytuł (książka, ćwiczenie…)"
@@ -158,7 +158,7 @@ export default function PinPickerModal({
               />
               <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(RESOURCE_TYPE_META) as GrowthResourceType[]).map((t) => (
-                  <button
+                  <Pressable
                     key={t}
                     type="button"
                     onClick={() => setManualType(t)}
@@ -167,10 +167,10 @@ export default function PinPickerModal({
                     }`}
                   >
                     {RESOURCE_TYPE_META[t].emoji} {RESOURCE_TYPE_META[t].label}
-                  </button>
+                  </Pressable>
                 ))}
               </div>
-              <Button
+              <Pressable
                 variant="primary"
                 onClick={() => {
                   onPickManual(manualTitle.trim(), manualType, skillId || null, projectId || null);
@@ -180,7 +180,7 @@ export default function PinPickerModal({
                 className="w-full"
               >
                 Dodaj
-              </Button>
+              </Pressable>
             </div>
           )}
         </div>

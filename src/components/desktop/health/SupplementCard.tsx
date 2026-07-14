@@ -1,5 +1,5 @@
-import { Calendar, Bell, Check, Trash2 } from 'lucide-react';
 import Button from '../../ui/Button';
+import { Calendar, Bell, Check, Trash2 } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import type { Supplement } from '../../../lib/health/supplementsClient';
 
@@ -44,7 +44,7 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
 
   return (
     <Card variant="outline" padding="0.875rem" className="space-y-2.5 transition-all"
-      style={takenToday ? { border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(16,185,129,0.02)' } : { background: 'rgba(26,26,46,0.3)' }}>
+      style={takenToday ? { border: '1px solid var(--legacy-color-097)', background: 'var(--legacy-color-091)' } : { background: 'var(--legacy-color-140)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="text-xl shrink-0" role="img" aria-label={sup.name}>{sup.emoji || '💊'}</span>
@@ -60,7 +60,7 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
         <div className="flex items-center gap-2">
           <Button variant={takenToday ? 'tonal' : 'outline'} size="sm" type="button" onClick={onToggle}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${takenToday ? 'border-success/40 bg-success/10 text-success hover:bg-success/20' : 'border-border-custom bg-surface hover:text-text-primary hover:border-border-custom/80'}`}
-            icon={<Check size={11} className={takenToday ? 'stroke-[3px]' : 'opacity-30'} />}
+            icon={<Check size={11} className={takenToday ? 'stroke-[var(--legacy-arbitrary-043)]' : 'opacity-[var(--opacity-30)]'} />}
           >
             <span>{takenToday ? 'Zalogowano' : 'Zaloguj'}</span>
           </Button>

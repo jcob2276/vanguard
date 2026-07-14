@@ -94,10 +94,10 @@ export function getHealthLevel(score: number): HealthLevel {
 export const HEALTH_COLORS: Record<HealthLevel, {
   ring: string; fill: string; text: string; bg: string; label: string;
 }> = {
-  great:    { ring: '#10b981', fill: 'text-success', text: 'text-success dark:text-success', bg: 'bg-success/10', label: 'Świetnie' },
-  ok:       { ring: '#3b82f6', fill: 'text-info',    text: 'text-info dark:text-info',       bg: 'bg-info/10',    label: 'OK'       },
-  'at-risk':{ ring: '#f59e0b', fill: 'text-warning',   text: 'text-warning dark:text-warning',     bg: 'bg-warning/10',   label: 'Ryzyko'   },
-  critical: { ring: '#ef4444', fill: 'text-danger',    text: 'text-danger dark:text-danger',       bg: 'bg-danger/10',    label: 'Krytyczny'},
+  great:    { ring: 'var(--legacy-color-004)', fill: 'text-success', text: 'text-success dark:text-success', bg: 'bg-success/10', label: 'Świetnie' },
+  ok:       { ring: 'var(--legacy-color-020)', fill: 'text-info',    text: 'text-info dark:text-info',       bg: 'bg-info/10',    label: 'OK'       },
+  'at-risk':{ ring: 'var(--legacy-color-040)', fill: 'text-warning',   text: 'text-warning dark:text-warning',     bg: 'bg-warning/10',   label: 'Ryzyko'   },
+  critical: { ring: 'var(--legacy-color-037)', fill: 'text-danger',    text: 'text-danger dark:text-danger',       bg: 'bg-danger/10',    label: 'Krytyczny'},
 };
 
 export type Momentum = 'accelerating' | 'steady' | 'slipping' | 'stalled';

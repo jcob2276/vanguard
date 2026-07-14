@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { SPHERE_SLOTS } from './powerListConstants';
 import PowerListTask from '../PowerListTask';
 
@@ -33,21 +34,21 @@ export default function PowerListActive({
             Checkpoint: <span className="font-bold">{checkpointPrompt.title}</span> — oznaczyć jako done?
           </p>
           <div className="flex shrink-0 gap-1.5">
-            <button
+            <Pressable
               type="button"
               onClick={() => void confirmCheckpointDone()}
               disabled={markingCheckpoint}
-              className="rounded-lg bg-success px-2.5 py-1 text-2xs font-black uppercase text-white hover:bg-success-hover disabled:opacity-50 cursor-pointer"
+              className="rounded-lg bg-success px-2.5 py-1 text-2xs font-black uppercase text-on-accent hover:bg-success-hover disabled:opacity-[var(--opacity-50)] cursor-pointer"
             >
               Tak
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               type="button"
               onClick={() => setCheckpointPrompt(null)}
               className="rounded-lg border border-border-custom px-2.5 py-1 text-2xs font-black uppercase text-text-muted hover:text-text-primary cursor-pointer"
             >
               Nie
-            </button>
+            </Pressable>
           </div>
         </div>
       )}

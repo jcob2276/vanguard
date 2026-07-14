@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import ts from "typescript";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..", "..");
@@ -96,6 +97,7 @@ const patternDefinitions = {
     label: "fixed inset-0 files in src/components/",
     check: (file, relativePath, content) => {
       if (!relativePath.startsWith("src/components/")) return 0;
+      if (relativePath.startsWith("src/components/ui/")) return 0;
       if (relativePath.includes("/hooks/")) return 0;
       return content.includes("fixed inset-0") ? 1 : 0;
     },
@@ -137,6 +139,116 @@ const patternDefinitions = {
       return hasHex ? 1 : 0;
     },
   },
+  patternCount_rawControls: {
+    label: "raw form controls outside src/components/ui/",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/") || relativePath.startsWith("src/components/ui/") || !relativePath.endsWith(".tsx")) return 0;
+      return (content.match(/<(?:button|input|select|textarea)\b/g) || []).length;
+    },
+  },
+  patternCount_arbitraryDesignValues: {
+    label: "hardcoded numeric arbitrary Tailwind values",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/") || !/\.[jt]sx?$/.test(relativePath)) return 0;
+      return (content.match(/\b[a-zA-Z][\w-]*-\[(?![^\]]*var\(--)[^\]]*\d[^\]]*\]/g) || []).length;
+    },
+  },
+  patternCount_localCssVisualDeclarations: {
+    label: "local visual declarations outside src/index.css",
+    check: () => 0,
+  },
+  patternCount_untemplatedRouteScreens: {
+    label: "route screens without PageTemplateBoundary",
+    check: (file, relativePath, content) => {
+      if (relativePath !== "src/App.tsx") return 0;
+      const routes = content.match(/<Route\b[\s\S]*?\/>/g) || [];
+      return routes.filter((route) => /path=/.test(route) && !/<Screen\b/.test(route) && !/<Navigate\b/.test(route) && !/KorealcjeRedirect/.test(route)).length;
+    },
+  },
+  patternCount_localColorLiterals: {
+    label: "hardcoded color literals outside src/index.css",
+    check: (file, relativePath, content) => {
+      if (relativePath === "src/index.css" || /\.(test|spec)\.[jt]sx?$/.test(relativePath)) return 0;
+      return content.split(/\r?\n/).reduce((sum, line) => {
+        if (line.includes("[style*=") || /^\s*(?:\/\/|\*)/.test(line)) return sum;
+        const matches = line.match(/#(?:[0-9a-fA-F]{3,8})\b|(?:rgba?|hsla?)\([^\n)]*\)/g) || [];
+        return sum + matches.filter((value) => !value.includes("var(--")).length;
+      }, 0);
+    },
+  },
+  patternCount_namedPaletteUtilities: {
+    label: "hardcoded Tailwind palette/black/white utilities",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/") || !/\.[jt]sx?$/.test(relativePath)) return 0;
+      const palette = /\b(?:bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke)-(?:red|blue|green|amber|rose|emerald|indigo|slate|gray|zinc|neutral|stone|yellow|orange|violet|purple|pink|fuchsia|sky|cyan|teal|lime)-\d{2,3}(?:\/\d{1,3})?\b/g;
+      const absolutes = /\b(?:bg|text|border|from|to|via|decoration|ring|outline|divide|accent|caret|fill|stroke)-(?:white|black)(?:\/(?:\[?\d+(?:\.\d+)?\]?))?\b/g;
+      return (content.match(palette) || []).length + (content.match(absolutes) || []).length;
+    },
+  },
+  patternCount_hardcodedMotionUtilities: {
+    label: "hardcoded Tailwind duration/easing utilities",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/") || !/\.[jt]sx?$/.test(relativePath)) return 0;
+      return (content.match(/(?:^|[\s'"`])(?:duration-\d+|ease-(?:out|in-out))\b/g) || []).length;
+    },
+  },
+  patternCount_uncontrolledVisualUtilities: {
+    label: "hardcoded opacity/blur/z-index utilities",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/") || !/\.[jt]sx?$/.test(relativePath)) return 0;
+      return (content.match(/(?<!-)(?:\bopacity-\d+|\bz-\d+|\bz-\[\d+\]|\b(?:backdrop-)?blur-(?:sm|md|lg|xl|2xl|3xl)|\b(?:backdrop-)?blur-\[\d+(?:\.\d+)?px\])\b/g) || []).length;
+    },
+  },
+  patternCount_staticInlineStyleValues: {
+    label: "static inline visual values outside tokens",
+    check: (file, relativePath, content) => {
+      if (!relativePath.startsWith("src/components/") || !relativePath.endsWith(".tsx")) return 0;
+      const source = ts.createSourceFile(relativePath, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      const visualProps = new Set(["fontSize", "borderRadius", "boxShadow", "padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "margin", "marginTop", "marginRight", "marginBottom", "marginLeft", "gap", "rowGap", "columnGap", "width", "minWidth", "maxWidth", "height", "minHeight", "maxHeight", "border", "borderTop", "borderRight", "borderBottom", "borderLeft", "letterSpacing", "lineHeight", "opacity", "zIndex", "top", "right", "bottom", "left", "inset", "transform", "transition", "animation", "fontFamily", "fontWeight", "backdropFilter"]);
+      let count = 0;
+      const visit = (node) => {
+        if (ts.isJsxAttribute(node) && node.name.text === "style" && node.initializer && ts.isJsxExpression(node.initializer) && node.initializer.expression && ts.isObjectLiteralExpression(node.initializer.expression)) {
+          for (const property of node.initializer.expression.properties) {
+            if (!ts.isPropertyAssignment(property)) continue;
+            const name = ts.isIdentifier(property.name) ? property.name.text : ts.isStringLiteral(property.name) ? property.name.text : "";
+            if (!visualProps.has(name)) continue;
+            const value = property.initializer;
+            if (ts.isNumericLiteral(value)) count += 1;
+            if (ts.isStringLiteral(value) && (/\d/.test(value.text) || name === "fontFamily") && !value.text.includes("var(--")) count += 1;
+          }
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return count;
+    },
+  },
+  patternCount_embeddedCssVisualValues: {
+    label: "static numeric CSS embedded in TS/TSX strings",
+    check: (file, relativePath, content) => {
+      if (!/\.[jt]sx?$/.test(relativePath)) return 0;
+      const property = "(?:font-family|font-size|font-weight|border-radius|box-shadow|padding(?:-(?:top|right|bottom|left))?|margin(?:-(?:top|right|bottom|left))?|gap|width|min-width|max-width|height|min-height|max-height|line-height|letter-spacing|border(?:-(?:top|right|bottom|left))?|z-index|top|right|bottom|left|inset|opacity|transition|animation)";
+      const declaration = new RegExp(`\\b${property}:\\s*(?!var\\(--)[^;\\n"']*\\d[^;\\n"']*(?:;|$)`, "g");
+      const source = ts.createSourceFile(relativePath, content, ts.ScriptTarget.Latest, true, relativePath.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+      let count = 0;
+      const visit = (node) => {
+        if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+          count += (node.text.match(declaration) || []).length;
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return count;
+    },
+  },
+  patternCount_localCssNumericValues: {
+    label: "numeric local CSS values outside central tokens",
+    check: () => 0,
+  },
+  patternCount_undefinedCssVariables: {
+    label: "undefined CSS variable references",
+    check: () => 0,
+  },
 };
 
 // Recursive file walker for src/
@@ -152,7 +264,7 @@ function walk(dir) {
         list = list.concat(walk(filePath));
       }
     } else {
-      if (/\.(ts|tsx|js|jsx)$/.test(file)) {
+      if (/\.(ts|tsx|js|jsx|css)$/.test(file)) {
         list.push(filePath);
       }
     }
@@ -165,6 +277,36 @@ const counts = {};
 for (const key of Object.keys(patternDefinitions)) {
   counts[key] = 0;
 }
+
+{
+  const definitions = new Set();
+  const references = new Set();
+  for (const file of allFiles) {
+    const content = fs.readFileSync(file, "utf8");
+    for (const match of content.matchAll(/(--[\w-]+)\s*:/g)) definitions.add(match[1]);
+    for (const match of content.matchAll(/var\((--[\w-]+)/g)) references.add(match[1]);
+  }
+  counts.patternCount_undefinedCssVariables = [...references]
+    .filter((name) => !definitions.has(name) && !name.startsWith("--tw-"))
+    .length;
+}
+
+// CSS is deliberately audited separately because the TS/JS walker above does not include it.
+counts.patternCount_localCssVisualDeclarations = walk(path.join(root, "src"))
+  .filter((file) => file.endsWith(".css") && path.basename(file) !== "index.css")
+  .reduce((sum, file) => {
+    const content = fs.readFileSync(file, "utf8");
+    const declarations = [...content.matchAll(/\b(?:font-family|font-size|border-radius|box-shadow|transition|animation)\s*:\s*([^;]+);/g)];
+    return sum + declarations.filter((match) => !/^\s*var\(--[^)]+\)\s*$/.test(match[1])).length;
+  }, 0);
+
+counts.patternCount_localCssNumericValues = walk(path.join(root, "src"))
+  .filter((file) => file.endsWith(".css") && path.basename(file) !== "index.css")
+  .reduce((sum, file) => {
+    const content = fs.readFileSync(file, "utf8");
+    const declarations = [...content.matchAll(/(^|[;{]\s*)[-\w]+\s*:\s*([^;{}]+);/gm)];
+    return sum + declarations.filter((match) => /\d/.test(match[2]) && !/^\s*var\(--[^)]+\)(?:\s*!important)?\s*$/.test(match[2])).length;
+  }, 0);
 
 for (const file of allFiles) {
   const relativePath = path.relative(root, file).replace(/\\/g, "/");

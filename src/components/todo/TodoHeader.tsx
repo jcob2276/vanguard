@@ -1,93 +1,63 @@
-import { Bell, ChevronLeft, Clock3, History, Kanban, LayoutGrid, ListTodo, PanelLeft } from 'lucide-react';
-import Button from '../ui/Button';
+import { Pressable } from '../ui/ControlPrimitives';
+import type { RefObject } from 'react';
+import { Bell, Clock3, History, Kanban, LayoutGrid, ListTodo, PanelLeft } from 'lucide-react';
+import Tabs from '../ui/Tabs';
+import { WorkspaceHeader, WorkspaceSearch } from '../shared/WorkspaceHeader';
 import { useTodoContext } from './context/TodoContext';
 
 export type TodoViewMode = 'lista' | 'eisenhower' | 'kanban' | 'timeline';
 
+const VIEW_TABS = [
+  { key: 'lista', label: 'Lista', icon: <ListTodo size={14} /> },
+  { key: 'eisenhower', label: 'Macierz', icon: <LayoutGrid size={14} /> },
+  { key: 'kanban', label: 'Kanban', icon: <Kanban size={14} /> },
+  { key: 'timeline', label: 'OĹ› czasu', icon: <Clock3 size={14} /> },
+];
+
 interface TodoHeaderProps {
   onBack: () => void;
   todoView: TodoViewMode;
-  setTodoView: (v: TodoViewMode) => void;
+  setTodoView: (value: TodoViewMode) => void;
   sidebarCollapsed: boolean;
-  setSidebarCollapsed: (v: boolean) => void;
+  setSidebarCollapsed: (value: boolean) => void;
+  searchInputRef: RefObject<HTMLInputElement | null>;
 }
 
-export default function TodoHeader({ onBack, todoView, setTodoView, sidebarCollapsed, setSidebarCollapsed }: TodoHeaderProps) {
-  const { push, pushSubscribed, setPushSubscribed, showDone, setShowDone } = useTodoContext();
+export default function TodoHeader({ onBack, todoView, setTodoView, sidebarCollapsed, setSidebarCollapsed, searchInputRef }: TodoHeaderProps) {
+  const { push, pushSubscribed, setPushSubscribed, showDone, setShowDone, searchQuery, setSearchQuery, setActiveSmartListId } = useTodoContext();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom/60 bg-background/90 px-5 py-4 backdrop-blur-xl">
-      <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
-        <ChevronLeft size={22} strokeWidth={2.5} />
-      </Button>
-      {sidebarCollapsed && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSidebarCollapsed(false)}
-          title="Rozwiń panel boczny"
-          className="shrink-0"
-        >
-          <PanelLeft size={16} />
-        </Button>
-      )}
-      <div className="min-w-0 flex-1">
-        <h1 className="text-xl font-bold text-text-primary tracking-tight">Zadania</h1>
-      </div>
-      {push.isSupported && pushSubscribed === false && (
-        <Button
-          variant="tonal"
-          size="sm"
-          onClick={async () => {
-            const ok = await push.subscribe();
-            if (ok) setPushSubscribed(true);
-          }}
-          title="Włącz powiadomienia push"
-          icon={<Bell size={12} />}
-        >
-          Powiadomienia
-        </Button>
-      )}
-      {/* View switcher */}
-      <div className="flex items-center rounded-xl border border-border-custom/50 bg-surface/40 p-0.5 gap-0.5">
-        <button
-          onClick={() => setTodoView('lista')}
-          className={`rounded-lg p-1.5 transition-all ${todoView === 'lista' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
-          title="Lista"
-        >
-          <ListTodo size={15} />
-        </button>
-        <button
-          onClick={() => setTodoView('eisenhower')}
-          className={`rounded-lg p-1.5 transition-all ${todoView === 'eisenhower' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
-          title="Macierz Eisenhowera"
-        >
-          <LayoutGrid size={15} />
-        </button>
-        <button
-          onClick={() => setTodoView('kanban')}
-          className={`rounded-lg p-1.5 transition-all ${todoView === 'kanban' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
-          title="Kanban"
-        >
-          <Kanban size={15} />
-        </button>
-        <button
-          onClick={() => setTodoView('timeline')}
-          className={`rounded-lg p-1.5 transition-all ${todoView === 'timeline' ? 'bg-primary/15 text-primary' : 'text-text-muted hover:text-text-primary'}`}
-          title="Oś czasu"
-        >
-          <Clock3 size={15} />
-        </button>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setShowDone((v) => !v)}
-        className={showDone ? 'text-primary bg-primary/10' : ''}
-        title="Historia"
-      >
-        <History size={17} />
-      </Button>
-    </header>
+    <>
+      <WorkspaceHeader
+        title="Zadania"
+        onBack={onBack}
+        leading={sidebarCollapsed && (
+          <Pressable variant="ghost" size="sm" onClick={() => setSidebarCollapsed(false)} aria-label="RozwiĹ„ panel boczny">
+            <PanelLeft size={16} />
+          </Pressable>
+        )}
+        center={
+          <WorkspaceSearch
+            value={searchQuery}
+            onChange={(value) => { setSearchQuery(value); if (value) setActiveSmartListId(null); }}
+            placeholder="Szukaj zadaĹ„â€¦"
+            inputRef={searchInputRef}
+          />
+        }
+        actions={
+          <>
+            {push.isSupported && pushSubscribed === false && (
+              <Pressable variant="tonal" size="sm" onClick={async () => { const ok = await push.subscribe(); if (ok) setPushSubscribed(true); }} icon={<Bell size={12} />} className="hidden lg:flex">
+                Powiadomienia
+              </Pressable>
+            )}
+            <Pressable variant="ghost" size="sm" onClick={() => setShowDone((value) => !value)} className={showDone ? 'bg-primary/10 text-primary' : ''} aria-label="Historia">
+              <History size={17} />
+            </Pressable>
+          </>
+        }
+        navigation={<Tabs tabs={VIEW_TABS} active={todoView} onChange={(key) => setTodoView(key as TodoViewMode)} />}
+      />
+    </>
   );
 }

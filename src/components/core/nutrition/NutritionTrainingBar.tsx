@@ -1,5 +1,5 @@
-import { Activity, Flag, Target } from 'lucide-react';
 import Button from '../../ui/Button';
+import { Activity, Flag, Target } from 'lucide-react';
 import Badge from '../../ui/Badge';
 import { Card } from '../../ui/Card';
 import type { NutritionDayContext } from '../../../lib/health/nutritionContext';

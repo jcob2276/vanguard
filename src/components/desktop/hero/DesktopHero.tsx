@@ -54,10 +54,10 @@ export default function DesktopHero({
 
   const status = strain?.daily_status || 'unknown';
   const cfg = {
-    green: { bg: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.25)', dot: 'bg-success', pulse: 'bg-success', tag: 'ZIELONY' },
-    yellow: { bg: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)', dot: 'bg-warning', pulse: 'bg-warning', tag: 'ŻÓŁTY' },
-    red: { bg: 'rgba(244,63,94,0.05)', border: '1px solid rgba(244,63,94,0.25)', dot: 'bg-danger', pulse: 'bg-danger', tag: 'CZERWONY' },
-  }[status] || { bg: 'rgba(26,26,46,0.6)', border: '1px solid rgba(153,161,175,0.3)', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
+    green: { bg: 'var(--legacy-color-093)', border: '1px solid var(--legacy-color-098)', dot: 'bg-success', pulse: 'bg-success', tag: 'ZIELONY' },
+    yellow: { bg: 'var(--legacy-color-119)', border: '1px solid var(--legacy-color-122)', dot: 'bg-warning', pulse: 'bg-warning', tag: 'ŻÓŁTY' },
+    red: { bg: 'var(--legacy-color-110)', border: '1px solid var(--legacy-color-114)', dot: 'bg-danger', pulse: 'bg-danger', tag: 'CZERWONY' },
+  }[status] || { bg: 'var(--legacy-color-141)', border: 'var(--border-desktop-hero-muted)', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
 
   const msg = strain ? cockpitDecision(status, strain.main_limiter, strain.strain_score, strain.fueling_provisional) : 'Obserwatorium — pełny obraz z SQL';
   const limiter = strain?.main_limiter && strain.main_limiter !== 'recovery_ok' ? LIMITER_PL[strain.main_limiter] : null;
@@ -72,15 +72,15 @@ export default function DesktopHero({
 
   return (
     <section id="sprint" className="scroll-mt-28">
-      <Card variant="glass" padding="0" className="overflow-hidden" style={{ borderRadius: '24px', background: cfg.bg, border: cfg.border }}>
+      <Card variant="glass" padding="0" className="overflow-hidden" style={{ borderRadius: 'var(--legacy-inline-style-009)', background: cfg.bg, border: cfg.border }}>
         <div className="px-8 py-5 flex items-center justify-between gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5 mb-2">
             <div className="relative flex items-center justify-center w-3 h-3">
-              <div className={`absolute w-3 h-3 rounded-full ${cfg.pulse} opacity-40 animate-ping`} />
+              <div className={`absolute w-3 h-3 rounded-full ${cfg.pulse} opacity-[var(--opacity-40)] animate-ping`} />
               <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
             </div>
-            <span className="text-2xs font-black uppercase tracking-[0.3em] text-text-muted">{cfg.tag}</span>
+            <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-044)] text-text-muted">{cfg.tag}</span>
           </div>
           <p className="font-display text-2xl font-black leading-tight text-text-primary">{msg}</p>
           {limiter && (
@@ -108,7 +108,7 @@ export default function DesktopHero({
 
       <div className="px-8 py-4 border-t border-primary/10 bg-primary/[0.02]">
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className="text-2xs font-black uppercase tracking-[0.3em] text-text-muted">
+          <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-044)] text-text-muted">
             Sprint scorecard
           </span>
           <span className="text-text-muted/40">·</span>
@@ -116,7 +116,7 @@ export default function DesktopHero({
             {sprint.sprintStart} → {sprint.sprintEnd}
           </span>
           <span className="text-text-muted/40 hidden sm:inline">·</span>
-          <span className="text-2xs font-black uppercase tracking-[0.3em] text-text-muted hidden sm:inline">
+          <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-044)] text-text-muted hidden sm:inline">
             PY{sprint.personalYear}
           </span>
           <span className="text-text-muted/40 hidden sm:inline">→</span>
@@ -142,7 +142,7 @@ export default function DesktopHero({
         </div>
 
         <div className="h-1.5 mt-3 bg-border-custom rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${sprint.pct}%` }} />
+          <div className="h-full rounded-full bg-primary transition-all duration-[var(--motion-deliberate)]" style={{ width: `${sprint.pct}%` }} />
         </div>
 
         {closingWeek && !sprintReview?.completed_at && (
@@ -152,7 +152,7 @@ export default function DesktopHero({
             </p>
             <a
               href="/?view=tydzien"
-              className="inline-flex rounded-[10px] bg-primary/10 px-3 py-2 text-xs font-black uppercase text-primary"
+              className="inline-flex rounded-[var(--radius-sm)] bg-primary/10 px-3 py-2 text-xs font-black uppercase text-primary"
             >
               Otwórz Tydzień → zamknij sprint
             </a>

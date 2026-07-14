@@ -30,7 +30,7 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
           <div>
             <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${protLow ? 'bg-danger' : 'bg-primary'}`}
+                className={`h-full rounded-full transition-all duration-[var(--motion-long)] ${protLow ? 'bg-danger' : 'bg-primary'}`}
                 style={{ width: `${Math.min((todayMacros.protein / (proteinGoal || 1)) * 100, 100)}%` }}
               />
             </div>
@@ -51,7 +51,7 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
           <div>
             <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
               <div
-                className="bg-warning h-full rounded-full transition-all duration-500"
+                className="bg-warning h-full rounded-full transition-all duration-[var(--motion-long)]"
                 style={{ width: `${cPct}%` }}
               />
             </div>
@@ -72,7 +72,7 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
           <div>
             <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
               <div
-                className="bg-danger h-full rounded-full transition-all duration-500"
+                className="bg-danger h-full rounded-full transition-all duration-[var(--motion-long)]"
                 style={{ width: `${fPct}%` }}
               />
             </div>
@@ -87,9 +87,9 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
       {todayMacros.protein + todayMacros.carbs + todayMacros.fat > 0 && (
         <div className="mb-4 bg-surface-solid/10 border border-border-custom/30 rounded-xl p-2">
           <div className="h-2 w-full rounded-full bg-border-custom overflow-hidden flex">
-            <div className="bg-primary h-full transition-all duration-700" style={{ width: `${pPct}%` }} title={`Białko: ${Math.round(pPct)}%`} />
-            <div className="bg-warning h-full transition-all duration-700" style={{ width: `${cPct}%` }} title={`Węglowodany: ${Math.round(cPct)}%`} />
-            <div className="bg-danger h-full transition-all duration-700" style={{ width: `${fPct}%` }} title={`Tłuszcze: ${Math.round(fPct)}%`} />
+            <div className="bg-primary h-full transition-all duration-[var(--motion-deliberate)]" style={{ width: `${pPct}%` }} title={`Białko: ${Math.round(pPct)}%`} />
+            <div className="bg-warning h-full transition-all duration-[var(--motion-deliberate)]" style={{ width: `${cPct}%` }} title={`Węglowodany: ${Math.round(cPct)}%`} />
+            <div className="bg-danger h-full transition-all duration-[var(--motion-deliberate)]" style={{ width: `${fPct}%` }} title={`Tłuszcze: ${Math.round(fPct)}%`} />
           </div>
           <div className="mt-2 flex items-center justify-between text-2xs font-black text-text-muted uppercase tracking-wider">
             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Białko ({Math.round(pPct)}%)</span>

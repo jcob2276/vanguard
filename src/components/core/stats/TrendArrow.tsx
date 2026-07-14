@@ -4,7 +4,7 @@ export function TrendArrow({ current, previous, better = 'up' }: { current: numb
   if (previous === undefined || previous === null || current === undefined || current === null) return null;
 
   const diff = current - previous;
-  if (Math.abs(diff) < 0.01) return <ArrowRight size={10} className="inline-block ml-1 text-slate-400" />;
+  if (Math.abs(diff) < 0.01) return <ArrowRight size={10} className="inline-block ml-1 text-text-muted" />;
 
   const isImproving = better === 'up' ? diff > 0 : diff < 0;
 

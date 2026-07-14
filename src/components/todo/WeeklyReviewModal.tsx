@@ -1,3 +1,4 @@
+import Button from '../ui/Button';
 import { notify } from '../../lib/notify';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
@@ -9,7 +10,6 @@ import { listRecentStreamEntries, updateStreamEntryContent, deleteStreamEntry, t
 import { listWeeklyPredictions, resolveCustomPrediction, createCustomPrediction, type Prediction } from '../../lib/predictionsApi';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import { useUserId } from '../../store/useStore';
 
 import { WeeklyReviewContext, WeeklyReviewContextType, type WeeklyAiRecap } from './weekly/context/WeeklyReviewContext';
@@ -185,7 +185,7 @@ export default function WeeklyReviewModal({ onClose, onFinished }: Props) {
 
   if (loading) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--legacy-arbitrary-029)]" closeOnBackdropClick={false}>
         <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-sm font-bold text-text-muted">Wczytywanie Tygodniowego Przeglądu...</span>
@@ -248,8 +248,8 @@ export default function WeeklyReviewModal({ onClose, onFinished }: Props) {
         padding="p-0"
         overflowY={false}
         size="lg"
-        overlayClassName="z-[60] p-0 flex-col justify-end sm:justify-center sm:p-4"
-        className="rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[640px] overflow-hidden"
+        overlayClassName="z-[var(--legacy-arbitrary-029)] p-0 flex-col justify-end sm:justify-center sm:p-4"
+        className="rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[var(--legacy-h-046)] sm:max-h-[var(--legacy-h-037)] overflow-hidden"
       >
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
           <div>
@@ -264,11 +264,11 @@ export default function WeeklyReviewModal({ onClose, onFinished }: Props) {
 
         {step < 6 && (
           <div className="grid grid-cols-5 h-1 bg-border-custom/20 shrink-0">
-            <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-primary' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-primary' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-primary' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 4 ? 'bg-primary' : 'bg-transparent'}`} />
-            <div className={`h-full transition-all duration-300 ${step >= 5 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 1 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 2 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 3 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 4 ? 'bg-primary' : 'bg-transparent'}`} />
+            <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 5 ? 'bg-primary' : 'bg-transparent'}`} />
           </div>
         )}
 

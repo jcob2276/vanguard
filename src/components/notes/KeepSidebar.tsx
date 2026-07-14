@@ -1,5 +1,8 @@
-import { Archive, BookOpen, Calendar, CheckSquare, ListTodo, Plus, Tag, Trash2 } from 'lucide-react';
+import { Pressable } from '../ui/ControlPrimitives';
+import { Archive, CheckSquare, Plus, Tag, Trash2 } from 'lucide-react';
 import { Note } from '../../lib/notesApi';
+import WorkspaceNavigation from '../shared/WorkspaceNavigation';
+import WorkspaceSidebar from '../shared/WorkspaceSidebar';
 
 interface KeepSidebarProps {
   notes: Note[];
@@ -19,9 +22,13 @@ export default function KeepSidebar({
   goTo, onPromptCreateTag, onConfirmDeleteTag,
 }: KeepSidebarProps) {
   return (
-    <aside className="keep-sidebar">
+    <WorkspaceSidebar>
+      <p className="keep-sidebar-section-label">Workspace</p>
+      <WorkspaceNavigation active="keep" onNavigate={goTo} />
+      <div className="keep-sidebar-separator" />
+
       <p className="keep-sidebar-section-label">Notatki</p>
-      <button
+      <Pressable
         className={`keep-sidebar-item ${sidebarTab === 'notes' && !activeTag ? 'active' : ''}`}
         onClick={() => { setSidebarTab('notes'); setActiveTag(() => null); setSearch(''); }}
       >
@@ -30,8 +37,8 @@ export default function KeepSidebar({
         {notes.filter(n => !n.is_archived).length > 0 && (
           <span className="keep-sidebar-count">{notes.filter(n => !n.is_archived).length}</span>
         )}
-      </button>
-      <button
+      </Pressable>
+      <Pressable
         className={`keep-sidebar-item ${sidebarTab === 'archive' && !activeTag ? 'active' : ''}`}
         onClick={() => { setSidebarTab('archive'); setActiveTag(() => null); setSearch(''); }}
       >
@@ -40,34 +47,18 @@ export default function KeepSidebar({
         {notes.filter(n => n.is_archived).length > 0 && (
           <span className="keep-sidebar-count">{notes.filter(n => n.is_archived).length}</span>
         )}
-      </button>
-
-      <div className="keep-sidebar-separator" />
-
-      <p className="keep-sidebar-section-label">Nawigacja</p>
-      <button className="keep-sidebar-item" onClick={() => goTo('todo')}>
-        <ListTodo size={15} />
-        <span>To Do</span>
-      </button>
-      <button className="keep-sidebar-item" onClick={() => goTo('kalendarz')}>
-        <Calendar size={15} />
-        <span>Kalendarz</span>
-      </button>
-      <button className="keep-sidebar-item" onClick={() => goTo('links')}>
-        <BookOpen size={15} />
-        <span>Pocket</span>
-      </button>
+      </Pressable>
 
       <div className="keep-sidebar-separator" />
       <div className="flex items-center justify-between keep-sidebar-section-label pr-1.5">
         <span>Tagi</span>
-        <button
+        <Pressable
           onClick={onPromptCreateTag}
-          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+          className="p-1 rounded hover:bg-surface-2 dark:hover:bg-on-accent/10 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
           title="Dodaj nowy tag"
         >
           <Plus size={13} />
-        </button>
+        </Pressable>
       </div>
       {allTags.map(tag => (
         <div
@@ -79,19 +70,19 @@ export default function KeepSidebar({
             <Tag size={13} className="shrink-0" />
             <span className="truncate">{tag}</span>
           </div>
-          <button
+          <Pressable
             type="button"
             onClick={(e) => { e.stopPropagation(); onConfirmDeleteTag(tag); }}
             className="hidden group-hover:flex p-1 rounded hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"
             title="Usuń tag ze wszystkich notatek"
           >
             <Trash2 size={12} />
-          </button>
+          </Pressable>
         </div>
       ))}
       {allTags.length === 0 && (
         <p className="text-xs text-text-muted/40 px-3 py-1.5 italic">brak tagów</p>
       )}
-    </aside>
+    </WorkspaceSidebar>
   );
 }

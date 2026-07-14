@@ -1,5 +1,8 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
-import { Plus, Search, Inbox, CalendarDays, CalendarClock, ChevronDown, Pencil, Trash2, StickyNote, ListTodo, Calendar, BookOpen, Bell, PanelLeft } from 'lucide-react';
+import { Plus, Search, Inbox, CalendarDays, CalendarClock, ChevronDown, Pencil, Trash2, Bell, PanelLeft } from 'lucide-react';
+import WorkspaceNavigation from '../shared/WorkspaceNavigation';
+import WorkspaceSidebar from '../shared/WorkspaceSidebar';
 
 export type TodoNavDest = 'overview' | 'inbox' | 'today' | 'upcoming';
 
@@ -36,7 +39,7 @@ function NavItem({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Pressable
       onClick={onClick}
       className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors ${
         active ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary'
@@ -45,7 +48,7 @@ function NavItem({
       <span className={active ? 'text-primary' : 'text-text-muted/60'}>{icon}</span>
       <span className="flex-1 truncate text-left">{label}</span>
       {!!count && <span className="text-xs font-semibold text-text-muted/50 tabular-nums">{count}</span>}
-    </button>
+    </Pressable>
   );
 }
 
@@ -87,9 +90,9 @@ export default function TodoSidebar({
   };
 
   return (
-    <aside className={`hidden md:flex w-[230px] shrink-0 border-r border-border-custom/40 bg-surface/20 px-2.5 py-3 flex-col gap-3 overflow-y-auto transition-all duration-300 ${collapsed ? '!w-0 !px-0 !py-0 !border-r-0 overflow-hidden' : ''}`}>
+    <WorkspaceSidebar collapsed={collapsed} onCollapse={onToggleCollapse} className="gap-3">
       {/* Profile Header */}
-      <div className="flex items-center justify-between px-2 py-1 mb-1 shrink-0">
+      <div className="hidden">
         <div className="flex items-center gap-2 cursor-pointer hover:bg-text-primary/[0.04] p-1 rounded-lg transition-colors">
           <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-black text-primary">
             K
@@ -98,58 +101,38 @@ export default function TodoSidebar({
           <ChevronDown size={11} className="text-text-muted/60" />
         </div>
         <div className="flex items-center gap-1">
-          <button className="p-1.5 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer" title="Powiadomienia">
+          <Pressable className="p-1.5 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer" title="Powiadomienia">
             <Bell size={14} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             onClick={onToggleCollapse}
             className="p-1.5 text-text-muted hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-colors cursor-pointer"
             title="Zwiń panel boczny"
           >
             <PanelLeft size={14} />
-          </button>
+          </Pressable>
         </div>
       </div>
       {/* Workspace Section */}
       <div className="flex flex-col gap-0.5">
         <p className="px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60">Workspace</p>
-        <NavItem
-          icon={<StickyNote size={14} />}
-          label="Notatki"
-          active={false}
-          onClick={() => onNavigateTo?.('keep')}
-        />
-        <NavItem
-          icon={<ListTodo size={14} />}
-          label="Zadania"
-          active={navDest === 'overview' && !activeSectionId}
-          onClick={() => {
-            onNavDest('overview');
-            onNavigateTo?.('todo');
+        <WorkspaceNavigation
+          active="todo"
+          onNavigate={(destination) => {
+            if (destination === 'todo') onNavDest('overview');
+            onNavigateTo?.(destination);
           }}
-        />
-        <NavItem
-          icon={<Calendar size={14} />}
-          label="Kalendarz"
-          active={false}
-          onClick={() => onNavigateTo?.('kalendarz')}
-        />
-        <NavItem
-          icon={<BookOpen size={14} />}
-          label="Pocket"
-          active={false}
-          onClick={() => onNavigateTo?.('links')}
         />
       </div>
 
 
-      <button
+      <Pressable
         onClick={onFocusSearch}
         className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary transition-colors"
       >
         <Search size={14} className="text-text-muted/60" />
         Szukaj
-      </button>
+      </Pressable>
 
       <div className="border-t border-border-custom/30 pt-2 flex flex-col gap-0.5">
         <NavItem
@@ -176,7 +159,7 @@ export default function TodoSidebar({
       </div>
 
       <div className="border-t border-border-custom/30 pt-2 flex-1 min-h-0 flex flex-col">
-        <button
+        <Pressable
           onClick={() => setProjectsOpen((v) => !v)}
           className="flex w-full items-center gap-1 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60 hover:text-text-primary transition-colors"
         >
@@ -194,14 +177,14 @@ export default function TodoSidebar({
           >
             <Plus size={12} />
           </span>
-        </button>
+        </Pressable>
 
         {projectsOpen && (
           <div className="mt-0.5 flex flex-col gap-0.5 overflow-y-auto">
             {sections.map((s) => (
               <div key={s.id} className="group/sec relative flex items-center">
                 {renamingId === s.id ? (
-                  <input
+                  <ControlInput
                     autoFocus
                     value={renameVal}
                     onChange={(e) => setRenameVal(e.target.value)}
@@ -214,7 +197,7 @@ export default function TodoSidebar({
                   />
                 ) : (
                   <>
-                    <button
+                    <Pressable
                       onClick={() => onSelectSection(s.id)}
                       className={`flex-1 min-w-0 truncate rounded-xl px-2.5 py-1 text-left text-sm font-semibold transition-colors ${
                         navDest === 'overview' && activeSectionId === s.id
@@ -223,9 +206,9 @@ export default function TodoSidebar({
                       }`}
                     >
                       {s.name}
-                    </button>
+                    </Pressable>
                     <div className="absolute right-1 hidden items-center gap-0.5 group-hover/sec:flex bg-surface/20">
-                      <button
+                      <Pressable
                         onClick={() => {
                           setRenamingId(s.id);
                           setRenameVal(s.name);
@@ -234,14 +217,14 @@ export default function TodoSidebar({
                         title="Zmień nazwę"
                       >
                         <Pencil size={10} />
-                      </button>
-                      <button
+                      </Pressable>
+                      <Pressable
                         onClick={() => onDeleteSection(s.id)}
                         className="p-1 text-text-muted/40 hover:text-danger transition-colors"
                         title="Usuń listę"
                       >
                         <Trash2 size={10} />
-                      </button>
+                      </Pressable>
                     </div>
                   </>
                 )}
@@ -249,7 +232,7 @@ export default function TodoSidebar({
             ))}
 
             {adding ? (
-              <input
+              <ControlInput
                 autoFocus
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -262,16 +245,16 @@ export default function TodoSidebar({
                 className="mt-0.5 rounded-lg border border-primary/40 bg-surface-solid px-2 py-1 text-sm font-semibold text-primary outline-none"
               />
             ) : (
-              <button
+              <Pressable
                 onClick={() => setAdding(true)}
                 className="mt-0.5 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium text-text-muted/40 hover:text-text-primary transition-colors"
               >
                 <Plus size={12} /> Nowa lista
-              </button>
+              </Pressable>
             )}
           </div>
         )}
       </div>
-    </aside>
+    </WorkspaceSidebar>
   );
 }

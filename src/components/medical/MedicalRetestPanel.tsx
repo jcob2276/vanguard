@@ -1,10 +1,10 @@
+import Button from '../ui/Button';
 import { Suspense, lazy, useState } from 'react';
 
 import { Sparkles } from 'lucide-react';
 
 import type { FullPanelInfo } from '../../lib/health/medicalRetestContext';
 import Skeleton from '../ui/Skeleton';
-import Button from '../ui/Button';
 import { Card, type CardVariant } from '../ui/Card';
 
 import {
@@ -143,7 +143,7 @@ export default function MedicalRetestPanel({
 
       ) : (
 
-        <Suspense fallback={<Skeleton variant="card" className="h-40 rounded-[24px]" />}>
+        <Suspense fallback={<Skeleton variant="card" className="h-40 rounded-[var(--radius-xl)]" />}>
 
           <OracleCard
 

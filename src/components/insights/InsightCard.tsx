@@ -1,7 +1,7 @@
+import Button from '../ui/Button';
 import { useRef, useState } from 'react';
 import { Pin, SortAsc, Trash2, X } from 'lucide-react';
 import Spinner from '../ui/Spinner';
-import Button from '../ui/Button';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { WidgetFactory, type WidgetType } from '../widgets/WidgetFactory';
 import type { InsightCardData } from '../../lib/insightsApi';
@@ -78,8 +78,8 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
         // buttons anchored at the bottom-center. ui/Modal shows a dialog box and cannot render these
         // floating radial buttons, so a raw fixed overlay is intentional here.
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center pb-12"
-          style={{ background: 'rgba(0,0,0,0.6)' }}
+          className="fixed inset-0 z-[var(--z-overlay)] flex items-end justify-center pb-12"
+          style={{ background: 'var(--legacy-color-055)' }}
           onClick={() => setOverlayOpen(false)}
         >
           <div className="flex gap-5 items-center" onClick={e => e.stopPropagation()}>
@@ -89,7 +89,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
                 onClick={() => { onPin(card.id); setOverlayOpen(false); }}
                 icon={<Pin size={20} color="white" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
-                style={{ background: 'var(--color-primary)', boxShadow: '0 0 20px rgba(91,108,255,0.4)' }}
+                style={{ background: 'var(--color-primary)', boxShadow: '0 0 20px var(--legacy-color-152)' }}
               />
             )}
             {onSort && (
@@ -98,22 +98,22 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
                 onClick={() => { onSort(card.id); setOverlayOpen(false); }}
                 icon={<SortAsc size={20} color="white" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
-                style={{ background: 'var(--color-warning)', boxShadow: '0 0 20px rgba(245,158,11,0.4)' }}
+                style={{ background: 'var(--color-warning)', boxShadow: '0 0 20px var(--legacy-color-123)' }}
               />
             )}
             {onDelete && (
               <Button
                 variant="ghost"
                 onClick={handleDelete}
-                icon={deleting ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
+                icon={deleting ? <Spinner size="sm" className="h-5 w-5 !border-on-accent/30 !border-t-white" /> : <Trash2 size={20} color="white" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
-                style={{ background: 'var(--color-danger)', boxShadow: '0 0 20px rgba(244,63,94,0.4)' }}
+                style={{ background: 'var(--color-danger)', boxShadow: '0 0 20px var(--legacy-color-116)' }}
               />
             )}
             <Button
               variant="ghost"
               onClick={() => setOverlayOpen(false)}
-              icon={<X size={16} color="#0A0A0A" />}
+              icon={<X size={16} color="var(--legacy-color-002)" />}
               className="w-10 h-10 min-w-0 p-0 rounded-full hover:bg-transparent"
               style={{ background: 'white' }}
             />

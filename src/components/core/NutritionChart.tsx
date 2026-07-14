@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import React from 'react';
 import { useHaptics } from '../../hooks/useHaptics';
 
@@ -44,7 +45,7 @@ export default function NutritionChart({
     <div className="mt-4 border-t border-border-custom/50 pt-4">
       {/* Chart switcher tabs */}
       <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-solid/15 border border-border-custom/50 mb-3">
-        <button
+        <Pressable
           onClick={() => { haptics.light(); setActiveChartTab('calories'); }}
           className={`flex-1 text-center py-1 rounded-lg text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeChartTab === 'calories'
@@ -53,8 +54,8 @@ export default function NutritionChart({
           }`}
         >
           Kalorie (7d)
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           onClick={() => { haptics.light(); setActiveChartTab('protein'); }}
           className={`flex-1 text-center py-1 rounded-lg text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeChartTab === 'protein'
@@ -63,7 +64,7 @@ export default function NutritionChart({
           }`}
         >
           Białko (7d)
-        </button>
+        </Pressable>
       </div>
 
       {activeChartTab === 'calories' ? (
@@ -71,8 +72,8 @@ export default function NutritionChart({
           <div className="relative h-24 border-b border-border-custom/50 flex items-end justify-between px-2 pb-1">
             {/* Target baseline */}
             {kcalTarget > 0 && (
-              <div 
-                className="absolute left-0 right-0 border-t border-dashed border-warning/40 z-0 pointer-events-none"
+              <div
+                className="absolute left-0 right-0 border-t border-dashed border-warning/40 z-[var(--z-base)] pointer-events-none"
                 style={{ bottom: `${(kcalTarget / Math.max(...chart.map(c => c.calories), kcalTarget, 1)) * 100}%` }}
               />
             )}
@@ -82,18 +83,18 @@ export default function NutritionChart({
               const isToday = d.key === todayRaw;
               const weekday = getWeekdayAbbr(d.key);
               return (
-                <div key={d.key} className="flex-1 flex flex-col items-center group relative z-10 h-full justify-end">
+                <div key={d.key} className="flex-1 flex flex-col items-center group relative z-[var(--z-raised)] h-full justify-end">
                   <div
-                    className={`w-3.5 rounded-t-md transition-all duration-500 cursor-pointer ${
+                    className={`w-3.5 rounded-t-md transition-all duration-[var(--motion-long)] cursor-pointer ${
                       isToday
-                        ? 'bg-gradient-to-t from-warning to-warning opacity-100 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                        ? 'bg-gradient-to-t from-warning to-warning opacity-[var(--opacity-100)] shadow-[var(--legacy-shadow-070)]'
                         : d.calories >= kcalTarget
-                          ? 'bg-success/60 dark:bg-success/70 hover:opacity-100 opacity-70'
-                          : 'bg-text-secondary/40 hover:opacity-85 opacity-55'
+                          ? 'bg-success/60 dark:bg-success/70 hover:opacity-[var(--opacity-100)] opacity-[var(--opacity-70)]'
+                          : 'bg-text-secondary/40 hover:opacity-[var(--opacity-85)] opacity-[var(--opacity-55)]'
                     }`}
                     style={{ height: `${Math.max(pct, 5)}%` }}
                   />
-                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-2xs font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
+                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-2xs font-bold text-text-primary opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] transition-opacity pointer-events-none shadow-md z-[var(--z-popover)] whitespace-nowrap">
                     {weekday}: {d.calories} kcal
                   </div>
                 </div>
@@ -117,8 +118,8 @@ export default function NutritionChart({
           <div className="relative h-24 border-b border-border-custom/50 flex items-end justify-between px-2 pb-1">
             {/* Protein Target baseline */}
             {proteinGoal > 0 && (
-              <div 
-                className="absolute left-0 right-0 border-t border-dashed border-primary/40 z-0 pointer-events-none"
+              <div
+                className="absolute left-0 right-0 border-t border-dashed border-primary/40 z-[var(--z-base)] pointer-events-none"
                 style={{ bottom: `${(proteinGoal / Math.max(...chart.map(c => c.protein), proteinGoal, 1)) * 100}%` }}
               />
             )}
@@ -128,18 +129,18 @@ export default function NutritionChart({
               const isToday = d.key === todayRaw;
               const weekday = getWeekdayAbbr(d.key);
               return (
-                <div key={d.key} className="flex-1 flex flex-col items-center group relative z-10 h-full justify-end">
+                <div key={d.key} className="flex-1 flex flex-col items-center group relative z-[var(--z-raised)] h-full justify-end">
                   <div
-                    className={`w-3.5 rounded-t-md transition-all duration-500 cursor-pointer ${
+                    className={`w-3.5 rounded-t-md transition-all duration-[var(--motion-long)] cursor-pointer ${
                       isToday
-                        ? 'bg-gradient-to-t from-primary to-primary opacity-100 shadow-[0_0_8px_rgba(99,102,241,0.25)]'
+                        ? 'bg-gradient-to-t from-primary to-primary opacity-[var(--opacity-100)] shadow-[0_0_8px_var(--primary-25)]'
                         : d.protein >= proteinGoal
-                          ? 'bg-success/60 dark:bg-success/70 hover:opacity-100 opacity-70'
-                          : 'bg-primary/45 hover:opacity-85 opacity-55'
+                          ? 'bg-success/60 dark:bg-success/70 hover:opacity-[var(--opacity-100)] opacity-[var(--opacity-70)]'
+                          : 'bg-primary/45 hover:opacity-[var(--opacity-85)] opacity-[var(--opacity-55)]'
                     }`}
                     style={{ height: `${Math.max(pct, 5)}%` }}
                   />
-                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-2xs font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-20 whitespace-nowrap">
+                  <div className="absolute bottom-full mb-1 bg-surface-solid border border-border-custom px-1.5 py-0.5 rounded text-2xs font-bold text-text-primary opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] transition-opacity pointer-events-none shadow-md z-[var(--z-popover)] whitespace-nowrap">
                     {weekday}: {d.protein}g B
                   </div>
                 </div>

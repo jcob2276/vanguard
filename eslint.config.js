@@ -138,106 +138,9 @@ const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
 ]
 
 const NO_BUTTON_GUARD_EXCEPTIONS = [
-  'src/components/calendar/grid/CalendarAgendaView.tsx', // grid cell click targets
-  'src/components/calendar/grid/CalendarGridBlocks.tsx', // event block interactions
-  'src/components/calendar/grid/CalendarGridColumns.tsx', // time slot grid cells
-  'src/components/calendar/grid/CalendarWeekView.tsx', // week view grid cells
-  'src/components/calendar/CalendarView.tsx', // sidebar toggle positioned widget
-  'src/components/calendar/MiniCalendar.tsx', // day cell selection grid
-  'src/components/calendar/RecurrencePicker.tsx', // recurrence/day-of-week toggle segmented control
-  'src/components/calendar/components/CalendarHeader.tsx', // view switcher segmented control
-  'src/components/core/nutrition/BarcodeScanner.tsx',
-  'src/components/core/nutrition/FoodRow.tsx',
-  'src/components/core/stats/BodyMetricsSection.tsx',
-  'src/components/notes/FloatingToolbar.tsx', // tightly-packed 28px rich-text toolbar icon buttons driven by fixed CSS (.keep-toolbar-btn); Button's padding/rounded/shadow utilities would fight the custom sizing
-  'src/components/projects/PillarFilterTabs.tsx', // segmented tab-switcher control; Button's hover-lift/shadow styling doesn't fit a tab bar
-  'src/components/todo/TodoDoneHistory.tsx',
-  'src/components/todo/TodoHeader.tsx', // view switcher segmented control
-  'src/components/todo/TodoReminderPopover.tsx',
-  'src/components/todo/TodoSearchBar.tsx',
 ]
 
 const NO_COLOR_GUARD_EXCEPTIONS = [
-  'src/components/biometrics/BrainHealth.tsx',
-  'src/components/biometrics/DailyStrainCard.tsx',
-  'src/components/biometrics/DailyStrainHeader.tsx',
-  'src/components/biometrics/DailyStrainMetricsRow.tsx',
-  'src/components/biometrics/workout/ExerciseStrengthSets.tsx',
-  'src/components/biometrics/workout/ExerciseWellnessSets.tsx',
-  'src/components/calendar/CalendarWeather.tsx',
-  'src/components/calendar/SolarDayWidget.tsx',
-  'src/components/core/Auth.tsx',
-  'src/components/core/DashboardDzisTab.tsx',
-  'src/components/core/DashboardFastCapture.tsx',
-  'src/components/core/DashboardHeader.tsx',
-  'src/components/core/morningPlan/MorningPlanStep1Review.tsx',
-  'src/components/core/morningPlan/MorningPlanStep2PowerList.tsx',
-  'src/components/core/morningPlan/MorningPlanStep3TimeBox.tsx',
-  'src/components/core/nutrition/NutritionForecastPanel.tsx',
-  'src/components/core/nutrition/NutritionMacroBoxes.tsx',
-  'src/components/core/nutrition/NutritionMealGroupCard.tsx',
-  'src/components/core/nutrition/NutritionMealLog.tsx',
-  'src/components/core/nutrition/NutritionTargetsGrid.tsx',
-  'src/components/core/nutrition/foodEntryModal/BrowseScreen.tsx',
-  'src/components/core/nutrition/foodEntryModal/EditScreen.tsx',
-  'src/components/core/nutrition/foodEntryModal/FoodEntryHeader.tsx',
-  'src/components/core/nutrition/foodEntryModal/NLScreen.tsx',
-  'src/components/core/nutrition/foodEntryModal/PortionScreen.tsx',
-  'src/components/core/shutdown/ShutdownScoreSliders.tsx',
-  'src/components/core/stats/TrendArrow.tsx',
-  'src/components/core/stats/foodAnalysis/FoodAnalysisRange.tsx',
-  'src/components/core/stats/foodAnalysis/FoodAnalysisSingle.tsx',
-  'src/components/correlations/BehaviorEffectCard.tsx',
-  'src/components/correlations/CorrelationCard.tsx',
-  'src/components/correlations/CorrelationsSummary.tsx',
-  'src/components/desktop/fitness/ScoreboardPanel.tsx',
-  'src/components/desktop/fitness/SprintMetricsGrid.tsx',
-  'src/components/desktop/general/BehaviorCapturePanel.tsx',
-  'src/components/desktop/general/generalView/GeneralHealthCharts.tsx',
-  'src/components/desktop/general/generalView/GeneralMemexPanels.tsx',
-  'src/components/desktop/general/generalView/GeneralRecommendationsPanel.tsx',
-  'src/components/desktop/health/LeniePanelMini.tsx',
-  'src/components/desktop/health/SupplementAddForm.tsx',
-  'src/components/desktop/health/SupplementCard.tsx',
-  'src/components/desktop/hero/DesktopHero.tsx',
-  'src/components/growth/GrowthProjectsPanel.tsx',
-  'src/components/growth/SkillTreePanel.tsx',
-  'src/components/growth/SlotPinCard.tsx',
-  'src/components/insights/TaskAnalyticsCard.tsx',
-  'src/components/lifestyle/DirectionMonthlyMode.tsx',
-  'src/components/lifestyle/LinksTriagePanel.tsx',
-  'src/components/lifestyle/directionPlan/DirectionPlanBlocks.tsx',
-  'src/components/lifestyle/directionPlan/DirectionPlanReflection.tsx',
-  'src/components/lifestyle/directionPlan/DirectionPlanWeekPlan.tsx',
-  'src/components/lifestyle/powerList/PowerListActive.tsx',
-  'src/components/lifestyle/powerList/PowerListSetup.tsx',
-  'src/components/lifestyle/powerList/TodoPicker.tsx',
-  'src/components/medical/GlassesCabinet.tsx',
-  'src/components/medical/MedicalBiologyScores.tsx',
-  'src/components/medical/MedicalLabSections.tsx',
-  'src/components/medical/MedicalTrendCharts.tsx',
-  'src/components/medical/PrescriptionCard.tsx',
-  'src/components/medical/VisionJournal.tsx',
-  'src/components/notes/KeepNotesList.tsx',
-  'src/components/notes/KeepSidebar.tsx',
-  'src/components/projects/FocusProjectBanner.tsx',
-  'src/components/projects/PriorityTasksPanel.tsx',
-  'src/components/projects/ProjectCardCollapsed.tsx',
-  'src/components/shared/MagazineBar.tsx',
-  'src/components/shared/PlanningCheckpointsStrip.tsx',
-  'src/components/shared/SystemProposalCard.tsx',
-  'src/components/shared/WeekLoopSummary.tsx',
-  'src/components/todo/BucketHeader.tsx',
-  'src/components/todo/TimelineView.tsx',
-  'src/components/todo/TodoBatchClassifyChip.tsx',
-  'src/components/todo/TodoCardSubtasks.tsx',
-  'src/components/todo/TodoTodayZone.tsx',
-  'src/components/todo/weekly/WeeklyReviewInboxTriage.tsx',
-  'src/components/todo/weekly/WeeklyReviewPredictions.tsx',
-  'src/components/todo/weekly/WeeklyReviewSectionAudit.tsx',
-  'src/components/todo/weekly/WeeklyReviewStreamReview.tsx',
-  'src/components/todo/weekly/WeeklyReviewSuccess.tsx',
-  'src/components/todo/weekly/WeeklyReviewSynthesis.tsx',
 ]
 
 // Canonical date-label formatters — these files ARE the wrapper, so calling
@@ -423,6 +326,14 @@ export default defineConfig([
       }, {
         selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/\\btext-\\[\\d+\\.?\\d*px\\]/]",
         message: 'Arbitrary text-[Npx] — use a typography token (text-3xs through text-6xl). See docs/DESIGN_SYSTEM.md §2.8.',
+      }, {
+        // Hardcoded brand-rgba guard: catch indigo rgba() in Tailwind arbitrary values (shadow-[...], bg-[...]).
+        // Use derived tokens (--primary-N) or color-mix(in srgb, var(--primary) N%, transparent) instead.
+        selector: "JSXAttribute[name.name='className'] Literal[value=/rgba\\(\\s*?(99|79)\\s*,\\s*?(102|70)\\s*,\\s*?(241|229)/]",
+        message: 'Hardcoded indigo rgba() in className — use --primary-N token or color-mix(in srgb, var(--primary) N%, transparent). See docs/DESIGN_SYSTEM.md.',
+      }, {
+        selector: "JSXAttribute[name.name='className'] TemplateElement[value.raw=/rgba\\(\\s*?(99|79)\\s*,\\s*?(102|70)\\s*,\\s*?(241|229)/]",
+        message: 'Hardcoded indigo rgba() in className — use --primary-N token or color-mix(in srgb, var(--primary) N%, transparent). See docs/DESIGN_SYSTEM.md.',
       }, {
         // Button structural guard: block raw <button> outside ui/ — use <Button> instead.
         // Exemptions: files where <button> is semantically correct (drag handles, complex

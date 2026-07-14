@@ -6,7 +6,7 @@ interface MetricPillProps { value: number; label: string; color: string; }
 function MetricPill({ value, label, color }: MetricPillProps) {
   return (
     <div className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: `${color}0D` }}>
-      <p className="text-lg font-[800] leading-none" style={{ color }}>{value.toLocaleString('pl-PL')}</p>
+      <p className="text-lg font-[var(--legacy-arbitrary-022)] leading-none" style={{ color }}>{value.toLocaleString('pl-PL')}</p>
       <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{label}</p>
     </div>
   );
@@ -16,12 +16,12 @@ interface MiniBarChartProps { data: { inputs: number; cards: number; completedTo
 function MiniBarChart({ data }: MiniBarChartProps) {
   const max = Math.max(...data.map(d => d.inputs + d.cards + d.completedTodos), 1);
   return (
-    <div className="flex items-end gap-0.5 h-[42px]">
+    <div className="flex items-end gap-0.5 h-[var(--legacy-h-029)]">
       {data.slice(0, 30).map((d, i) => {
         const total = d.inputs + d.cards + d.completedTodos;
         const h = Math.max(8, (total / max) * 42);
         return (
-          <div key={i} className="flex-1 rounded-sm" style={{ height: h, background: 'rgba(91,108,255,0.65)', minWidth: 2 }} />
+          <div key={i} className="flex-1 rounded-sm" style={{ height: h, background: 'var(--legacy-color-153)', minWidth: 'var(--legacy-inline-style-060)' }} />
         );
       })}
     </div>
@@ -31,11 +31,11 @@ function MiniBarChart({ data }: MiniBarChartProps) {
 function Skeleton() {
   return (
     <div className="space-y-3">
-      <div className="h-4 w-1/2 rounded-lg animate-pulse" style={{ background: 'rgba(153,161,175,0.12)' }} />
+      <div className="h-4 w-1/2 rounded-lg animate-pulse" style={{ background: 'var(--legacy-color-086)' }} />
       <div className="flex gap-2">
-        {[0,1,2].map(i => <div key={i} className="flex-1 h-14 rounded-xl animate-pulse" style={{ background: 'rgba(153,161,175,0.08)' }} />)}
+        {[0,1,2].map(i => <div key={i} className="flex-1 h-14 rounded-xl animate-pulse" style={{ background: 'var(--legacy-color-085)' }} />)}
       </div>
-      <div className="h-[42px] rounded-lg animate-pulse" style={{ background: 'rgba(153,161,175,0.06)' }} />
+      <div className="h-[var(--legacy-h-029)] rounded-lg animate-pulse" style={{ background: 'var(--legacy-color-084)' }} />
     </div>
   );
 }
@@ -46,7 +46,7 @@ export function UserStatsOverviewCard({ snapshot, loading }: Props) {
   return (
     <Card variant="glass" padding="1rem" className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(91,108,255,0.08)' }}>
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--legacy-color-149)' }}>
           <BarChart2 size={13} style={{ color: 'var(--color-primary)' }} />
         </div>
         <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Aktywność</span>

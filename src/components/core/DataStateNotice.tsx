@@ -2,7 +2,7 @@ import { AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { Card } from '../ui/Card';
 
 // Tokens use CSS custom properties (--text-primary, --border, --surface) defined in index.css
-// for both light and dark mode — avoids the previous dark-only text-white/35 hardcoded values.
+// for both light and dark mode — avoids the previous dark-only text-on-accent/35 hardcoded values.
 const TONES = {
   info: {
     icon: Info,
@@ -46,7 +46,7 @@ export default function DataStateNotice({ title, detail, tone = 'info' }: DataSt
     >
       <Icon size={14} className={`${state.iconTone} mt-0.5 shrink-0 ${tone === 'loading' ? 'animate-spin' : ''}`} />
       <div className="min-w-0 space-y-1">
-        <p className={`text-xs font-black uppercase tracking-[0.16em] ${state.titleTone}`}>
+        <p className={`text-xs font-black uppercase tracking-[var(--legacy-arbitrary-012)] ${state.titleTone}`}>
           {title}
         </p>
         {detail && (

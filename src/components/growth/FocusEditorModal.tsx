@@ -1,7 +1,8 @@
+import Button from '../ui/Button';
+import { ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import type { LearningSkill, LearningWeekFocus } from '../../lib/growth/growth';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 
 export default function FocusEditorModal({
   skills,
@@ -47,7 +48,7 @@ export default function FocusEditorModal({
       <div className="space-y-4">
         <div>
           <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Główna umiejętność</label>
-          <select
+          <ControlSelect
             value={skillId}
             onChange={(e) => setSkillId(e.target.value)}
             className="mt-1 w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2 text-sm text-text-primary"
@@ -58,14 +59,14 @@ export default function FocusEditorModal({
                 {s.label}
               </option>
             ))}
-          </select>
+          </ControlSelect>
         </div>
 
         <div>
           <label className="text-2xs font-black uppercase tracking-wider text-text-muted">
             Cel / Dlaczego? (Intencja)
           </label>
-          <textarea
+          <ControlTextarea
             value={whyText}
             onChange={(e) => setWhyText(e.target.value)}
             placeholder="Po co uczysz się tego skilla? Jaki problem rozwiąże?"
@@ -78,7 +79,7 @@ export default function FocusEditorModal({
           <label className="text-2xs font-black uppercase tracking-wider text-text-muted">
             Drill / Ćwiczenie (Jak będziesz ćwiczyć w praktyce?)
           </label>
-          <textarea
+          <ControlTextarea
             value={drillText}
             onChange={(e) => setDrillText(e.target.value)}
             placeholder="np. Napisanie 3 serwisów w TS, przebiegnięcie 2x5km, przeczytanie 2 rozdziałów o architekturze i wdrożenie ich..."

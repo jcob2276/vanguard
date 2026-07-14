@@ -7,7 +7,7 @@ export function RoutineCard({ data }: { data: RoutineData }) {
       <div className="flex items-center gap-2 mb-3">
         <Repeat size={13} style={{ color: 'var(--color-primary)' }} />
         <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{data.title}</p>
-        {data.frequency && <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,108,255,0.08)', color: 'var(--color-primary)' }}>{data.frequency}</span>}
+        {data.frequency && <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--legacy-color-149)', color: 'var(--color-primary)' }}>{data.frequency}</span>}
       </div>
       <div className="space-y-2">
         {data.items.map((item, i) => (

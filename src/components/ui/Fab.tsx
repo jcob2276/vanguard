@@ -13,8 +13,8 @@ export interface FabProps {
 }
 
 const positionClasses = {
-  'bottom-right': 'fixed bottom-8 right-8 sm:bottom-6 sm:right-5 z-[1000]',
-  'bottom-center': 'fixed left-1/2 -translate-x-1/2 z-50',
+  'bottom-right': 'fixed bottom-8 right-8 sm:bottom-6 sm:right-5 z-[var(--z-fullscreen)]',
+  'bottom-center': 'fixed left-1/2 -translate-x-1/2 z-[var(--z-overlay)]',
   custom: '',
 };
 
@@ -43,7 +43,7 @@ export default function Fab({
       disabled={disabled}
       style={style}
       title={title}
-      className={`flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/25 transition-all duration-150 active:scale-93 hover:scale-105 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${positionClasses[position]} ${sizeClasses[size]} ${className}`}
+      className={`flex items-center justify-center rounded-full bg-primary text-on-accent shadow-lg shadow-primary/25 transition-all duration-[var(--motion-medium)] active:scale-93 hover:scale-105 disabled:opacity-[var(--opacity-50)] disabled:pointer-events-none cursor-pointer ${positionClasses[position]} ${sizeClasses[size]} ${className}`}
     >
       {children}
     </button>

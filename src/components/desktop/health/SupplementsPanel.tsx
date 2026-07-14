@@ -1,6 +1,6 @@
+import Button from '../../ui/Button';
 import { Pill, Plus, X, AlertCircle } from 'lucide-react';
 import Spinner from '../../ui/Spinner';
-import Button from '../../ui/Button';
 import EmptyState from '../../ui/EmptyState';
 import { Card } from '../../ui/Card';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
@@ -20,7 +20,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Pill size={14} className="text-success shrink-0" />
-          <h3 className="text-xs font-black uppercase tracking-[0.25em] text-text-muted">Suplementy & Cykle</h3>
+          <h3 className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">Suplementy & Cykle</h3>
         </div>
         <Button variant="outline" size="sm" type="button" onClick={() => {
           data.setShowAddForm(!data.showAddForm);

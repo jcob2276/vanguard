@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
@@ -61,7 +62,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
     <Card padding="1rem">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">
             {fmtDate(activity.start_date)}
           </p>
           <h3 className="mt-1 truncate text-sm font-black uppercase tracking-tight text-text-primary font-display">
@@ -156,17 +157,17 @@ export default function StravaWidget({ session }: { session: Session }) {
     <section className="space-y-3">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-2xs font-black uppercase tracking-[0.22em] text-warning font-display">Bieganie</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-warning font-display">Bieganie</p>
           <h2 className="mt-1 text-lg font-black uppercase tracking-tight text-text-primary font-display">Ostatnie 3 biegi</h2>
         </div>
-        <button
+        <Pressable
           onClick={handleSync}
           disabled={syncing}
           className="rounded-xl border border-border-custom bg-surface p-2.5 text-text-secondary transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 shadow-sm cursor-pointer"
           title="Sync Strava"
         >
           <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
-        </button>
+        </Pressable>
       </header>
 
       {error && (

@@ -72,19 +72,19 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
       {trainingAnalysis && (() => {
         const r = trainingAnalysis;
         const s = r.stats || {};
-        
+
         // Dynamic status colors for Light and Dark modes
-        const loadColor = r.load_status === 'elevated' 
-          ? 'text-warning dark:text-warning border-warning/20 bg-warning/5 dark:bg-warning/10' 
-          : r.load_status === 'optimal' 
-            ? 'text-dayC border-dayC/25 bg-dayC/5 dark:bg-dayC/10' 
+        const loadColor = r.load_status === 'elevated'
+          ? 'text-warning dark:text-warning border-warning/20 bg-warning/5 dark:bg-warning/10'
+          : r.load_status === 'optimal'
+            ? 'text-dayC border-dayC/25 bg-dayC/5 dark:bg-dayC/10'
             : 'text-text-secondary border-border-custom bg-surface/40';
         const loadLabel = r.load_status === 'elevated' ? 'Przeciążenie' : r.load_status === 'optimal' ? 'Optymalne' : 'Bodziec niski';
 
-        const recovColor = r.recovery_status === 'deficit' 
-          ? 'text-dayB border-dayB/25 bg-dayB/5 dark:bg-dayB/10' 
-          : r.recovery_status === 'ok' 
-            ? 'text-dayC border-dayC/25 bg-dayC/5 dark:bg-dayC/10' 
+        const recovColor = r.recovery_status === 'deficit'
+          ? 'text-dayB border-dayB/25 bg-dayB/5 dark:bg-dayB/10'
+          : r.recovery_status === 'ok'
+            ? 'text-dayC border-dayC/25 bg-dayC/5 dark:bg-dayC/10'
             : 'text-text-secondary border-border-custom bg-surface/40';
         const recovLabel = r.recovery_status === 'deficit' ? 'Deficyt' : r.recovery_status === 'ok' ? 'Regeneracja OK' : 'Gotowość wysoka';
 
@@ -111,10 +111,10 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
           );
         };
 
-        const injuryColor = r.injury_risk?.level === 'high' 
-          ? 'border-dayB/30 bg-dayB/5 text-dayB' 
-          : r.injury_risk?.level === 'moderate' 
-            ? 'border-warning/30 bg-warning/5 text-warning dark:text-warning' 
+        const injuryColor = r.injury_risk?.level === 'high'
+          ? 'border-dayB/30 bg-dayB/5 text-dayB'
+          : r.injury_risk?.level === 'moderate'
+            ? 'border-warning/30 bg-warning/5 text-warning dark:text-warning'
             : 'border-border-custom bg-surface/30 text-text-muted';
 
         return (
@@ -139,7 +139,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                     {s.km_trend.map((v, i) => {
                       const maxV = Math.max(...s.km_trend!.filter(Boolean), 1);
                       const h = Math.max(2, Math.round((v / maxV) * 20));
-                      return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[0_0_8px_rgba(79,70,229,0.3)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;
+                      return <div key={i} style={{height: h}} className={`w-4 rounded-sm ${i === 3 ? 'bg-primary/80 shadow-[0_0_8px_var(--primary-30)]' : 'bg-text-primary/10'}`} title={`${v}km`} />;
                     })}
                   </div>
                   <span className="text-2xs text-text-secondary ml-auto font-bold">{s.km_trend?.join(' → ')} km</span>
@@ -179,12 +179,12 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
             {/* Injury risk details */}
             {r.injury_risk && ((r.injury_risk.flags?.length ?? 0) > 0 || r.injury_risk.prevention) && (
               <Card className={`space-y-2 ${injuryColor}`}>
-                <p className="text-2xs font-black uppercase tracking-widest opacity-80">Ryzyko kontuzji</p>
+                <p className="text-2xs font-black uppercase tracking-widest opacity-[var(--opacity-80)]">Ryzyko kontuzji</p>
                 {r.injury_risk.flags?.map((f, i) => (
-                  <p key={i} className="text-xs leading-snug font-medium opacity-90">• {f}</p>
+                  <p key={i} className="text-xs leading-snug font-medium opacity-[var(--opacity-90)]">• {f}</p>
                 ))}
                 {r.injury_risk.prevention && (
-                  <p className="text-2xs opacity-75 pt-1.5 border-t border-current/10 leading-normal">{r.injury_risk.prevention}</p>
+                  <p className="text-2xs opacity-[var(--opacity-75)] pt-1.5 border-t border-current/10 leading-normal">{r.injury_risk.prevention}</p>
                 )}
               </Card>
             )}
@@ -203,7 +203,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 )}
                 <div className="space-y-2">
                   {prescription.exercises!.map((ex, i) => (
-                    <div key={i} className="rounded-[16px] border border-border-custom bg-surface/40 px-3.5 py-3 flex items-start gap-3">
+                    <div key={i} className="rounded-[var(--radius-lg)] border border-border-custom bg-surface/40 px-3.5 py-3 flex items-start gap-3">
                       <div className="shrink-0 w-5 h-5 rounded bg-primary/10 flex items-center justify-center mt-0.5">
                         <span className="text-2xs font-black text-primary">{i + 1}</span>
                       </div>
@@ -224,11 +224,11 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
 
             {/* Muscle gaps */}
             {(r.missing_muscles?.length ?? 0) > 0 && (
-              <div className="rounded-[24px] border border-warning/20 bg-warning/5 p-4">
+              <div className="rounded-[var(--radius-xl)] border border-warning/20 bg-warning/5 p-4">
                 <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning mb-2">Brakujące partie</p>
                 <div className="flex flex-wrap gap-2">
                   {r.missing_muscles!.map((m, i) => (
-                    <span key={i} className="rounded-lg border border-warning/20 bg-surface/80 dark:bg-black/20 px-2.5 py-0.5 text-2xs font-black text-warning dark:text-warning shadow-sm">{m}</span>
+                    <span key={i} className="rounded-lg border border-warning/20 bg-surface/80 dark:bg-scrim/20 px-2.5 py-0.5 text-2xs font-black text-warning dark:text-warning shadow-sm">{m}</span>
                   ))}
                 </div>
               </div>

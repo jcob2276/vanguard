@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { HelpCircle, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -89,20 +90,20 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
 
       {request.response_type === 'confirm' && (
         <div className="flex gap-2">
-          <button
+          <Pressable
             onClick={() => submit({ option_ids: ['yes'], is_uncertain: false })}
             disabled={submitting}
-            className="flex-1 rounded-xl bg-primary py-2 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-40"
+            className="flex-1 rounded-xl bg-primary py-2 text-sm font-bold text-on-accent transition-all active:scale-95 disabled:opacity-[var(--opacity-40)]"
           >
             Tak
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             onClick={() => submit({ option_ids: ['no'], is_uncertain: false })}
             disabled={submitting}
-            className="flex-1 rounded-xl border border-border-custom/30 py-2 text-sm font-semibold text-text-secondary transition-all active:scale-95 disabled:opacity-40"
+            className="flex-1 rounded-xl border border-border-custom/30 py-2 text-sm font-semibold text-text-secondary transition-all active:scale-95 disabled:opacity-[var(--opacity-40)]"
           >
             Nie
-          </button>
+          </Pressable>
         </div>
       )}
 
@@ -111,10 +112,10 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
           {options.map(opt => {
             const selected = selectedIds.includes(opt.id);
             return (
-              <button
+              <Pressable
                 key={opt.id}
                 onClick={() => toggleId(opt.id)}
-                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all active:scale-[0.98] ${
+                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all active:scale-[var(--legacy-arbitrary-001)] ${
                   selected
                     ? 'bg-primary/10 text-primary border border-primary/30'
                     : 'bg-background border border-border-custom/20 text-text-secondary'
@@ -123,14 +124,14 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
                 <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center ${
                   selected ? 'bg-primary border-primary' : 'border-border-custom/40'
                 }`}>
-                  {selected && <Check size={10} className="text-white" strokeWidth={3} />}
+                  {selected && <Check size={10} className="text-on-accent" strokeWidth={3} />}
                 </div>
                 {opt.label}
-              </button>
+              </Pressable>
             );
           })}
           {showCustom && (
-            <input
+            <ControlInput
               autoFocus
               value={customText}
               onChange={e => setCustomText(e.target.value)}
@@ -140,20 +141,20 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
             />
           )}
           {selectedIds.length > 0 && (
-            <button
+            <Pressable
               onClick={() => submit()}
               disabled={submitting}
-              className="w-full rounded-xl bg-primary py-2 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-40 mt-1"
+              className="w-full rounded-xl bg-primary py-2 text-sm font-bold text-on-accent transition-all active:scale-95 disabled:opacity-[var(--opacity-40)] mt-1"
             >
               {submitting ? '...' : 'Potwierdź'}
-            </button>
+            </Pressable>
           )}
         </div>
       )}
 
       {request.response_type === 'short_text' && (
         <div className="space-y-2">
-          <input
+          <ControlInput
             autoFocus
             value={customText}
             onChange={e => setCustomText(e.target.value)}
@@ -162,30 +163,30 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
             className="w-full rounded-xl border border-border-custom/20 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
           <div className="flex gap-2">
-            <button
+            <Pressable
               onClick={() => submit({ text: customText, option_ids: [], is_uncertain: false })}
               disabled={!customText.trim() || submitting}
-              className="flex-1 rounded-xl bg-primary py-2 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-40"
+              className="flex-1 rounded-xl bg-primary py-2 text-sm font-bold text-on-accent transition-all active:scale-95 disabled:opacity-[var(--opacity-40)]"
             >
               {submitting ? '...' : 'Wyślij'}
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               onClick={() => submit({ option_ids: ['__uncertain__'], is_uncertain: true })}
               disabled={submitting}
               className="rounded-xl border border-border-custom/30 px-3 py-2 text-xs text-text-muted transition-all active:scale-95"
             >
               Nie wiem
-            </button>
+            </Pressable>
           </div>
         </div>
       )}
 
-      <button
+      <Pressable
         onClick={dismiss}
         className="w-full mt-2 text-xs text-text-tertiary hover:text-text-muted transition-colors"
       >
         Pomiń
-      </button>
+      </Pressable>
     </Card>
   );
 }

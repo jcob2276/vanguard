@@ -15,6 +15,7 @@
 **Egzekucja:** ESLint `no-restricted-syntax` blokuje:
 - **Każdy `<button>` poza `ui/`** → `<Button variant="...">` (guard strukturalny)
 - `bg-rose-500`, `text-blue-400` itd. (hardkodowane kolory palety) → tokeny `bg-danger`, `text-info`
+- `rgba(99,102,241,...)` / `rgba(79,70,229,...)` w className → tokeny `--primary-N` lub `color-mix()`
 - `shadow-primary` na dowolnym elemencie → `<Button variant="primary">`
 - `bg-primary + text-white + px/py` → `<Button variant="primary">`
 
@@ -36,8 +37,8 @@
 
 ## 1. Filozofia
 
-- **iOS jako baza**: duże promienie, szklane/translucentne powierzchnie, spring animacje, dużo białej przestrzeni, subtelne cienie.
-- **Pixel/Material jako akcent**: tam gdzie iOS nie ma dobrego wzorca — tonal surfaces, uppercase metadata labels.
+- **Pixel/Material jako baza**: tonal surfaces, czytelna hierarchia kontenerów, promienie 8–16px i spokojny emphasized motion.
+- **iOS tylko dla gestów i sheetów**: płynność, interruptibility i większy promień 28px zostają tam, gdzie wynikają z fizyki interakcji.
 - **Zero dekoracji dla dekoracji.** Gęstość danych > efekciarstwo.
 
 ---
@@ -68,8 +69,10 @@ Dark mode: `info → #6366f1`, `success-hover → #34d399`, `warning-hover → #
 | Token (light) | Wartość | Kiedy używać |
 |---|---|---|
 | `--surface-1` | `var(--surface)` = `#ffffff` | Baza — karty, panele (to samo co `--surface`) |
-| `--surface-2` | `#f8fafc` | Lekko podniesiona — hover, inset sections |
-| `--surface-3` | `#f1f5f9` | Najbardziej podniesiona — aktywne/selected |
+| `--surface-2` | `#f1f5fb` | Lekko podniesiona — hover, inset sections |
+| `--surface-3` | `#e8eef8` | Najbardziej podniesiona — aktywne/selected |
+| `--surface-tonal` | jasny niebieski container | Aktywne taby, nawigacja, tonal CTA |
+| `--surface-tonal-strong` | mocniejszy niebieski container | Hover na tonal surface |
 
 Dark mode: `surface-2 → rgba(255,255,255,0.03)`, `surface-3 → rgba(255,255,255,0.06)`.
 
@@ -90,9 +93,9 @@ Tailwind: `text-text-primary`, `text-text-secondary`, `text-text-muted`, `text-t
 
 | Token | Wartość | Do czego |
 |---|---|---|
-| `--radius-sm` | `10px` | Tagi, chipy, badge |
-| `--radius-md` | `16px` | Przyciski, inputy |
-| `--radius-lg` | `24px` | Karty, panele |
+| `--radius-sm` | `8px` | Tagi, chipy, badge |
+| `--radius-md` | `12px` | Przyciski, inputy |
+| `--radius-lg` | `16px` | Karty, panele |
 | `--radius-xl` | `28px` | Modale, sheety |
 | `--radius-full` | `9999px` | Pill shape |
 
@@ -115,8 +118,11 @@ Tailwind: `text-text-primary`, `text-text-secondary`, `text-text-muted`, `text-t
 
 | Token | Wartość | Kiedy |
 |---|---|---|
-| `--spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Wejścia modali, scale feedback |
-| `--ease-out` | `cubic-bezier(0.25, 1, 0.5, 1)` | Wyjścia, hover, transitions |
+| `--spring` | `cubic-bezier(0.2, 0, 0, 1)` | Pixel emphasized motion bez dekoracyjnego overshootu |
+| `--ease-out` | `cubic-bezier(0, 0, 0, 1)` | Press, hover i krótkie wyjścia |
+| `--motion-fast` | `120ms` | Press i hover |
+| `--motion-medium` | `200ms` | Tab, karta, search |
+| `--motion-slow` | `300ms` | Modal i większa zmiana powierzchni |
 
 ### 2.7 Font stack
 
@@ -150,6 +156,25 @@ Nigdy nie pisz `text-[10px]` — używaj tokenu. Skala poniżej definiuje **kied
 ---
 
 ## 3. Komponenty `src/components/ui/`
+
+### Central control contract
+
+Globalne pokrÄ™tĹ‚a w `src/index.css` obejmujÄ… teraz:
+
+- `--space-*` â€” gÄ™stoĹ›Ä‡ i rytm odstÄ™pĂłw,
+- `--control-*`, `--touch-target` â€” wysokoĹ›ci kontrolek,
+- `--sidebar-width`, `--content-*`, `--toolbar-height` â€” geometria aplikacji,
+- `--blur-*`, `--opacity-*`, `--z-*` â€” materiaĹ‚ i warstwy,
+- `--motion-*`, `--ease-*`, `--spring` â€” ruch oraz reakcja na input.
+
+ObowiÄ…zkowe prymitywy: `Input`, `Select`, `Button`, `IconButton`, `Chip`, `Dialog`,
+`Sheet`, `Card`, `DataCard`. ObowiÄ…zkowa kompozycja: `PageShell`, `PageToolbar`,
+`ContentContainer`, `Section` oraz jeden z `ListPageTemplate`, `GridPageTemplate`,
+`DashboardPageTemplate`, `TimelinePageTemplate`.
+
+`npm run ratchet:frontend` mierzy zastany dĹ‚ug surowych kontrolek, arbitralnych wartoĹ›ci
+i lokalnych deklaracji CSS. Liczniki nie mogÄ… rosnÄ…Ä‡; po osiÄ…gniÄ™ciu zera ratchet staje
+siÄ™ bezwzglÄ™dnym guardem.
 
 ### Button
 
@@ -340,6 +365,19 @@ import { BrandTitle } from '../ui/BrandTitle';
 <BrandTitle className="text-[15px]" />
 ```
 
+### Workspace shell
+
+Widoki `todo`, `keep`, `links` i `kalendarz` muszą składać wspólny szkielet z:
+
+- `shared/WorkspaceSidebar` — stała szerokość i zachowanie responsive/collapse,
+- `shared/WorkspaceNavigation` — kanoniczna kolejność czterech domen i mobile bar,
+- `shared/WorkspaceHeader` — wspólna wysokość, tytuł, back oraz slot akcji,
+- `shared/WorkspaceSearch` — jeden kontrakt wyszukiwania,
+- `ui/Tabs` — taby widoku i filtrów bez lokalnych kopii stylu.
+
+Komponenty domenowe dostarczają wyłącznie zawartość, stan i akcje. Nie odtwarzają
+lokalnie sidebara, searcha, headera ani tabów.
+
 ---
 
 ## 4. CSS Classes (niekomponentowe)
@@ -396,9 +434,10 @@ Przed napisaniem/edytowaniem kodu UI:
 
 1. **Sprawdź czy komponent istnieje** w `src/components/ui/` zanim napiszesz nowy.
 2. **Używaj tokenów** (`bg-danger`, `text-success`, `bg-surface-2`) zamiast hardkodowanych kolorów (`bg-rose-500`, `text-emerald-400`).
-3. **Variant > boolean** — jeśli komponent ma warianty, używaj `variant="danger"` zamiast `isDanger={true}`.
-4. **Preview przed commit:** uruchom `/dev/design-system` żeby zobaczyć czy nowy wariant pasuje wizualnie.
-5. **Dark mode:** tokeny automatycznie się przełączają. Nie pisz `dark:bg-...` ręcznie — użyj tokena.
+3. **Nigdy nie pisz `rgba(99,102,241,...)` — użyj `var(--primary-N)` lub `color-mix(in srgb, var(--primary) N%, transparent)`. To samo w inline styles i SVG attrs.
+4. **Variant > boolean** — jeśli komponent ma warianty, używaj `variant="danger"` zamiast `isDanger={true}`.
+5. **Preview przed commit:** uruchom `/dev/design-system` żeby zobaczyć czy nowy wariant pasuje wizualnie.
+6. **Dark mode:** tokeny automatycznie się przełączają. Nie pisz `dark:bg-...` ręcznie — użyj tokena.
 
 ---
 

@@ -94,7 +94,7 @@ export default function TaskAnalyticsCard() {
     return (
       <Card variant="glass" padding="1rem">
         <div className="h-4 w-32 bg-border-custom/40 rounded animate-pulse mb-4" />
-        <div className="h-[140px] bg-border-custom/20 rounded-xl animate-pulse" />
+        <div className="h-[var(--legacy-h-011)] bg-border-custom/20 rounded-xl animate-pulse" />
       </Card>
     );
   }
@@ -107,7 +107,7 @@ export default function TaskAnalyticsCard() {
           <p className="text-xs font-black text-text-muted uppercase tracking-widest">Zadania · ostatnie 7 dni</p>
           <p className="text-lg font-black text-text-primary mt-0.5">Czas pracy</p>
         </div>
-        <Badge variant="tag" color={streak > 0 ? '#f97316' : undefined} className="px-3 py-1.5">
+        <Badge variant="tag" color={streak > 0 ? 'var(--legacy-color-042)' : undefined} className="px-3 py-1.5">
           🔥 {streak} dni
         </Badge>
       </div>
@@ -134,7 +134,7 @@ export default function TaskAnalyticsCard() {
       {totalCount > 0 ? (
         <BarChartWidget data={{ points: chartData, color: 'var(--color-primary)' }} />
       ) : (
-        <div className="h-[140px] flex flex-col items-center justify-center gap-2">
+        <div className="h-[var(--legacy-h-011)] flex flex-col items-center justify-center gap-2">
           <TrendingUp size={24} className="text-text-muted/30" />
           <p className="text-sm text-text-muted/50 font-semibold text-center">
             Wykonaj pierwsze zadanie<br />żeby zobaczyć wykres

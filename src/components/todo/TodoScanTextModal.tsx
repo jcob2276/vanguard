@@ -1,10 +1,10 @@
+import { Pressable, ControlTextarea } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { ScanText, Sparkles, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { createTodoItem } from '../../lib/todo/todo';
 import type { TodoItemRow } from './useTodoData';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 
 interface ExtractedTask {
@@ -94,7 +94,7 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
       {!tasks ? (
         <>
           <div className="relative">
-            <textarea
+            <ControlTextarea
               autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -113,8 +113,8 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
           </div>
           {error && <p className="text-xs font-semibold text-danger">{error}</p>}
           <div className="flex justify-end gap-2">
-            <Button onClick={onClose} variant="ghost" size="sm">Anuluj</Button>
-            <Button
+            <Pressable onClick={onClose} variant="ghost" size="sm">Anuluj</Pressable>
+            <Pressable
               onClick={processText}
               disabled={extracting || !text.trim()}
               loading={extracting}
@@ -122,40 +122,40 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
               size="sm"
             >
               {extracting ? 'Przetwarzam…' : 'Przetwórz tekst'}
-            </Button>
+            </Pressable>
           </div>
         </>
       ) : (
         <>
-          <div className="max-h-[320px] overflow-y-auto space-y-1.5">
+          <div className="max-h-[var(--legacy-h-023)] overflow-y-auto space-y-1.5">
             {tasks.map((t, idx) => (
-              <button
+              <Pressable
                 key={idx}
                 type="button"
                 onClick={() => toggleTask(idx)}
                 className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-all ${
-                  t.selected ? 'border-primary/30 bg-primary/5' : 'border-border-custom/40 bg-surface-solid/20 opacity-50'
+                  t.selected ? 'border-primary/30 bg-primary/5' : 'border-border-custom/40 bg-surface-solid/20 opacity-[var(--opacity-50)]'
                 }`}
               >
                 <div className={`h-4 w-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${t.selected ? 'bg-primary border-primary' : 'border-border-custom'}`}>
-                  {t.selected && <Check size={10} className="text-white" strokeWidth={3} />}
+                  {t.selected && <Check size={10} className="text-on-accent" strokeWidth={3} />}
                 </div>
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{t.title}</span>
                 {t.due_date && <span className="shrink-0 text-xs font-bold text-primary/70">{t.due_date}</span>}
-              </button>
+              </Pressable>
             ))}
           </div>
           {error && <p className="text-xs font-semibold text-danger">{error}</p>}
           <div className="flex justify-end gap-2">
-            <Button onClick={() => setTasks(null)} variant="ghost" size="sm">Wstecz</Button>
-            <Button
+            <Pressable onClick={() => setTasks(null)} variant="ghost" size="sm">Wstecz</Pressable>
+            <Pressable
               onClick={addSelected}
               disabled={creating || selectedCount === 0}
               loading={creating}
               size="sm"
             >
               {creating ? 'Dodaję…' : `Dodaj zadania (${selectedCount})`}
-            </Button>
+            </Pressable>
           </div>
         </>
       )}

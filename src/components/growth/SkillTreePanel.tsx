@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useMemo } from 'react';
 import type { LearningSkill } from '../../lib/growth/growth';
 import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth/growth';
@@ -34,7 +35,7 @@ function SubSkillRow({
         </span>
       </div>
       {editing ? (
-        <input
+        <ControlInput
           type="range"
           min={0}
           max={5}
@@ -103,7 +104,7 @@ export default function SkillTreePanel({
 
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Pod-skilli</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Pod-skilli</p>
           <p className="text-2xs text-text-muted">Kliknij skill · skala 0–5</p>
         </div>
 
@@ -116,7 +117,7 @@ export default function SkillTreePanel({
 
             return (
               <Card key={parent.id} variant="outline" padding="0" className="!rounded-xl">
-                <button
+                <Pressable
                   type="button"
                   onClick={() => onExpandParent(open ? null : parent.id)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface/50 cursor-pointer"
@@ -129,7 +130,7 @@ export default function SkillTreePanel({
                     </p>
                   </div>
                   <span className="shrink-0 text-sm font-black text-primary tabular-nums">{parentVal}/5</span>
-                </button>
+                </Pressable>
 
                 {open && (
                   <div className="border-t border-border-custom bg-surface/30 px-3 py-3 space-y-3">
@@ -139,7 +140,7 @@ export default function SkillTreePanel({
                         <span className="font-black text-primary tabular-nums">{parentVal}/5</span>
                       </div>
                       {editing ? (
-                        <input
+                        <ControlInput
                           type="range"
                           min={0}
                           max={5}

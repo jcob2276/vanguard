@@ -86,9 +86,9 @@ export default function FoodEntryModal({ onClose, onSaved, initialEditEntry, ini
       padding="p-0"
       overflowY={false}
       size="sm"
-      overlayClassName="z-[200]"
+      overlayClassName="z-[var(--z-floating)]"
       containerRef={sheetRef}
-      className="max-h-[94dvh] flex flex-col"
+      className="max-h-[var(--legacy-h-048)] flex flex-col"
     >
       <FoodEntryHeader
         headerTitle={headerTitle}

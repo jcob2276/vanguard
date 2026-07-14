@@ -53,7 +53,7 @@ export default function SolarDayWidget({ dateStr }: Props) {
       </div>
 
       {/* Pasek wizualizacji dnia */}
-      <div className="relative h-[6px] rounded-full overflow-hidden bg-black/10 dark:bg-white/8">
+      <div className="relative h-[var(--legacy-h-040)] rounded-full overflow-hidden bg-scrim/10 dark:bg-on-accent/8">
         {/* Noc — lewa */}
         <div
           className="absolute inset-y-0 left-0 bg-primary/60 dark:bg-primary/50"
@@ -72,7 +72,7 @@ export default function SolarDayWidget({ dateStr }: Props) {
         {/* Kursor "teraz" — tylko dla dzisiaj */}
         {dayProgressPct > 0 && dayProgressPct < 100 && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-[3px] h-[10px] rounded-full bg-white shadow-sm shadow-warning/80 z-10"
+            className="absolute top-1/2 -translate-y-1/2 w-[var(--legacy-w-087)] h-[var(--legacy-h-009)] rounded-full bg-on-accent shadow-sm shadow-warning/80 z-[var(--z-raised)]"
             style={{
               left: `calc(${sunrisePct + (dayProgressPct / 100) * (sunsetPct - sunrisePct)}% - 1.5px)`,
             }}

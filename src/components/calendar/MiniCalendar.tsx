@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toLocalISO, todayStr } from './calendarHelpers';
@@ -67,8 +68,8 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
   }
 
   const monthNames = [
-    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
-    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+    'StyczeĹ„', 'Luty', 'Marzec', 'KwiecieĹ„', 'Maj', 'Czerwiec',
+    'Lipiec', 'SierpieĹ„', 'WrzesieĹ„', 'PaĹşdziernik', 'Listopad', 'GrudzieĹ„'
   ];
 
   const today = todayStr();
@@ -77,7 +78,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
     <Card
       variant="outline"
       padding="1rem"
-      className="!bg-surface-solid/5 dark:!bg-white/[0.015] !border-border-custom/30 space-y-3.5 shadow-sm"
+      className="!bg-surface-solid/5 dark:!bg-on-accent/[0.015] !border-border-custom/30 space-y-3.5 shadow-sm"
       style={{ borderRadius: 'var(--radius-md)' }}
     >
       <div className="flex items-center justify-between">
@@ -85,23 +86,23 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
           {monthNames[month]} {year}
         </span>
         <div className="flex gap-1">
-          <button
+          <Pressable
             onClick={handlePrevMonth}
-            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
+            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--legacy-arbitrary-018)]"
           >
             <ChevronLeft size={13} className="text-text-muted hover:text-text-primary" />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             onClick={handleNextMonth}
-            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-150 border border-border-custom/20 hover:scale-[1.05]"
+            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--legacy-arbitrary-018)]"
           >
             <ChevronRight size={13} className="text-text-muted hover:text-text-primary" />
-          </button>
+          </Pressable>
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-y-1.5 text-center">
-        {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
+        {['Pn', 'Wt', 'Ĺšr', 'Cz', 'Pt', 'Sb', 'Nd'].map((d, idx) => (
           <span key={idx} className="text-2xs font-bold text-text-muted/50 uppercase tracking-wider">
             {d}
           </span>
@@ -110,30 +111,30 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
           const isSelected = item.dayStr === selectedDay;
           const isToday = item.dayStr === today;
           const moon = getMoonPhase(item.dayStr);
-          // Pokazujemy emoji tylko dla 4 głównych faz i tylko dla dni bieżącego miesiąca
+          // Pokazujemy emoji tylko dla 4 gĹ‚Ăłwnych faz i tylko dla dni bieĹĽÄ…cego miesiÄ…ca
           const showMoon = moon.isMajor && item.isCurrentMonth;
 
           return (
             <div key={idx} className="relative flex flex-col items-center">
-              <button
+              <Pressable
                 onClick={() => onSelectDay(item.dayStr)}
                 title={showMoon ? moon.name : undefined}
-                className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-xs transition-all duration-150 active:scale-90 ${
+                className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-xs transition-all duration-[var(--motion-medium)] active:scale-90 ${
                   isSelected
-                    ? 'bg-primary text-white font-black shadow-md shadow-primary/25 scale-[1.08] hover:scale-[1.12]'
+                    ? 'bg-primary text-on-accent font-black shadow-md shadow-[var(--shadow-glow-primary)] scale-[var(--legacy-arbitrary-019)] hover:scale-[var(--legacy-arbitrary-020)]'
                     : isToday
-                    ? 'bg-danger/10 text-danger font-black border border-danger/30 hover:scale-[1.08]'
+                    ? 'bg-danger/10 text-danger font-black border border-danger/30 hover:scale-[var(--legacy-arbitrary-019)]'
                     : item.isCurrentMonth
-                    ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[1.08]'
+                    ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[var(--legacy-arbitrary-019)]'
                     : 'text-text-muted/30 hover:bg-primary/10 hover:text-primary/70'
                 }`}
               >
                 {item.dayNum}
-              </button>
-              {/* Ikona fazy księżyca — tylko główne fazy */}
+              </Pressable>
+              {/* Ikona fazy ksiÄ™ĹĽyca â€” tylko gĹ‚Ăłwne fazy */}
               {showMoon && (
                 <span
-                  className="text-3xs leading-none mt-[1px] opacity-80"
+                  className="text-3xs leading-none mt-[var(--legacy-arbitrary-021)] opacity-[var(--opacity-80)]"
                   title={moon.name}
                 >
                   {moon.emoji}

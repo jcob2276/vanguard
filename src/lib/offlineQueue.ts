@@ -87,15 +87,15 @@ async function removeQueuedWrite(id: string): Promise<void> {
 async function saveToDeadLetterQueue(entry: QueueEntry, error: unknown): Promise<void> {
   try {
     const db = await openDb();
-    const errMsg = error instanceof Error 
-      ? error.message 
-      : (typeof error === 'object' && error !== null && 'message' in error) 
-        ? String((error as Record<string, unknown>).message) 
+    const errMsg = error instanceof Error
+      ? error.message
+      : (typeof error === 'object' && error !== null && 'message' in error)
+        ? String((error as Record<string, unknown>).message)
         : String(error);
-    const errCode = (typeof error === 'object' && error !== null && 'code' in error) 
-      ? String((error as Record<string, unknown>).code) 
+    const errCode = (typeof error === 'object' && error !== null && 'code' in error)
+      ? String((error as Record<string, unknown>).code)
       : null;
-    
+
     const dlqEntry = {
       ...entry,
       failedAt: Date.now(),
@@ -167,7 +167,7 @@ async function flushOfflineQueue(): Promise<void> {
         const res = await dynDb.rpc(entry.fn, entry.args);
         error = res.error;
       }
-      
+
       if (error) {
         if (isOfflineError(error)) {
           console.debug(`[offlineQueue] Network offline during replay for ${entry.fn}. Stopping queue flush.`);

@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { useState } from 'react';
 import { BookOpen, Search } from 'lucide-react';
 import Badge from '../../ui/Badge';
@@ -21,7 +22,7 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
     <div className="mt-1.5 overflow-hidden rounded-xl border border-primary/20 bg-surface shadow-lg">
       <div className="flex items-center gap-2 border-b border-border-custom px-3 py-2">
         <Search size={11} className="shrink-0 text-text-muted" />
-        <input
+        <ControlInput
           autoFocus
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -30,18 +31,18 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
           className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/40"
         />
       </div>
-      <div className="max-h-[188px] overflow-y-auto p-1.5 space-y-0.5">
+      <div className="max-h-[var(--legacy-h-013)] overflow-y-auto p-1.5 space-y-0.5">
         {filtered.length === 0 ? (
           <p className="py-4 text-center text-xs font-medium text-text-muted">Brak otwartych zadań</p>
         ) : (
           filtered.slice(0, 20).map((item) => (
-            <button
+            <Pressable
               key={item.id}
               onClick={() => {
                 onSelect(item);
                 onClose();
               }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-solid active:scale-[0.98]"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-solid active:scale-[var(--legacy-arbitrary-001)]"
             >
               {item.category ? (
                 <Badge variant="tag" className="shrink-0">
@@ -54,7 +55,7 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
               {item.due_date && (
                 <span className="shrink-0 text-2xs font-bold text-text-muted">{item.due_date}</span>
               )}
-            </button>
+            </Pressable>
           ))
         )}
       </div>

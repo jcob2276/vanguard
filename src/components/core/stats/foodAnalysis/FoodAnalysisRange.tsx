@@ -21,9 +21,9 @@ function DaysList({ days }: DaysListProps) {
       {days.map((d) => (
         <div
           key={d.date}
-          className={`flex items-center gap-2 ${d.incomplete || d.fasting ? 'opacity-50' : ''}`}
+          className={`flex items-center gap-2 ${d.incomplete || d.fasting ? 'opacity-[var(--opacity-50)]' : ''}`}
         >
-          <span className="w-[52px] shrink-0 text-2xs font-bold text-text-muted">
+          <span className="w-[var(--legacy-w-091)] shrink-0 text-2xs font-bold text-text-muted">
             {d.date?.slice(5) ?? d.date ?? ''}
           </span>
           <div className="flex-1 h-1.5 bg-border-custom rounded-full overflow-hidden">
@@ -32,9 +32,9 @@ function DaysList({ days }: DaysListProps) {
               style={{
                 width: d.fasting ? '100%' : `${d.score ?? 0}%`,
                 backgroundColor: d.fasting
-                  ? '#4f46e5'
+                  ? 'var(--legacy-color-022)'
                   : d.incomplete
-                  ? '#94a3b8'
+                  ? 'var(--legacy-color-031)'
                   : kcalBarColor(d.score ?? 0),
               }}
             />

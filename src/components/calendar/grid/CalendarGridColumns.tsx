@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { TIMEZONE } from '../../../lib/date';
 import React from 'react';
 import { Check } from 'lucide-react';
@@ -51,8 +52,8 @@ export const renderTimeGutter = ({
             className="absolute right-0 flex items-center justify-end"
             style={{
               top: i * PX_PER_HOUR,
-              transform: 'translateY(-50%)',
-              height: 20,
+              transform: 'var(--legacy-inline-style-084)',
+              height: 'var(--legacy-inline-style-035)',
               width: gutterWidth,
             }}
           >
@@ -152,7 +153,7 @@ export const renderDayColumn = ({
 
       {showSelection && selectionHeight > 0 && (
         <div
-          className="absolute left-0 right-0 bg-primary/20 border border-primary/50 rounded-md pointer-events-none z-30 flex items-center justify-center shadow-lg"
+          className="absolute left-0 right-0 bg-primary/20 border border-primary/50 rounded-md pointer-events-none z-[var(--z-sticky)] flex items-center justify-center shadow-lg"
           style={{ top: selectionTop, height: selectionHeight }}
         >
           <span className="text-2xs font-black text-primary bg-background border border-border-custom/40 px-1.5 py-0.5 rounded shadow-md tabular-nums">
@@ -180,21 +181,21 @@ export const renderDayColumn = ({
           <>
             {sunriseVisible && (
               <div
-                className="absolute left-0 right-0 flex items-center pointer-events-none z-10"
+                className="absolute left-0 right-0 flex items-center pointer-events-none z-[var(--z-raised)]"
                 style={{ top: sunriseTop }}
                 title={`Wschód: ${formatTimeWarsaw(sun.sunrise)}`}
               >
-                <div className="w-full h-[1px] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
+                <div className="w-full h-[var(--legacy-h-015)] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
                 <span className="absolute right-1 text-3xs font-bold text-warning/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
               </div>
             )}
             {sunsetVisible && (
               <div
-                className="absolute left-0 right-0 flex items-center pointer-events-none z-10"
+                className="absolute left-0 right-0 flex items-center pointer-events-none z-[var(--z-raised)]"
                 style={{ top: sunsetTop }}
                 title={`Zachód: ${formatTimeWarsaw(sun.sunset)}`}
               >
-                <div className="w-full h-[1px] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
+                <div className="w-full h-[var(--legacy-h-015)] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
                 <span className="absolute right-1 text-3xs font-bold text-warning/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
               </div>
             )}
@@ -202,9 +203,9 @@ export const renderDayColumn = ({
         );
       })()}
       {nowLine !== null && nowLine >= 0 && (
-        <div className="absolute left-0 right-0 flex items-center pointer-events-none z-20" style={{ top: nowLine }}>
-          <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-md shadow-danger/50 animate-pulse -ml-[5px]" />
-          <div className="flex-1 h-[1.5px] bg-danger" />
+        <div className="absolute left-0 right-0 flex items-center pointer-events-none z-[var(--z-popover)]" style={{ top: nowLine }}>
+          <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-md shadow-danger/50 animate-pulse -ml-[var(--legacy-arbitrary-017)]" />
+          <div className="flex-1 h-[var(--legacy-h-007)] bg-danger" />
         </div>
       )}
     </div>
@@ -223,7 +224,7 @@ export const renderAllDayTodos = ({
 }: CalendarGridAllDayTodosProps) => {
   if (!untimedByDay.some((list) => list.length > 0)) return null;
   return (
-    <div className="flex border-b border-border-custom/20 bg-surface-solid/10" style={{ paddingLeft: 44 }}>
+    <div className="flex border-b border-border-custom/20 bg-surface-solid/10" style={{ paddingLeft: 'var(--legacy-inline-style-081)' }}>
       {days.map((day, idx) => (
         <div key={day} className="flex-1 min-w-0 p-1 space-y-1 border-l border-border-custom/10 first:border-l-0">
           {untimedByDay[idx].map((todo) => {
@@ -234,14 +235,14 @@ export const renderAllDayTodos = ({
               <div
                 key={todo.id}
                 title={todo.title}
-                className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-2xs font-bold text-primary transition-colors cursor-pointer hover:bg-primary/15 ${isCompleting ? 'opacity-50' : ''}`}
+                className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-2xs font-bold text-primary transition-colors cursor-pointer hover:bg-primary/15 ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingTodo(todo);
                   setEditingTodoTitle(todo.title);
                 }}
               >
-                <button
+                <Pressable
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -250,8 +251,8 @@ export const renderAllDayTodos = ({
                   }}
                   className={`relative after:absolute after:-inset-2 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
                 >
-                  {isCompleting && <Check size={7} className="text-white" strokeWidth={4} />}
-                </button>
+                  {isCompleting && <Check size={7} className="text-on-accent" strokeWidth={4} />}
+                </Pressable>
                 {GoalIcon && <GoalIcon size={8} className="shrink-0" />}
                 <span className={`truncate ${isCompleting ? 'line-through' : ''}`}>{todo.title}</span>
               </div>

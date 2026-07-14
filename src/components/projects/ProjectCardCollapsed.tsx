@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AlertTriangle, ChevronDown, ChevronUp, Check, ArrowRight, CalendarDays } from 'lucide-react';
 import Badge from '../ui/Badge';
@@ -52,7 +53,7 @@ function KpiRows({
               <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${col.dot}`} />
               <span className="text-xs text-text-muted truncate flex-1">{kpi.name}</span>
               {isEditing ? (
-                <input
+                <ControlInput
                   autoFocus
                   type="number"
                   defaultValue={kpi.current_value ?? ''}
@@ -66,7 +67,7 @@ function KpiRows({
                   className="w-16 rounded-lg border border-primary/40 bg-background/80 px-2 py-0.5 text-xs font-bold text-primary outline-none text-center"
                 />
               ) : (
-                <button
+                <Pressable
                   onClick={() => setEditingKpiId(kpi.id)}
                   className={`text-xs font-black ${col.text} hover:underline cursor-pointer`}
                   title="Kliknij żeby edytować"
@@ -76,7 +77,7 @@ function KpiRows({
                   {kpi.target != null && (
                     <span className="font-normal text-text-muted/60"> / {kpi.target}</span>
                   )}
-                </button>
+                </Pressable>
               )}
               {pct !== null && !isEditing && (
                 <span className="text-2xs font-bold text-text-muted/60 shrink-0">{pct}%</span>
@@ -94,7 +95,7 @@ function KpiRows({
             {pct !== null && (
               <div className="ml-3 h-1 w-full rounded-full bg-border-custom overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${col.bar}`}
+                  className={`h-full rounded-full transition-all duration-[var(--motion-long)] ${col.bar}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -108,7 +109,7 @@ function KpiRows({
 
 const PILLAR_HEX_COLORS: Record<string, string> = {
   emerald: 'var(--color-success)',
-  indigo: '#6366f1',
+  indigo: 'var(--legacy-color-024)',
   amber: 'var(--color-warning)',
 };
 
@@ -141,7 +142,7 @@ export default function ProjectCardCollapsed({
             {pm && (
               <Badge
                 variant="tag"
-                color={PILLAR_HEX_COLORS[pm.color] || '#3b82f6'}
+                color={PILLAR_HEX_COLORS[pm.color] || 'var(--legacy-color-020)'}
                 className="gap-1 text-2xs font-black uppercase tracking-widest"
               >
                 <pm.icon size={9} />
@@ -197,7 +198,7 @@ export default function ProjectCardCollapsed({
           </div>
           <div className="h-1.5 w-full rounded-full bg-border-custom/40">
             <div
-              className={`h-full rounded-full transition-all duration-700 ${col.bar}`}
+              className={`h-full rounded-full transition-all duration-[var(--motion-deliberate)] ${col.bar}`}
               style={{ width: `${s.progress}%` }}
             />
           </div>
@@ -223,7 +224,7 @@ export default function ProjectCardCollapsed({
                   cp.status === 'done' ? `${col.dot} border-transparent` : 'border-border-custom bg-transparent'
                 }`}
               >
-                {cp.status === 'done' && <Check size={6} className="text-white" strokeWidth={3} />}
+                {cp.status === 'done' && <Check size={6} className="text-on-accent" strokeWidth={3} />}
               </div>
               {idx < visibleCps.length - 1 && (
                 <div className={`h-px w-3 ${cp.status === 'done' ? col.bar : 'bg-border-custom/40'}`} />

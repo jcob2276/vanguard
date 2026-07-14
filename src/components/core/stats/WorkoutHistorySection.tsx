@@ -1,6 +1,7 @@
+import Button from '../../ui/Button';
+import { ControlInput } from '../../ui/ControlPrimitives';
 import { format, parseISO } from 'date-fns';
 import { Trash2, Zap } from 'lucide-react';
-import Button from '../../ui/Button';
 import type { WorkoutSessionRow, EditFormState, EditableExerciseLog } from '../hooks/useStatsData';
 
 export function WorkoutHistorySection({
@@ -30,7 +31,7 @@ export function WorkoutHistorySection({
 }) {
   return (
     <section className="space-y-3">
-      <p className="text-2xs font-bold uppercase tracking-[0.15em] text-text-muted font-display">Siłownia</p>
+      <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Siłownia</p>
       <h2 className="mt-0.5 font-display text-lg font-black tracking-tight text-text-primary">Historia treningów</h2>
       <div className="overflow-hidden card !p-0">
         <table className="w-full text-left">
@@ -43,14 +44,14 @@ export function WorkoutHistorySection({
           </thead>
           <tbody className="divide-y divide-border-custom text-xs font-semibold text-text-primary">
             {recentSessions.slice(0, showAllSessions ? 12 : 4).map((s) => (
-              <tr key={s.id} className="transition-colors hover:bg-primary/[0.02] dark:hover:bg-white/[0.02]">
+              <tr key={s.id} className="transition-colors hover:bg-primary/[0.02] dark:hover:bg-on-accent/[0.02]">
                 <td className="p-3">
                   {editingSession === s.id ? (
-                    <input 
-                      type="date" 
-                      value={editForm.date ?? ""} 
-                      onChange={e => setEditForm({...editForm, date: e.target.value})} 
-                      className="bg-surface border border-border-custom rounded-lg p-1.5 text-xs text-text-primary outline-none focus:border-primary/50" 
+                    <ControlInput
+                      type="date"
+                      value={editForm.date ?? ""}
+                      onChange={e => setEditForm({...editForm, date: e.target.value})}
+                      className="bg-surface border border-border-custom rounded-lg p-1.5 text-xs text-text-primary outline-none focus:border-primary/50"
                     />
                   ) : (
                     format(parseISO(s.date ?? ""), 'dd.MM')
@@ -59,7 +60,7 @@ export function WorkoutHistorySection({
                 <td className="p-3 text-center text-text-secondary">
                   {editingSession === s.id ? (
                     <div className="space-y-2 text-left">
-                      <input
+                      <ControlInput
                         type="text"
                         value={editForm.workout_day ?? ''}
                         onChange={e => setEditForm({...editForm, workout_day: e.target.value})}
@@ -81,14 +82,14 @@ export function WorkoutHistorySection({
                           <span className="text-2xs w-12 truncate text-text-secondary">{log.exercise_name}</span>
                           {isWellness ? (
                             <>
-                              <input
+                              <ControlInput
                                 type="number"
                                 value={log.reps ?? ""}
                                 onChange={e => updateLog('reps', e.target.value)}
                                 className="w-12 bg-surface border border-border-custom rounded p-1 text-xs text-text-primary outline-none focus:border-primary/50"
                               />
                               <span className="text-2xs text-text-muted">min</span>
-                              <input
+                              <ControlInput
                                 type="number"
                                 value={log.weight ?? ""}
                                 onChange={e => updateLog('weight', e.target.value)}
@@ -98,7 +99,7 @@ export function WorkoutHistorySection({
                             </>
                           ) : (
                             <>
-                              <input
+                              <ControlInput
                                 type="number"
                                 step="0.5"
                                 value={log.weight ?? ""}
@@ -106,7 +107,7 @@ export function WorkoutHistorySection({
                                 className="w-12 bg-surface border border-border-custom rounded p-1 text-xs text-text-primary outline-none focus:border-primary/50"
                               />
                               <span className="text-2xs text-text-muted">kg x</span>
-                              <input
+                              <ControlInput
                                 type="number"
                                 value={log.reps ?? ""}
                                 onChange={e => updateLog('reps', e.target.value)}

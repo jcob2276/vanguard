@@ -62,10 +62,10 @@ export default function TodoSectionsList({ renderInlineQuickCapture, renderAddTo
 
             <div
               ref={el => { sectionRefs.current[sec.id] = el; }}
-              className={`rounded-2xl p-2 transition-all duration-200 ${
+              className={`rounded-2xl p-2 transition-all duration-[var(--motion-medium)] ${
                 draggingItem !== null
                   ? dragTarget === sec.id
-                    ? 'border border-primary/40 bg-primary/10 scale-[1.01] shadow-[var(--shadow-accent-active)]'
+                    ? 'border border-primary/40 bg-primary/10 scale-[var(--legacy-arbitrary-013)] shadow-[var(--shadow-accent-active)]'
                     : 'border border-dashed border-primary/20 bg-primary/5'
                   : 'border border-transparent bg-transparent'
               }`}

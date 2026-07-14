@@ -52,6 +52,16 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
 
   // Cast events to CalRow[] safely
   const events = useMemo(() => rawEvents as CalRow[], [rawEvents]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const displayEvents = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase('pl-PL');
+    if (!query) return events;
+    return events.filter((event) =>
+      [event.summary, event.category]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase('pl-PL').includes(query))
+    );
+  }, [events, searchQuery]);
 
   // Mutations
   const createEventMutation = useCreateCalendarEvent();
@@ -205,7 +215,8 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     selectedDay, setSelectedDay,
     weekStart, setWeekStart,
     visibleRange,
-    events,
+    events, displayEvents,
+    searchQuery, setSearchQuery,
     loading,
     quickCreate, setQuickCreate,
     quickTitle, setQuickTitle,

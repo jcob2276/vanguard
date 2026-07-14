@@ -1,9 +1,9 @@
+import Button from '../ui/Button';
 import { Link } from 'react-router-dom';
 import { FolderKanban, Plus, Target } from 'lucide-react';
 import type { GrowthProjectSummary } from './hooks/useGrowthData';
 import type { LearningWeekPin } from '../../lib/growth/growth';
 import { KpiTrendSparkline } from '../projects/KpiTrendSparkline';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 export default function GrowthProjectsPanel({

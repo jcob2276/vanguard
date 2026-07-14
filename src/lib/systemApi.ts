@@ -63,7 +63,7 @@ export async function fetchSystemHealthData(userId: string): Promise<SystemHealt
   ]);
 
   if (logsRes.error) throw logsRes.error;
-  
+
   let coverage: DataCoverage | null = null;
   if (!covRes.error) {
     coverage = parseDataCoverage(covRes.data);

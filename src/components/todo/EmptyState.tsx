@@ -15,8 +15,8 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const activeClass =
     dragColor === 'orange'
-      ? 'border-warning bg-warning/5 text-warning scale-[1.01] shadow-lg shadow-warning/5'
-      : 'border-primary bg-primary/5 text-primary scale-[1.01] shadow-lg shadow-primary/5';
+      ? 'border-warning bg-warning/5 text-warning scale-[var(--legacy-arbitrary-013)] shadow-lg shadow-warning/5'
+      : 'border-primary bg-primary/5 text-primary scale-[var(--legacy-arbitrary-013)] shadow-lg shadow-primary/5';
 
   const inactiveClass =
     dragColor === 'orange'
@@ -25,7 +25,7 @@ export default function EmptyState({
 
   return (
     <div
-      className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-200 ${
+      className={`mx-1 my-2 rounded-xl border border-dashed p-6 text-center transition-all duration-[var(--motion-medium)] ${
         isDragOver ? activeClass : inactiveClass
       }`}
     >

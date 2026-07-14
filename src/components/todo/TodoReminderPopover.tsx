@@ -1,3 +1,4 @@
+import { Pressable, ControlInput, ControlSelect } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { Bell, HelpCircle } from 'lucide-react';
 
@@ -64,12 +65,12 @@ export default function TodoReminderPopover({
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
-      className="absolute z-50 top-full left-0 mt-2 w-[290px] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-3 p-4 animate-in fade-in zoom-in-95 duration-150 origin-top-left"
+      className="absolute z-[var(--z-overlay)] top-full left-0 mt-2 w-[var(--legacy-w-084)] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-3 p-4 animate-in fade-in zoom-in-95 duration-[var(--motion-medium)] origin-top-left"
     >
       <p className="text-sm font-black text-text-primary">Przypomnienia</p>
 
       <div className="flex items-center gap-4 border-b border-border-custom/40">
-        <button
+        <Pressable
           type="button"
           onClick={() => setTab('datetime')}
           className={`pb-2 text-sm font-bold transition-colors border-b-2 -mb-px ${
@@ -77,8 +78,8 @@ export default function TodoReminderPopover({
           }`}
         >
           Data i godzina
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           type="button"
           onClick={() => setTab('before')}
           className={`pb-2 text-sm font-bold transition-colors border-b-2 -mb-px ${
@@ -86,18 +87,18 @@ export default function TodoReminderPopover({
           }`}
         >
           Przed zadaniem
-        </button>
+        </Pressable>
       </div>
 
       {tab === 'datetime' ? (
-        <input
+        <ControlInput
           type="datetime-local"
           value={datetimeVal}
           onChange={(e) => setDatetimeVal(e.target.value)}
           className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40 [color-scheme:light] dark:[color-scheme:dark]"
         />
       ) : dueTimestamp ? (
-        <select
+        <ControlSelect
           value={offsetMinutes}
           onChange={(e) => setOffsetMinutes(Number(e.target.value))}
           className="w-full rounded-xl border border-border-custom/60 bg-surface/60 px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary/40 cursor-pointer"
@@ -105,7 +106,7 @@ export default function TodoReminderPopover({
           {OFFSET_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
-        </select>
+        </ControlSelect>
       ) : (
         <p className="text-xs text-text-muted/60 leading-relaxed">
           Ustaw najpierw termin zadania, aby dodać przypomnienie względem niego.
@@ -118,14 +119,14 @@ export default function TodoReminderPopover({
 
       <div className="flex items-center justify-between">
         <HelpCircle size={16} className="text-text-muted/40" />
-        <button
+        <Pressable
           type="button"
           onClick={tab === 'datetime' ? commitDatetime : commitBefore}
           disabled={tab === 'datetime' ? !datetimeVal : !dueTimestamp}
-          className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-black text-white disabled:opacity-30 hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-black text-on-accent disabled:opacity-[var(--opacity-30)] hover:bg-primary/90 transition-colors"
         >
           <Bell size={12} /> Dodaj przypomnienie
-        </button>
+        </Pressable>
       </div>
     </div>
   );

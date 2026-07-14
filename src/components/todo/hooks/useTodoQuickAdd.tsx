@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { useTodoContext } from '../context/TodoContext';
 import TodoQuickCapture from '../TodoQuickCapture';
@@ -59,7 +60,7 @@ export function useTodoQuickAdd() {
   const renderAddTodoButton = (sectionId: string) => {
     if (activeAddSectionId === sectionId) return null;
     return (
-      <button
+      <Pressable
         onClick={() => {
           setActiveAddSectionId(sectionId);
           setIsExpanded(true);
@@ -75,7 +76,7 @@ export function useTodoQuickAdd() {
       >
         <span className="text-lg text-primary group-hover:text-primary-hover font-bold">+</span>
         <span>Dodaj zadanie</span>
-      </button>
+      </Pressable>
     );
   };
 

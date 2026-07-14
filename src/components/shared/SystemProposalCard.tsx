@@ -1,8 +1,8 @@
+import Button from '../ui/Button';
 import { useState } from 'react';
 import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { SystemProposal } from '../../lib/systemProposals';
 import { Card } from '../ui/Card';
-import Button from '../ui/Button';
 
 export function SystemProposalCard({
   proposal,

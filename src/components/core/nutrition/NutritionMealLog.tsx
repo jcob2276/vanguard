@@ -73,9 +73,9 @@ export default function NutritionMealLog({
         >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-text-secondary font-display flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)] text-text-secondary font-display flex items-center gap-2">
               {isExpanded ? 'Ukryj dzisiejsze posiłki' : 'Pokaż dzisiejsze posiłki'}
-              <span className={`text-xs transition-transform duration-300 text-text-muted ${isExpanded ? 'rotate-180' : ''}`}>
+              <span className={`text-xs transition-transform duration-[var(--motion-slow)] text-text-muted ${isExpanded ? 'rotate-180' : ''}`}>
                 ▼
               </span>
             </span>

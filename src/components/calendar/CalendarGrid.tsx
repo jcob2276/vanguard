@@ -46,7 +46,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     setSelectedDay,
     weekStart,
     setWeekStart,
-    events,
+    displayEvents: events,
     loading,
     weather,
     nowMin,

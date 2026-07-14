@@ -114,7 +114,7 @@ export default function DailyStrainCard({
 
   return (
     <div className={`animate-fadeIn relative overflow-hidden card ${STATUS_RING[statusKey] || STATUS_RING.green} p-3.5 space-y-3`}>
-      <div className={`absolute right-0 top-0 h-16 w-16 blur-3xl ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
+      <div className={`absolute right-0 top-0 h-16 w-16 blur-[var(--blur-3xl)] ${STATUS_GLOW[statusKey] || STATUS_GLOW.green}`} />
 
       <DailyStrainHeader
         isStale={isStale}
@@ -128,18 +128,18 @@ export default function DailyStrainCard({
 
       {/* Explanation */}
       {strainExplanation && (
-        <p className="text-xs text-text-secondary leading-relaxed relative z-10">{strainExplanation}</p>
+        <p className="text-xs text-text-secondary leading-relaxed relative z-[var(--z-raised)]">{strainExplanation}</p>
       )}
 
       {wellnessLoad != null && wellnessLoad > 0 && (
-        <p className="text-2xs text-text-muted relative z-10">
+        <p className="text-2xs text-text-muted relative z-[var(--z-raised)]">
           Wellness (sauna / zimno): <span className="font-bold text-warning">{wellnessLoad}</span> pkt w strain
         </p>
       )}
 
       {/* Signal pills */}
       {readinessSignals && readinessSignals.length > 0 && (
-        <div className="flex flex-wrap gap-1 relative z-10">
+        <div className="flex flex-wrap gap-1 relative z-[var(--z-raised)]">
           {readinessSignals.map((s) => (
             <span key={s.key} className={`inline-flex rounded-lg border px-1.5 py-0.5 text-2xs font-bold ${SIGNAL_PILL[s.flag] ?? SIGNAL_PILL.neutral}`}>
               {s.detail}
@@ -149,7 +149,7 @@ export default function DailyStrainCard({
       )}
 
       {/* Divider */}
-      <div className="h-px bg-border-custom/30 relative z-10" />
+      <div className="h-px bg-border-custom/30 relative z-[var(--z-raised)]" />
 
       {/* Mini metrics row: Strain | Recovery | [Fueling] | [Sleep debt] */}
       <DailyStrainMetricsRow
@@ -173,7 +173,7 @@ export default function DailyStrainCard({
       {/* Correlations link */}
       <Link
         to="/korelacje"
-        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[0.985] relative z-10"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[var(--legacy-arbitrary-003)] relative z-[var(--z-raised)]"
       >
         <BarChart2 size={11} />
         Korelacje — kawa, sen, trening

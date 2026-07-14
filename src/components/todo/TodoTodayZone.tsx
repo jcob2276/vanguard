@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useTodoContext } from './context/TodoContext';
 import BucketHeader from './BucketHeader';
 import TodoCardConnected from './TodoCardConnected';
@@ -32,10 +33,10 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
   return (
     <div
       ref={todayZoneRef}
-      className={`rounded-2xl p-2 transition-all duration-200 ${
+      className={`rounded-2xl p-2 transition-all duration-[var(--motion-medium)] ${
         draggingItem !== null
           ? dragTarget === 'today'
-            ? 'border border-warning/40 bg-warning/10 scale-[1.01] shadow-[var(--shadow-accent-active)]'
+            ? 'border border-warning/40 bg-warning/10 scale-[var(--legacy-arbitrary-013)] shadow-[var(--shadow-accent-active)]'
             : 'border border-dashed border-warning/20 bg-warning/5'
           : 'border border-transparent bg-transparent'
       }`}
@@ -54,9 +55,9 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
             <span className="text-2xs font-semibold uppercase tracking-wider text-text-muted/40">Zaplanowane</span>
             <span className={`text-2xs font-bold tabular-nums ${over ? 'text-danger' : 'text-text-muted/50'}`}>{label} / 8h</span>
           </div>
-          <div className="h-[3px] rounded-full bg-surface-solid overflow-hidden">
+          <div className="h-[var(--legacy-h-027)] rounded-full bg-surface-solid overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-danger/70' : 'bg-warning/60'}`}
+              className={`h-full rounded-full transition-all duration-[var(--motion-long)] ${over ? 'bg-danger/70' : 'bg-warning/60'}`}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -74,7 +75,7 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
           ) : (
             <>
               {focus && (
-                <button
+                <Pressable
                   onClick={() => toggleExpand(focus.id)}
                   className="w-full mb-2 flex items-center gap-2.5 rounded-xl border border-warning/20 bg-warning/6 px-3 py-2.5 text-left hover:bg-warning/10 transition-all btn-press"
                 >
@@ -84,7 +85,7 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
                     <p className="text-sm font-semibold text-text-primary leading-snug truncate">{focusLabel}</p>
                   </div>
                   <span className="shrink-0 rounded-lg bg-warning/15 px-2 py-1 text-xs font-bold text-warning">Zacznij →</span>
-                </button>
+                </Pressable>
               )}
               {todayItems.map((i) => (
                 <TodoCardConnected key={i.id} item={i} inToday />

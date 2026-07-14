@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { updateTodoItem } from '../../lib/todo/todo';
 import type { TodoItemUpdate } from '../../lib/todo/todo';
@@ -95,13 +96,13 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
 
   return (
     <div className="p-4 pb-24">
-      <div className="grid grid-cols-2 gap-3 max-w-[700px] mx-auto">
+      <div className="grid grid-cols-2 gap-3 max-w-[var(--legacy-maxw-060)] mx-auto">
         {QUADRANTS.map((q) => {
           const qItems = open.filter((i) => quadrantOf(i) === q.key);
           return (
             <div
               key={q.key}
-              className={`rounded-2xl border p-3 min-h-[180px] transition-all duration-200 ${q.color} ${dragOverQ === q.key ? 'scale-[1.01] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
+              className={`rounded-2xl border p-3 min-h-[var(--legacy-h-012)] transition-all duration-[var(--motion-medium)] ${q.color} ${dragOverQ === q.key ? 'scale-[var(--legacy-arbitrary-013)] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragOverQ(q.key);
@@ -156,14 +157,14 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                     {/* Quick move buttons */}
                     <div className="flex md:hidden md:group-hover:flex flex-row md:flex-col gap-1 items-center justify-center shrink-0 ml-1">
                       {QUADRANTS.filter((qq) => qq.key !== q.key).map((qq) => (
-                        <button
+                        <Pressable
                           key={qq.key}
                           onClick={(e) => { e.stopPropagation(); moveToQuadrant(item, qq); }}
                           className={`text-xs w-5 h-5 flex items-center justify-center rounded-full font-black shadow-sm active:scale-90 transition-transform ${qq.badge}`}
                           title={`Przenieś do: ${qq.label}`}
                         >
                           {qq.label.charAt(0)}
-                        </button>
+                        </Pressable>
                       ))}
                     </div>
                   </div>

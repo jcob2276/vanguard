@@ -1,7 +1,8 @@
+import Button from '../ui/Button';
+import { ControlTextarea } from '../ui/ControlPrimitives';
 import React from 'react';
 import type { Session } from '@supabase/supabase-js';
 import Spinner from '../ui/Spinner';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import type { MonthFacts } from '../../lib/growth/monthReview';
 
@@ -52,13 +53,13 @@ function Textarea({
   value, onChange, placeholder, rows = 3,
 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
-    <textarea
+    <ControlTextarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
       className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm
-        text-text-primary placeholder-text-muted resize-y min-h-[72px] focus:outline-none
+        text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-041)] focus:outline-none
         focus:border-primary/50 transition-colors"
     />
   );
@@ -104,8 +105,8 @@ export default function DirectionMonthlyMode({
 
   return (
     <div className="space-y-6 pb-6 border-b border-border-custom mb-6">
-      <Card padding="0.75rem 1rem" style={{ background: 'rgba(245, 158, 11, 0.05)' }}>
-        <p className="text-2xs font-black uppercase tracking-[0.2em] text-warning">Przegląd miesiąca</p>
+      <Card padding="0.75rem 1rem" style={{ background: 'var(--legacy-color-119)' }}>
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-warning">Przegląd miesiąca</p>
         <p className="mt-1 text-sm font-semibold text-text-primary capitalize">{monthFacts.monthLabel}</p>
         <p className="mt-1 text-xs text-text-secondary">
           Warstwa między sprintem a tygodniem — zamknij miesiąc, potem planuj tydzień.

@@ -3,7 +3,7 @@ interface PersonCardData { name: string; role?: string; relation?: string; notes
 export function PersonCard({ data }: { data: PersonCardData }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-[rgba(91,108,255,0.1)]">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-[color:var(--legacy-bg-004)]">
         <User size={16} style={{ color: 'var(--color-primary)' }} />
       </div>
       <div>

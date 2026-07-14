@@ -31,7 +31,7 @@ export function Panel({ title, children, className = '' }: PanelProps) {
   return (
     <Card padding="1.25rem" className={className}>
       {title && (
-        <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted mb-4 pb-2.5 border-b border-border-custom">
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted mb-4 pb-2.5 border-b border-border-custom">
           {title}
         </p>
       )}

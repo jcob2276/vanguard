@@ -1,3 +1,4 @@
+import { ControlInput } from '../ui/ControlPrimitives';
 import React from 'react';
 
 interface NlpHighlightInputProps {
@@ -27,8 +28,8 @@ export default function NlpHighlightInput({
   return (
     <div className="relative w-full flex items-center">
       {/* Background Highlight layer */}
-      <div 
-        className={`absolute inset-0 pointer-events-none select-none z-0 whitespace-nowrap overflow-hidden flex items-center text-transparent ${className}`}
+      <div
+        className={`absolute inset-0 pointer-events-none select-none z-[var(--z-base)] whitespace-nowrap overflow-hidden flex items-center text-transparent ${className}`}
         style={{ color: 'transparent' }}
       >
         {segments.map((seg, idx) => {
@@ -45,14 +46,14 @@ export default function NlpHighlightInput({
       </div>
 
       {/* Foreground Input layer */}
-      <input
+      <ControlInput
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         onKeyDown={onKeyDown}
         onFocus={onFocus}
         onBlur={onBlur}
-        className={`w-full bg-transparent relative z-10 outline-none ${className}`}
+        className={`w-full bg-transparent relative z-[var(--z-raised)] outline-none ${className}`}
       />
     </div>
   );

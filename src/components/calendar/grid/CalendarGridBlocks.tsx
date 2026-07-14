@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { Sparkles, Shield, Check } from 'lucide-react';
 import {
@@ -31,8 +32,8 @@ export const renderEventBlock = ({
   const top = (visibleStartMin - HOUR_START * 60) * PX_PER_MIN;
   const height = Math.max(20, (visibleEndMin - visibleStartMin) * PX_PER_MIN);
   const tooShort = height < 32;
-  const isAIScheduled = ev.summary?.includes('✨') || ev.summary?.includes('[AI]');
-  const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
+  const isAIScheduled = ev.summary?.includes('âś¨') || ev.summary?.includes('[AI]');
+  const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('đź›ˇď¸Ź');
 
   let displaySummary = ev.summary;
   if (tooShort) {
@@ -40,7 +41,7 @@ export const renderEventBlock = ({
     if (isSleep) {
       displaySummary = `${formatTime(ev.start_time)}-${formatTime(ev.end_time)}`;
     } else {
-      displaySummary = `${ev.summary} (${formatTime(ev.start_time)}–${formatTime(ev.end_time)})`;
+      displaySummary = `${ev.summary} (${formatTime(ev.start_time)}â€“${formatTime(ev.end_time)})`;
     }
   }
 
@@ -48,25 +49,25 @@ export const renderEventBlock = ({
     <div
       key={ev.id}
       onMouseDown={(e) => handleEventMouseDown(ev, e, 'move')}
-      className={`absolute rounded-md shadow-sm ${tooShort ? 'px-1 py-0.5 flex items-center justify-start' : 'px-1.5 py-1'} overflow-hidden cursor-move hover:shadow-md hover:brightness-110 hover:scale-[1.01] active:scale-[0.99] active:brightness-95 transition-all duration-150 hover:z-20 select-none ${eventColor(ev)}`}
+      className={`absolute rounded-xl ${tooShort ? 'px-2 py-0.5 flex items-center justify-start' : 'px-3 py-2'} overflow-hidden cursor-move hover:shadow-sm transition-[box-shadow,border-color,background-color] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:z-[var(--z-popover)] select-none ${eventColor(ev)}`}
       style={{ top, height, left: `calc(${left} + 1px)`, width: `calc(${width} - 2px)` }}
       title={ev.summary || ''}
     >
       <div className="flex items-start gap-0.5 min-w-0 w-full justify-start flex-wrap">
-        {isAIScheduled && !tooShort && <Sparkles size={9} className="shrink-0 animate-pulse opacity-90 mt-0.5" />}
-        {isFocusTime && !tooShort && <Shield size={9} className="shrink-0 opacity-90 mt-0.5" />}
-        <p className={`${tooShort ? 'text-2xs' : 'text-2xs'} font-extrabold leading-tight break-all whitespace-normal line-clamp-3`}>
+        {isAIScheduled && !tooShort && <Sparkles size={9} className="shrink-0 animate-pulse opacity-[var(--opacity-90)] mt-0.5" />}
+        {isFocusTime && !tooShort && <Shield size={9} className="shrink-0 opacity-[var(--opacity-90)] mt-0.5" />}
+        <p className={`${tooShort ? 'text-xs' : 'text-sm'} font-bold leading-snug break-words whitespace-normal line-clamp-3`}>
           {displaySummary}
         </p>
       </div>
       {!tooShort && (
-        <div className="opacity-85 text-2xs font-bold leading-none mt-0.5 break-all whitespace-normal">
-          <span>{formatTime(ev.start_time)}–{formatTime(ev.end_time)}</span>
+        <div className="mt-1 text-xs font-medium leading-none opacity-[var(--opacity-70)]">
+          <span>{formatTime(ev.start_time)}â€“{formatTime(ev.end_time)}</span>
         </div>
       )}
       <div
         onMouseDown={(e) => handleEventMouseDown(ev, e, 'resize')}
-        className="absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize hover:bg-black/10 dark:hover:bg-white/10 z-30"
+        className="absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize hover:bg-scrim/10 dark:hover:bg-on-accent/10 z-[var(--z-sticky)]"
       />
     </div>
   );
@@ -95,7 +96,7 @@ export const renderTodoBlock = ({
   return (
     <div
       key={`todo-${todo.id}`}
-      title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''}`}
+      title={`${todo.title}${chip?.dreamTitle ? ` Â· ${chip.dreamTitle}` : ''}`}
       draggable
       onDragStart={(e) => {
         e.stopPropagation();
@@ -107,21 +108,21 @@ export const renderTodoBlock = ({
         setEditingTodo(todo);
         setEditingTodoTitle(todo.title);
       }}
-      className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[1.01] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-150 z-10 cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-50' : ''}`}
-      style={{ top, height, left: '75%', width: '24%' }}
+      className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[var(--legacy-arbitrary-013)] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-[var(--motion-medium)] z-[var(--z-raised)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
+      style={{ top, height, left: 'var(--legacy-inline-style-041)', width: 'var(--legacy-inline-style-094)' }}
     >
       <div className="flex items-start gap-0.5">
-        <button
+        <Pressable
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             handleToggleTodo(todo.id);
-            setToastMessage(`Ukończono: "${todo.title}" ✅`);
+            setToastMessage(`UkoĹ„czono: "${todo.title}" âś…`);
           }}
           className={`relative after:absolute after:-inset-2 mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
         >
-          {isCompleting && <Check size={6} className="text-white" strokeWidth={4} />}
-        </button>
+          {isCompleting && <Check size={6} className="text-on-accent" strokeWidth={4} />}
+        </Pressable>
         <p className={`flex items-center gap-0.5 text-2xs font-bold text-primary leading-tight line-clamp-2 ${isCompleting ? 'line-through' : ''}`}>
           {GoalIcon && <GoalIcon size={7} className="shrink-0" />}
           <span className="truncate">{todo.title}</span>

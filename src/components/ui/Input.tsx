@@ -11,9 +11,9 @@ type InputOwnProps = {
 type InputProps = InputOwnProps & Omit<InputHTMLAttributes<HTMLInputElement>, keyof InputOwnProps>;
 
 const SIZE_CLASSES: Record<InputSize, string> = {
-  sm: 'px-3 py-2 text-sm',
-  md: 'px-4 py-3 text-base',
-  lg: 'px-4 py-3.5 text-base',
+  sm: 'h-[var(--control-sm)] px-[var(--space-3)] text-sm',
+  md: 'h-[var(--control-md)] px-[var(--space-4)] text-base',
+  lg: 'h-[var(--control-lg)] px-[var(--space-4)] text-base',
 };
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -28,13 +28,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           disabled={disabled}
-          className={`w-full bg-surface-solid border rounded-xl font-semibold text-text-primary outline-none transition-all placeholder:text-text-muted/30 ${
+          className={`w-full rounded-[var(--radius-md)] border bg-surface-solid font-semibold text-text-primary outline-none transition-[background-color,border-color,box-shadow] duration-[var(--motion-fast)] placeholder:text-text-muted/40 ${
             icon ? 'pl-9' : ''
           } ${SIZE_CLASSES[size]} ${
             error
               ? 'border-danger/50 focus:border-danger focus:ring-1 focus:ring-danger/30'
               : 'border-border-custom/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/30'
-          } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
+          } ${disabled ? 'cursor-not-allowed opacity-[var(--opacity-disabled)]' : ''} ${className}`}
           {...props}
         />
         {error && (

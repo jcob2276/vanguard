@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { splitEmoji } from './todoUtils';
 
@@ -71,7 +72,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
     const nowMin = nowMinutes();
     const top = Math.max(0, (nowMin - HOUR_START * 60) * PX_PER_MIN - 120);
     scrollRef.current.scrollTop = top;
-     
+
   }, []);
 
   const nowMin = new Date(nowMs).getHours() * 60 + new Date(nowMs).getMinutes();
@@ -109,11 +110,11 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
             {/* Now line */}
             {showNow && (
               <div
-                className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
+                className="absolute left-0 right-0 z-[var(--z-popover)] flex items-center pointer-events-none"
                 style={{ top: nowTop }}
               >
                 <div className="w-2 h-2 rounded-full bg-danger -ml-1 shrink-0" />
-                <div className="flex-1 h-[1.5px] bg-danger/70" />
+                <div className="flex-1 h-[var(--legacy-h-007)] bg-danger/70" />
               </div>
             )}
 
@@ -127,10 +128,10 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
               const tooShort = height < 36;
 
               return (
-                <button
+                <Pressable
                   key={item.id}
                   onClick={() => onExpand(item.id)}
-                  className={`absolute left-1.5 right-2 rounded-xl border px-2 py-1.5 text-left cursor-pointer hover:brightness-110 active:scale-[0.99] transition-all ${color.block}`}
+                  className={`absolute left-1.5 right-2 rounded-xl border px-2 py-1.5 text-left cursor-pointer hover:brightness-110 active:scale-[var(--legacy-arbitrary-014)] transition-all ${color.block}`}
                   style={{ top, height }}
                 >
                   <div className="flex items-start gap-1.5 h-full overflow-hidden">
@@ -145,12 +146,12 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                         </p>
                       )}
                     </div>
-                    <button
+                    <Pressable
                       onClick={(e) => { e.stopPropagation(); onToggle(item); }}
-                      className="shrink-0 mt-0.5 w-4 h-4 rounded-full border-[1.5px] border-current opacity-30 hover:opacity-80 hover:bg-success hover:border-success transition-all"
+                      className="shrink-0 mt-0.5 w-4 h-4 rounded-full border-[length:var(--legacy-border-005)] border-current opacity-[var(--opacity-30)] hover:opacity-[var(--opacity-80)] hover:bg-success hover:border-success transition-all"
                     />
                   </div>
-                </button>
+                </Pressable>
               );
             })}
           </div>
@@ -166,7 +167,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                 return (
                   <div key={item.id} className="flex items-center gap-2 text-xs text-text-muted/40 line-through">
                     <div className="w-3 h-3 rounded-full bg-success/40 shrink-0" />
-                    {icon && <span className="opacity-60">{icon}</span>}
+                    {icon && <span className="opacity-[var(--opacity-60)]">{icon}</span>}
                     <span>{label}</span>
                   </div>
                 );

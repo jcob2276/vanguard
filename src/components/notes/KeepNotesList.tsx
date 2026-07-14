@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { AlertCircle, CheckSquare, Pin, X } from 'lucide-react';
 import Skeleton from '../ui/Skeleton';
 import MasonryGrid from './MasonryGrid';
@@ -40,7 +41,7 @@ export default function KeepNotesList({
         <div className="keep-error">
           <AlertCircle size={14} />
           <span>{error}</span>
-          <button type="button" onClick={onClearError} className="keep-error-close"><X size={12} /></button>
+          <Pressable type="button" onClick={onClearError} className="keep-error-close"><X size={12} /></Pressable>
         </div>
       )}
 
@@ -69,7 +70,7 @@ export default function KeepNotesList({
       ) : (
         <div className="keep-sections pb-20 md:pb-0">
           {search && (
-            <div className="text-xs font-bold text-text-muted px-4 py-2 bg-slate-500/5 border border-border-custom/20 rounded-xl mb-4 flex items-center justify-between">
+            <div className="text-xs font-bold text-text-muted px-4 py-2 bg-surface-2/5 border border-border-custom/20 rounded-xl mb-4 flex items-center justify-between">
               <span>Wyniki wyszukiwania dla "{search}":</span>
               <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-2xs">
                 {filtered.length} {filtered.length === 1 ? 'notatka' : [2, 3, 4].includes(filtered.length % 10) && ![12, 13, 14].includes(filtered.length % 100) ? 'notatki' : 'notatek'}
@@ -145,13 +146,13 @@ export default function KeepNotesList({
               )}
               {others.length > visibleCount && (
                 <div className="flex justify-center mt-6">
-                  <button
+                  <Pressable
                     type="button"
                     onClick={() => setVisibleCount(prev => prev + 30)}
                     className="px-6 py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-xs font-bold uppercase tracking-wider text-text-secondary transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     Pokaż więcej notatek ({others.length - visibleCount} pozostało)
-                  </button>
+                  </Pressable>
                 </div>
               )}
             </section>

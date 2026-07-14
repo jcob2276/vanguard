@@ -1,3 +1,4 @@
+import { Pressable, ControlTextarea } from '../ui/ControlPrimitives';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -8,20 +9,20 @@ import { Shield, Save, Heart, Ghost, Briefcase } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '../ui/Card';
 const colorMap = {
-  'purple-500': { 
-    bg: 'bg-purple-500/8 dark:bg-purple-500/15', 
-    border: 'border-purple-500/15 dark:border-purple-500/30', 
-    text: 'text-purple-600 dark:text-purple-400' 
+  'purple-500': {
+    bg: 'bg-primary/8 dark:bg-primary/15',
+    border: 'border-primary/15 dark:border-primary/30',
+    text: 'text-primary dark:text-primary'
   },
-  'rose-500': { 
-    bg: 'bg-danger/8 dark:bg-danger/15', 
-    border: 'border-danger/15 dark:border-danger/30', 
-    text: 'text-danger dark:text-danger' 
+  'rose-500': {
+    bg: 'bg-danger/8 dark:bg-danger/15',
+    border: 'border-danger/15 dark:border-danger/30',
+    text: 'text-danger dark:text-danger'
   },
-  'orange-500': { 
-    bg: 'bg-warning/8 dark:bg-warning/15', 
-    border: 'border-warning/15 dark:border-warning/30', 
-    text: 'text-warning dark:text-warning' 
+  'orange-500': {
+    bg: 'bg-warning/8 dark:bg-warning/15',
+    border: 'border-warning/15 dark:border-warning/30',
+    text: 'text-warning dark:text-warning'
   }
 };
 
@@ -48,11 +49,11 @@ function Section({ title, icon: Icon, value, onChange, placeholder, description,
           <p className="text-xs text-text-muted uppercase tracking-widest">{description}</p>
         </div>
       </div>
-      <textarea
+      <ControlTextarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-sm font-bold text-text-primary min-h-[120px] focus:border-primary/50 focus:shadow-focus outline-none transition-all placeholder:text-text-muted/40"
+        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-sm font-bold text-text-primary min-h-[var(--legacy-h-010)] focus:border-primary/50 focus:shadow-focus outline-none transition-all placeholder:text-text-muted/40"
       />
     </Card>
   );
@@ -140,29 +141,29 @@ export default function IdentityVault() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-4xl mx-auto space-y-6 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-[var(--motion-deliberate)]">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <Shield size={16} className="text-primary animate-pulse" />
-            <span className="text-xs font-black text-primary uppercase tracking-[0.3em]">Identity Vault v3.1</span>
+            <span className="text-xs font-black text-primary uppercase tracking-[var(--legacy-arbitrary-044)]">Identity Vault v3.1</span>
           </div>
           <h1 className="text-3xl font-display font-black text-text-primary tracking-tight uppercase">Pełny Profil Bliźniaka</h1>
           <p className="text-text-secondary text-xs mt-1 font-semibold leading-relaxed">Wpisz tu wszystko, co Wyrocznia powinna o Tobie wiedzieć.</p>
         </div>
-        
-        <button
+
+        <Pressable
           onClick={handleSave}
           disabled={loading}
-          className={`px-8 py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md disabled:opacity-50 font-display cursor-pointer ${
-            saveStatus === 'success' 
-              ? 'bg-success text-white shadow-success/20' 
-              : 'bg-primary text-white hover:bg-primary-hover shadow-primary/20'
+          className={`px-8 py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[var(--legacy-arbitrary-013)] active:scale-[var(--legacy-arbitrary-014)] transition-all shadow-md disabled:opacity-[var(--opacity-50)] font-display cursor-pointer ${
+            saveStatus === 'success'
+              ? 'bg-success text-on-accent shadow-success/20'
+              : 'bg-primary text-on-accent hover:bg-primary-hover shadow-primary/20'
           }`}
         >
           {loading ? 'Synchronizacja...' : saveStatus === 'success' ? '✓ Zapisano!' : <><Save size={16} /> Zaktualizuj Prawdę</>}
-        </button>
+        </Pressable>
       </div>
 
       {saveStatus === 'success' && (

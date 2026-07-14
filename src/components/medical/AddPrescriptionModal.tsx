@@ -1,9 +1,10 @@
+import Button from '../ui/Button';
+import { ControlInput, ControlSelect } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
 import { createPrescription } from '../../lib/health/medicalApi';
 import { notify } from '../../lib/notify';
 import { getTodayWarsaw } from '../../lib/date';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 
 interface AddPrescriptionModalProps {
   onClose: () => void;
@@ -58,46 +59,46 @@ export default function AddPrescriptionModal({ onClose, onSaved, userId }: AddPr
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-bold text-text-muted mb-1 block">Typ</label>
-            <select className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+            <ControlSelect className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
               <option value="normalized">Normalizacja (Dal)</option>
               <option value="differential">Differentials (Bliskość)</option>
-            </select>
+            </ControlSelect>
           </div>
           <div>
             <label className="text-xs font-bold text-text-muted mb-1 block">Status</label>
-            <select className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+            <ControlSelect className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
               <option value="active">Aktywne (obecne)</option>
               <option value="past">Historyczne (stare)</option>
-            </select>
+            </ControlSelect>
           </div>
         </div>
 
         <div className="space-y-4">
           <h4 className="text-sm font-bold border-b border-border-custom pb-1 text-text-primary">Lewe Oko (OS)</h4>
           <div className="grid grid-cols-3 gap-2">
-            <input type="number" step="0.25" placeholder="Sfera (np. -1.5)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.sphere_l} onChange={e => setFormData({...formData, sphere_l: e.target.value})} />
-            <input type="number" step="0.25" placeholder="Cylinder" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.cyl_l} onChange={e => setFormData({...formData, cyl_l: e.target.value})} />
-            <input type="number" step="1" placeholder="Oś (np. 10)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.axis_l} onChange={e => setFormData({...formData, axis_l: e.target.value})} />
+            <ControlInput type="number" step="0.25" placeholder="Sfera (np. -1.5)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.sphere_l} onChange={e => setFormData({...formData, sphere_l: e.target.value})} />
+            <ControlInput type="number" step="0.25" placeholder="Cylinder" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.cyl_l} onChange={e => setFormData({...formData, cyl_l: e.target.value})} />
+            <ControlInput type="number" step="1" placeholder="Oś (np. 10)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.axis_l} onChange={e => setFormData({...formData, axis_l: e.target.value})} />
           </div>
         </div>
 
         <div className="space-y-4">
           <h4 className="text-sm font-bold border-b border-border-custom pb-1 text-text-primary">Prawe Oko (OD)</h4>
           <div className="grid grid-cols-3 gap-2">
-            <input type="number" step="0.25" placeholder="Sfera (np. -2.75)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.sphere_r} onChange={e => setFormData({...formData, sphere_r: e.target.value})} />
-            <input type="number" step="0.25" placeholder="Cylinder" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.cyl_r} onChange={e => setFormData({...formData, cyl_r: e.target.value})} />
-            <input type="number" step="1" placeholder="Oś (np. 10)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.axis_r} onChange={e => setFormData({...formData, axis_r: e.target.value})} />
+            <ControlInput type="number" step="0.25" placeholder="Sfera (np. -2.75)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.sphere_r} onChange={e => setFormData({...formData, sphere_r: e.target.value})} />
+            <ControlInput type="number" step="0.25" placeholder="Cylinder" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.cyl_r} onChange={e => setFormData({...formData, cyl_r: e.target.value})} />
+            <ControlInput type="number" step="1" placeholder="Oś (np. 10)" className="bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.axis_r} onChange={e => setFormData({...formData, axis_r: e.target.value})} />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-bold text-text-muted mb-1 block">Data od</label>
-            <input type="date" required className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.started_at} onChange={e => setFormData({...formData, started_at: e.target.value})} />
+            <ControlInput type="date" required className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.started_at} onChange={e => setFormData({...formData, started_at: e.target.value})} />
           </div>
           <div>
             <label className="text-xs font-bold text-text-muted mb-1 block">Notatka</label>
-            <input type="text" placeholder="np. za mocne" className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+            <ControlInput type="text" placeholder="np. za mocne" className="w-full bg-background border border-border-custom rounded-lg p-2 text-sm text-text-primary" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
           </div>
         </div>
 

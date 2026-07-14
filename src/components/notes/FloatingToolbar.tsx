@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { CheckSquare, Table2, Image } from 'lucide-react';
 
@@ -34,56 +35,56 @@ export default function FloatingToolbar({
       className="keep-floating-toolbar"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
     >
-      <button
+      <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('bold'); }}
         className={`keep-toolbar-btn ${activeState.bold ? 'active' : ''}`}
         title="Pogrubienie"
       >
         <span className="font-bold text-xs">B</span>
-      </button>
-      <button
+      </Pressable>
+      <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('italic'); }}
         className={`keep-toolbar-btn ${activeState.italic ? 'active' : ''}`}
         title="Kursywa"
       >
         <span className="italic text-xs">I</span>
-      </button>
-      <button
+      </Pressable>
+      <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('h1'); }}
         className={`keep-toolbar-btn ${activeState.h1 ? 'active' : ''}`}
         title="Nagłówek"
       >
         <span className="font-black text-xs">H</span>
-      </button>
-      <button
+      </Pressable>
+      <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('todo'); }}
         className={`keep-toolbar-btn ${activeState.list ? 'active' : ''}`}
         title="Zadanie"
       >
         <CheckSquare size={12} />
-      </button>
+      </Pressable>
       {/* Divider */}
-      <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.12)', margin: '0 2px' }} />
-      <button
+      <div style={{ width: 'var(--legacy-inline-style-091)', height: 'var(--legacy-inline-style-034)', background: 'var(--legacy-color-131)', margin: 'var(--legacy-inline-style-051)' }} />
+      <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('table'); }}
         className="keep-toolbar-btn"
         title="Wstaw tabelę"
       >
         <Table2 size={12} />
-      </button>
-      <button
+      </Pressable>
+      <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('image'); }}
         className="keep-toolbar-btn"
         title="Wstaw zdjęcie"
       >
         <Image size={12} />
-      </button>
+      </Pressable>
     </div>
   );
 }

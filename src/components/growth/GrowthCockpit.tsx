@@ -1,3 +1,4 @@
+import Button from '../ui/Button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ListChecks, Target, TrendingUp, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -6,7 +7,6 @@ import type { GrowthPrevWeekSummary, PowerListWeekStats } from '../../lib/growth
 import type { FocusProposal } from '../../lib/growth/growthOverview';
 import type { LearningWeekPin } from '../../lib/growth/growth';
 import { computeTheoryPracticeBalance } from '../../lib/growth/growthMastery';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 export default function GrowthCockpit({
@@ -46,7 +46,7 @@ export default function GrowthCockpit({
     <Card variant="glass" padding="1.25rem" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted">Tydzień · podsumowanie</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">Tydzień · podsumowanie</p>
           {intention ? (
             <p className="text-sm font-bold text-text-primary mt-1 leading-snug line-clamp-2">{intention}</p>
           ) : (
@@ -102,7 +102,7 @@ export default function GrowthCockpit({
           padding="0.75rem"
           onClick={!readOnly ? onSetFocus : undefined}
           className="w-full text-left bg-primary/[0.05] flex items-center justify-between gap-3"
-          style={{ borderColor: 'rgba(79, 70, 229, 0.25)' }}
+          style={{ borderColor: 'var(--primary-25)' }}
         >
           <div className="min-w-0">
             <p className="text-2xs font-black uppercase text-primary tracking-wider">

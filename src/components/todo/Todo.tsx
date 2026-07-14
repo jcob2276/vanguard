@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { BookOpen, Calendar, ListTodo, StickyNote } from 'lucide-react';
 
 import DataStateNotice from '../core/DataStateNotice';
 import { createTodoSection, renameTodoSection, archiveTodoSection } from '../../lib/todo/todo';
@@ -19,6 +18,7 @@ import TodoContextMenuConnected from './TodoContextMenuConnected';
 import TodoHeader, { type TodoViewMode } from './TodoHeader';
 import TodoSearchBar from './TodoSearchBar';
 import TodoListView from './TodoListView';
+import WorkspaceNavigation from '../shared/WorkspaceNavigation';
 
 function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const todoData = useTodoContext();
@@ -45,7 +45,7 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <DataStateNotice tone="loading" title="Zadania się ładują" detail="Pobieram otwarte zadania." />
+        <DataStateNotice tone="loading" title="Zadania siÄ™ Ĺ‚adujÄ…" detail="Pobieram otwarte zadania." />
       </div>
     );
   }
@@ -89,9 +89,10 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
           setTodoView={setTodoView}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
+          searchInputRef={searchInputRef}
         />
 
-        <TodoSearchBar searchInputRef={searchInputRef} />
+        <TodoSearchBar />
 
         {todoView === 'eisenhower' && (
           <main className="flex-1 overflow-y-auto" onClick={() => setExpandedId(null)}>
@@ -135,24 +136,12 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
       <TodayEventsPanel userId={userId} today={today} />
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
-        <button onClick={() => onNavigateTo?.('keep')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
-          <StickyNote size={22} />
-          <span className="text-xs font-semibold">Notatki</span>
-        </button>
-        <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
-          <ListTodo size={22} />
-          <span className="text-xs font-semibold">Zadania</span>
-        </button>
-        <button onClick={() => onNavigateTo?.('kalendarz')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
-          <Calendar size={22} />
-          <span className="text-xs font-semibold">Kalendarz</span>
-        </button>
-        <button onClick={() => onNavigateTo?.('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
-          <BookOpen size={22} />
-          <span className="text-xs font-semibold">Pocket</span>
-        </button>
-      </nav>
+      <WorkspaceNavigation
+        active="todo"
+        orientation="horizontal"
+        onNavigate={onNavigateTo}
+        className="md:hidden fixed bottom-0 inset-x-0 z-[var(--z-overlay)] border-t border-border-custom bg-background/95 backdrop-blur-[var(--blur-xl)]"
+      />
 
       {scanTextOpen && (
         <TodoScanTextModal

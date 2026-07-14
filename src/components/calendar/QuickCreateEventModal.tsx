@@ -1,10 +1,11 @@
+import Button from '../ui/Button';
+import { ControlInput } from '../ui/ControlPrimitives';
 import React from 'react';
 import { Clock, Calendar } from 'lucide-react';
 import { useCalendarData } from './hooks/useCalendarData';
 import { monthLabel } from './calendarHelpers';
 
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
 
@@ -67,7 +68,7 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
           </Button>
         </div>
 
-        <input
+        <ControlInput
           autoFocus
           value={quickTitle}
           onChange={(e) => setQuickTitle(e.target.value)}

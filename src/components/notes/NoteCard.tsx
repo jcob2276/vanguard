@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useRef } from 'react';
 import { Archive, ListTodo, Pin, Trash2 } from 'lucide-react';
 import { getColor, relativeDate, sanitizeHtml, Note, highlightHtml } from './keepUtils';
@@ -44,7 +45,7 @@ export default function NoteCard({
       className={`keep-card ${isEditing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
       style={{
         backgroundColor: c.bg,
-        borderColor: isDragOver ? '#6366f1' : c.border,
+        borderColor: isDragOver ? 'var(--legacy-color-024)' : c.border,
         opacity: isEditing ? 0.6 : 1,
       }}
       onClick={() => onOpen(note.id)}
@@ -117,7 +118,7 @@ export default function NoteCard({
                 e.stopPropagation();
                 onClickTag?.(t);
               }}
-              className="keep-tag cursor-pointer hover:opacity-80 active:scale-95 transition-all"
+              className="keep-tag cursor-pointer hover:opacity-[var(--opacity-80)] active:scale-95 transition-all"
               style={{ background: c.tagBg, color: c.tagText, borderColor: 'transparent' }}
             >
               {t}
@@ -125,38 +126,38 @@ export default function NoteCard({
           ))}
         </div>
       )}
-      <div className="keep-card-footer" style={{ borderTopColor: 'rgba(255,255,255,0.08)' }}>
-        <span className="keep-card-date" style={{ color: c.textSub, opacity: 0.6 }}>
+      <div className="keep-card-footer" style={{ borderTopColor: 'var(--legacy-color-129)' }}>
+        <span className="keep-card-date" style={{ color: c.textSub, opacity: 'var(--legacy-inline-style-066)' }}>
           {relativeDate(note.updated_at || note.created_at)}
         </span>
          <div className="keep-card-actions">
           {!note.is_archived && onConvertToTodo && (
-            <button
+            <Pressable
               type="button"
               onClick={e => { e.stopPropagation(); onConvertToTodo(note); }}
               className="keep-icon-btn"
               title="Dodaj do zadań"
             >
               <ListTodo size={14} />
-            </button>
+            </Pressable>
           )}
-          <button
+          <Pressable
             type="button"
             onClick={e => { e.stopPropagation(); onTogglePin(note); }}
             className={`keep-icon-btn ${note.is_pinned ? 'active' : ''}`}
             title={note.is_pinned ? 'Odepnij' : 'Przypnij'}
           >
             <Pin size={14} fill={note.is_pinned ? 'currentColor' : 'none'} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             onClick={e => { e.stopPropagation(); onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); }}
             className={`keep-icon-btn ${note.is_archived ? 'active' : ''}`}
             title={note.is_archived ? 'Przywróć z archiwum' : 'Archiwizuj'}
           >
             <Archive size={14} fill={note.is_archived ? 'currentColor' : 'none'} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             onClick={e => { e.stopPropagation(); onDelete(note.id); }}
             disabled={busy}
@@ -164,7 +165,7 @@ export default function NoteCard({
             title="Usuń"
           >
             <Trash2 size={14} />
-          </button>
+          </Pressable>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
-import { X } from 'lucide-react';
 import Button from '../../../ui/Button';
+import { ControlSelect } from '../../../ui/ControlPrimitives';
+import { X } from 'lucide-react';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },
@@ -33,13 +34,13 @@ export default function FoodEntryHeader({
           </span>
           {screen === 'browse' && (
             <div className="relative">
-              <select
+              <ControlSelect
                 value={mealType}
                 onChange={(e) => setMealType(e.target.value)}
                 className="appearance-none rounded-full border border-border-custom bg-surface-solid/40 pl-3 pr-6 py-1 text-xs font-bold text-text-secondary cursor-pointer outline-none"
               >
                 {MEAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
+              </ControlSelect>
               <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none text-xs">▾</span>
             </div>
           )}
@@ -65,7 +66,7 @@ export default function FoodEntryHeader({
           {targets?.target_kcal ? (
             <div className="h-1 rounded-full bg-border-custom overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${todayTotals.calories > targets.target_kcal ? 'bg-warning' : 'bg-primary'}`}
+                className={`h-full rounded-full transition-all duration-[var(--motion-long)] ${todayTotals.calories > targets.target_kcal ? 'bg-warning' : 'bg-primary'}`}
                 style={{ width: `${Math.min(100, (todayTotals.calories / targets.target_kcal) * 100)}%` }}
               />
             </div>

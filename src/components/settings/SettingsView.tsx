@@ -1,3 +1,5 @@
+import Button from '../ui/Button';
+import { ControlInput, ControlSelect } from '../ui/ControlPrimitives';
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
@@ -11,7 +13,6 @@ import { useStore } from '../../store/useStore';
 import { useSyncActions } from '../../hooks/useSyncActions';
 import { notify } from '../../lib/notify';
 import type { Tables } from '../../lib/database.types';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 export default function SettingsView({ session }: { session: Session }) {
@@ -57,7 +58,7 @@ export default function SettingsView({ session }: { session: Session }) {
         home_lng: form.home_lng ?? null,
         updated_at: new Date().toISOString(),
       });
- 
+
       await upsertNutritionProfile({
         user_id: session.user.id,
         birth_date: profile.birth_date || null,
@@ -92,7 +93,7 @@ export default function SettingsView({ session }: { session: Session }) {
         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-text-muted">
           <Watch size={13} /> Oura
         </div>
-        <input
+        <ControlInput
           type="password"
           placeholder="Oura personal access token"
           value={form.oura_token ?? ''}
@@ -106,7 +107,7 @@ export default function SettingsView({ session }: { session: Session }) {
           <MapPin size={13} /> Lokalizacja domu
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <input
+          <ControlInput
             type="number"
             step="any"
             placeholder="Lat"
@@ -114,7 +115,7 @@ export default function SettingsView({ session }: { session: Session }) {
             onChange={(e) => setForm((f) => ({ ...f, home_lat: e.target.value ? Number(e.target.value) : null }))}
             className="rounded-xl border border-border-custom bg-surface-solid px-3 py-2.5 text-sm"
           />
-          <input
+          <ControlInput
             type="number"
             step="any"
             placeholder="Lng"
@@ -170,7 +171,7 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-xs text-text-muted block mb-1 font-bold">Płeć</label>
-          <select
+          <ControlSelect
             value={profile.sex ?? ''}
             onChange={(e) => onChange({ ...profile, sex: e.target.value || null })}
             className="w-full rounded-xl border border-border-custom bg-surface-solid px-3 py-2.5 text-sm"
@@ -178,11 +179,11 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
             <option value="">Wybierz...</option>
             <option value="M">Mężczyzna</option>
             <option value="F">Kobieta</option>
-          </select>
+          </ControlSelect>
         </div>
         <div>
           <label className="text-xs text-text-muted block mb-1 font-bold">Wzrost (cm)</label>
-          <input
+          <ControlInput
             type="number"
             placeholder="np. 180"
             value={profile.height_cm ?? ''}
@@ -193,7 +194,7 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
       </div>
       <div>
         <label className="text-xs text-text-muted block mb-1 font-bold">Data urodzenia</label>
-        <input
+        <ControlInput
           type="date"
           value={profile.birth_date ? profile.birth_date.slice(0, 10) : ''}
           onChange={(e) => onChange({ ...profile, birth_date: e.target.value || null })}
@@ -203,7 +204,7 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-xs text-text-muted block mb-1 font-bold">Docelowy tłuszcz (%)</label>
-          <input
+          <ControlInput
             type="number"
             step="0.1"
             placeholder="np. 12"
@@ -214,7 +215,7 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
         </div>
         <div>
           <label className="text-xs text-text-muted block mb-1 font-bold">Cel chudnięcia (kg/tydz)</label>
-          <input
+          <ControlInput
             type="number"
             step="0.05"
             placeholder="np. 0.5"
@@ -227,7 +228,7 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-xs text-text-muted block mb-1 font-bold">Białko na kg (g)</label>
-          <input
+          <ControlInput
             type="number"
             step="0.1"
             placeholder="np. 2.0"
@@ -238,7 +239,7 @@ function NutritionProfileSettings({ profile, onChange }: NutritionProfileSetting
         </div>
         <div>
           <label className="text-xs text-text-muted block mb-1 font-bold">Data docelowa</label>
-          <input
+          <ControlInput
             type="date"
             value={profile.goal_target_date ? profile.goal_target_date.slice(0, 10) : ''}
             onChange={(e) => onChange({ ...profile, goal_target_date: e.target.value || null })}

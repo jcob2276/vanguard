@@ -1,6 +1,6 @@
+import Button from '../ui/Button';
 import { RefreshCw } from 'lucide-react';
 import { CONF_PILL, CONF_LABEL, READINESS_MAP } from './dailyStrainCardStyles';
-import Button from '../ui/Button';
 
 interface DailyStrainHeaderProps {
   isStale: boolean;
@@ -25,7 +25,7 @@ export default function DailyStrainHeader({
 
   return (
     <>
-      <div className="flex items-center justify-between relative z-10">
+      <div className="flex items-center justify-between relative z-[var(--z-raised)]">
         <div className="flex items-center gap-1.5">
           <span className="pixel-label text-xs">Stan gotowości</span>
           {isStale && (
@@ -37,7 +37,7 @@ export default function DailyStrainHeader({
         <Button onClick={onRefresh} variant="secondary" icon={<RefreshCw size={11} className={refreshing ? 'animate-spin text-primary' : ''} />} className="rounded-xl p-2" title="Sync + przelicz" />
       </div>
 
-      <div className="flex items-center gap-1.5 flex-wrap relative z-10">
+      <div className="flex items-center gap-1.5 flex-wrap relative z-[var(--z-raised)]">
         {readinessInfo && (
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-black ${readinessInfo.bg} ${readinessInfo.color}`}>
             {readinessInfo.label}

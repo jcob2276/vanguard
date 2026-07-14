@@ -40,7 +40,7 @@ export default function GeneralView({
     return (
       <div className="grid grid-cols-3 gap-5">
         {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} variant="card" className="h-48 rounded-[20px]" />
+          <Skeleton key={i} variant="card" className="h-48 rounded-[var(--radius-lg)]" />
         ))}
       </div>
     );
@@ -94,7 +94,7 @@ export default function GeneralView({
         to="/korelacje"
         className="scroll-mt-28 block group"
       >
-        <Card variant="outline" padding="1.25rem" className="flex items-center gap-4 hover:bg-primary/[0.08] transition-colors" style={{ borderColor: 'rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.04)' }}>
+        <Card variant="outline" padding="1.25rem" className="flex items-center gap-4 hover:bg-primary/[0.08] transition-colors" style={{ borderColor: 'var(--primary-20)', background: 'var(--primary-5)' }}>
         <div className="rounded-full border border-primary/25 bg-background p-2.5 text-primary">
           <BarChart2 size={18} />
         </div>

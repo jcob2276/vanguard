@@ -1,3 +1,4 @@
+import { Pressable, ControlInput, ControlTextarea } from '../ui/ControlPrimitives';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Brain,
@@ -18,12 +19,11 @@ import { notify } from '../../lib/notify';
 import IdentityVault from '../identity/IdentityVault';
 import DataHub from './DataHub';
 import { useUserId } from '../../store/useStore';
-import Button from '../ui/Button';
 
 function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail?: string | null }) {
   return (
     <header className="space-y-1">
-      <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[0.22em] text-text-muted">
+      <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">
         <Icon size={12} /> {title}
       </p>
       {detail && <p className="text-xs font-semibold leading-relaxed text-text-secondary">{detail}</p>}
@@ -34,15 +34,15 @@ function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title:
 function TextAreaBlock({ label, value, onChange, placeholder, danger = false, rows = 4 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; danger?: boolean; rows?: number }) {
   return (
     <label className="block space-y-2">
-      <span className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">{label}</span>
-      <textarea
+      <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">{label}</span>
+      <ControlTextarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}
         className={`w-full resize-none rounded-2xl border bg-surface p-4 text-sm font-bold leading-relaxed text-text-primary outline-none transition-colors placeholder:text-text-muted/40 ${
-          danger 
-            ? 'border-dayB/30 focus:border-dayB/60 focus:bg-surface-solid focus:shadow-[0_0_0_3px_rgba(244,63,94,0.1)]' 
+          danger
+            ? 'border-dayB/30 focus:border-dayB/60 focus:bg-surface-solid focus:shadow-[var(--legacy-shadow-067)]'
             : 'border-border-custom focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus'
         }`}
       />
@@ -94,7 +94,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
         try {
           baselineJson = JSON.parse(identity.behavioral_baseline);
         } catch {
-          throw new Error('Baseline musi być poprawnym JSON.');
+          throw new Error('Baseline musi byÄ‡ poprawnym JSON.');
         }
       }
 
@@ -111,7 +111,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
       notify('Fundament zapisany.', 'success');
     } catch (err: unknown) {
       console.error('Save Identity Error:', err);
-      notify(`Błąd zapisu: ${err instanceof Error ? (err as Error).message : String(err)}`, 'error');
+      notify(`BĹ‚Ä…d zapisu: ${err instanceof Error ? (err as Error).message : String(err)}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -120,19 +120,19 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/30 transition-colors duration-300">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-3xl pb-8 shadow-sm">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-xl">
-          <Button
+    <div className="min-h-screen bg-background text-text-primary selection:bg-primary/30 transition-colors duration-[var(--motion-slow)]">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col border-x border-border-custom bg-background/40 backdrop-blur-[var(--blur-3xl)] pb-8 shadow-sm">
+        <header className="sticky top-0 z-[var(--z-sticky)] flex items-center gap-3 border-b border-border-custom bg-background/80 px-5 py-4 backdrop-blur-[var(--blur-xl)]">
+          <Pressable
             onClick={onBack}
             variant="secondary"
             icon={<ChevronLeft size={18} />}
             className="rounded-full p-2.5"
-            title="Wróć"
+            title="WrĂłÄ‡"
           />
           <div className="min-w-0">
             <h1 className="truncate text-lg font-black uppercase tracking-tight text-text-primary font-display">Identity Fundament</h1>
-            <p className="text-2xs font-black uppercase tracking-[0.22em] text-primary">Core context</p>
+            <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-primary">Core context</p>
           </div>
         </header>
 
@@ -140,7 +140,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           <section className="card bg-gradient-to-br from-primary/[0.04] to-danger/[0.02] border-border-custom p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-2xs font-black uppercase tracking-[0.24em] text-primary">Fundament</p>
+                <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-032)] text-primary">Fundament</p>
                 <h2 className="mt-2 font-display text-2xl font-black uppercase leading-none tracking-tight text-text-primary">
                   Prawda systemu
                 </h2>
@@ -150,12 +150,12 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
               </div>
             </div>
             <p className="mt-4 text-sm font-semibold leading-relaxed text-text-secondary">
-              To nie jest dashboard. To baza kontekstu, która ma ustawić interpretację Mirror, Kierunku i raportów.
+              To nie jest dashboard. To baza kontekstu, ktĂłra ma ustawiÄ‡ interpretacjÄ™ Mirror, Kierunku i raportĂłw.
             </p>
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Target} title="Misja" detail="Jedno zdanie lub akapit, który ustawia długi kierunek." />
+            <SectionHeader icon={Target} title="Misja" detail="Jedno zdanie lub akapit, ktĂłry ustawia dĹ‚ugi kierunek." />
             <TextAreaBlock
               label="Long-term mission"
               value={identity.long_term_mission}
@@ -166,10 +166,10 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Shield} title="Filary identity" detail="Trzy stabilne deklaracje: kim jesteś, kiedy system ma oceniać zachowanie." />
+            <SectionHeader icon={Shield} title="Filary identity" detail="Trzy stabilne deklaracje: kim jesteĹ›, kiedy system ma oceniaÄ‡ zachowanie." />
             <div className="space-y-2">
               {identity.pillars.map((pillar, index) => (
-                <input
+                <ControlInput
                   key={index}
                   value={pillar}
                   onChange={(event) => {
@@ -185,7 +185,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Zap} title="Drifters" detail="Zachowania, które system ma traktować jako odchylenie od kierunku." />
+            <SectionHeader icon={Zap} title="Drifters" detail="Zachowania, ktĂłre system ma traktowaÄ‡ jako odchylenie od kierunku." />
             <TextAreaBlock
               label="System drifters"
               value={identity.avoidance_triggers}
@@ -197,37 +197,37 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={Database} title="Źródła danych" detail="Tu trafia kalendarz i importy, zamiast wisieć jako globalna ikona w headerze." />
+            <SectionHeader icon={Database} title="ĹąrĂłdĹ‚a danych" detail="Tu trafia kalendarz i importy, zamiast wisieÄ‡ jako globalna ikona w headerze." />
             <div className="grid gap-3">
-              <button
+              <Pressable
                 onClick={onSyncCalendar}
                 disabled={isSyncing}
-                className="flex w-full items-center justify-between rounded-2xl border border-border-custom bg-surface/50 p-4 text-left transition-all hover:bg-surface hover:border-primary/35 disabled:opacity-50 shadow-sm"
+                className="flex w-full items-center justify-between rounded-2xl border border-border-custom bg-surface/50 p-4 text-left transition-all hover:bg-surface hover:border-primary/35 disabled:opacity-[var(--opacity-50)] shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-text-primary/[0.03] text-text-secondary">
                     <Calendar size={18} />
                   </div>
                   <div>
-                    <p className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted">Calendar</p>
-                    <p className="text-sm font-black uppercase tracking-[0.08em] text-text-primary mt-0.5">Synchronizuj kalendarz</p>
+                    <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">Calendar</p>
+                    <p className="text-sm font-black uppercase tracking-[var(--legacy-arbitrary-033)] text-text-primary mt-0.5">Synchronizuj kalendarz</p>
                   </div>
                 </div>
                 <RefreshCw size={15} className={`text-primary ${isSyncing ? 'animate-spin' : ''}`} />
-              </button>
+              </Pressable>
 
               <DataHub embedded />
             </div>
           </section>
 
           <section className="space-y-3">
-            <SectionHeader icon={UploadCloud} title="Identity Vault" detail="Dokumenty, ankiety, testy i długi kontekst do analiz." />
+            <SectionHeader icon={UploadCloud} title="Identity Vault" detail="Dokumenty, ankiety, testy i dĹ‚ugi kontekst do analiz." />
             <IdentityVault />
           </section>
 
           <section className="space-y-3">
             <SectionHeader icon={Brain} title="Behavioral baseline" detail="Opcjonalny JSON z baseline zachowania." />
-            <textarea
+            <ControlTextarea
               value={identity.behavioral_baseline}
               onChange={(event) => setIdentity({ ...identity, behavioral_baseline: event.target.value })}
               placeholder='{"baselineMode": "THE_BUILDER"}'
@@ -236,18 +236,18 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
             />
           </section>
 
-          <Button
+          <Pressable
             onClick={saveIdentity}
             loading={saving}
             icon={<Save size={16} />}
             className="w-full rounded-2xl px-4 py-4 text-sm font-bold tracking-wider shadow-lg shadow-primary/25 font-display"
           >
             Zapisz fundament
-          </Button>
+          </Pressable>
 
           <section className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
             <p className="text-xs font-bold uppercase leading-relaxed text-text-secondary">
-              Te dane są warstwą deklaracji i kontekstu. System nadal powinien konfrontować je z zachowaniem, nie traktować jako automatycznej prawdy o wykonaniu.
+              Te dane sÄ… warstwÄ… deklaracji i kontekstu. System nadal powinien konfrontowaÄ‡ je z zachowaniem, nie traktowaÄ‡ jako automatycznej prawdy o wykonaniu.
             </p>
           </section>
         </main>

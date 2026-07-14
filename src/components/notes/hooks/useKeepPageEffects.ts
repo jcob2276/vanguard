@@ -39,10 +39,10 @@ export function useKeepPageEffects({
         setColumns(viewMode === 'grid' ? 2 : 1);
       } else if (w < 900) {
         setColumns(2);
-      } else if (w < 1300) {
+      } else if (w < 1180) {
         setColumns(3);
       } else {
-        setColumns(4);
+        setColumns(3);
       }
     }
     update();

@@ -25,7 +25,7 @@ export function useCalendarEvents(
     queryFn: async () => {
       const { fromISO } = warsawDayBoundsISO(rangeStart);
       const { fromISO: toISO } = warsawDayBoundsISO(rangeEnd);
-      
+
       const { data, error } = await supabase
         .from('vanguard_calendar')
         .select('*')

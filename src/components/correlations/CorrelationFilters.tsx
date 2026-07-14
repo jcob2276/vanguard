@@ -1,6 +1,6 @@
+import Button from '../ui/Button';
 import { BarChart2, Coffee, Moon, Dumbbell, Brain, Activity, Pill, Smartphone } from 'lucide-react';
 import type { CorrelationCategory } from '@vanguard/domain';
-import Button from '../ui/Button';
 
 const FILTERS: { id: CorrelationCategory | 'all'; icon: typeof Moon; label: string }[] = [
   { id: 'all', icon: BarChart2, label: 'Wszystkie' },

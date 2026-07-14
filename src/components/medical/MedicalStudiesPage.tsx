@@ -77,8 +77,8 @@ export default function MedicalStudiesPage() {
 
   return (
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">
-      <header className="sticky top-0 z-30 w-full border-b border-border-custom bg-background/95 backdrop-blur-md">
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-[var(--z-sticky)] w-full border-b border-border-custom bg-background/95 backdrop-blur-[var(--blur-md)]">
+        <div className="w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center gap-4">
           <Link
             to="/"
             className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
@@ -95,7 +95,7 @@ export default function MedicalStudiesPage() {
           </div>
         </div>
         {!loading && !error && labs.length > 0 && (
-          <nav className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 pb-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+          <nav className="w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 pb-3 flex gap-1.5 overflow-x-auto no-scrollbar">
             {SUBSECTIONS.map(({ id, label }) => (
               <a
                 key={id}
@@ -109,7 +109,7 @@ export default function MedicalStudiesPage() {
         )}
       </header>
 
-      <div className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-10">
+      <div className="flex-1 w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-10">
         {loading ? (
           <Skeleton variant="card" className="h-64 rounded-2xl" />
         ) : error ? (

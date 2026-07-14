@@ -29,7 +29,7 @@ export default function VolumeBar({ exercises }: VolumeBarProps) {
 
   return (
     <Card variant="glass" className="border border-border-custom">
-      <span className="text-2xs font-black uppercase tracking-[0.18em] text-text-muted block mb-2">
+      <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted block mb-2">
         Objętość sesji
       </span>
       <div className="flex flex-wrap gap-2">

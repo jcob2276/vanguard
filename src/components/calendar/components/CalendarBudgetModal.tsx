@@ -1,8 +1,9 @@
+import Button from '../../ui/Button';
+import { ControlInput } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { LIFE_SPHERES } from '../../../lib/projects/lifeSpheres';
 import Modal from '../../ui/Modal';
-import Button from '../../ui/Button';
 
 export default function CalendarBudgetModal() {
   const {
@@ -42,7 +43,7 @@ export default function CalendarBudgetModal() {
 
   return (
     <Modal isOpen={!!showBudgetConfig} onClose={() => setShowBudgetConfig(false)} title="Ustaw Budżety Czasu" size="sm">
-      <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[var(--legacy-h-026)] overflow-y-auto pr-1">
         {LIFE_SPHERES.map((sphere) => {
           let placeholderMin = 'np. 3';
           let placeholderMax = 'brak';
@@ -61,7 +62,7 @@ export default function CalendarBudgetModal() {
                   <span className="text-2xs font-black uppercase tracking-widest text-text-muted">
                     Min (godzin/tyg)
                   </span>
-                  <input
+                  <ControlInput
                     type="number"
                     step="0.5"
                     placeholder={placeholderMin}
@@ -76,7 +77,7 @@ export default function CalendarBudgetModal() {
                   <span className="text-2xs font-black uppercase tracking-widest text-text-muted">
                     Max (godzin/tyg)
                   </span>
-                  <input
+                  <ControlInput
                     type="number"
                     step="0.5"
                     placeholder={placeholderMax}

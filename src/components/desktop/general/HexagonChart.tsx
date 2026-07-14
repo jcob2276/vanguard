@@ -47,8 +47,8 @@ export default function HexagonChart({ scores, theme, grid }: { scores: HexagonS
           const val = (scores[key] || 5) / 10;
           return `${150 + 110 * val * Math.cos(angle)},${150 + 110 * val * Math.sin(angle)}`;
         }).join(' ')}
-        fill="rgba(79, 70, 229, 0.2)"
-        stroke="rgba(79, 70, 229, 0.85)"
+        fill="var(--primary-25)"
+        stroke="var(--primary-80)"
         strokeWidth="2"
       />
 
@@ -63,8 +63,8 @@ export default function HexagonChart({ scores, theme, grid }: { scores: HexagonS
             cx={x}
             cy={y}
             r="4"
-            fill="rgb(79, 70, 229)"
-            stroke={theme === 'dark' ? '#000' : '#fff'}
+            fill="var(--primary)"
+            stroke={theme === 'dark' ? 'var(--legacy-color-001)' : 'var(--legacy-color-046)'}
             strokeWidth="1.5"
           />
         );

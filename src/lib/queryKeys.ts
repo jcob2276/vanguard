@@ -1,6 +1,6 @@
 /**
  * Application Query Keys Registry (SSOT)
- * 
+ *
  * Central registry for all react-query cache keys.
  * Using strongly-typed functions prevents silent cache invalidation bugs due to typos.
  */

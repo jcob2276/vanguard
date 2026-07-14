@@ -1,6 +1,6 @@
+import Button from '../ui/Button';
 import { useState } from 'react';
 import { Layers, Palette, Type, Box, Sparkles } from 'lucide-react';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import Badge from '../ui/Badge';
 import Tabs from '../ui/Tabs';
@@ -64,6 +64,8 @@ export function ColorTokensSection() {
         <Swatch className="bg-surface-1 border" label="surface-1" />
         <Swatch className="bg-surface-2 border" label="surface-2" />
         <Swatch className="bg-surface-3 border" label="surface-3" />
+        <Swatch className="bg-surface-tonal border" label="tonal" />
+        <Swatch className="bg-surface-tonal-strong border" label="tonal-strong" />
       </Row>
       <Row label="Text">
         <div className="flex items-center gap-4">
@@ -168,17 +170,17 @@ export function BadgeGallery() {
         <Badge variant="count" count={3} />
         <Badge variant="count" count={42} />
         <Badge variant="count" count={999} />
-        <Badge variant="count" count={7} color="#F43F5E" />
+        <Badge variant="count" count={7} color="var(--legacy-color-038)" />
       </Row>
       <Row label="Dot">
         <Badge variant="dot" />
-        <Badge variant="dot" color="#10B981" />
-        <Badge variant="dot" color="#F59E0B" />
+        <Badge variant="dot" color="var(--legacy-color-004)" />
+        <Badge variant="dot" color="var(--legacy-color-040)" />
       </Row>
       <Row label="Tag">
         <Badge variant="tag">Pilne</Badge>
-        <Badge variant="tag" color="#10B981">Gotowe</Badge>
-        <Badge variant="tag" color="#F43F5E">Krytyczne</Badge>
+        <Badge variant="tag" color="var(--legacy-color-004)">Gotowe</Badge>
+        <Badge variant="tag" color="var(--legacy-color-038)">Krytyczne</Badge>
       </Row>
     </Section>
   );

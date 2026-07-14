@@ -9,7 +9,7 @@ import { useProjectsContext } from './context/projectsContextStore';
 
 const MOMENTUM_META: Record<string, { label: string; color: string }> = {
   accelerating: { label: '↑ Momentum', color: 'var(--color-success)' },
-  steady:       { label: '→ Steady',   color: '#3b82f6' },
+  steady:       { label: '→ Steady',   color: 'var(--legacy-color-020)' },
   slipping:     { label: '↓ Slipuje',  color: 'var(--color-warning)' },
   stalled:      { label: '✕ Stale',   color: 'var(--color-danger)' },
 };
@@ -53,13 +53,13 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       padding="0"
       className={`overflow-hidden hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] ${
         healthLevel === 'critical' && project.status === 'active'
-          ? 'border-danger/30 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]'
+          ? 'border-danger/30 shadow-[var(--legacy-shadow-066)]'
           : 'border-border-custom'
       }`}
-      style={{ borderRadius: '22px' }}
+      style={{ borderRadius: 'var(--legacy-inline-style-008)' }}
     >
       {/* Color accent strip */}
-      <div className={`h-0.5 w-full ${col.bar} opacity-70`} />
+      <div className={`h-0.5 w-full ${col.bar} opacity-[var(--opacity-70)]`} />
 
       {/* Collapsed Card header */}
       <ProjectCardCollapsed

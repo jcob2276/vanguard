@@ -29,7 +29,7 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
           <div
             key={task.id}
             onClick={() => void onToggleDone(task)}
-            className="flex items-center gap-2.5 rounded-xl border border-border-custom bg-background/30 px-3.5 py-2.5 cursor-pointer hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-2.5 rounded-xl border border-border-custom bg-background/30 px-3.5 py-2.5 cursor-pointer hover:bg-surface-2 transition-colors"
             title="Kliknij, aby oznaczyć jako wykonane"
           >
             <span className={`h-2 w-2 rounded-full ${task.priority === 'urgent' ? 'bg-danger' : 'bg-primary'}`} />

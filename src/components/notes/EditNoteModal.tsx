@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Bot, BrainCircuit, ChevronLeft, ChevronRight, Cpu, Link2, ListTodo, Loader2, MoreHorizontal, Pin, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import RichEditor from './RichEditor';
@@ -5,7 +6,6 @@ import { COLORS, getColor, Note } from './keepUtils';
 import { supabase } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
 import { useUserId } from '../../store/useStore';
-
 export default function EditNoteModal({
   note,
   onClose,
@@ -197,33 +197,33 @@ export default function EditNoteModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Main note column */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 'var(--legacy-inline-style-058)' }}>
           <nav className="keep-ios-nav" style={{ borderBottomColor: c.border }}>
-            <button type="button" className="keep-ios-back" onClick={handleSave}>
+            <Pressable type="button" className="keep-ios-back" onClick={handleSave}>
               <ChevronLeft size={22} strokeWidth={2.5} />
               <span>Notatki</span>
-            </button>
+            </Pressable>
             <span className="keep-ios-date" style={{ color: c.textSub }}>{noteDate}</span>
             <div className="keep-ios-nav-right">
-              <button
+              <Pressable
                 type="button"
                 title="Asystent AI"
                 onClick={() => setShowAI(v => !v)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                  background: showAI ? 'var(--primary)' : 'rgba(99,102,241,0.12)',
-                  color: showAI ? '#fff' : 'var(--primary)',
-                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-030)',
+                  padding: 'var(--legacy-inline-style-077)', borderRadius: 'var(--legacy-inline-style-011)', fontSize: 'var(--legacy-inline-style-018)', fontWeight: 'var(--legacy-inline-style-026)',
+                  background: showAI ? 'var(--primary)' : 'var(--primary-12)',
+                  color: showAI ? 'var(--legacy-color-046)' : 'var(--primary)',
+                  border: 'none', cursor: 'pointer', transition: 'var(--legacy-inline-style-086)',
                 }}
               >
                 <Sparkles size={13} />
                 AI
-              </button>
-              <button type="button" className="keep-ios-done" onClick={handleSave}>Gotowe</button>
-              <button type="button" className="keep-ios-more" onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}>
+              </Pressable>
+              <Pressable type="button" className="keep-ios-done" onClick={handleSave}>Gotowe</Pressable>
+              <Pressable type="button" className="keep-ios-more" onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}>
                 <MoreHorizontal size={22} />
-              </button>
+              </Pressable>
             </div>
           </nav>
 
@@ -233,41 +233,41 @@ export default function EditNoteModal({
               <div className="keep-menu" onClick={e => e.stopPropagation()}>
                 <div className="keep-menu-colors">
                   {COLORS.map(col => (
-                    <button key={col.id} type="button" title={col.label} onClick={() => setColor(col.id)}
+                    <Pressable key={col.id} type="button" title={col.label} onClick={() => setColor(col.id)}
                       className={`keep-swatch ${color === col.id ? 'selected' : ''}`} style={{ backgroundColor: col.dot }} />
                   ))}
                 </div>
                 <div className="keep-menu-rule" />
-                <button type="button" className="keep-menu-item" onClick={() => { onTogglePin(note); setShowMenu(false); }}>
+                <Pressable type="button" className="keep-menu-item" onClick={() => { onTogglePin(note); setShowMenu(false); }}>
                   <Pin size={17} fill={note.is_pinned ? 'currentColor' : 'none'} />
                   <span>{note.is_pinned ? 'Odepnij' : 'Przypnij'}</span>
-                </button>
+                </Pressable>
                 {uncheckedCount > 0 && onExportChecklists && (
-                  <button type="button" className="keep-menu-item" onClick={() => { onExportChecklists({ ...note, title, content }); setShowMenu(false); }}>
+                  <Pressable type="button" className="keep-menu-item" onClick={() => { onExportChecklists({ ...note, title, content }); setShowMenu(false); }}>
                     <ListTodo size={17} />
                     <span>Eksportuj {uncheckedCount} pkt. do zadan</span>
-                  </button>
+                  </Pressable>
                 )}
-                <button type="button" className="keep-menu-item"
+                <Pressable type="button" className="keep-menu-item"
                   onClick={() => { onUpdate(note.id, { is_archived: !note.is_archived, is_pinned: false }); setShowMenu(false); onClose(); }}>
                   <Archive size={17} />
                   <span>{note.is_archived ? 'Przywroc' : 'Archiwizuj'}</span>
-                </button>
+                </Pressable>
                 <div className="keep-menu-rule" />
-                <button type="button" className="keep-menu-item danger" onClick={() => { onDelete(note.id); onClose(); }} disabled={busy}>
+                <Pressable type="button" className="keep-menu-item danger" onClick={() => { onDelete(note.id); onClose(); }} disabled={busy}>
                   <Trash2 size={17} />
                   <span>Usun notatke</span>
-                </button>
+                </Pressable>
               </div>
             </>
           )}
 
           <div className="keep-modal-body" ref={bodyRef}>
-            <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
+            <ControlInput autoFocus value={title} onChange={e => setTitle(e.target.value)}
               placeholder="Tytul" className="keep-ios-title-input" style={{ color: c.text }} />
             <div className="keep-ios-meta-row" style={{ borderBottomColor: c.border }}>
-              <Tag size={10} style={{ opacity: 0.35, flexShrink: 0 }} />
-              <input value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+              <Tag size={10} style={{ opacity: 'var(--legacy-inline-style-063)', flexShrink: 0 }} />
+              <ControlInput value={tagsInput} onChange={e => setTagsInput(e.target.value)}
                 placeholder="Tagi..." className="keep-ios-tags-input" style={{ color: c.textSub }} />
             </div>
             {allTags && allTags.length > 0 && (
@@ -278,7 +278,7 @@ export default function EditNoteModal({
                     const currentTags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
                     const isActive = currentTags.includes(tag.toLowerCase());
                     return (
-                      <button key={tag} type="button"
+                      <Pressable key={tag} type="button"
                         onClick={() => {
                           const tagsList = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
                           const isExist = tagsList.some(t => t.toLowerCase() === tag.toLowerCase());
@@ -287,7 +287,7 @@ export default function EditNoteModal({
                             : [...tagsList, tag].join(', '));
                         }}
                         className={`tag-suggestion-pill ${isActive ? 'active' : ''}`}
-                      >{tag}</button>
+                      >{tag}</Pressable>
                     );
                   })}
                 </div>
@@ -311,7 +311,7 @@ export default function EditNoteModal({
                 </div>
                 <div>
                   {backlinks.map(bl => (
-                    <button key={bl.id} type="button" className="keep-backlink-item"
+                    <Pressable key={bl.id} type="button" className="keep-backlink-item"
                       onClick={() => {
                         if (onNavigateToNote) {
                           onUpdate(note.id, { title: title.trim(), content: content.trim(), color, tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean) });
@@ -321,7 +321,7 @@ export default function EditNoteModal({
                       <span>📎</span>
                       {bl.title || '(Bez tytulu)'}
                       <ChevronRight size={10} />
-                    </button>
+                    </Pressable>
                   ))}
                 </div>
               </div>
@@ -339,81 +339,81 @@ export default function EditNoteModal({
           <div className="keep-ai-companion" style={{ borderColor: c.border }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '14px 16px', borderBottom: `1px solid ${c.border}`,
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(168,85,247,0.04) 100%)',
+              padding: 'var(--legacy-inline-style-074)', borderBottom: `1px solid ${c.border}`,
+              background: 'linear-gradient(135deg, var(--primary-5) 0%, var(--legacy-color-100) 100%)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Bot size={14} color="#fff" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
+                <div style={{ width: 'var(--legacy-inline-style-095)', height: 'var(--legacy-inline-style-036)', borderRadius: 'var(--legacy-inline-style-011)', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Bot size={14} color="var(--legacy-color-046)" />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>AI Companion</div>
-                  <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 500 }}>Asystent notatek</div>
+                  <div style={{ fontSize: 'var(--legacy-inline-style-019)', fontWeight: 'var(--legacy-inline-style-027)', color: 'var(--text-primary)', letterSpacing: 'var(--legacy-inline-style-042)' }}>AI Companion</div>
+                  <div style={{ fontSize: 'var(--legacy-inline-style-023)', color: 'var(--text-muted)', fontWeight: 'var(--legacy-inline-style-024)' }}>Asystent notatek</div>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowAI(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+              <Pressable type="button" onClick={() => setShowAI(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 'var(--legacy-inline-style-076)' }}>
                 <X size={14} />
-              </button>
+              </Pressable>
             </div>
 
-            <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: 'var(--legacy-inline-style-072)', display: 'flex', flexDirection: 'column', gap: 'var(--legacy-inline-style-032)' }}>
               {[
-                { key: 'summary', label: 'Stworz podsumowanie', sub: 'TL;DR notatki jednym kliknieciem', Icon: BrainCircuit, color: 'var(--primary)', bg: 'rgba(99,102,241,0.12)', action: aiSummarize },
-                { key: 'tasks', label: 'Wyciagnij zadania', sub: 'Automatycznie tworzy zadania w Todo', Icon: ListTodo, color: '#22c55e', bg: 'rgba(34,197,94,0.12)', action: aiExtractTasks },
-                { key: 'connect', label: 'Polacz tematy', sub: 'Sugestie powiazanych notatek', Icon: Cpu, color: '#a855f7', bg: 'rgba(168,85,247,0.12)', action: aiConnectTopics },
+                { key: 'summary', label: 'Stworz podsumowanie', sub: 'TL;DR notatki jednym kliknieciem', Icon: BrainCircuit, color: 'var(--primary)', bg: 'var(--primary-12)', action: aiSummarize },
+                { key: 'tasks', label: 'Wyciagnij zadania', sub: 'Automatycznie tworzy zadania w Todo', Icon: ListTodo, color: 'var(--legacy-color-010)', bg: 'var(--legacy-color-144)', action: aiExtractTasks },
+                { key: 'connect', label: 'Polacz tematy', sub: 'Sugestie powiazanych notatek', Icon: Cpu, color: 'var(--legacy-color-033)', bg: 'var(--legacy-color-101)', action: aiConnectTopics },
               ].map(btn => (
-                <button key={btn.key} type="button" disabled={!!aiLoading} onClick={btn.action}
+                <Pressable key={btn.key} type="button" disabled={!!aiLoading} onClick={btn.action}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px',
-                    borderRadius: 10, border: '1px solid var(--border)',
+                    display: 'flex', alignItems: 'flex-start', gap: 'var(--legacy-inline-style-029)', padding: 'var(--legacy-inline-style-073)',
+                    borderRadius: 'var(--legacy-inline-style-004)', border: '1px solid var(--border)',
                     background: aiLoading === btn.key ? btn.bg.replace('0.12', '0.20') : 'transparent',
-                    cursor: aiLoading ? 'wait' : 'pointer', transition: 'all 0.2s', textAlign: 'left', width: '100%',
+                    cursor: aiLoading ? 'wait' : 'pointer', transition: 'var(--legacy-inline-style-086)', textAlign: 'left', width: 'var(--legacy-inline-style-092)',
                   }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: btn.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 'var(--legacy-inline-style-096)', height: 'var(--legacy-inline-style-037)', borderRadius: 'var(--legacy-inline-style-011)', background: btn.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {aiLoading === btn.key
-                      ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} color={btn.color} />
+                      ? <Loader2 size={14} style={{ animation: 'var(--legacy-inline-style-002)' }} color={btn.color} />
                       : <btn.Icon size={14} color={btn.color} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{btn.label}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{btn.sub}</div>
+                    <div style={{ fontSize: 'var(--legacy-inline-style-018)', fontWeight: 'var(--legacy-inline-style-026)', color: 'var(--text-primary)' }}>{btn.label}</div>
+                    <div style={{ fontSize: 'var(--legacy-inline-style-023)', color: 'var(--text-muted)', marginTop: 'var(--legacy-inline-style-053)', lineHeight: 'var(--legacy-inline-style-048)' }}>{btn.sub}</div>
                   </div>
-                </button>
+                </Pressable>
               ))}
             </div>
 
             {aiResult && (
-              <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
-                <div style={{ borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', background: 'rgba(148,163,184,0.04)' }}>
-                  <div style={{ padding: '8px 12px', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--legacy-inline-style-068)' }}>
+                <div style={{ borderRadius: 'var(--legacy-inline-style-004)', border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--legacy-color-072)' }}>
+                  <div style={{ padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-023)', fontWeight: 'var(--legacy-inline-style-028)', textTransform: 'uppercase', letterSpacing: 'var(--legacy-inline-style-044)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-031)' }}>
                     <Sparkles size={9} />
                     {aiResult.type === 'summary' && 'Podsumowanie'}
                     {aiResult.type === 'tasks' && 'Wyciagniete zadania'}
                     {aiResult.type === 'connect' && 'Sugestie polaczen'}
                   </div>
-                  <div style={{ padding: '12px', fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  <div style={{ padding: 'var(--legacy-inline-style-072)', fontSize: 'var(--legacy-inline-style-018)', color: 'var(--text-primary)', lineHeight: 'var(--legacy-inline-style-050)', whiteSpace: 'pre-wrap' }}>
                     {aiResult.text}
                   </div>
                   {aiResult.type === 'summary' && (
-                    <button type="button"
+                    <Pressable type="button"
                       onClick={() => {
                         const summaryHtml = `<div class="keep-callout-block">💡 <strong>Podsumowanie AI:</strong> ${aiResult.text}</div><p><br></p>`;
                         setContent(summaryHtml + content);
                         setAiResult(null);
                         notify('Podsumowanie dodane na gore notatki!', 'success');
                       }}
-                      style={{ width: '100%', padding: '8px 12px', fontSize: 10, fontWeight: 700, borderTop: '1px solid var(--border)', background: 'rgba(99,102,241,0.06)', color: 'var(--primary)', cursor: 'pointer', border: 'none', borderRadius: '0 0 10px 10px', transition: 'all 0.15s' }}>
+                      style={{ width: 'var(--legacy-inline-style-092)', padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-017)', fontWeight: 'var(--legacy-inline-style-026)', borderTop: '1px solid var(--border)', background: 'var(--primary-5)', color: 'var(--primary)', cursor: 'pointer', border: 'none', borderRadius: 'var(--legacy-inline-style-003)', transition: 'var(--legacy-inline-style-085)' }}>
                       Wstaw na gore notatki
-                    </button>
+                    </Pressable>
                   )}
                 </div>
               </div>
             )}
 
             {!aiResult && !aiLoading && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 10 }}>
-                <Bot size={32} style={{ opacity: 0.25 }} />
-                <p style={{ fontSize: 10, textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.5, fontWeight: 500, opacity: 0.6 }}>Wybierz akcje AI powyzej, aby przeanalizowac te notatke</p>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--legacy-inline-style-075)', gap: 'var(--legacy-inline-style-029)' }}>
+                <Bot size={32} style={{ opacity: 'var(--legacy-inline-style-062)' }} />
+                <p style={{ fontSize: 'var(--legacy-inline-style-017)', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 'var(--legacy-inline-style-049)', fontWeight: 'var(--legacy-inline-style-024)', opacity: 'var(--legacy-inline-style-066)' }}>Wybierz akcje AI powyzej, aby przeanalizowac te notatke</p>
               </div>
             )}
           </div>

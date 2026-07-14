@@ -1,9 +1,9 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ShieldCheck, AlertTriangle, AlertOctagon, Info, RefreshCw, ChevronDown, ChevronUp, Moon, Apple, Award, Zap, Target, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import { fetchSystemHealthData } from '../../../lib/systemApi';
-import Button from '../../ui/Button';
 import Spinner from '../../ui/Spinner';
 import { Card } from '../../ui/Card';
 
@@ -68,10 +68,10 @@ export default function SystemHealth({ userId }: { userId: string }) {
     };
 
     return (
-      <Card padding="1rem" className="space-y-3.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+      <Card padding="1rem" className="space-y-3.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
         <div className="flex items-center justify-between">
           <span className="text-sm font-black text-text-secondary">{title}</span>
-          <div className={`${colorClass} opacity-80`}>{icon}</div>
+          <div className={`${colorClass} opacity-[var(--opacity-80)]`}>{icon}</div>
         </div>
 
         <div className="space-y-2">
@@ -81,8 +81,8 @@ export default function SystemHealth({ userId }: { userId: string }) {
               <span className="text-text-muted">30 dni</span>
               <span className={getStatusColor(pct30)}>{pct30}%</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/[0.04] rounded-full overflow-hidden">
-              <div className={`h-full ${getBarColor(pct30)} transition-all duration-500`} style={{ width: `${pct30}%` }} />
+            <div className="h-1.5 w-full bg-surface-2 dark:bg-on-accent/[0.04] rounded-full overflow-hidden">
+              <div className={`h-full ${getBarColor(pct30)} transition-all duration-[var(--motion-long)]`} style={{ width: `${pct30}%` }} />
             </div>
           </div>
 
@@ -92,8 +92,8 @@ export default function SystemHealth({ userId }: { userId: string }) {
               <span className="text-text-muted">90 dni</span>
               <span className={getStatusColor(pct90)}>{pct90}%</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/[0.04] rounded-full overflow-hidden">
-              <div className={`h-full ${getBarColor(pct90)} transition-all duration-500`} style={{ width: `${pct90}%` }} />
+            <div className="h-1.5 w-full bg-surface-2 dark:bg-on-accent/[0.04] rounded-full overflow-hidden">
+              <div className={`h-full ${getBarColor(pct90)} transition-all duration-[var(--motion-long)]`} style={{ width: `${pct90}%` }} />
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="space-y-6 max-w-[800px] mx-auto p-5 pb-20 animate-fade-in">
+    <div className="space-y-6 max-w-[var(--legacy-maxw-062)] mx-auto p-5 pb-20 animate-fade-in">
       {/* Diagnostics / Coverage */}
       {coverage && (
         <div className="space-y-3.5">
@@ -139,7 +139,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
               <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Snu</span>
               <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.sleep_mae !== null
@@ -149,7 +149,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
               <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) snu</span>
             </Card>
 
-            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
               <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Gotowości</span>
               <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.readiness_mae !== null
@@ -159,7 +159,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
               <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) gotowości</span>
             </Card>
 
-            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-150 hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
               <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Wykonania</span>
               <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.execution_mae !== null
@@ -179,10 +179,10 @@ export default function SystemHealth({ userId }: { userId: string }) {
                 </span>
                 <span className="text-2xs text-text-muted">Chronologicznie</span>
               </div>
-              <div className="h-[200px] w-full text-xs">
+              <div className="h-[var(--legacy-h-016)] w-full text-xs">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={healthQuery.data.calibrationHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100 dark:stroke-white/[0.04]" />
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border-custom dark:stroke-on-accent/[0.04]" />
                     <XAxis dataKey="date" stroke="currentColor" className="text-text-muted" fontSize={9} tickLine={false} />
                     <YAxis stroke="currentColor" className="text-text-muted" fontSize={9} tickLine={false} />
                     <Tooltip
@@ -215,14 +215,14 @@ export default function SystemHealth({ userId }: { userId: string }) {
           </h2>
           <p className="text-xs text-text-muted mt-0.5">Ostatnie 50 zarejestrowanych operacji, błędów i potoków synchronizacji.</p>
         </div>
-        <Button
+        <Pressable
           onClick={() => void healthQuery.refetch()}
           variant="secondary"
           icon={<RefreshCw size={12} className={loading ? 'animate-spin' : ''} />}
           className="rounded-xl px-3.5 py-2 text-xs"
         >
           Odśwież
-        </Button>
+        </Pressable>
       </div>
 
       {loading && (
@@ -248,20 +248,20 @@ export default function SystemHealth({ userId }: { userId: string }) {
             return (
               <div
                 key={ev.id}
-                className="bg-surface border border-border-custom/50 rounded-2xl overflow-hidden transition-all duration-150"
+                className="bg-surface border border-border-custom/50 rounded-2xl overflow-hidden transition-all duration-[var(--motion-medium)]"
               >
                 {/* Header Row */}
                 <div
                   onClick={() => hasMeta && setExpandedId(isExpanded ? null : ev.id)}
                   className={`p-4 flex items-start justify-between gap-3 cursor-pointer ${
-                    hasMeta ? 'hover:bg-slate-50 dark:hover:bg-white/[0.015]' : ''
+                    hasMeta ? 'hover:bg-surface-2 dark:hover:bg-on-accent/[0.015]' : ''
                   }`}
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     {getSeverityIcon(ev.severity)}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-black text-text-primary px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.04]">
+                        <span className="text-xs font-black text-text-primary px-1.5 py-0.5 rounded bg-surface-2 dark:bg-on-accent/[0.04]">
                           {ev.event_type}
                         </span>
                         {getSeverityBadge(ev.severity)}
@@ -281,15 +281,15 @@ export default function SystemHealth({ userId }: { userId: string }) {
                   </div>
 
                   {hasMeta && (
-                    <button className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/[0.04] text-text-muted">
+                    <Pressable className="p-1 rounded hover:bg-surface-2 dark:hover:bg-on-accent/[0.04] text-text-muted">
                       {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                    </button>
+                    </Pressable>
                   )}
                 </div>
 
                 {/* Metadata JSON Drawer */}
                 {isExpanded && hasMeta && (
-                  <div className="border-t border-border-custom/40 bg-slate-950/20 px-4 py-3 text-xs font-mono overflow-x-auto text-text-secondary select-text">
+                  <div className="border-t border-border-custom/40 bg-surface-2/20 px-4 py-3 text-xs font-mono overflow-x-auto text-text-secondary select-text">
                     <pre className="whitespace-pre">{JSON.stringify(ev.metadata, null, 2)}</pre>
                   </div>
                 )}

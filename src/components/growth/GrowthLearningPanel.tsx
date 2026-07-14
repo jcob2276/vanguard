@@ -1,8 +1,8 @@
+import Button from '../ui/Button';
 import { BookOpen, CheckCircle2, ExternalLink, FileText, Link2, TrendingUp } from 'lucide-react';
 import type { LearningNeedItem, WeekLearningItem } from '../../lib/growth/growthOverview';
 import type { GrowthLinkRow } from './hooks/useGrowthData';
 import type { GrowthPinSlot } from '../../lib/growth/growth';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 const KIND_ICON = {
@@ -122,7 +122,7 @@ export default function GrowthLearningPanel({
         )}
       </Card>
 
-      <Card variant="glass" padding="1rem" className="flex-1 flex flex-col min-h-[200px]">
+      <Card variant="glass" padding="1rem" className="flex-1 flex flex-col min-h-[var(--legacy-h-016)]">
         <p className="text-2xs font-black uppercase tracking-wider text-text-muted mb-2">
           Nauczyłem się w tym tygodniu
         </p>
@@ -131,7 +131,7 @@ export default function GrowthLearningPanel({
             Puste — zamknij MUST, przeczytaj link, zapisz notatkę #rozwoj albo podnieś ocenę skilli.
           </p>
         ) : (
-          <ul className="space-y-1.5 overflow-y-auto max-h-[280px] pr-1">
+          <ul className="space-y-1.5 overflow-y-auto max-h-[var(--legacy-h-020)] pr-1">
             {weekItems.map((item) => {
               const Icon = KIND_ICON[item.kind];
               return (

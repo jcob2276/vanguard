@@ -1,10 +1,10 @@
+import Button from '../ui/Button';
 import { ChevronDown } from 'lucide-react';
 import GrowthLearningPanel from './GrowthLearningPanel';
 import GrowthMediaQueue from './GrowthMediaQueue';
 import GrowthProjectsPanel from './GrowthProjectsPanel';
 import GrowthSkillsList from './GrowthSkillsList';
 import Skeleton from '../ui/Skeleton';
-import Button from '../ui/Button';
 import GrowthCockpit from './GrowthCockpit';
 import GrowthWeekPlan from './GrowthWeekPlan';
 import WeekLoopSummary from '../shared/WeekLoopSummary';

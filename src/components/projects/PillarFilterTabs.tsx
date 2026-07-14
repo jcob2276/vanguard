@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { PILLARS, PILLAR_META, PillarId } from './projectUtils';
 
 type PillarFilter = PillarId | 'all';
@@ -9,24 +10,24 @@ interface Props {
 
 export function PillarFilterTabs({ pillarFilter, onChange }: Props) {
   return (
-    <div className="flex gap-0.5 p-1 rounded-[14px] bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-      <button
+    <div className="flex gap-0.5 p-1 rounded-[var(--radius-md)] bg-surface shadow-[var(--legacy-shadow-071)]">
+      <Pressable
         onClick={() => onChange('all')}
-        className={`flex-1 py-1.5 text-xs font-semibold rounded-[10px] transition-all ${
+        className={`flex-1 py-1.5 text-xs font-semibold rounded-[var(--radius-sm)] transition-all ${
           pillarFilter === 'all'
             ? 'bg-background text-text-primary shadow-sm'
             : 'text-text-muted hover:text-text-secondary'
         }`}
       >
         Wszystko
-      </button>
+      </Pressable>
       {PILLARS.map(p => {
         const meta = PILLAR_META[p];
         return (
-          <button
+          <Pressable
             key={p}
             onClick={() => onChange(p)}
-            className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold rounded-[10px] transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-semibold rounded-[var(--radius-sm)] transition-all ${
               pillarFilter === p
                 ? `bg-background shadow-sm ${meta.text}`
                 : 'text-text-muted hover:text-text-secondary'
@@ -34,7 +35,7 @@ export function PillarFilterTabs({ pillarFilter, onChange }: Props) {
           >
             <meta.icon size={10} />
             {meta.label}
-          </button>
+          </Pressable>
         );
       })}
     </div>

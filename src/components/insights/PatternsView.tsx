@@ -1,9 +1,9 @@
+import Button from '../ui/Button';
 import { notify } from '../../lib/notify';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Brain } from 'lucide-react';
 import { PatternCard } from './PatternCard';
-import Button from '../ui/Button';
 import { listActivePatterns, triggerPatternDetection, type BehavioralPattern as PatternData } from '../../lib/insightsApi';
 import { useUserId } from '../../store/useStore';
 
@@ -51,7 +51,7 @@ export function PatternsView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold flex items-center gap-2">
-          <Brain className="w-5 h-5 text-purple-500" />
+          <Brain className="w-5 h-5 text-primary" />
           Wykryte wzorce
         </h2>
         <Button
@@ -59,7 +59,7 @@ export function PatternsView() {
           variant="tonal"
           icon={<RefreshCw className={`w-3.5 h-3.5 ${running ? 'animate-spin' : ''}`} />}
           disabled={running}
-          className="rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20"
+          className="rounded-lg bg-primary/10 text-primary hover:bg-primary/20"
         >
           {running ? 'Analizuję...' : 'Wykryj wzorce'}
         </Button>

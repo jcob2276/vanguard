@@ -1,8 +1,9 @@
+import Button from '../ui/Button';
+import { ControlTextarea } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { X, Sparkles, Send } from 'lucide-react';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useShutdownData } from './shutdown/useShutdownData';
 import ShutdownScoreSliders from './shutdown/ShutdownScoreSliders';
@@ -25,7 +26,7 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
 
   if (d.loading) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--legacy-arbitrary-029)]" closeOnBackdropClick={false}>
         <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-sm font-bold text-text-muted">Wczytywanie rytuału wieczornego...</span>
@@ -36,7 +37,7 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
 
   if (!d.todayWin) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="sm" overlayClassName="z-[60]">
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="sm" overlayClassName="z-[var(--legacy-arbitrary-029)]">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center mx-auto text-xl font-bold">!</div>
           <h2 className="text-base font-black text-text-primary">Brak planu na dziś</h2>
@@ -48,8 +49,8 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
   }
 
   return (
-    <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-0" overflowY={false} size="lg" overlayClassName="z-[60]">
-      <div className="relative w-full flex flex-col max-h-[85vh] sm:max-h-[680px] overflow-hidden">
+    <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-0" overflowY={false} size="lg" overlayClassName="z-[var(--legacy-arbitrary-029)]">
+      <div className="relative w-full flex flex-col max-h-[var(--legacy-h-046)] sm:max-h-[var(--legacy-h-039)] overflow-hidden">
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-base font-black text-text-primary uppercase tracking-wider">Domknięcie Dnia</h2>
@@ -69,8 +70,8 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
                   <div className="grid grid-cols-1 gap-1.5">
                     {d.tasksList.map((task) => (
                       <div key={task.idx} className={`px-3 py-2 rounded-lg border flex items-center justify-between transition-all ${task.done ? 'border-success/10 bg-success/[0.01] text-text-primary' : 'border-border-custom/40 bg-surface/30 text-text-muted'}`}>
-                        <span className={`text-xs font-medium ${task.done ? 'line-through opacity-70' : ''}`}>{task.title}</span>
-                        <span className={`text-2xs font-bold px-1.5 py-0.5 rounded ${task.done ? 'bg-success/10 text-success' : 'bg-slate-500/10 text-slate-500'}`}>{task.done ? 'Tak' : 'Nie'}</span>
+                        <span className={`text-xs font-medium ${task.done ? 'line-through opacity-[var(--opacity-70)]' : ''}`}>{task.title}</span>
+                        <span className={`text-2xs font-bold px-1.5 py-0.5 rounded ${task.done ? 'bg-success/10 text-success' : 'bg-surface-2/10 text-text-muted'}`}>{task.done ? 'Tak' : 'Nie'}</span>
                       </div>
                     ))}
                   </div>
@@ -79,12 +80,12 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
 
               <div className="space-y-1.5">
                 <span className="text-xs font-bold text-text-primary block">Refleksja: co realnie poszło inaczej i dlaczego?</span>
-                <textarea value={d.reflectionText} onChange={(e) => d.setReflectionText(e.target.value)} placeholder="Zapisz krótkie podsumowanie lub napotkane tarcia..." rows={2} className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors resize-none" />
+                <ControlTextarea value={d.reflectionText} onChange={(e) => d.setReflectionText(e.target.value)} placeholder="Zapisz krótkie podsumowanie lub napotkane tarcia..." rows={2} className="w-full bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors resize-none" />
               </div>
 
               <div className="space-y-1.5">
                 <span className="text-xs font-bold text-text-primary block">Dodatkowe notatki z wykonania (opcjonalnie)</span>
-                <textarea value={d.actualAccomplishmentText} onChange={(e) => d.setActualAccomplishmentText(e.target.value)} placeholder="Co konkretnie udało się dzisiaj dowieźć poza planem..." rows={2} className="w-full bg-slate-50 dark:bg-white/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors resize-none" />
+                <ControlTextarea value={d.actualAccomplishmentText} onChange={(e) => d.setActualAccomplishmentText(e.target.value)} placeholder="Co konkretnie udało się dzisiaj dowieźć poza planem..." rows={2} className="w-full bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/60 rounded-xl px-3 py-2 text-sm font-semibold text-text-primary placeholder:text-text-muted/30 focus:border-primary/50 outline-none transition-colors resize-none" />
               </div>
 
               <ShutdownScoreSliders dayScore={d.dayScore} setDayScore={d.setDayScore} moodScore={d.moodScore} setMoodScore={d.setMoodScore} rpeScore={d.rpeScore} setRpeScore={d.setRpeScore} />

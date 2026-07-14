@@ -1,4 +1,4 @@
-import Button from '../../ui/Button';
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import FoodAnalysisSingle from './foodAnalysis/FoodAnalysisSingle';
 import FoodAnalysisRange from './foodAnalysis/FoodAnalysisRange';
 
@@ -78,7 +78,7 @@ export function FoodAnalysisSection({
     <div className="border-t border-border-custom pt-3 space-y-3">
       <div className="flex gap-1">
         {[1, 7, 14, 30].map((p) => (
-          <button
+          <Pressable
             key={p}
             onClick={() => {
               setAnalyzePeriod(p);
@@ -91,13 +91,13 @@ export function FoodAnalysisSection({
             }`}
           >
             {p === 1 ? '1D' : `${p}D`}
-          </button>
+          </Pressable>
         ))}
       </div>
 
       <div className="flex items-center gap-2">
         {analyzePeriod === 1 && (
-          <input
+          <ControlInput
             type="date"
             value={analyzeDate}
             onChange={(e) => {
@@ -112,14 +112,14 @@ export function FoodAnalysisSection({
             Ostatnie {analyzePeriod} dni
           </p>
         )}
-        <Button
+        <Pressable
           variant="outline"
           size="sm"
           onClick={analyzeFood}
           disabled={isAnalyzing}
         >
           {isAnalyzing ? 'Analizuję...' : 'Analizuj'}
-        </Button>
+        </Pressable>
       </div>
 
       {analyzeResult && analyzeResult.mode === 'single' && (

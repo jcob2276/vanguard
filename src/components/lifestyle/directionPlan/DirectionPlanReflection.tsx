@@ -1,3 +1,4 @@
+import { Pressable, ControlTextarea } from '../../ui/ControlPrimitives';
 import Spinner from '../../ui/Spinner';
 
 function Divider({ title }: { title: string }) {
@@ -12,8 +13,8 @@ function Divider({ title }: { title: string }) {
 
 function Textarea({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-      className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[80px] focus:outline-none focus:border-primary/50 transition-colors" />
+    <ControlTextarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+      className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-044)] focus:outline-none focus:border-primary/50 transition-colors" />
   );
 }
 
@@ -30,12 +31,12 @@ function Q({ num, label, value, onChange, placeholder, rows = 4 }: {
 
 function ScoreButton({ value, current, onClick }: { value: number; current: number | null; onClick: () => void }) {
   const active = current === value;
-  const activeColor = value <= 3 ? "bg-danger text-white border-danger" : value <= 6 ? "bg-warning text-black border-warning" : "bg-success text-white border-success";
+  const activeColor = value <= 3 ? "bg-danger text-on-accent border-danger" : value <= 6 ? "bg-warning text-scrim border-warning" : "bg-success text-on-accent border-success";
   return (
-    <button onClick={onClick}
+    <Pressable onClick={onClick}
       className={`w-8 h-8 rounded-full text-xs font-semibold border transition-all ${active ? `${activeColor} ring-2 ring-offset-1 ring-offset-surface-solid scale-110` : "border-border-custom bg-surface text-text-muted hover:bg-surface-solid"}`}>
       {value}
-    </button>
+    </Pressable>
   );
 }
 
@@ -90,10 +91,10 @@ export default function DirectionPlanReflection(props: DirectionPlanReflectionPr
         <PillarScoreRow label="Konto" current={props.pillarScores.konto} prev={props.prevWeekScores?.konto} onChange={(v) => props.setPillarScores({ ...props.pillarScores, konto: v })} />
       </div>
       {!props.reflectionSaved ? (
-        <button onClick={props.saveReflection} disabled={props.savingReflection}
-          className="w-full py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-text-primary text-sm font-semibold transition-all disabled:opacity-40">
+        <Pressable onClick={props.saveReflection} disabled={props.savingReflection}
+          className="w-full py-2.5 rounded-xl border border-border-custom bg-surface hover:bg-surface-solid text-text-primary text-sm font-semibold transition-all disabled:opacity-[var(--opacity-40)]">
           {props.savingReflection ? "Zapisuję…" : "Zapisz refleksję →"}
-        </button>
+        </Pressable>
       ) : (
         <div className="flex items-center gap-2 text-xs text-success dark:text-success">
           <span>✓</span><span>Refleksja zapisana</span>

@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { Trash2 } from 'lucide-react';
 import { WorkoutExercise, numInput } from './workoutUtils';
 
@@ -11,7 +12,7 @@ interface ExerciseWellnessSetsProps {
 export default function ExerciseWellnessSets({ exercise, haptics, updateSet, removeSet }: ExerciseWellnessSetsProps) {
   return (
     <>
-      <div className="grid grid-cols-[20px_1fr_1fr_56px] gap-2 px-0.5">
+      <div className="grid grid-cols-[var(--legacy-arbitrary-011)] gap-2 px-0.5">
         <span />
         <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           Min
@@ -33,11 +34,11 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
           }
         };
         return (
-          <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_56px] gap-1.5 items-center rounded-xl">
+          <div key={set.id} className="grid grid-cols-[var(--legacy-arbitrary-011)] gap-1.5 items-center rounded-xl">
             <span className="text-xs font-black text-text-secondary text-center">{idx + 1}</span>
             {/* Minuty */}
             <div className="flex flex-col gap-1">
-              <input
+              <ControlInput
                 type="number"
                 min={1}
                 step={1}
@@ -47,23 +48,23 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
                 className={numInput}
               />
               <div className="flex gap-1 justify-center">
-                <button
+                <Pressable
                   onClick={() => adjustWellness('reps', -5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -5
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => adjustWellness('reps', 5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +5
-                </button>
+                </Pressable>
               </div>
             </div>
             {/* Stopnie */}
             <div className="flex flex-col gap-1">
-              <input
+              <ControlInput
                 type="number"
                 min={0}
                 step={1}
@@ -73,26 +74,26 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
                 className={numInput}
               />
               <div className="flex gap-1 justify-center">
-                <button
+                <Pressable
                   onClick={() => adjustWellness('kg', -5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -5
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => adjustWellness('kg', 5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +5
-                </button>
+                </Pressable>
               </div>
             </div>
-            <button
+            <Pressable
               onClick={() => removeSet(set.id)}
-              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[0.9] transition-all cursor-pointer"
+              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[var(--legacy-arbitrary-010)] transition-all cursor-pointer"
             >
               <Trash2 size={12} />
-            </button>
+            </Pressable>
           </div>
         );
       })}

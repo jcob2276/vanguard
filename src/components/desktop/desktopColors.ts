@@ -1,9 +1,9 @@
 // SVG stroke/fill accept CSS var() directly — hex is only the fallback for pre-paint.
 export const C = {
-  indigo: 'var(--color-primary, #6366f1)',
-  emerald: 'var(--color-success, #10b981)',
-  amber: 'var(--color-warning, #f59e0b)',
-  rose: 'var(--color-danger, #f43f5e)',
-  sky: 'var(--color-info, #38bdf8)',
-  violet: '#a78bfa'
+  indigo: 'var(--color-primary, var(--legacy-color-024))',
+  emerald: 'var(--color-success, var(--legacy-color-004))',
+  amber: 'var(--color-warning, var(--legacy-color-040))',
+  rose: 'var(--color-danger, var(--legacy-color-038))',
+  sky: 'var(--color-info, var(--legacy-color-019))',
+  violet: 'var(--legacy-color-032)'
 };

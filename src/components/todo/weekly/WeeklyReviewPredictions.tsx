@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Target, TrendingUp, Check, X } from 'lucide-react';
@@ -47,7 +48,7 @@ export default function WeeklyReviewPredictions() {
 
       {/* Calibration Rollup Grid */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
+        <div className="bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
           <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
             Prognoza Snu
           </span>
@@ -56,7 +57,7 @@ export default function WeeklyReviewPredictions() {
           </span>
           <span className="text-2xs font-medium text-text-muted">Średni błąd (MAE)</span>
         </div>
-        <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
+        <div className="bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
           <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
             Wykonanie
           </span>
@@ -65,7 +66,7 @@ export default function WeeklyReviewPredictions() {
           </span>
           <span className="text-2xs font-medium text-text-muted">Średni błąd (MAE)</span>
         </div>
-        <div className="bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
+        <div className="bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/50 rounded-xl p-3 flex flex-col justify-between space-y-1">
           <span className="text-2xs font-bold text-text-muted uppercase tracking-wider">
             Brier Wzorców
           </span>
@@ -100,15 +101,15 @@ export default function WeeklyReviewPredictions() {
           Rozstrzygnij prognozy własne ({pendingCustom.length})
         </span>
         {pendingCustom.length === 0 ? (
-          <div className="text-center py-4 bg-slate-50 dark:bg-white/[0.01] border border-dashed border-border-custom/60 rounded-xl text-text-muted text-xs font-semibold">
+          <div className="text-center py-4 bg-surface-2 dark:bg-on-accent/[0.01] border border-dashed border-border-custom/60 rounded-xl text-text-muted text-xs font-semibold">
             Brak prognoz własnych do rozstrzygnięcia w tym tygodniu.
           </div>
         ) : (
-          <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[var(--legacy-h-012)] overflow-y-auto pr-1">
             {pendingCustom.map((pred: Prediction) => (
               <div
                 key={pred.id}
-                className="bg-slate-50 dark:bg-white/[0.01] border border-border-custom/50 rounded-xl p-3 flex items-center justify-between"
+                className="bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/50 rounded-xl p-3 flex items-center justify-between"
               >
                 <div className="space-y-0.5 border-none">
                   <p className="text-xs font-black text-text-primary">{pred.metric}</p>
@@ -119,20 +120,20 @@ export default function WeeklyReviewPredictions() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button
+                  <Pressable
                     onClick={() => handleResolveCustom(pred.id, 1.0)}
                     className="w-8 h-8 rounded-lg bg-success/10 text-success hover:bg-success/20 flex items-center justify-center transition-colors"
                     title="Spełniło się"
                   >
                     <Check size={14} />
-                  </button>
-                  <button
+                  </Pressable>
+                  <Pressable
                     onClick={() => handleResolveCustom(pred.id, 0.0)}
                     className="w-8 h-8 rounded-lg bg-danger/10 text-danger hover:bg-danger/20 flex items-center justify-center transition-colors"
                     title="Nie spełniło się"
                   >
                     <X size={14} />
-                  </button>
+                  </Pressable>
                 </div>
               </div>
             ))}

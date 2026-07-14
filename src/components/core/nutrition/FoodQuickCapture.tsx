@@ -1,5 +1,5 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { RotateCcw, Sparkles } from 'lucide-react';
-import Button from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../lib/date';
 import { useQuickCaptureData } from './hooks/useQuickCaptureData';
@@ -24,10 +24,10 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
         <p className="text-xs font-black uppercase tracking-widest text-text-muted">Posiłek</p>
         <div className="flex gap-1">
           {([['Dziś', today], ['Wczoraj', yesterday]] as const).map(([label, date]) => (
-            <button key={label} type="button" onClick={() => d.setLogDate(date)}
-              className={`rounded-full px-2 py-0.5 text-xs font-bold ${d.logDate === date ? 'bg-primary text-white' : 'text-text-muted border border-border-custom'}`}>
+            <Pressable key={label} type="button" onClick={() => d.setLogDate(date)}
+              className={`rounded-full px-2 py-0.5 text-xs font-bold ${d.logDate === date ? 'bg-primary text-on-accent' : 'text-text-muted border border-border-custom'}`}>
               {label}
-            </button>
+            </Pressable>
           ))}
         </div>
       </div>
@@ -55,19 +55,19 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
 
       <div className="flex flex-wrap gap-1">
         {d.MEAL_TYPES.map((m) => (
-          <button key={m.id} type="button" onClick={() => d.setMealType(m.id)}
+          <Pressable key={m.id} type="button" onClick={() => d.setMealType(m.id)}
             className={`rounded-full px-2.5 py-1 text-2xs font-black uppercase tracking-wider ${d.mealType === m.id ? 'bg-primary/15 text-primary' : 'text-text-muted border border-border-custom/60'}`}>
             {m.label}
-          </button>
+          </Pressable>
         ))}
       </div>
 
       <div className="flex gap-2">
-        <input value={d.text} onChange={(e) => { d.setText(e.target.value); if (d.preview) d.setPreview(null); }}
+        <ControlInput value={d.text} onChange={(e) => { d.setText(e.target.value); if (d.preview) d.setPreview(null); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); d.handleParse(); } }}
           placeholder="np. 2 jajka, twaróg 150g, kawa"
           className="min-w-0 flex-1 rounded-xl border border-border-custom bg-background/50 px-3 py-2.5 text-sm outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
-        <Button onClick={d.handleParse} loading={d.parsing} disabled={!d.text.trim() || d.saving} icon={<Sparkles size={16} />} className="shrink-0" title="Parsuj i zapisz" />
+        <Pressable onClick={d.handleParse} loading={d.parsing} disabled={!d.text.trim() || d.saving} icon={<Sparkles size={16} />} className="shrink-0" title="Parsuj i zapisz" />
       </div>
 
       {d.QUICK_CAPTURE_FAVORITES.length > 0 && (
@@ -76,11 +76,11 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
             const shortName = f.name.replace(/\s*\(\d+mg kofeiny\)/i, '');
             const label = f.is_pinned ? `★ ${shortName.length > 18 ? `${shortName.slice(0, 16)}…` : shortName}` : f.name.length > 22 ? `${f.name.slice(0, 20)}…` : f.name;
             return (
-              <button key={f.id} type="button" disabled={d.saving} onClick={() => d.handleFavorite(f)}
-                className="rounded-full border px-2.5 py-1 text-xs font-semibold disabled:opacity-50 border-primary/35 bg-primary/10 text-primary hover:bg-primary/15 cursor-pointer"
+              <Pressable key={f.id} type="button" disabled={d.saving} onClick={() => d.handleFavorite(f)}
+                className="rounded-full border px-2.5 py-1 text-xs font-semibold disabled:opacity-[var(--opacity-50)] border-primary/35 bg-primary/10 text-primary hover:bg-primary/15 cursor-pointer"
                 title={f.brand ? `${f.name} — ${f.brand}` : f.name}>
                 {label}
-              </button>
+              </Pressable>
             );
           })}
         </div>
@@ -93,12 +93,12 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
           </p>
           <div className="flex flex-wrap gap-1.5">
             {d.yesterdayEntries.map((entry) => (
-              <button key={entry.id} type="button" disabled={d.saving} onClick={() => d.handleLogYesterdayEntry(entry)}
-                className="rounded-full border border-border-custom bg-slate-50 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:border-primary/30 hover:text-primary disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+              <Pressable key={entry.id} type="button" disabled={d.saving} onClick={() => d.handleLogYesterdayEntry(entry)}
+                className="rounded-full border border-border-custom bg-surface-2 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:border-primary/30 hover:text-primary disabled:opacity-[var(--opacity-50)] flex items-center gap-1 cursor-pointer"
                 title={`Zaloguj ponownie: ${entry.name}`}>
                 <RotateCcw size={10} className="text-text-muted" />
                 <span>{entry.name}</span>
-              </button>
+              </Pressable>
             ))}
           </div>
         </div>
@@ -118,19 +118,19 @@ export default function FoodQuickCapture({ onSaved, onOpenFullModal, refreshSign
                   {item.assumptions?.length && <p className="text-2xs text-warning/90 mt-0.5 leading-snug">{item.assumptions.join(' · ')}</p>}
                 </div>
                 {badge && <span className={`text-2xs font-bold uppercase ${badge === 'sprawdź' ? 'text-warning' : 'text-success'}`}>{badge}</span>}
-                <button type="button" onClick={() => d.setRemoved((p) => new Set([...p, i]))} className="text-xs text-text-muted hover:text-danger">×</button>
+                <Pressable type="button" onClick={() => d.setRemoved((p) => new Set([...p, i]))} className="text-xs text-text-muted hover:text-danger">×</Pressable>
               </div>
             );
           })}
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => { d.setPreview(null); d.setRemoved(new Set()); }} className="flex-1">Anuluj</Button>
-            <Button variant="primary" size="sm" onClick={d.handleSavePreview} loading={d.saving} disabled={!d.activePreview.length} className="flex-1">Zapisz ({d.activePreview.length})</Button>
+            <Pressable variant="outline" size="sm" onClick={() => { d.setPreview(null); d.setRemoved(new Set()); }} className="flex-1">Anuluj</Pressable>
+            <Pressable variant="primary" size="sm" onClick={d.handleSavePreview} loading={d.saving} disabled={!d.activePreview.length} className="flex-1">Zapisz ({d.activePreview.length})</Pressable>
           </div>
         </div>
       )}
 
       {onOpenFullModal && (
-        <Button variant="ghost" size="sm" onClick={onOpenFullModal} className="px-0 py-0 text-xs text-primary/80 hover:text-primary hover:bg-transparent">Skaner / wyszukiwarka →</Button>
+        <Pressable variant="ghost" size="sm" onClick={onOpenFullModal} className="px-0 py-0 text-xs text-primary/80 hover:text-primary hover:bg-transparent">Skaner / wyszukiwarka →</Pressable>
       )}
     </Card>
   );

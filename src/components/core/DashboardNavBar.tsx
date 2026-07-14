@@ -1,6 +1,6 @@
+import Button from '../ui/Button';
 import type { LucideIcon } from 'lucide-react';
 import Badge from '../ui/Badge';
-import Button from '../ui/Button';
 
 interface NavItem {
   id: string;
@@ -24,12 +24,12 @@ export function DashboardNavBar({
   tabOrder,
 }: DashboardNavBarProps) {
   return (
-    <nav className="fixed left-1/2 z-40 flex w-[90%] max-w-[360px] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-xl" style={{ bottom: 'max(2rem, calc(1rem + env(safe-area-inset-bottom)))' }}>
+    <nav className="fixed left-1/2 z-[var(--z-modal)] flex w-[var(--legacy-w-096)] max-w-[var(--legacy-maxw-057)] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-[var(--blur-xl)]" style={{ bottom: 'var(--legacy-inline-style-014)' }}>
       {/* Sliding background indicator pill */}
-      <div 
-        className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-300"
+      <div
+        className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-[var(--motion-slow)]"
         style={{
-          width: 'calc(20% - 3px)',
+          width: 'var(--legacy-inline-style-100)',
           left: (() => {
             const idx = tabOrder.indexOf(view);
             const slotIndex = idx < 2 ? idx : idx + 1;
@@ -47,14 +47,14 @@ export function DashboardNavBar({
               variant="ghost"
               onClick={() => navigateTo(item.id)}
               disabled={false}
-              className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 px-0 min-w-0 h-auto transition-all duration-300 active:scale-95 hover:bg-transparent disabled:cursor-default ${
+              className={`relative z-[var(--z-raised)] flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 px-0 min-w-0 h-auto transition-all duration-[var(--motion-slow)] active:scale-95 hover:bg-transparent disabled:cursor-default ${
                 view === item.id
                   ? 'text-primary font-black'
                   : 'text-text-muted hover:text-text-primary'
               }`}
             >
               <div className="relative">
-                <item.icon size={16} className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'scale-100'}`} />
+                <item.icon size={16} className={`transition-transform duration-[var(--motion-slow)] ${view === item.id ? 'scale-110' : 'scale-100'}`} />
                 {item.id === 'dzis' && urgentTodoCount > 0 && (
                   <span className="absolute -top-1 -right-1.5 shadow-sm">
                     <Badge count={urgentTodoCount} color="var(--color-danger)" />

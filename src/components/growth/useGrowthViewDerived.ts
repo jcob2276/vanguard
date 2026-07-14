@@ -154,7 +154,7 @@ export function useGrowthViewDerived({
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
       ? 'dark'
       : 'light';
-  const grid = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const grid = theme === 'dark' ? 'var(--legacy-color-129)' : 'var(--legacy-color-052)';
 
   return {
     parents,

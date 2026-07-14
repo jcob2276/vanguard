@@ -93,19 +93,19 @@ export default function IntelligencePanel({
   return (
     <Panel title="Intelligence — co powinieneś wiedzieć">
       <div className="grid grid-cols-3 gap-3">
-        {visibleCards.map((card) => {
+        {visibleCards.map((card, index) => {
           const cfg = INTEL_CFG[card.type] || INTEL_CFG.data;
           const urgency = card.urgency || 'medium';
           return (
-            <Card variant="glass" padding="1rem" className={`flex flex-col gap-2 ${cfg.urgencyMap[urgency]}`}>
+            <Card key={`${card.type}-${card.headline}-${index}`} variant="glass" padding="1rem" className={`flex flex-col gap-2 ${cfg.urgencyMap[urgency]}`}>
               <div className="flex items-center gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot[urgency]}`} />
                 <span
-                  className={`text-3xs font-black uppercase tracking-[0.2em] border rounded-md px-1.5 py-0.5 ${cfg.badge}`}
+                  className={`text-3xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] border rounded-md px-1.5 py-0.5 ${cfg.badge}`}
                 >
                   {cfg.label}
                 </span>
-                {card.meta && <span className="text-3xs text-text-muted ml-auto truncate max-w-[100px]">{card.meta}</span>}
+                {card.meta && <span className="text-3xs text-text-muted ml-auto truncate max-w-[var(--legacy-maxw-049)]">{card.meta}</span>}
               </div>
               <p className="text-sm font-bold text-text-primary leading-snug">{card.headline}</p>
               {card.evidence && (

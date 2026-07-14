@@ -1,10 +1,10 @@
+import Button from '../ui/Button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { unwrapList } from '../../lib/supabaseUtils';
 import { Activity, Brain, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useUserId } from '../../store/useStore';
 import { Card } from '../ui/Card';
-import Button from '../ui/Button';
 
 interface BrainHealthRow {
   table_name: string;
@@ -32,7 +32,7 @@ export default function BrainHealth() {
   if (!userId) return null;
 
   return (
-    <Card variant="glass" className="border border-border-custom backdrop-blur-md space-y-4" style={{ background: 'rgba(var(--color-surface), 0.4)' }} padding="1.25rem">
+    <Card variant="glass" className="border border-border-custom backdrop-blur-[var(--blur-md)] space-y-4" style={{ background: 'rgba(var(--color-surface), 0.4)' }} padding="1.25rem">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-black text-text-primary uppercase tracking-widest flex items-center gap-2">
           <Brain size={14} className="text-primary" /> Vanguard Brain Health
@@ -82,7 +82,7 @@ export default function BrainHealth() {
                 </div>
                 <div className="w-full h-1 bg-text-primary/10 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-1000 ${row.coverage_percent < 50 ? 'bg-danger' : 'bg-primary'}`}
+                    className={`h-full transition-all duration-[var(--motion-ambient)] ${row.coverage_percent < 50 ? 'bg-danger' : 'bg-primary'}`}
                     style={{ width: `${row.coverage_percent}%` }}
                   />
                 </div>

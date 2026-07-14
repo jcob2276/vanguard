@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { Trash2, Trophy } from 'lucide-react';
 import { WorkoutExercise, epley, numInput } from './workoutUtils';
 
@@ -12,7 +13,7 @@ interface ExerciseStrengthSetsProps {
 export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM, updateSet, removeSet }: ExerciseStrengthSetsProps) {
   return (
     <>
-      <div className="grid grid-cols-[28px_1fr_1fr_1fr_60px] gap-2 px-0.5">
+      <div className="grid grid-cols-[var(--legacy-arbitrary-008)] gap-2 px-0.5">
         <span />
         <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           KG
@@ -45,8 +46,8 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
         };
 
         return (
-          <div key={set.id} className="grid grid-cols-[20px_1fr_1fr_1fr_60px] gap-1.5 items-center rounded-xl">
-            <button
+          <div key={set.id} className="grid grid-cols-[var(--legacy-arbitrary-009)] gap-1.5 items-center rounded-xl">
+            <Pressable
               onClick={() => { haptics.light(); updateSet(set.id, 'msp', !set.msp); }}
               title="Oznacz jako MSP (kluczowy set)"
               className={`text-xs font-black text-center w-5 h-5 rounded-full transition-colors cursor-pointer ${
@@ -54,11 +55,11 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
               }`}
             >
               {set.msp ? '★' : idx + 1}
-            </button>
+            </Pressable>
 
             {/* KG Column */}
             <div className="flex flex-col gap-1">
-              <input
+              <ControlInput
                 type="number"
                 min={0}
                 step={0.5}
@@ -68,25 +69,25 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
                 className={numInput}
               />
               <div className="flex gap-1 justify-center">
-                <button
+                <Pressable
                   onClick={() => adjustValue('kg', -2.5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => adjustValue('kg', 2.5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +
-                </button>
+                </Pressable>
               </div>
             </div>
 
             {/* Reps Column */}
             <div className="flex flex-col gap-1">
               <div className="relative">
-                <input
+                <ControlInput
                   type="number"
                   min={0}
                   step={1}
@@ -97,29 +98,29 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
                 />
                 {isPR && (
                   <div className="absolute -top-1.5 -right-1.5 bg-warning rounded-full p-0.5 pointer-events-none">
-                    <Trophy size={8} className="text-black" />
+                    <Trophy size={8} className="text-scrim" />
                   </div>
                 )}
               </div>
               <div className="flex gap-1 justify-center">
-                <button
+                <Pressable
                   onClick={() => adjustValue('reps', -1, true)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => adjustValue('reps', 1, true)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +
-                </button>
+                </Pressable>
               </div>
             </div>
 
             {/* RIR Column */}
             <div className="flex flex-col gap-1">
-              <input
+              <ControlInput
                 type="number"
                 min={0}
                 max={5}
@@ -130,27 +131,27 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
                 className={numInput}
               />
               <div className="flex gap-1 justify-center">
-                <button
+                <Pressable
                   onClick={() => adjustValue('rir', -0.5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   -
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => adjustValue('rir', 0.5)}
                   className="text-xs font-bold bg-surface active:bg-surface-solid active:scale-90 text-text-secondary border border-border-custom hover:text-text-primary w-9 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer"
                 >
                   +
-                </button>
+                </Pressable>
               </div>
             </div>
 
-            <button
+            <Pressable
               onClick={() => removeSet(set.id)}
-              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[0.9] transition-all cursor-pointer"
+              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[var(--legacy-arbitrary-010)] transition-all cursor-pointer"
             >
               <Trash2 size={12} />
-            </button>
+            </Pressable>
           </div>
         );
       })}

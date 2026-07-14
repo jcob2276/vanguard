@@ -1,6 +1,6 @@
+import { Pressable, ControlTextarea } from '../../../ui/ControlPrimitives';
 import type { Dispatch, SetStateAction } from 'react';
 import { Sparkles, Trash2, Check } from 'lucide-react';
-import Button from '../../../ui/Button';
 import { confidenceLabel } from '../../../../lib/health/foodLogging';
 import type { ParsedFoodItem } from '../../../../lib/health/foodLogging';
 
@@ -40,26 +40,26 @@ export default function NLScreen({
 
   return (
     <div className="space-y-4">
-      <Button
+      <Pressable
         variant="ghost"
         size="sm"
         onClick={() => { setNlMode(false); setError(null); }}
         className="px-0 py-0 text-text-muted hover:text-text-primary"
       >
         ← Wstecz
-      </Button>
+      </Pressable>
 
       <div className="flex gap-1.5 flex-wrap mb-1">
         {MEAL_TYPES.map((m) => (
-          <button key={m.id} onClick={() => setMealType(m.id)}
-            className={`rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${mealType === m.id ? 'bg-primary text-white' : 'border border-border-custom text-text-muted'}`}>
+          <Pressable key={m.id} onClick={() => setMealType(m.id)}
+            className={`rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${mealType === m.id ? 'bg-primary text-on-accent' : 'border border-border-custom text-text-muted'}`}>
             {m.label}
-          </button>
+          </Pressable>
         ))}
       </div>
 
       <div className="relative">
-        <textarea
+        <ControlTextarea
           autoFocus
           value={nlText}
           onChange={(e) => { setNlText(e.target.value); }}
@@ -71,7 +71,7 @@ export default function NLScreen({
         <span className="absolute bottom-2 right-2 text-2xs text-text-muted/40">Ctrl+Enter</span>
       </div>
 
-      <Button
+      <Pressable
         variant="tonal"
         onClick={parseNL}
         loading={nlParsing}
@@ -80,7 +80,7 @@ export default function NLScreen({
         className="w-full"
       >
         Parsuj
-      </Button>
+      </Pressable>
 
       {error && <p className="text-xs text-danger">{error}</p>}
 
@@ -92,7 +92,7 @@ export default function NLScreen({
           {nlItems.map((item, i) => {
             const removed = nlRemovedIdx.has(i);
             return (
-              <div key={i} className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all ${removed ? 'opacity-30 border-border-custom/30 bg-transparent' : 'border-border-custom bg-surface-solid/20'}`}>
+              <div key={i} className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all ${removed ? 'opacity-[var(--opacity-30)] border-border-custom/30 bg-transparent' : 'border-border-custom bg-surface-solid/20'}`}>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold truncate ${removed ? 'line-through text-text-muted' : 'text-text-primary'}`}>{item.name}</p>
                   <p className="text-2xs text-text-muted flex items-center gap-1.5">
@@ -117,7 +117,7 @@ export default function NLScreen({
                     {item.protein}B · {item.carbs ?? '?'}W · {item.fat ?? '?'}T
                   </p>
                 </div>
-                <Button
+                <Pressable
                   variant="ghost"
                   onClick={() => setNlRemovedIdx(prev => {
                     const next = new Set(prev);
@@ -127,7 +127,7 @@ export default function NLScreen({
                   className="shrink-0 rounded-full p-1 text-text-muted hover:text-danger hover:bg-danger/10 active:scale-95 transition-all"
                 >
                   {removed ? <Check size={13} className="text-success" /> : <Trash2 size={13} />}
-                </Button>
+                </Pressable>
               </div>
             );
           })}
@@ -150,7 +150,7 @@ export default function NLScreen({
                 );
               })()}
             </div>
-            <Button
+            <Pressable
               variant="primary"
               onClick={saveNLItems}
               loading={nlSaving}
@@ -158,7 +158,7 @@ export default function NLScreen({
               className="w-full"
             >
               Dodaj {nlActiveCount} {nlActiveCount === 1 ? 'produkt' : nlActiveCount < 5 ? 'produkty' : 'produktów'}
-            </Button>
+            </Pressable>
           </div>
         </div>
       )}

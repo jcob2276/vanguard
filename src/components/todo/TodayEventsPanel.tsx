@@ -41,11 +41,11 @@ export default function TodayEventsPanel({ userId, today }: { userId: string; to
                 active
                   ? 'bg-primary/8 border border-primary/20'
                   : past
-                  ? 'opacity-35'
+                  ? 'opacity-[var(--opacity-35)]'
                   : 'hover:bg-surface-solid/30'
               }`}
             >
-              <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${past ? 'opacity-40' : ''}`} />
+              <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${past ? 'opacity-[var(--opacity-40)]' : ''}`} />
               <div className="min-w-0 flex-1">
                 <p className={`text-xs font-semibold leading-snug ${active ? 'text-primary' : 'text-text-primary'} line-clamp-2`}>
                   {ev.summary || '—'}

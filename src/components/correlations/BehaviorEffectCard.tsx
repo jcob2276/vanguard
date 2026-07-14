@@ -19,7 +19,7 @@ export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResul
         <span className={`text-2xs font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${
           item.confidence === 'solid' ? 'bg-success/10 text-success' :
           item.confidence === 'building' ? 'bg-warning/10 text-warning' :
-          'bg-slate-500/10 text-text-muted'
+          'bg-surface-2/10 text-text-muted'
         }`}>
           {CONFIDENCE_LABELS[item.confidence]}
         </span>

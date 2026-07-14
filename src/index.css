@@ -1,7 +1,521 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  /* Every numeric Tailwind arbitrary value is centrally addressable. */
+  --legacy-arbitrary-001: 0.98;
+  --legacy-arbitrary-002: 0.2em;
+  --legacy-arbitrary-003: 0.985;
+  --legacy-arbitrary-004: 0.15em;
+  --legacy-arbitrary-005: 0.18em;
+  --legacy-arbitrary-006: 90px 1fr 72px;
+  --legacy-arbitrary-007: calc(1rem+env(safe-area-inset-bottom));
+  --legacy-arbitrary-008: 28px 1fr 1fr 1fr 60px;
+  --legacy-arbitrary-009: 20px 1fr 1fr 1fr 60px;
+  --legacy-arbitrary-010: 0.9;
+  --legacy-arbitrary-011: 20px 1fr 1fr 56px;
+  --legacy-arbitrary-012: 0.16em;
+  --legacy-arbitrary-013: 1.01;
+  --legacy-arbitrary-014: 0.99;
+  --legacy-arbitrary-015: 1.005;
+  --legacy-arbitrary-016: 0.995;
+  --legacy-arbitrary-017: 5px;
+  --legacy-arbitrary-018: 1.05;
+  --legacy-arbitrary-019: 1.08;
+  --legacy-arbitrary-020: 1.12;
+  --legacy-arbitrary-021: 1px;
+  --legacy-arbitrary-022: 800;
+  --legacy-arbitrary-023: -10%;
+  --legacy-arbitrary-024: -10%;
+  --legacy-arbitrary-025: -10%;
+  --legacy-arbitrary-026: -10%;
+  --legacy-arbitrary-027: 0.4em;
+  --legacy-arbitrary-028: 0.5em;
+  --legacy-arbitrary-029: 60;
+  --legacy-arbitrary-030: 135deg;
+  --legacy-arbitrary-031: 0.22em;
+  --legacy-arbitrary-032: 0.24em;
+  --legacy-arbitrary-033: 0.08em;
+  --legacy-arbitrary-034: 0.12em;
+  --legacy-arbitrary-035: 10vh;
+  --legacy-arbitrary-036: minmax(0,1fr) minmax(0,1.15fr);
+  --legacy-arbitrary-037: 5px;
+  --legacy-arbitrary-038: 88px;
+  --legacy-arbitrary-039: 0.25em;
+  --legacy-arbitrary-040: 1.03;
+  --legacy-arbitrary-041: 1fr 380px;
+  --legacy-arbitrary-042: 44px 1fr;
+  --legacy-arbitrary-043: 3px;
+  --legacy-arbitrary-044: 0.3em;
+  --legacy-arbitrary-045: 1fr 1fr;
+  --legacy-arbitrary-046: 4/5;
+  --legacy-arbitrary-047: 3/4;
+  --legacy-arbitrary-048: 1.04;
+  --legacy-arbitrary-049: 700;
+  --legacy-arbitrary-050: 0.93;
+  --legacy-arbitrary-051: 24px;
+  --legacy-arbitrary-052: 0.78;
+  --legacy-arbitrary-053: 0.14em;
+  --legacy-arbitrary-054: 24px;
+  --legacy-arbitrary-055: pulse 4s infinite;
+  --legacy-arbitrary-056: 18px;
+  --legacy-arbitrary-057: 18px;
+  --legacy-arbitrary-058: 90vh;
+  --legacy-arbitrary-059: 85svh;
+  --legacy-arbitrary-060: 3px;
+  --legacy-arbitrary-061: 21px;
+  /* Generated compatibility bridge. Guarded: every reference below has a definition. */
+  --legacy-color-001: #000;
+  --legacy-color-002: #0A0A0A;
+  --legacy-color-003: #0F766E;
+  --legacy-color-004: #10b981;
+  --legacy-color-005: #12d6c8;
+  --legacy-color-006: #13cfe8;
+  --legacy-color-007: #14b8a6;
+  --legacy-color-008: #172554;
+  --legacy-color-009: #21e7ff;
+  --legacy-color-010: #22c55e;
+  --legacy-color-011: #22d3ee;
+  --legacy-color-012: #24b7ff;
+  --legacy-color-013: #26d3c8;
+  --legacy-color-014: #2d3748;
+  --legacy-color-015: #2dd4bf;
+  --legacy-color-016: #2de0b8;
+  --legacy-color-017: #32d99a;
+  --legacy-color-018: #33333322;
+  --legacy-color-019: #38bdf8;
+  --legacy-color-020: #3b82f6;
+  --legacy-color-021: #4ade80;
+  --legacy-color-022: #4f46e5;
+  --legacy-color-023: #60a5fa;
+  --legacy-color-024: #6366f1;
+  --legacy-color-025: #6B7280;
+  --legacy-color-026: #7cc8ff;
+  --legacy-color-027: #7ce0ff;
+  --legacy-color-028: #7ee56d;
+  --legacy-color-029: #818cf8;
+  --legacy-color-030: #888;
+  --legacy-color-031: #94a3b8;
+  --legacy-color-032: #a78bfa;
+  --legacy-color-033: #a855f7;
+  --legacy-color-034: #a8d66d;
+  --legacy-color-035: #c084fc;
+  --legacy-color-036: #e5e7eb;
+  --legacy-color-037: #ef4444;
+  --legacy-color-038: #F43F5E;
+  --legacy-color-039: #f472b6;
+  --legacy-color-040: #f59e0b;
+  --legacy-color-041: #f87171;
+  --legacy-color-042: #f97316;
+  --legacy-color-043: #facc15;
+  --legacy-color-044: #fb923c;
+  --legacy-color-045: #fef08a;
+  --legacy-color-046: #fff;
+  --legacy-color-047: #ffffff;
+  --legacy-color-048: rgb(163, 230, 53);
+  --legacy-color-049: rgba(0,0,0,0.04);
+  --legacy-color-050: rgba(0, 0, 0, 0.05);
+  --legacy-color-051: rgba(0,0,0,0.06);
+  --legacy-color-052: rgba(0,0,0,0.08);
+  --legacy-color-053: rgba(0, 0, 0, 0.1);
+  --legacy-color-054: rgba(0, 0, 0, 0.55);
+  --legacy-color-055: rgba(0,0,0,0.6);
+  --legacy-color-056: rgba(10,10,10,0.06);
+  --legacy-color-057: rgba(100, 116, 139, 0.06);
+  --legacy-color-058: rgba(100, 116, 139, 0.15);
+  --legacy-color-059: rgba(100, 116, 139, 0.35);
+  --legacy-color-060: rgba(100, 116, 139, 0.4);
+  --legacy-color-061: rgba(107,114,128,0.08);
+  --legacy-color-062: rgba(107,114,128,0.2);
+  --legacy-color-063: rgba(11, 15, 25, 0.3);
+  --legacy-color-064: rgba(11, 15, 25, 0.5);
+  --legacy-color-065: rgba(118, 118, 128, 0.10);
+  --legacy-color-066: rgba(118, 118, 128, 0.14);
+  --legacy-color-067: rgba(118, 118, 128, 0.2);
+  --legacy-color-068: rgba(118, 118, 128, 0.25);
+  --legacy-color-069: rgba(128,128,128,0.15);
+  --legacy-color-070: rgba(132, 204, 22, 0.06);
+  --legacy-color-071: rgba(148, 163, 184, 0.02);
+  --legacy-color-072: rgba(148,163,184,0.04);
+  --legacy-color-073: rgba(148, 163, 184, 0.08);
+  --legacy-color-074: rgba(148, 163, 184, 0.12);
+  --legacy-color-075: rgba(148, 163, 184, 0.18);
+  --legacy-color-076: rgba(148, 163, 184, 0.5);
+  --legacy-color-077: rgba(15, 23, 42, 0.02);
+  --legacy-color-078: rgba(15, 23, 42, 0.05);
+  --legacy-color-079: rgba(15, 23, 42, 0.08);
+  --legacy-color-080: rgba(15, 23, 42, 0.12);
+  --legacy-color-081: rgba(15, 23, 42, 0.18);
+  --legacy-color-082: rgba(150,150,150,0.3);
+  --legacy-color-083: rgba(153,161,175,0.05);
+  --legacy-color-084: rgba(153,161,175,0.06);
+  --legacy-color-085: rgba(153,161,175,0.08);
+  --legacy-color-086: rgba(153,161,175,0.12);
+  --legacy-color-087: rgba(153,161,175,0.15);
+  --legacy-color-088: rgba(153,161,175,0.2);
+  --legacy-color-089: rgba(153,161,175,0.3);
+  --legacy-color-090: rgba(153,161,175,0.4);
+  --legacy-color-091: rgba(16,185,129,0.02);
+  --legacy-color-092: rgba(16,185,129,0.04);
+  --legacy-color-093: rgba(16,185,129,0.05);
+  --legacy-color-094: rgba(16,185,129,0.06);
+  --legacy-color-095: rgba(16,185,129,0.08);
+  --legacy-color-096: rgba(16,185,129,0.15);
+  --legacy-color-097: rgba(16,185,129,0.2);
+  --legacy-color-098: rgba(16, 185, 129, 0.25);
+  --legacy-color-099: rgba(163, 230, 53, 0.08);
+  --legacy-color-100: rgba(168,85,247,0.04);
+  --legacy-color-101: rgba(168,85,247,0.12);
+  --legacy-color-102: rgba(17, 24, 39, 0.2);
+  --legacy-color-103: rgba(17, 24, 39, 0.5);
+  --legacy-color-104: rgba(234, 179, 8, 0.35);
+  --legacy-color-105: rgba(239,68,68,0.08);
+  --legacy-color-106: rgba(239,68,68,0.2);
+  --legacy-color-107: rgba(239,68,68,0.3);
+  --legacy-color-108: rgba(244,63,94,0.025);
+  --legacy-color-109: rgba(244,63,94,0.04);
+  --legacy-color-110: rgba(244,63,94,0.05);
+  --legacy-color-111: rgba(244,63,94,0.06);
+  --legacy-color-112: rgba(244,63,94,0.15);
+  --legacy-color-113: rgba(244, 63, 94, 0.2);
+  --legacy-color-114: rgba(244,63,94,0.25);
+  --legacy-color-115: rgba(244,63,94,0.3);
+  --legacy-color-116: rgba(244,63,94,0.4);
+  --legacy-color-117: rgba(245,158,11,0.02);
+  --legacy-color-118: rgba(245,158,11,0.04);
+  --legacy-color-119: rgba(245, 158, 11, 0.05);
+  --legacy-color-120: rgba(245,158,11,0.15);
+  --legacy-color-121: rgba(245,158,11,0.2);
+  --legacy-color-122: rgba(245,158,11,0.25);
+  --legacy-color-123: rgba(245,158,11,0.4);
+  --legacy-color-124: rgba(249, 249, 251, 0.92);
+  --legacy-color-125: rgba(255,255,255,0.03);
+  --legacy-color-126: rgba(255,255,255,0.05);
+  --legacy-color-127: rgba(255,255,255,0.06);
+  --legacy-color-128: rgba(255, 255, 255, 0.07);
+  --legacy-color-129: rgba(255,255,255,0.08);
+  --legacy-color-130: rgba(255, 255, 255, 0.1);
+  --legacy-color-131: rgba(255,255,255,0.12);
+  --legacy-color-132: rgba(255,255,255,0.15);
+  --legacy-color-133: rgba(255,255,255,0.25);
+  --legacy-color-134: rgba(255,255,255,0.6);
+  --legacy-color-135: rgba(255,255,255,0.65);
+  --legacy-color-136: rgba(255, 255, 255, 0.7);
+  --legacy-color-137: rgba(255,255,255,0.72);
+  --legacy-color-138: rgba(255, 255, 255, 0.82);
+  --legacy-color-139: rgba(255,255,255,0.9);
+  --legacy-color-140: rgba(26,26,46,0.3);
+  --legacy-color-141: rgba(26,26,46,0.6);
+  --legacy-color-142: rgba(28, 28, 30, 0.92);
+  --legacy-color-143: rgba(30, 41, 59, 0.7);
+  --legacy-color-144: rgba(34,197,94,0.12);
+  --legacy-color-145: rgba(59, 130, 246, 0.03);
+  --legacy-color-146: rgba(79,70,229,0.08);
+  --legacy-color-147: rgba(91,108,255,0.04);
+  --legacy-color-148: rgba(91,108,255,0.07);
+  --legacy-color-149: rgba(91,108,255,0.08);
+  --legacy-color-150: rgba(91,108,255,0.1);
+  --legacy-color-151: rgba(91,108,255,0.15);
+  --legacy-color-152: rgba(91,108,255,0.4);
+  --legacy-color-153: rgba(91,108,255,0.65);
+  --legacy-lib-color-001: #06b6d4;
+  --legacy-lib-color-002: #0891b2;
+  --legacy-lib-color-003: #0A0A0A;
+  --legacy-lib-color-004: #0e7490;
+  --legacy-lib-color-005: #10b981;
+  --legacy-lib-color-006: #164e63;
+  --legacy-lib-color-007: #22d3ee;
+  --legacy-lib-color-008: #2dd4bf;
+  --legacy-lib-color-009: #34d399;
+  --legacy-lib-color-010: #38bdf8;
+  --legacy-lib-color-011: #4A5565;
+  --legacy-lib-color-012: #4ade80;
+  --legacy-lib-color-013: #5B6CFF;
+  --legacy-lib-color-014: #60a5fa;
+  --legacy-lib-color-015: #7dd3fc;
+  --legacy-lib-color-016: #94a3b8;
+  --legacy-lib-color-017: #99A1AF;
+  --legacy-lib-color-018: #9ca3af;
+  --legacy-lib-color-019: #a78bfa;
+  --legacy-lib-color-020: #ef4444;
+  --legacy-lib-color-021: #f43f5e;
+  --legacy-lib-color-022: #f472b6;
+  --legacy-lib-color-023: #f59e0b;
+  --legacy-lib-color-024: #F7F8FA;
+  --legacy-lib-color-025: #fb923c;
+  --legacy-lib-color-026: rgba(148, 163, 184, 0.22);
+  --legacy-lib-color-027: rgba(153,161,175,0.4);
+  --legacy-local-css-001: -0.01em;
+  --legacy-local-css-002: -0.3px;
+  --legacy-local-css-003: 0;
+  --legacy-local-css-004: 0 auto;
+  --legacy-local-css-005: 0.04em;
+  --legacy-local-css-006: 0.05em;
+  --legacy-local-css-007: 0.35;
+  --legacy-local-css-008: 0.4;
+  --legacy-local-css-009: 0.5;
+  --legacy-local-css-010: 0.5em;
+  --legacy-local-css-011: 0.5px;
+  --legacy-local-css-012: 0.5px solid var(--border);
+  --legacy-local-css-013: 0.6;
+  --legacy-local-css-014: 0.7;
+  --legacy-local-css-015: 0.75;
+  --legacy-local-css-016: 0.8;
+  --legacy-local-css-017: 0.88;
+  --legacy-local-css-018: 1;
+  --legacy-local-css-019: 1.5px solid rgba(255,255,255,0.72);
+  --legacy-local-css-020: 1.65;
+  --legacy-local-css-021: 1.7;
+  --legacy-local-css-022: 100%;
+  --legacy-local-css-023: 1000;
+  --legacy-local-css-024: 100svh;
+  --legacy-local-css-025: 10px;
+  --legacy-local-css-026: 10px 0;
+  --legacy-local-css-027: 10px 0 6px;
+  --legacy-local-css-028: 10px 14px;
+  --legacy-local-css-029: 10px 20px;
+  --legacy-local-css-030: 10px 8px 24px;
+  --legacy-local-css-031: 120px;
+  --legacy-local-css-032: 12px;
+  --legacy-local-css-033: 12px 0 6px;
+  --legacy-local-css-034: 13px 16px;
+  --legacy-local-css-035: 14px;
+  --legacy-local-css-036: 14px 16px 12px;
+  --legacy-local-css-037: 15px;
+  --legacy-local-css-038: 16px;
+  --legacy-local-css-039: 16px 0;
+  --legacy-local-css-040: 24px 28px;
+  --legacy-local-css-041: 16px 18px 12px;
+  --legacy-local-css-042: 1fr;
+  --legacy-local-css-043: 1px;
+  --legacy-local-css-044: 1px 6px;
+  --legacy-local-css-045: 1px dashed var(--border);
+  --legacy-local-css-046: 1px solid var(--border);
+  --legacy-local-css-047: 1px solid rgba(100, 116, 139, 0.4);
+  --legacy-local-css-048: 1px solid rgba(239,68,68,0.2);
+  --legacy-local-css-049: 1px solid rgba(255,255,255,0.05);
+  --legacy-local-css-050: 1px solid rgba(255, 255, 255, 0.08);
+  --legacy-local-css-051: 2.5px;
+  --legacy-local-css-052: 200px;
+  --legacy-local-css-053: 22px;
+  --legacy-local-css-054: 210px;
+  --legacy-local-css-055: 24px;
+  --legacy-local-css-056: 260px;
+  --legacy-local-css-057: 280px;
+  --legacy-local-css-058: 28px;
+  --legacy-local-css-059: 2px;
+  --legacy-local-css-060: 2px 0 10px;
+  --legacy-local-css-061: 2px solid white;
+  --legacy-local-css-062: 3.5px;
+  --legacy-local-css-063: 30px;
+  --legacy-local-css-064: 32px;
+  --legacy-local-css-065: 36px;
+  --legacy-local-css-066: 3px;
+  --legacy-local-css-067: 3px 8px;
+  --legacy-local-css-068: 3px solid var(--primary);
+  --legacy-local-css-069: 400;
+  --legacy-local-css-070: 40px;
+  --legacy-local-css-071: 44px;
+  --legacy-local-css-072: 450;
+  --legacy-local-css-073: 48px;
+  --legacy-local-css-074: 4px 12px;
+  --legacy-local-css-075: 50;
+  --legacy-local-css-076: 50%;
+  --legacy-local-css-077: 500;
+  --legacy-local-css-078: 50px;
+  --legacy-local-css-079: 52px;
+  --legacy-local-css-080: 560px;
+  --legacy-local-css-081: 56px;
+  --legacy-local-css-082: 5px;
+  --legacy-local-css-083: 600;
+  --legacy-local-css-084: 600px;
+  --legacy-local-css-085: 6px;
+  --legacy-local-css-086: 6px 16px;
+  --legacy-local-css-087: 700;
+  --legacy-local-css-088: 560px;
+  --legacy-local-css-089: 7px;
+  --legacy-local-css-090: 800;
+  --legacy-local-css-091: 80px;
+  --legacy-local-css-092: 8px;
+  --legacy-local-css-093: 8px 0;
+  --legacy-local-css-094: 8px 10px;
+  --legacy-local-css-095: 8px 12px;
+  --legacy-local-css-096: 8px 36px;
+  --legacy-local-css-097: 9990;
+  --legacy-local-css-098: 9998;
+  --legacy-local-css-099: 9999;
+  --legacy-local-css-100: 9px;
+  --legacy-local-css-101: blur(16px);
+  --legacy-local-css-102: blur(20px);
+  --legacy-local-css-103: blur(20px) saturate(180%);
+  --legacy-local-css-104: calc(100% - 32px);
+  --legacy-local-css-105: color-mix(in srgb, var(--primary) 12%, transparent);
+  --legacy-local-css-106: rgba(99, 102, 241, 0.13);
+  --legacy-local-css-107: color-mix(in srgb, var(--primary) 40%, transparent);
+  --legacy-local-css-108: rgba(99, 102, 241, 0.07);
+  --legacy-local-css-109: rgba(148, 163, 184, 0.18);
+  --legacy-local-css-110: max(calc(env(safe-area-inset-bottom) + 70px), 90px);
+  --legacy-local-css-111: max(env(safe-area-inset-top), 14px);
+  --legacy-local-css-112: rotate(-45deg) translate(0.5px, -0.5px);
+  --legacy-local-css-113: scale(0.9);
+  --legacy-local-css-114: scale(0.93);
+  --legacy-local-css-115: scale(0.95);
+  --legacy-local-css-116: scale(1);
+  --legacy-local-css-117: scale(1.01);
+  --legacy-local-css-118: scale(1.08);
+  --legacy-local-css-119: scale(1.12);
+  --legacy-local-css-120: scale(1.25);
+  --legacy-local-css-121: scale(1.35);
+  --legacy-local-css-122: translate(-50%, -100%) translateY(-10px);
+  --legacy-local-css-123: translate(-50%, -50%) scale(0.95);
+  --legacy-local-css-124: translate(-50%, -50%) scale(1);
+  --legacy-local-css-125: translateY(-1px);
+  --legacy-local-css-126: translateY(-2px) scale(1.005);
+  --legacy-local-css-127: translateY(0);
+  --legacy-local-css-128: translateY(100%);
+  --legacy-inline-style-001: oracle-slide-up 500ms cubic-bezier(0.33, 1, 0.68, 1) both;
+  --legacy-inline-style-002: spin 1s linear infinite;
+  --legacy-inline-style-003: 0 0 10px 10px;
+  --legacy-inline-style-004: 10;
+  --legacy-inline-style-005: 12px;
+  --legacy-inline-style-006: 14px;
+  --legacy-inline-style-007: 18px;
+  --legacy-inline-style-008: 22px;
+  --legacy-inline-style-009: 24px;
+  --legacy-inline-style-010: 50%;
+  --legacy-inline-style-011: 8;
+  --legacy-inline-style-012: calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 1.95rem);
+  --legacy-inline-style-013: calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 5.6rem);
+  --legacy-inline-style-014: max(2rem, calc(1rem + env(safe-area-inset-bottom)));
+  --legacy-inline-style-015: Georgia, serif;
+  --legacy-inline-style-016: monospace;
+  --legacy-inline-style-017: 10;
+  --legacy-inline-style-018: 11;
+  --legacy-inline-style-019: 12;
+  --legacy-inline-style-020: 14;
+  --legacy-inline-style-021: 15;
+  --legacy-inline-style-022: 8;
+  --legacy-inline-style-023: 9;
+  --legacy-inline-style-024: 500;
+  --legacy-inline-style-025: 600;
+  --legacy-inline-style-026: 700;
+  --legacy-inline-style-027: 800;
+  --legacy-inline-style-028: 900;
+  --legacy-inline-style-029: 10;
+  --legacy-inline-style-030: 4;
+  --legacy-inline-style-031: 6;
+  --legacy-inline-style-032: 8;
+  --legacy-inline-style-033: 16;
+  --legacy-inline-style-034: 18;
+  --legacy-inline-style-035: 20;
+  --legacy-inline-style-036: 28;
+  --legacy-inline-style-037: 30;
+  --legacy-inline-style-038: 36;
+  --legacy-inline-style-039: 0;
+  --legacy-inline-style-040: 42;
+  --legacy-inline-style-041: 75%;
+  --legacy-inline-style-042: -0.02em;
+  --legacy-inline-style-043: 0.05em;
+  --legacy-inline-style-044: 0.06em;
+  --legacy-inline-style-045: 0.08em;
+  --legacy-inline-style-046: 0.25em;
+  --legacy-inline-style-047: 1;
+  --legacy-inline-style-048: 1.4;
+  --legacy-inline-style-049: 1.5;
+  --legacy-inline-style-050: 1.6;
+  --legacy-inline-style-051: 0 2px;
+  --legacy-inline-style-052: 28;
+  --legacy-inline-style-053: 2;
+  --legacy-inline-style-054: 200;
+  --legacy-inline-style-055: 240;
+  --legacy-inline-style-056: 280;
+  --legacy-inline-style-057: 310px;
+  --legacy-inline-style-058: 0;
+  --legacy-inline-style-059: 16;
+  --legacy-inline-style-060: 2;
+  --legacy-inline-style-061: 230;
+  --legacy-inline-style-062: 0.25;
+  --legacy-inline-style-063: 0.35;
+  --legacy-inline-style-064: 0.4;
+  --legacy-inline-style-065: 0.5;
+  --legacy-inline-style-066: 0.6;
+  --legacy-inline-style-067: 0.93;
+  --legacy-inline-style-068: 0 12px 16px;
+  --legacy-inline-style-069: 0 3px;
+  --legacy-inline-style-070: 0.5rem 0.25rem 0;
+  --legacy-inline-style-071: 10px 12px;
+  --legacy-inline-style-072: 12px;
+  --legacy-inline-style-073: 12px 14px;
+  --legacy-inline-style-074: 14px 16px;
+  --legacy-inline-style-075: 20;
+  --legacy-inline-style-076: 4;
+  --legacy-inline-style-077: 5px 10px;
+  --legacy-inline-style-078: 6px 12px 4px;
+  --legacy-inline-style-079: 8px 12px;
+  --legacy-inline-style-080: 8;
+  --legacy-inline-style-081: 44;
+  --legacy-inline-style-082: 0;
+  --legacy-inline-style-083: rotate(-90deg);
+  --legacy-inline-style-084: translateY(-50%);
+  --legacy-inline-style-085: all 0.15s;
+  --legacy-inline-style-086: all 0.2s;
+  --legacy-inline-style-087: grid-template-rows 260ms cubic-bezier(0.4,0,0.2,1);
+  --legacy-inline-style-088: stroke-dasharray 0.1s linear, stroke 0.3s;
+  --legacy-inline-style-089: stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1);
+  --legacy-inline-style-090: transform 150ms ease;
+  --legacy-inline-style-091: 1;
+  --legacy-inline-style-092: 100%;
+  --legacy-inline-style-093: 20;
+  --legacy-inline-style-094: 24%;
+  --legacy-inline-style-095: 28;
+  --legacy-inline-style-096: 30;
+  --legacy-inline-style-097: 36;
+  --legacy-inline-style-098: 80vw;
+  --legacy-inline-style-099: 85;
+  --legacy-inline-style-100: calc(20% - 3px);
+  --legacy-inline-style-101: 10000;
+  --legacy-inline-style-102: 9999;
+  --legacy-inline-css-001: pop-check 0.38s cubic-bezier(.36,.07,.19,.97) both;
+  --legacy-inline-css-002: pop-delete 0.25s cubic-bezier(.36,.07,.19,.97) both;
+  --legacy-inline-css-003: 0;
+  --legacy-inline-css-004: 12px;
+  --legacy-inline-css-005: 16px;
+  --legacy-inline-css-006: 10px;
+  --legacy-inline-css-007: 11px;
+  --legacy-inline-css-008: 12px;
+  --legacy-inline-css-009: 13px;
+  --legacy-inline-css-010: 14px;
+  --legacy-inline-css-011: 15px;
+  --legacy-inline-css-012: 16px;
+  --legacy-inline-css-013: 18px;
+  --legacy-inline-css-014: 28px;
+  --legacy-inline-css-015: 600;
+  --legacy-inline-css-016: 700;
+  --legacy-inline-css-017: 800;
+  --legacy-inline-css-018: 8px;
+  --legacy-inline-css-020: 0;
+  --legacy-inline-css-021: 0.08em;
+  --legacy-inline-css-022: 0.1em;
+  --legacy-inline-css-023: 1.3;
+  --legacy-inline-css-024: 1.45;
+  --legacy-inline-css-025: 1.5;
+  --legacy-inline-css-026: 0;
+  --legacy-inline-css-027: 0 0 10px;
+  --legacy-inline-css-028: 0 0 4px;
+  --legacy-inline-css-029: 0 0 6px;
+  --legacy-inline-css-030: 0 0 8px;
+  --legacy-inline-css-031: 6px 0 0;
+  --legacy-inline-css-032: 8px 0 0;
+  --legacy-inline-css-033: 120px;
+  --legacy-inline-css-034: 0;
+  --legacy-inline-css-035: 1;
+  --legacy-inline-css-036: 0 12px;
+  --legacy-inline-css-037: 10px;
+  --legacy-inline-css-038: 0;
+  --legacy-inline-css-040: 100%;
+  --legacy-inline-css-041: 99999;
+  --on-accent: #ffffff;
+  --scrim: #000000;
+  --background: #f7f9fc;
   --primary: #3b82f6;
   --primary-hover: #2563eb;
   --surface: #ffffff;
@@ -10,7 +524,7 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
-  --bg-gradient-a: rgba(59, 130, 246, 0.02);
+  --bg-gradient-a: color-mix(in srgb, var(--primary) 2%, transparent);
   --bg-gradient-b: rgba(245, 158, 11, 0.015);
   --bg-gradient-c: rgba(16, 185, 129, 0.01);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -36,10 +550,16 @@
   --shadow-card-accent: 0 0 24px rgba(17,24,39,0.05);
   --shadow-event-card: 0 4px 20px rgba(0,0,0,0.06);
   --shadow-float: 0 6px 24px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--scrim) 8%, transparent);
+  --shadow-md: 0 4px 10px color-mix(in srgb, var(--scrim) 10%, transparent);
+  --shadow-lg: 0 10px 24px color-mix(in srgb, var(--scrim) 12%, transparent);
+  --shadow-xl: 0 18px 40px color-mix(in srgb, var(--scrim) 16%, transparent);
+  --shadow-2xl: 0 28px 64px color-mix(in srgb, var(--scrim) 20%, transparent);
+  --shadow-inner: inset 0 1px 3px color-mix(in srgb, var(--scrim) 12%, transparent);
   --shadow-back-btn: 0 0 9px rgba(0,0,0,0.04);
-  --shadow-focus: 0 0 0 3px rgba(79,70,229,0.1);
-  --shadow-glow-primary: 0 0 12px rgba(99,102,241,0.4);
-  --shadow-accent-active: 0 4px 25px rgba(99,102,241,0.12);
+  --shadow-focus: 0 0 0 3px var(--primary-10);
+  --shadow-glow-primary: 0 0 12px var(--primary-40);
+  --shadow-accent-active: 0 4px 25px var(--primary-12);
 
   --color-info: #3b82f6;
   --color-success-hover: #059669;
@@ -47,9 +567,14 @@
   --color-danger-hover: #e11d48;
   --color-info-hover: #2563eb;
 
+  /* Accent colors for gradients/decorative use */
+  --color-accent-purple: #a855f7;
+
   --surface-1: var(--surface);
-  --surface-2: #f8fafc;
-  --surface-3: #f1f5f9;
+  --surface-2: #f1f5fb;
+  --surface-3: #e8eef8;
+  --surface-tonal: #eaf2ff;
+  --surface-tonal-strong: #d7e7ff;
 
   /* Priority checkbox colors (Todo) */
   --color-priority-urgent: #de4c4a;
@@ -62,19 +587,282 @@
   --color-priority-low-hover: rgba(128, 128, 128, 0.15);
 
   /* ── Pixel + iOS Design Tokens ── */
-  --radius-sm: 10px;   /* tagi, chipy, badge */
-  --radius-md: 16px;   /* przyciski, inputy */
-  --radius-lg: 24px;   /* karty, panele */
+  --radius-sm: 8px;    /* tagi, chipy, badge */
+  --radius-md: 12px;   /* przyciski, inputy */
+  --radius-lg: 16px;   /* karty, panele */
   --radius-xl: 28px;   /* modale, sheety */
+  --radius-2xl: 32px;
+  --radius-3xl: 40px;
   --radius-full: 9999px;
 
+  /* Global density: one control surface for the whole product. */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --control-sm: 2rem;
+  --control-md: 2.5rem;
+  --control-lg: 3rem;
+  --touch-target: 2.75rem;
+  --sidebar-width: 15.5rem;
+  --content-narrow: 45rem;
+  --content-default: 55rem;
+  --content-wide: 73.75rem;
+  --toolbar-height: 4rem;
+  --blur-chrome: 20px;
+  --blur-overlay: 8px;
+  --blur-sm: 4px;
+  --blur-md: 12px;
+  --blur-xl: 24px;
+  --blur-2xl: 40px;
+  --blur-3xl: 64px;
+  --blur-ambient: 120px;
+  --blur-fine: 2.5px;
+  --opacity-0: 0;
+  --opacity-20: 0.2;
+  --opacity-30: 0.3;
+  --opacity-35: 0.35;
+  --opacity-40: 0.4;
+  --opacity-45: 0.45;
+  --opacity-50: 0.5;
+  --opacity-55: 0.55;
+  --opacity-60: 0.6;
+  --opacity-70: 0.7;
+  --opacity-75: 0.75;
+  --opacity-80: 0.8;
+  --opacity-85: 0.85;
+  --opacity-90: 0.9;
+  --opacity-100: 1;
+  --opacity-disabled: 0.48;
+  --opacity-muted: 0.68;
+  --z-base: 0;
+  --z-sticky: 30;
+  --z-overlay: 50;
+  --z-toast: 70;
+  --z-raised: 10;
+  --z-popover: 20;
+  --z-nav: 35;
+  --z-modal: 40;
+  --z-critical: 60;
+  --z-floating: 200;
+  --z-fullscreen: 1000;
+  --z-emergency: 9999;
+
+  /* Centralized compatibility tokens; removed as semantic migrations replace them. */
+  --legacy-bg-001: rgba(16,185,129,0.1);
+  --legacy-bg-002: rgba(245,158,11,0.1);
+  --legacy-bg-003: rgba(91,108,255,0.08);
+  --legacy-bg-004: rgba(91,108,255,0.1);
+  --legacy-border-005: 1.5px;
+  --legacy-duration-006: 250ms;
+  --legacy-h-007: 1.5px;
+  --legacy-h-008: 100px;
+  --legacy-h-009: 10px;
+  --legacy-h-010: 120px;
+  --legacy-h-011: 140px;
+  --legacy-h-012: 180px;
+  --legacy-h-013: 188px;
+  --legacy-h-014: 18px;
+  --legacy-h-015: 1px;
+  --legacy-h-016: 200px;
+  --legacy-h-017: 220px;
+  --legacy-h-018: 240px;
+  --legacy-h-019: 260px;
+  --legacy-h-020: 280px;
+  --legacy-h-021: 2px;
+  --legacy-h-022: 300px;
+  --legacy-h-023: 320px;
+  --legacy-h-024: 32px;
+  --legacy-h-025: 350px;
+  --legacy-h-026: 380px;
+  --legacy-h-027: 3px;
+  --legacy-h-028: 420px;
+  --legacy-h-029: 42px;
+  --legacy-h-030: 44px;
+  --legacy-h-031: 450px;
+  --legacy-h-032: 480px;
+  --legacy-h-033: 4px;
+  --legacy-h-034: 50%;
+  --legacy-h-035: 520px;
+  --legacy-h-036: 60px;
+  --legacy-h-037: 640px;
+  --legacy-h-038: 64px;
+  --legacy-h-039: 680px;
+  --legacy-h-040: 6px;
+  --legacy-h-041: 72px;
+  --legacy-h-042: 750px;
+  --legacy-h-043: 75vh;
+  --legacy-h-044: 80px;
+  --legacy-h-045: 80vh;
+  --legacy-h-046: 85vh;
+  --legacy-h-047: 90px;
+  --legacy-h-048: 94dvh;
+  --legacy-maxw-049: 100px;
+  --legacy-maxw-050: 120px;
+  --legacy-maxw-051: 150px;
+  --legacy-maxw-052: 1600px;
+  --legacy-maxw-053: 168px;
+  --legacy-maxw-054: 170px;
+  --legacy-maxw-055: 200px;
+  --legacy-maxw-056: 280px;
+  --legacy-maxw-057: 360px;
+  --legacy-maxw-058: 380px;
+  --legacy-maxw-059: 640px;
+  --legacy-maxw-060: 700px;
+  --legacy-maxw-061: 80%;
+  --legacy-maxw-062: 800px;
+  --legacy-maxw-063: 80px;
+  --legacy-maxw-064: 85%;
+  --legacy-maxw-065: 90%;
+  --legacy-shadow-066: 0 0 0 1px rgba(239,68,68,0.12);
+  --legacy-shadow-067: 0 0 0 3px rgba(244,63,94,0.1);
+  --legacy-shadow-068: 0 0 10px currentColor;
+  --legacy-shadow-069: 0 0 12px rgba(56,189,248,0.1);
+  --legacy-shadow-070: 0 0 8px rgba(245,158,11,0.25);
+  --legacy-shadow-071: 0 1px 4px rgba(0,0,0,0.05);
+  --legacy-shadow-072: 0 1px 4px rgba(0,0,0,0.06);
+  --legacy-shadow-073: 0 2px 8px rgba(16,185,129,0.3);
+  --legacy-shadow-074: 0 2px 8px rgba(249,115,22,0.15);
+  --legacy-w-075: 120px;
+  --legacy-w-076: 14px;
+  --legacy-w-077: 150px;
+  --legacy-w-078: 160px;
+  --legacy-w-079: 18px;
+  --legacy-w-080: 2.25rem;
+  --legacy-w-081: 220px;
+  --legacy-w-082: 260px;
+  --legacy-w-083: 280px;
+  --legacy-w-084: 290px;
+  --legacy-w-085: 300px;
+  --legacy-w-086: 32px;
+  --legacy-w-087: 3px;
+  --legacy-w-088: 44px;
+  --legacy-w-089: 50%;
+  --legacy-w-090: 520px;
+  --legacy-w-091: 52px;
+  --legacy-w-092: 70px;
+  --legacy-w-093: 72px;
+  --legacy-w-094: 80px;
+  --legacy-w-095: 88px;
+  --legacy-w-096: 90%;
+
   /* Pixel-style tonal surfaces */
-  --tonal-primary: rgba(79, 70, 229, 0.08);
-  --tonal-primary-strong: rgba(79, 70, 229, 0.14);
+  --tonal-primary: color-mix(in srgb, var(--primary) 8%, transparent);
+  --tonal-primary-strong: color-mix(in srgb, var(--primary) 14%, transparent);
+
+  /* Derived primary opacity tokens — use these instead of hardcoded rgba(99,102,241,...) */
+  --legacy-css-animation-001: checkmark-pop 0.25s var(--spring);
+  --legacy-css-animation-002: keep-fade-in 0.22s ease-out forwards;
+  --legacy-css-animation-003: keep-modal-fadein 0.22s ease-out forwards !important;
+  --legacy-css-animation-004: keep-modal-scale-up 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  --legacy-css-animation-005: keep-toolbar-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --legacy-css-animation-006: todo-check-pop 0.4s var(--spring) !important;
+  --legacy-css-borderradius-007: 0 !important;
+  --legacy-css-borderradius-008: 0 8px 8px 0;
+  --legacy-css-borderradius-009: 16px 16px 0 0;
+  --legacy-css-borderradius-010: 50%;
+  --legacy-css-boxshadow-011: 0 0 0 0px rgba(16, 185, 129, 0);
+  --legacy-css-boxshadow-012: 0 0 0 0px rgba(16, 185, 129, 0.5);
+  --legacy-css-boxshadow-013: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent), 0 8px 28px rgba(0,0,0,0.15);
+  --legacy-css-boxshadow-014: 0 0 0 3px color-mix(in srgb, var(--primary) 8%, transparent);
+  --legacy-css-boxshadow-015: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  --legacy-css-boxshadow-016: 0 0 0 6px rgba(16, 185, 129, 0.25);
+  --legacy-css-boxshadow-017: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --legacy-css-boxshadow-018: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --legacy-css-boxshadow-019: 0 12px 28px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--primary);
+  --legacy-css-boxshadow-020: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--primary), 0 0 12px color-mix(in srgb, var(--primary) 12%, transparent);
+  --legacy-css-boxshadow-021: 0 12px 36px color-mix(in srgb, var(--primary) 60%, transparent);
+  --legacy-css-boxshadow-022: 0 -1px 0 rgba(0, 0, 0, 0.06) !important;
+  --legacy-css-boxshadow-023: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --legacy-css-boxshadow-024: 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2);
+  --legacy-css-boxshadow-025: 0 1px 3px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.22);
+  --legacy-css-boxshadow-026: 0 20px 48px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0,0,0,0.08);
+  --legacy-css-boxshadow-027: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255,255,255,0.08);
+  --legacy-css-boxshadow-028: 0 24px 64px rgba(0, 0, 0, 0.45);
+  --legacy-css-boxshadow-029: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.22);
+  --legacy-css-boxshadow-030: 0 3px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+  --legacy-css-boxshadow-031: 0 4px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
+  --legacy-css-boxshadow-032: 0 4px 12px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  --legacy-css-boxshadow-033: 0 4px 12px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.2);
+  --legacy-css-boxshadow-034: 0 4px 16px rgba(0,0,0,0.25);
+  --legacy-css-boxshadow-035: 0 4px 24px rgba(0,0,0,0.18);
+  --legacy-css-boxshadow-036: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --legacy-css-boxshadow-037: 0 8px 24px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.07);
+  --legacy-css-boxshadow-038: 0 8px 30px color-mix(in srgb, var(--primary) 50%, transparent);
+  --legacy-css-boxshadow-039: 0 8px 36px rgba(0,0,0,0.28);
+  --legacy-css-boxshadow-040: inset 0 0 0 1.5px var(--primary) !important;
+  --legacy-css-boxshadow-041: none !important;
+  --legacy-css-fontsize-042: 11px !important;
+  --legacy-css-fontsize-043: 13.5px !important;
+  --legacy-css-transition-044: background 0.12s;
+  --legacy-css-transition-045: background 0.12s, color 0.12s;
+  --legacy-css-transition-046: background 0.12s, transform 0.08s;
+  --legacy-css-transition-047: background 0.15s ease;
+  --legacy-css-transition-048: background 0.15s ease, transform 0.15s ease;
+  --legacy-css-transition-049: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  --legacy-css-transition-050: background-color 0.15s ease, color 0.15s ease;
+  --legacy-css-transition-051: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  --legacy-css-transition-052: background-color 0.15s, color 0.15s;
+  --legacy-css-transition-053: background-color 0.2s;
+  --legacy-css-transition-054: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --legacy-css-transition-055: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  --legacy-css-transition-056: background-color 0.2s, color 0.2s;
+  --legacy-css-transition-057: border-color 0.2s, box-shadow 0.2s;
+  --legacy-css-transition-058: box-shadow 0.25s var(--ease-out), border-color 0.25s var(--ease-out);
+  --legacy-css-transition-059: fill 0.2s ease, opacity 0.2s ease;
+  --legacy-css-transition-060: grid-template-rows 280ms var(--spring);
+  --legacy-css-transition-061: opacity 0.15s;
+  --legacy-css-transition-062: opacity 0.2s;
+  --legacy-css-transition-063: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+  --legacy-css-transition-064: transform 0.15s ease, box-shadow 0.15s;
+  --legacy-css-transition-065: transform 0.15s, box-shadow 0.15s;
+  --legacy-css-transition-066: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  --legacy-css-transition-067: width 0.3s var(--spring);
+  --primary-5: color-mix(in srgb, var(--primary) 5%, transparent);
+  --primary-8: color-mix(in srgb, var(--primary) 8%, transparent);
+  --primary-10: color-mix(in srgb, var(--primary) 10%, transparent);
+  --primary-12: color-mix(in srgb, var(--primary) 12%, transparent);
+  --primary-15: color-mix(in srgb, var(--primary) 15%, transparent);
+  --primary-18: color-mix(in srgb, var(--primary) 18%, transparent);
+  --primary-20: color-mix(in srgb, var(--primary) 20%, transparent);
+  --primary-25: color-mix(in srgb, var(--primary) 25%, transparent);
+  --primary-30: color-mix(in srgb, var(--primary) 30%, transparent);
+  --primary-35: color-mix(in srgb, var(--primary) 35%, transparent);
+  --primary-40: color-mix(in srgb, var(--primary) 40%, transparent);
+  --primary-50: color-mix(in srgb, var(--primary) 50%, transparent);
+  --primary-80: color-mix(in srgb, var(--primary) 80%, transparent);
 
   /* iOS-style spring easing */
-  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --spring: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0, 0, 0, 1);
+  --motion-fast: 120ms;
+  --motion-medium: 200ms;
+  --motion-slow: 300ms;
+  --motion-instant: 80ms;
+  --motion-enter: 260ms;
+  --motion-exit: 180ms;
+  --motion-long: 500ms;
+  --motion-deliberate: 700ms;
+  --motion-ambient: 1000ms;
+  --motion-spin: 700ms;
+  --motion-oracle-focus: all 220ms var(--ease-out);
+  --motion-oracle-idle: all 0ms var(--ease-out);
+  --motion-todo-dismiss: transform 280ms var(--ease-exit), opacity 220ms var(--ease-out);
+  --border-desktop-hero-muted: 1px solid var(--legacy-color-089);
+  --border-html-card-accent: 3px solid var(--legacy-lib-color-013);
+  --border-html-card-receipt: 1px dashed var(--legacy-lib-color-027);
+  --html-card-padding-compact: var(--space-1) var(--space-0);
+  --html-card-text-compact: 12px;
+  --motion-distance-sm: 0.25rem;
+  --motion-distance-md: 0.75rem;
+  --ease-enter: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 .dark {
@@ -87,15 +875,15 @@
   --text-primary: #f9fafb; /* Slate 50 */
   --text-secondary: #9ca3af; /* Slate 400 */
   --text-muted: #818999; /* Improved contrast for dark mode metadata */
-  --bg-gradient-a: rgba(99, 102, 241, 0.12);
+  --bg-gradient-a: var(--primary-12);
   --bg-gradient-b: rgba(236, 72, 153, 0.08);
   --bg-gradient-c: rgba(139, 92, 246, 0.08);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.1);
   --shadow-nav: 0 12px 30px rgba(0, 0, 0, 0.7);
-  --shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.25);
-  --shadow-glow-primary: 0 0 16px rgba(99, 102, 241, 0.5);
-  --shadow-accent-active: 0 4px 25px rgba(99, 102, 241, 0.2);
+  --shadow-focus: 0 0 0 3px var(--primary-25);
+  --shadow-glow-primary: 0 0 16px var(--primary-50);
+  --shadow-accent-active: 0 4px 25px var(--primary-20);
   --input-bg: #111827;
   --nav-bg: rgba(11, 15, 25, 0.85);
   --btn-outline-bg: rgba(255, 255, 255, 0.02);
@@ -105,13 +893,13 @@
   /* Theme variables */
   --bg-primary: #030712;
   --bg-secondary: #0b0f19;
-  --accent: #6366f1;
+  --accent: var(--primary);
   --border-color: rgba(255, 255, 255, 0.06);
 
   --color-success: #34d399;
   --color-warning: #fbbf24;
   --color-danger: #fb7185;
-  --color-info: #6366f1;
+  --color-info: var(--primary);
   --color-success-hover: #6ee7b7;
   --color-warning-hover: #fcd34d;
   --color-danger-hover: #fda4af;
@@ -120,9 +908,36 @@
   --surface-1: var(--surface);
   --surface-2: rgba(255, 255, 255, 0.03);
   --surface-3: rgba(255, 255, 255, 0.06);
+  --surface-tonal: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  --surface-tonal-strong: color-mix(in srgb, var(--primary) 22%, var(--surface));
 }
 
 @theme {
+  --spacing: var(--space-1);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+  --tracking-tighter: -0.05em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  --color-on-accent: var(--on-accent);
+  --color-scrim: var(--scrim);
+  --animate-spin: spin var(--motion-spin) linear infinite;
+  --animate-ping: ping var(--motion-ambient) cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-pulse: pulse var(--motion-ambient) cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-bounce: bounce var(--motion-deliberate) infinite;
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
   --color-accent: var(--accent);
@@ -165,6 +980,8 @@
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
+  --color-surface-tonal: var(--surface-tonal);
+  --color-surface-tonal-strong: var(--surface-tonal-strong);
 
   --text-3xs: 7px;
   --text-2xs: 9px;
@@ -173,6 +990,11 @@
   --text-base: 15px;
   --text-lg: 18px;
   --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+  --text-5xl: 48px;
+  --text-6xl: 60px;
 }
 
 
@@ -185,7 +1007,7 @@
 
   html, body {
     background-color: var(--background);
-    background-image: 
+    background-image:
       radial-gradient(circle at 80% 0%, var(--bg-gradient-a) 0%, transparent 45%),
       radial-gradient(circle at 10% 100%, var(--bg-gradient-b) 0%, transparent 40%),
       radial-gradient(circle at 50% 50%, var(--bg-gradient-c) 0%, transparent 50%);
@@ -225,13 +1047,13 @@
     transition: transform 0.2s var(--spring), border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
   }
   .card:hover {
-    border-color: rgba(99, 102, 241, 0.25);
+    border-color: var(--primary-20);
     box-shadow: var(--shadow-card-hover);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
   .dark .card:hover {
-    border-color: rgba(99, 102, 241, 0.5);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 24px rgba(99, 102, 241, 0.18), 0 0 1px rgba(99, 102, 241, 0.35);
+    border-color: var(--primary-50);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 24px color-mix(in srgb, var(--primary) 18%, transparent), 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
   }
   .card:active {
     transform: translateY(0) scale(0.98);
@@ -270,13 +1092,13 @@
 
   /* ── Active Nav Pill Glow ── */
   .nav-pill-active {
-    background-color: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.08);
+    background-color: var(--surface-tonal);
+    border: 1px solid transparent;
   }
   .dark .nav-pill-active {
-    background-color: rgba(99, 102, 241, 0.18);
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+    background-color: var(--surface-tonal);
+    border: 1px solid transparent;
+    box-shadow: none;
   }
 
   /* ── Glass panel — iOS frosted surface ── */
@@ -365,11 +1187,11 @@
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius-md);
     transition: background-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
-    box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.22);
+    box-shadow: 0 4px 12px 0 color-mix(in srgb, var(--primary) 22%, transparent);
   }
   .btn-primary:hover {
     background-color: var(--color-primary-hover);
-    box-shadow: 0 6px 18px 0 rgba(79, 70, 229, 0.32);
+    box-shadow: 0 6px 18px 0 color-mix(in srgb, var(--primary) 32%, transparent);
     transform: translateY(-1px);
   }
   .btn-primary:active {
@@ -388,7 +1210,7 @@
   }
   .btn-outline:hover {
     background-color: var(--surface-solid);
-    border-color: rgba(99, 102, 241, 0.25);
+    border-color: var(--primary-25);
     color: var(--text-primary);
     transform: translateY(-1px);
   }
@@ -409,7 +1231,7 @@
   .input:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent);
     background-color: var(--surface-solid);
   }
 
@@ -440,12 +1262,12 @@
 
 
 /* Custom Day Colors for dynamic classes */
-.border-l-dayA { border-left-color: #4f46e5; }
+.border-l-dayA { border-left-color: var(--primary-hover); }
 .border-l-dayB { border-left-color: #f43f5e; }
 .border-l-dayC { border-left-color: #10b981; }
 .border-l-dayD { border-left-color: #f59e0b; }
 
-.bg-dayA { background-color: #4f46e5; }
+.bg-dayA { background-color: var(--primary-hover); }
 .bg-dayB { background-color: #f43f5e; }
 .bg-dayC { background-color: #10b981; }
 .bg-dayD { background-color: #f59e0b; }
@@ -538,11 +1360,11 @@
 }
 /* Fast Capture Button & Menu Styles */
 .fast-capture-btn {
-  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 45%, transparent);
   transition: box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .fast-capture-btn:hover {
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.65);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--primary) 65%, transparent);
 }
 .fast-capture-menu-item {
   transition: box-shadow 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -559,4 +1381,190 @@
 }
 .header-icon-row::-webkit-scrollbar {
   display: none;
+}
+
+@layer components {
+  .page-template-list {
+    --page-content-width: var(--content-default);
+    --page-section-gap: var(--space-5);
+  }
+
+  .page-template-grid {
+    --page-content-width: var(--content-wide);
+    --page-section-gap: var(--space-4);
+  }
+
+  .page-template-dashboard {
+    --page-content-width: var(--content-wide);
+    --page-section-gap: var(--space-4);
+  }
+
+  .page-template-timeline {
+    --page-content-width: none;
+    --page-section-gap: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Keep (notes) — note color palette tokens
+   Moved from notes.css so ALL visual decisions live in this file.
+   These are user-pickable note colors (content data, like dayA-D).
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Note colors - Light mode (modern muted pastels) */
+  --keep-bg-default: var(--surface-solid);
+  --keep-border-default: var(--border);
+  --keep-text-default: var(--text-primary);
+  --keep-text-sub-default: var(--text-secondary);
+  --keep-tag-bg-default: rgba(15, 23, 42, 0.05);
+  --keep-tag-text-default: var(--text-muted);
+  --keep-card-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06);
+
+  --keep-bg-red: #fee2e2;
+  --keep-border-red: #fca5a5;
+  --keep-text-red: #1c1c1e;
+  --keep-text-sub-red: #6b7280;
+  --keep-tag-bg-red: rgba(239, 68, 68, 0.1);
+  --keep-tag-text-red: #b91c1c;
+
+  --keep-bg-orange: #ffedd5;
+  --keep-border-orange: #fdba74;
+  --keep-text-orange: #1c1c1e;
+  --keep-text-sub-orange: #6b7280;
+  --keep-tag-bg-orange: rgba(249, 115, 22, 0.1);
+  --keep-tag-text-orange: #c2410c;
+
+  --keep-bg-yellow: #fef9c3;
+  --keep-border-yellow: #fde047;
+  --keep-text-yellow: #1c1c1e;
+  --keep-text-sub-yellow: #6b7280;
+  --keep-tag-bg-yellow: rgba(234, 179, 8, 0.12);
+  --keep-tag-text-yellow: #854d0e;
+
+  --keep-bg-green: #dcfce7;
+  --keep-border-green: #86efac;
+  --keep-text-green: #1c1c1e;
+  --keep-text-sub-green: #6b7280;
+  --keep-tag-bg-green: rgba(34, 197, 94, 0.1);
+  --keep-tag-text-green: #15803d;
+
+  --keep-bg-teal: #ccfbf1;
+  --keep-border-teal: #5eead4;
+  --keep-text-teal: #1c1c1e;
+  --keep-text-sub-teal: #6b7280;
+  --keep-tag-bg-teal: rgba(20, 184, 166, 0.1);
+  --keep-tag-text-teal: #0f766e;
+
+  --keep-bg-blue: #dbeafe;
+  --keep-border-blue: #93c5fd;
+  --keep-text-blue: #1c1c1e;
+  --keep-text-sub-blue: #6b7280;
+  --keep-tag-bg-blue: rgba(59, 130, 246, 0.1);
+  --keep-tag-text-blue: #1d4ed8;
+
+  --keep-bg-indigo: #e0e7ff;
+  --keep-border-indigo: #a5b4fc;
+  --keep-text-indigo: #1c1c1e;
+  --keep-text-sub-indigo: #6b7280;
+  --keep-tag-bg-indigo: rgba(99, 102, 241, 0.1);
+  --keep-tag-text-indigo: #4338ca;
+
+  --keep-bg-purple: #f3e8ff;
+  --keep-border-purple: #d8b4fe;
+  --keep-text-purple: #1c1c1e;
+  --keep-text-sub-purple: #6b7280;
+  --keep-tag-bg-purple: rgba(168, 85, 247, 0.1);
+  --keep-tag-text-purple: #7e22ce;
+
+  --keep-bg-pink: #fce7f3;
+  --keep-border-pink: #f9a8d4;
+  --keep-text-pink: #1c1c1e;
+  --keep-text-sub-pink: #6b7280;
+  --keep-tag-bg-pink: rgba(236, 72, 153, 0.1);
+  --keep-tag-text-pink: #be185d;
+}
+
+.dark {
+  /* Google Keep dynamic note colors - Dark mode */
+  --keep-bg-default: var(--surface-solid);
+  --keep-border-default: var(--border);
+  --keep-text-default: var(--text-primary);
+  --keep-text-sub-default: var(--text-secondary);
+  --keep-tag-bg-default: rgba(255, 255, 255, 0.06);
+  --keep-tag-text-default: var(--text-muted);
+  --keep-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  --keep-bg-red: #5c2b29;
+  --keep-border-red: transparent;
+  --keep-text-red: #f8fafc;
+  --keep-text-sub-red: #94a3b8;
+  --keep-tag-bg-red: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-red: #f8fafc;
+
+  --keep-bg-orange: #614a19;
+  --keep-border-orange: transparent;
+  --keep-text-orange: #f8fafc;
+  --keep-text-sub-orange: #94a3b8;
+  --keep-tag-bg-orange: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-orange: #f8fafc;
+
+  --keep-bg-yellow: #635d19;
+  --keep-border-yellow: transparent;
+  --keep-text-yellow: #f8fafc;
+  --keep-text-sub-yellow: #94a3b8;
+  --keep-tag-bg-yellow: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-yellow: #f8fafc;
+
+  --keep-bg-green: #345920;
+  --keep-border-green: transparent;
+  --keep-text-green: #f8fafc;
+  --keep-text-sub-green: #94a3b8;
+  --keep-tag-bg-green: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-green: #f8fafc;
+
+  --keep-bg-teal: #16504b;
+  --keep-border-teal: transparent;
+  --keep-text-teal: #f8fafc;
+  --keep-text-sub-teal: #94a3b8;
+  --keep-tag-bg-teal: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-teal: #f8fafc;
+
+  --keep-bg-blue: #2d555e;
+  --keep-border-blue: transparent;
+  --keep-text-blue: #f8fafc;
+  --keep-text-sub-blue: #94a3b8;
+  --keep-tag-bg-blue: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-blue: #f8fafc;
+
+  --keep-bg-indigo: #1d3b5e;
+  --keep-border-indigo: transparent;
+  --keep-text-indigo: #f8fafc;
+  --keep-text-sub-indigo: #94a3b8;
+  --keep-tag-bg-indigo: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-indigo: #f8fafc;
+
+  --keep-bg-purple: #42275e;
+  --keep-border-purple: transparent;
+  --keep-text-purple: #f8fafc;
+  --keep-text-sub-purple: #94a3b8;
+  --keep-tag-bg-purple: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-purple: #f8fafc;
+
+  --keep-bg-pink: #5b2245;
+  --keep-border-pink: transparent;
+  --keep-text-pink: #f8fafc;
+  --keep-text-sub-pink: #94a3b8;
+  --keep-tag-bg-pink: rgba(255, 255, 255, 0.08);
+  --keep-tag-text-pink: #f8fafc;
 }

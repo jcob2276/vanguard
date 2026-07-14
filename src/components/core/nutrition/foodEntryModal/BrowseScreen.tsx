@@ -1,5 +1,5 @@
+import { Pressable, ControlInput } from '../../../ui/ControlPrimitives';
 import { Search, ScanLine, Plus, RotateCcw, Sparkles, X } from 'lucide-react';
-import Button from '../../../ui/Button';
 import Spinner from '../../../ui/Spinner';
 import FoodRow from '../FoodRow';
 import BarcodeScanner from '../BarcodeScanner';
@@ -51,7 +51,7 @@ export default function BrowseScreen({
       <div className="group flex items-center gap-1 mb-3.5 rounded-2xl border border-border-custom bg-surface-solid/40 pl-1 pr-1.5 shadow-sm transition-all focus-within:border-primary/40 focus-within:bg-surface-solid/70 focus-within:ring-4 focus-within:ring-primary/10">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted transition-colors group-focus-within:text-primary" />
-          <input
+          <ControlInput
             ref={searchInputRef}
             autoFocus
             value={query}
@@ -61,7 +61,7 @@ export default function BrowseScreen({
           />
         </div>
         {query && !searching && (
-          <Button
+          <Pressable
             variant="ghost"
             size="sm"
             onClick={() => { setQuery(''); searchInputRef.current?.focus(); }}
@@ -69,14 +69,14 @@ export default function BrowseScreen({
             title="Wyczyść"
           >
             <X size={14} />
-          </Button>
+          </Pressable>
         )}
         {searching ? (
           <Spinner size="sm" className="shrink-0 mx-1.5" />
         ) : (
-          <Button variant="ghost" size="sm" onClick={() => { setError(null); setScannerOpen(true); }} className="shrink-0 rounded-full p-2" title="Skanuj kod">
+          <Pressable variant="ghost" size="sm" onClick={() => { setError(null); setScannerOpen(true); }} className="shrink-0 rounded-full p-2" title="Skanuj kod">
             <ScanLine size={16} />
-          </Button>
+          </Pressable>
         )}
       </div>
 
@@ -101,25 +101,25 @@ export default function BrowseScreen({
       ) : (
         <>
           {/* AI shortcut */}
-          <Button
+          <Pressable
             variant="tonal"
             onClick={() => { setNlMode(true); setError(null); }}
             icon={<Sparkles size={14} />}
             className="w-full mb-3.5"
           >
             Opisz posiłek słowami
-          </Button>
+          </Pressable>
           {/* Tabs — segmented control */}
           <div className="flex gap-0.5 mb-3.5 rounded-full bg-surface-solid/50 p-1">
             {(['favorites', 'recent'] as const).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
+              <Pressable key={tab} onClick={() => setActiveTab(tab)}
                 className={`flex-1 rounded-full py-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   activeTab === tab
-                    ? 'bg-primary text-white shadow-sm'
+                    ? 'bg-primary text-on-accent shadow-sm'
                     : 'text-text-muted hover:text-text-primary'
                 }`}>
                 {tab === 'favorites' ? 'Częste' : 'Ostatnie'}
-              </button>
+              </Pressable>
             ))}
           </div>
           {loadingList ? (
@@ -187,7 +187,7 @@ function SearchResultsList({
       {searchResults.length === 0 && !searching && (
         <div className="py-4 text-center space-y-3">
           <p className="text-sm text-text-muted">Brak wyników dla &quot;{query}&quot;</p>
-          <Button
+          <Pressable
             variant="tonal"
             size="sm"
             onClick={() => { setNlMode(true); setNlText(query); setQuery(''); setError(null); }}
@@ -195,7 +195,7 @@ function SearchResultsList({
             className="inline-flex"
           >
             Opisz posiłek słowami
-          </Button>
+          </Pressable>
         </div>
       )}
       {searchResults.map((r, i) => {

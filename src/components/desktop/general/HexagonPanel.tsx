@@ -1,5 +1,6 @@
-import { Pencil, X } from 'lucide-react';
 import Button from '../../ui/Button';
+import { ControlInput } from '../../ui/ControlPrimitives';
+import { Pencil, X } from 'lucide-react';
 import { getTodayWarsaw } from '../../../lib/date';
 import { Panel } from '../shell/Panel';
 import HexagonChart from './HexagonChart';
@@ -9,12 +10,12 @@ import type { HexagonScores } from '../../../lib/hexagonScoresApi';
 export type { HexagonScores };
 
 const SPHERES = [
-  { key: 'zdrowie', label: 'Zdrowie & Ciało', color: 'accent-emerald-500' },
-  { key: 'finanse', label: 'Finanse & Konto', color: 'accent-amber-500' },
-  { key: 'kariera', label: 'Kariera & Praca', color: 'accent-indigo-500' },
-  { key: 'relacje', label: 'Relacje', color: 'accent-pink-500' },
-  { key: 'rozwoj', label: 'Rozwój Osobisty', color: 'accent-sky-500' },
-  { key: 'duchowosc', label: 'Duchowość & Czas dla siebie', color: 'accent-violet-500' },
+  { key: 'zdrowie', label: 'Zdrowie & Ciało', color: 'accent-success' },
+  { key: 'finanse', label: 'Finanse & Konto', color: 'accent-warning' },
+  { key: 'kariera', label: 'Kariera & Praca', color: 'accent-primary' },
+  { key: 'relacje', label: 'Relacje', color: 'accent-primary' },
+  { key: 'rozwoj', label: 'Rozwój Osobisty', color: 'accent-info' },
+  { key: 'duchowosc', label: 'Duchowość & Czas dla siebie', color: 'accent-primary' },
 ] as const;
 
 export default function HexagonPanel({
@@ -61,7 +62,7 @@ export default function HexagonPanel({
             type="button"
             onClick={startEdit}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-xs font-black uppercase tracking-wider text-primary hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-xs font-black uppercase tracking-wider text-primary hover:bg-primary/10 transition-all cursor-pointer disabled:opacity-[var(--opacity-40)]"
             icon={<Pencil size={11} />}
           >
             Edytuj
@@ -69,10 +70,10 @@ export default function HexagonPanel({
         )}
       </div>
 
-      <div className="grid grid-cols-[1fr_380px] gap-8 items-center p-2">
+      <div className="grid grid-cols-[var(--legacy-arbitrary-041)] gap-8 items-center p-2">
         <div className="flex justify-center items-center">
           {loading ? (
-            <div className="h-[300px] w-[300px] animate-pulse rounded-full bg-surface border border-border-custom" />
+            <div className="h-[var(--legacy-h-022)] w-[var(--legacy-w-085)] animate-pulse rounded-full bg-surface border border-border-custom" />
           ) : (
             <HexagonChart scores={chartScores} theme={theme} grid={grid} />
           )}
@@ -88,7 +89,7 @@ export default function HexagonPanel({
                   <span className="font-black text-primary font-display">{val}/10</span>
                 </div>
                 {editing ? (
-                  <input
+                  <ControlInput
                     type="range"
                     min="1"
                     max="10"

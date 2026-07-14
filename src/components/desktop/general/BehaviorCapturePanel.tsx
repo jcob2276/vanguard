@@ -1,7 +1,7 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapPin, RefreshCw } from 'lucide-react';
-import Button from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import {
   BEHAVIOR_CAPTURE_ENTRIES,
@@ -59,11 +59,11 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <MapPin size={12} className="text-primary shrink-0" />
-          <p className="text-2xs font-black uppercase tracking-[0.25em] text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">
             Gdzie co logować
           </p>
         </div>
-        <Button
+        <Pressable
           onClick={() => void logsQuery.refetch()}
           variant="ghost"
           icon={<RefreshCw size={12} className={loading ? 'animate-spin' : ''} />}
@@ -114,12 +114,12 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
           {BEHAVIOR_CONFOUNDERS.map(({ key, label, icon }) => {
             const on = activeKeys.has(key);
             return (
-              <button
+              <Pressable
                 key={key}
                 type="button"
                 disabled={savingKey === key}
                 onClick={() => void toggleConfounder(key)}
-                className={`rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer disabled:opacity-60 ${
+                className={`rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer disabled:opacity-[var(--opacity-60)] ${
                   on
                     ? 'border-primary/40 bg-primary/10 text-text-primary'
                     : 'border-border-custom bg-surface text-text-muted hover:text-text-secondary'
@@ -127,7 +127,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
               >
                 <span className="text-xs mr-1">{icon}</span>
                 <span className="text-2xs font-black uppercase tracking-wide">{label}</span>
-              </button>
+              </Pressable>
             );
           })}
         </div>

@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { Plus } from 'lucide-react';
 import Fab from '../ui/Fab';
 
@@ -23,32 +24,32 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
           the required position, so a raw fixed overlay is intentional here. */}
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-35 bg-black/40 backdrop-blur-[2.5px] transition-all animate-fadeIn"
+        className="fixed inset-0 z-[var(--z-nav)] bg-scrim/40 backdrop-blur-[var(--blur-fine)] transition-all animate-fadeIn"
         onClick={onClose}
       />
 
       {/* Menu overlay */}
       <div
-        className="fixed left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-3 transition-all duration-300 pointer-events-none"
-        style={{ bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 5.6rem)' }}
+        className="fixed left-1/2 z-[var(--z-modal)] flex -translate-x-1/2 flex-col items-center gap-3 transition-all duration-[var(--motion-slow)] pointer-events-none"
+        style={{ bottom: 'var(--legacy-inline-style-013)' }}
       >
         {items.map((item, idx) => (
           <div
             key={item.label}
-            className="flex items-center gap-2 animate-in slide-in-from-bottom-5 duration-200 pointer-events-auto"
+            className="flex items-center gap-2 animate-in slide-in-from-bottom-5 duration-[var(--motion-medium)] pointer-events-auto"
             style={{ animationDelay: `${idx * 40}ms` }}
           >
-            <button
+            <Pressable
               onClick={() => {
                 item.action();
                 onClose();
               }}
               style={{ backgroundColor: item.color }}
-              className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg active:scale-90 transition-transform cursor-pointer"
+              className="flex h-12 w-12 items-center justify-center rounded-full text-on-accent shadow-lg active:scale-90 transition-transform cursor-pointer"
             >
               <span className="text-xl">{item.emoji}</span>
-            </button>
-            <span className="rounded-lg bg-slate-900/90 border border-slate-800 px-2 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
+            </Pressable>
+            <span className="rounded-lg bg-surface-2/90 border border-border-custom px-2 py-1 text-xs font-black uppercase tracking-wider text-on-accent shadow-md">
               {item.label}
             </span>
           </div>
@@ -70,9 +71,9 @@ export function DashboardFastCaptureFAB({ active, onToggle }: FabProps) {
       size="sm"
       onClick={onToggle}
       className="fast-capture-btn"
-      style={{ bottom: 'calc(max(2rem, calc(1rem + env(safe-area-inset-bottom))) + 1.95rem)' }}
+      style={{ bottom: 'var(--legacy-inline-style-012)' }}
     >
-      <div className={`transition-transform duration-300 ${active ? 'rotate-[135deg]' : ''}`}>
+      <div className={`transition-transform duration-[var(--motion-slow)] ${active ? 'rotate-[var(--legacy-arbitrary-030)]' : ''}`}>
         <Plus size={18} strokeWidth={3.5} />
       </div>
     </Fab>

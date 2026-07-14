@@ -1,8 +1,8 @@
+import Button from '../ui/Button';
 import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
 import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth/growth';
 import { MAX_ACTIVE, MAX_MUST } from '../../lib/growth/growth';
 import type { TheoryPracticeBalance } from '../../lib/growth/growthMastery';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import SlotSection from './SlotSection';
 
@@ -55,7 +55,7 @@ export default function GrowthWeekPlan({
     <section className="space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-text-muted">Plan tygodnia</p>
+          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">Plan tygodnia</p>
           <p className="text-sm font-bold text-text-primary mt-1">
             {doneCount}/{pins.length} zamknięte
             <span className="text-text-muted font-semibold ml-2">

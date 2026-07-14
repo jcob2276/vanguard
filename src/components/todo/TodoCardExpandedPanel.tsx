@@ -1,6 +1,6 @@
+import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
 import { Paperclip, X, Calendar, Flag, Bell, Tag, Folder, ChevronDown } from 'lucide-react';
-import Button from '../ui/Button';
 import NlpHighlightInput from './NlpHighlightInput';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
@@ -61,7 +61,7 @@ export default function TodoCardExpandedPanel({
           placeholder="Nazwa zadania"
           className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
         />
-        <textarea
+        <ControlTextarea
           value={item.notes || ''}
           onChange={(e) => onSetNotes?.(e.target.value || null)}
           rows={2}
@@ -83,16 +83,16 @@ export default function TodoCardExpandedPanel({
                 href={att.file_url}
                 target="_blank"
                 rel="noreferrer"
-                className="max-w-[120px] truncate text-primary hover:underline"
+                className="max-w-[var(--legacy-maxw-050)] truncate text-primary hover:underline"
               >
                 {att.file_name}
               </a>
-              <button
+              <Pressable
                 onClick={() => handleDeleteAttachment(att)}
                 className="text-text-muted/35 hover:text-danger transition-colors ml-0.5"
               >
                 <X size={10} />
-              </button>
+              </Pressable>
             </div>
           ))}
         </div>
@@ -109,14 +109,14 @@ export default function TodoCardExpandedPanel({
       <div className="flex flex-wrap items-center gap-2 border-t border-border-custom/20 pt-2.5">
         {/* Date button + popover */}
         <div className="relative">
-          <button
+          <Pressable
             type="button"
             onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
             className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.due_date ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
           >
             <Calendar size={12} className={item.due_date ? 'text-primary' : 'text-text-muted/60'} />
             <span>{item.due_date ? `${item.due_date}${item.scheduled_time ? ` ${item.scheduled_time.slice(11, 16)}` : ''}` : 'Termin'}</span>
-          </button>
+          </Pressable>
           {openPopover === 'date' && (
             <TodoDatePickerPopover
               dueDate={item.due_date || null}
@@ -136,7 +136,7 @@ export default function TodoCardExpandedPanel({
 
         {/* Attachment button */}
         <div className="relative">
-          <input
+          <ControlInput
             ref={fileInputRef}
             type="file"
             className="hidden"
@@ -146,30 +146,30 @@ export default function TodoCardExpandedPanel({
               e.target.value = '';
             }}
           />
-          <button
+          <Pressable
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingFile}
-            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all disabled:opacity-[var(--opacity-40)]"
           >
             <Paperclip size={12} className="text-text-muted/60" />
             <span>{uploadingFile ? 'Wysyłanie…' : 'Załącznik'}</span>
-          </button>
+          </Pressable>
         </div>
 
         {/* Priority Selector button */}
         <div className="relative">
-          <select
+          <ControlSelect
             value={item.priority || 'normal'}
             onChange={(e) => onSetPriority(e.target.value)}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+            className="absolute inset-0 opacity-[var(--opacity-0)] cursor-pointer w-full h-full z-[var(--z-raised)]"
           >
             <option value="urgent">🚩 Priorytet 1 (P1)</option>
             <option value="high">🚩 Priorytet 2 (P2)</option>
             <option value="normal">🚩 Priorytet 3 (P3)</option>
             <option value="low">🚩 Priorytet 4 (P4)</option>
-          </select>
-          <button
+          </ControlSelect>
+          <Pressable
             type="button"
             className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
           >
@@ -177,12 +177,12 @@ export default function TodoCardExpandedPanel({
             <span>
               {item.priority === 'urgent' ? 'P1' : item.priority === 'high' ? 'P2' : item.priority === 'normal' ? 'P3' : 'P4'}
             </span>
-          </button>
+          </Pressable>
         </div>
 
         {/* Reminder button + popover */}
         <div className="relative">
-          <button
+          <Pressable
             type="button"
             onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
             className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
@@ -193,7 +193,7 @@ export default function TodoCardExpandedPanel({
                 ? new Date(item.reminder_at).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                 : 'Przypomnienia'}
             </span>
-          </button>
+          </Pressable>
           {openPopover === 'reminder' && (
             <TodoReminderPopover
               dueDate={item.due_date || null}
@@ -205,9 +205,9 @@ export default function TodoCardExpandedPanel({
         </div>
 
         {/* Tags input chip */}
-        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2 py-0.5 max-w-[150px]">
+        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2 py-0.5 max-w-[var(--legacy-maxw-051)]">
           <Tag size={11} className="text-text-muted/60" />
-          <input
+          <ControlInput
             value={tagInput}
             placeholder="Tagi"
             onChange={e => setTagInput(e.target.value.toLowerCase().replace(/[\s#]/g, '_'))}
@@ -228,12 +228,12 @@ export default function TodoCardExpandedPanel({
             {(item.tags || []).map((tag: string) => (
               <span key={tag} className="flex items-center gap-1 rounded-full border border-border-custom/50 bg-surface-solid/60 px-2 py-0.5 text-2xs font-medium text-text-secondary">
                 #{tag}
-                <button
+                <Pressable
                   onClick={() => onSetTags((item.tags || []).filter((t: string) => t !== tag))}
                   className="text-text-muted/40 hover:text-danger transition-colors ml-0.5"
                 >
                   <X size={9} />
-                </button>
+                </Pressable>
               </span>
             ))}
           </div>
@@ -244,17 +244,17 @@ export default function TodoCardExpandedPanel({
       <div className="flex items-center justify-between border-t border-border-custom/80 pt-3 mt-1.5">
         {/* Left: Section Selector Dropdown */}
         <div className="relative flex items-center">
-          <select
+          <ControlSelect
             value={item.section_id || ''}
             onChange={(e) => onMoveSection(e.target.value || null)}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+            className="absolute inset-0 opacity-[var(--opacity-0)] cursor-pointer w-full h-full z-[var(--z-raised)]"
           >
             <option value="">Skrzynka</option>
             {sections.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-          </select>
-          <button
+          </ControlSelect>
+          <Pressable
             type="button"
             className="flex items-center gap-1 px-2.5 py-1 text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
           >
@@ -263,25 +263,25 @@ export default function TodoCardExpandedPanel({
               {sections.find(s => s.id === item.section_id)?.name || 'Skrzynka'}
             </span>
             <ChevronDown size={11} className="text-text-muted/60" />
-          </button>
+          </Pressable>
         </div>
 
         {/* Right: Actions */}
         <div className="flex gap-2">
-          <button
+          <Pressable
             type="button"
             onClick={onDrop}
             className="rounded-xl border border-danger/15 bg-danger/5 px-3 py-1.5 text-xs font-black text-danger hover:bg-danger/10 transition-colors btn-press"
           >
             Odpuść zadanie
-          </button>
-          <Button
+          </Pressable>
+          <Pressable
             variant="primary"
             size="sm"
             onClick={() => onToggleExpand(item.id)}
           >
             Zamknij
-          </Button>
+          </Pressable>
         </div>
       </div>
     </Card>

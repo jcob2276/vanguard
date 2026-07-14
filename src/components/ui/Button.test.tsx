@@ -27,6 +27,6 @@ describe('Button', () => {
 
   it('applies variant classes', () => {
     render(<Button variant="outline">Outline</Button>);
-    expect(screen.getByRole('button').className).toContain('bg-white/2');
+    expect(screen.getByRole('button').className).toContain('bg-transparent');
   });
 });

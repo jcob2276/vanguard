@@ -46,19 +46,19 @@ export default function DirectionRadarMode({
 
       {/* 1. Kompaktowe statsy */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
+        <div className="rounded-[var(--radius-lg)] border border-border-custom bg-surface p-3 shadow-sm text-center">
           <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Streak</p>
           <p className="text-xl font-black font-display text-primary mt-1 leading-none">{stats.streak}</p>
           <p className="text-2xs font-bold text-text-muted mt-1">dni</p>
         </div>
-        <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
+        <div className="rounded-[var(--radius-lg)] border border-border-custom bg-surface p-3 shadow-sm text-center">
           <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Tydzień</p>
           <p className={`text-base font-black font-display mt-1 leading-none ${stats.weeklyP > 2 ? 'text-dayB' : 'text-dayC'}`}>
             {stats.weeklyP > 2 ? 'Przeg.' : 'OK'}
           </p>
           <p className="text-2xs font-bold text-text-muted mt-1">{stats.weeklyP}/2 P</p>
         </div>
-        <div className="rounded-[16px] border border-border-custom bg-surface p-3 shadow-sm text-center">
+        <div className="rounded-[var(--radius-lg)] border border-border-custom bg-surface p-3 shadow-sm text-center">
           <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Miesiąc</p>
           <p className={`text-base font-black font-display mt-1 leading-none ${stats.monthlyWin ? 'text-dayC' : 'text-warning'}`}>
             {stats.weeks.filter((w) => w.isWeekWin).length}/3
@@ -81,7 +81,7 @@ export default function DirectionRadarMode({
             const color = isFuture ? 'border border-border-custom bg-transparent' : dayData?.result === 'Z' ? 'bg-dayC' : dayData?.result === 'P' || isMissingLoss ? 'bg-dayB' : 'border border-border-custom bg-surface';
             return (
               <div key={date} title={date} className={`flex aspect-square items-end justify-center rounded-lg ${color}`}>
-                {date === todayWarsaw() && <span className="mb-1 h-1 w-1 rounded-full bg-white" />}
+                {date === todayWarsaw() && <span className="mb-1 h-1 w-1 rounded-full bg-on-accent" />}
               </div>
             );
           })}
@@ -95,7 +95,7 @@ export default function DirectionRadarMode({
 
       {/* 3. Lekcja z poprzedniego tygodnia */}
       {prevWeekReview?.bottleneck && (
-        <Card padding="1rem" className="flex gap-3 items-start animate-in fade-in-50 duration-300" style={{ background: 'rgba(245, 158, 11, 0.05)' }}>
+        <Card padding="1rem" className="flex gap-3 items-start animate-in fade-in-50 duration-[var(--motion-slow)]" style={{ background: 'var(--legacy-color-119)' }}>
           <span className="text-lg leading-none">💡</span>
           <div>
             <p className="text-2xs font-black uppercase tracking-widest text-warning mb-0.5 font-display">Lekcja na ten tydzień</p>
@@ -106,7 +106,7 @@ export default function DirectionRadarMode({
 
       {/* 3. Weekly Board — na górze */}
       <div>
-        <p className="text-2xs font-black uppercase tracking-[0.22em] text-text-muted font-display mb-3">Plan tygodnia</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted font-display mb-3">Plan tygodnia</p>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
         {DAYS_PL.map((dayLabel, i) => {
           const dayDate = addDays(planWeekStart, i);
@@ -125,8 +125,8 @@ export default function DirectionRadarMode({
               <div
                 key={i}
                 ref={isToday ? todayCardRef : undefined}
-                className={`min-w-[150px] max-w-[170px] shrink-0 flex flex-col rounded-[24px] border p-4 snap-align-start transition-all ${
-                  isToday ? 'border-primary/45 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-60'
+                className={`min-w-[var(--legacy-w-077)] max-w-[var(--legacy-maxw-054)] shrink-0 flex flex-col rounded-[var(--radius-xl)] border p-4 snap-align-start transition-all ${
+                  isToday ? 'border-primary/45 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-[var(--opacity-60)]'
                 }`}
               >
                 <div className="flex items-center justify-between border-b border-border-custom/30 pb-2 mb-3">
@@ -148,7 +148,7 @@ export default function DirectionRadarMode({
             <div
               key={i}
               ref={isToday ? todayCardRef : undefined}
-              className={`min-w-[260px] max-w-[280px] shrink-0 flex flex-col rounded-[24px] border bg-surface p-4 shadow-sm transition-all duration-300 snap-align-start ${
+              className={`min-w-[var(--legacy-w-082)] max-w-[var(--legacy-maxw-056)] shrink-0 flex flex-col rounded-[var(--radius-xl)] border bg-surface p-4 shadow-sm transition-all duration-[var(--motion-slow)] snap-align-start ${
                 isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom'
               }`}
             >
@@ -208,14 +208,14 @@ export default function DirectionRadarMode({
                           <div
                             key={slotIdx}
                             onClick={() => isInteractive && togglePowerListTask(dayWin!, slotIdx)}
-                            className={`flex items-center gap-2 text-xs font-medium transition-all duration-200 ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                            className={`flex items-center gap-2 text-xs font-medium transition-all duration-[var(--motion-medium)] ${isInteractive ? 'cursor-pointer active:scale-[var(--legacy-arbitrary-001)]' : ''}`}
                           >
-                            <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-300 ${
-                              done ? 'border-success bg-success text-white' : 'border-border-custom bg-surface'
+                            <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-[var(--motion-slow)] ${
+                              done ? 'border-success bg-success text-on-accent' : 'border-border-custom bg-surface'
                             }`}>
-                              {done && <Check size={8} strokeWidth={3} className="text-white" />}
+                              {done && <Check size={8} strokeWidth={3} className="text-on-accent" />}
                             </div>
-                            <span className={`truncate ${done ? 'line-through text-text-muted opacity-70' : 'text-text-primary'}`}>
+                            <span className={`truncate ${done ? 'line-through text-text-muted opacity-[var(--opacity-70)]' : 'text-text-primary'}`}>
                               {task}
                             </span>
                           </div>

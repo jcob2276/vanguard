@@ -42,7 +42,7 @@ function getOutcomeBadge(outcome: string | null) {
       );
     case 'no_data':
       return (
-        <span className="flex items-center gap-1 bg-slate-500/10 text-text-muted border border-border-custom px-2 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider">
+        <span className="flex items-center gap-1 bg-surface-2/10 text-text-muted border border-border-custom px-2 py-0.5 rounded-full text-2xs font-black uppercase tracking-wider">
           <HelpCircle size={10} />
           Brak Danych
         </span>
@@ -59,7 +59,7 @@ function getOutcomeBadge(outcome: string | null) {
 function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendation; todayStr: string }) {
   const daysLeft = getDaysRemaining(rec.created_at, rec.evaluation_window_days, todayStr);
   return (
-    <Card padding="0.75rem" className="hover:border-primary/20 hover:shadow-sm transition-all duration-150 space-y-2">
+    <Card padding="0.75rem" className="hover:border-primary/20 hover:shadow-sm transition-all duration-[var(--motion-medium)] space-y-2">
       <p className="text-xs font-bold text-text-primary leading-relaxed">
         {rec.recommendation_text}
       </p>
@@ -73,7 +73,7 @@ function RecommendationPendingCard({ rec, todayStr }: { rec: OracleRecommendatio
           <Calendar size={10} />
           {daysLeft > 0 ? `${daysLeft} dni do końca` : 'Dziś ewaluacja'}
         </span>
-        <span className="ml-auto text-2xs font-medium opacity-60">
+        <span className="ml-auto text-2xs font-medium opacity-[var(--opacity-60)]">
           Dodano: {rec.created_at.slice(0, 10)}
         </span>
       </div>
@@ -85,7 +85,7 @@ function RecommendationHistoryCard({ rec }: { rec: OracleRecommendation }) {
   const baselineVal = rec.baseline_value !== null ? rec.baseline_value.toFixed(1) : '—';
   const actualVal = rec.actual_value !== null ? rec.actual_value.toFixed(1) : '—';
   return (
-    <Card padding="0.75rem" className="flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-150">
+    <Card padding="0.75rem" className="flex flex-col justify-between space-y-2 hover:border-border-custom transition-all duration-[var(--motion-medium)]">
       <p className="text-xs text-text-secondary leading-relaxed font-medium">
         {rec.recommendation_text}
       </p>
@@ -131,7 +131,7 @@ export default function GeneralRecommendationsPanel({
         {/* Active Recommendations */}
         <div className="md:col-span-2">
           <Panel title={`Aktywne Zalecenia Wyroczni (${pending.length})`}>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[var(--legacy-h-022)] overflow-y-auto pr-1">
               {pending.map((rec) => (
                 <RecommendationPendingCard key={rec.id} rec={rec} todayStr={todayStr} />
               ))}
@@ -148,7 +148,7 @@ export default function GeneralRecommendationsPanel({
         <div>
           <Panel title="Skuteczność Wyroczni">
             <div className="space-y-4 py-1">
-              <div className="flex items-center justify-between bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 rounded-2xl p-4">
+              <div className="flex items-center justify-between bg-surface-2 dark:bg-on-accent/[0.015] border border-border-custom/50 rounded-2xl p-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-black text-text-muted uppercase tracking-wider">
                     Współczynnik Sukcesu
@@ -171,7 +171,7 @@ export default function GeneralRecommendationsPanel({
                   <span className="text-danger font-black">{fails}</span>
                   <span className="text-2xs text-text-muted font-bold uppercase tracking-wide mt-0.5">Błędy</span>
                 </div>
-                <div className="bg-slate-500/5 border border-border-custom rounded-xl p-2 flex flex-col justify-between">
+                <div className="bg-surface-2/5 border border-border-custom rounded-xl p-2 flex flex-col justify-between">
                   <span className="text-text-muted font-black">{noData}</span>
                   <span className="text-2xs text-text-muted font-bold uppercase tracking-wide mt-0.5">Brak info</span>
                 </div>
@@ -184,7 +184,7 @@ export default function GeneralRecommendationsPanel({
       {/* Recommendations History */}
       {evaluated.length > 0 && (
         <Panel title={`Historia Zaleceń (${evaluated.length})`}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 max-h-[350px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 max-h-[var(--legacy-h-025)] overflow-y-auto pr-1">
             {evaluated.map((rec) => (
               <RecommendationHistoryCard key={rec.id} rec={rec} />
             ))}

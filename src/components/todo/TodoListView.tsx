@@ -18,7 +18,7 @@ export default function TodoListView({ navDest, renderInlineQuickCapture, render
 
   return (
     <main className="flex-1 overflow-y-auto" onClick={() => setExpandedId(null)}>
-      <div className="max-w-[600px] mx-auto space-y-4 px-6 py-5 pb-24">
+      <div className="mx-auto max-w-[var(--content-default)] space-y-[var(--space-5)] px-[var(--space-6)] py-[var(--space-6)] pb-24 lg:px-[var(--space-10)]">
         {error && <DataStateNotice tone="warning" title="Błąd" detail={error} />}
 
         <TodoBatchClassifyChip />

@@ -1,7 +1,7 @@
+import Button from '../../../ui/Button';
 import React from 'react';
 import { useWeeklyReview } from '../context/WeeklyReviewContext';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import Button from '../../../ui/Button';
 
 interface WeeklyReviewFooterProps {
   onClose: () => void;

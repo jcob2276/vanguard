@@ -54,7 +54,7 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
             <span className={`text-2xs font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
               item.confidence === 'solid' ? 'bg-success/10 text-success' :
               item.confidence === 'building' ? 'bg-warning/10 text-warning' :
-              'bg-slate-500/10 text-text-muted'
+              'bg-surface-2/10 text-text-muted'
             }`}>
               {CONFIDENCE_LABELS[item.confidence]} · N={item.n}
             </span>
@@ -79,7 +79,7 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
       )}
 
       {showChart && (
-        <div className={expanded ? 'h-[180px]' : 'h-[120px]'}>
+        <div className={expanded ? 'h-[var(--legacy-h-012)]' : 'h-[var(--legacy-h-010)]'}>
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <ScatterChart margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />

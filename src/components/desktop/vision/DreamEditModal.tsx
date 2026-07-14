@@ -1,5 +1,5 @@
+import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../../ui/ControlPrimitives';
 import { Sparkles, Check, Star, Trash2 } from 'lucide-react';
-import Button from '../../ui/Button';
 import Modal from '../../ui/Modal';
 import type { DreamRow } from '../../../lib/dreamsApi';
 
@@ -51,8 +51,8 @@ export default function DreamEditModal({
       showCloseButton={false}
     >
         <div className="space-y-1.5">
-          <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Marzenie</label>
-          <input
+          <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Marzenie</label>
+          <ControlInput
             value={editDreamTitle}
             onChange={e => setEditDreamTitle(e.target.value)}
             className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm font-semibold text-text-primary outline-none focus:border-primary"
@@ -61,8 +61,8 @@ export default function DreamEditModal({
 
         <div className="flex gap-3">
           <div className="space-y-1.5 flex-1">
-            <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Kategoria</label>
-            <select
+            <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Kategoria</label>
+            <ControlSelect
               value={editDreamCat}
               onChange={e => setEditDreamCat(e.target.value)}
               className="w-full rounded-xl border border-border-custom bg-surface px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-primary cursor-pointer"
@@ -70,26 +70,26 @@ export default function DreamEditModal({
               {DREAM_CATEGORIES.filter(c => c !== 'all').map(c => (
                 <option key={c} value={c}>{DREAM_CAT_LABEL[c]}</option>
               ))}
-            </select>
+            </ControlSelect>
           </div>
           <div className="space-y-1.5">
-            <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">Cel życiowy</label>
+            <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Cel życiowy</label>
             <div className="flex gap-1.5">
               {([['cialo', 'Ciało', 'border-success/40 bg-success/10 text-success'], ['duch', 'Duch', 'border-primary/40 bg-primary/10 text-primary'], ['konto', 'Konto', 'border-warning/40 bg-warning/10 text-warning']] as [string, string, string][]).map(([val, label, active]) => (
-                <button key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
+                <Pressable key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
                   className={`rounded-xl border px-3 py-2.5 text-2xs font-black uppercase tracking-widest transition-all cursor-pointer ${editDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
                   {label}
-                </button>
+                </Pressable>
               ))}
             </div>
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-2xs font-black uppercase tracking-[0.2em] text-text-muted">
+          <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">
             Wizja — jak się czujesz gdy to osiągasz?
           </label>
-          <textarea
+          <ControlTextarea
             value={editDreamDesc}
             onChange={e => setEditDreamDesc(e.target.value)}
             placeholder="Opisz jak to wygląda, jak się czujesz, co widzisz, słyszysz, czujesz w tym momencie..."
@@ -99,7 +99,7 @@ export default function DreamEditModal({
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          <Button
+          <Pressable
             variant="primary"
             size="lg"
             onClick={saveDreamEdit}
@@ -109,8 +109,8 @@ export default function DreamEditModal({
             icon={<Check size={11} strokeWidth={2.5} />}
           >
             Zapisz wizję
-          </Button>
-          <Button
+          </Pressable>
+          <Pressable
             variant={editingDream.is_top5 ? 'tonal' : 'outline'}
             size="lg"
             onClick={() => { toggleTop5(editingDream); setEditingDream((prev) => prev ? { ...prev, is_top5: !prev.is_top5 } : null); }}
@@ -122,8 +122,8 @@ export default function DreamEditModal({
             icon={<Star size={11} fill={editingDream.is_top5 ? 'currentColor' : 'none'} />}
           >
             Top 5
-          </Button>
-          <Button
+          </Pressable>
+          <Pressable
             variant="ghost"
             size="lg"
             onClick={() => { deleteDream(editingDream.id); }}

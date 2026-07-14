@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import React, { useState, useEffect } from 'react';
 import { Brain, Terminal, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 
@@ -48,11 +49,11 @@ export function shouldShowTimeDivider(prev: ChatItem, current: ChatItem): boolea
 export function TimeDivider({ date }: { date: Date }) {
   return (
     <div className="flex items-center gap-2 my-2">
-      <div className="flex-1 h-px" style={{ background: 'rgba(153,161,175,0.15)' }} />
+      <div className="flex-1 h-px" style={{ background: 'var(--legacy-color-087)' }} />
       <span className="text-xs font-medium px-2" style={{ color: 'var(--color-text-tertiary)' }}>
         {formatTimestamp(date)}
       </span>
-      <div className="flex-1 h-px" style={{ background: 'rgba(153,161,175,0.15)' }} />
+      <div className="flex-1 h-px" style={{ background: 'var(--legacy-color-087)' }} />
     </div>
   );
 }
@@ -61,10 +62,10 @@ export function ThinkingItem({ item }: { item: Extract<ChatItem, { type: 'thinki
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="flex justify-start">
-      <button
+      <Pressable
         onClick={() => setExpanded(v => !v)}
-        className="max-w-[90%] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
-        style={{ borderColor: 'rgba(153,161,175,0.2)', background: 'rgba(153,161,175,0.05)' }}
+        className="max-w-[var(--legacy-maxw-065)] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
+        style={{ borderColor: 'var(--legacy-color-088)', background: 'var(--legacy-color-083)' }}
       >
         <div className="flex items-center gap-1.5">
           <Brain size={11} style={{ color: 'var(--color-text-tertiary)' }} />
@@ -78,7 +79,7 @@ export function ThinkingItem({ item }: { item: Extract<ChatItem, { type: 'thinki
             {item.text}
           </p>
         )}
-      </button>
+      </Pressable>
     </div>
   );
 }
@@ -87,10 +88,10 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="flex justify-start">
-      <button
+      <Pressable
         onClick={() => setExpanded(v => !v)}
-        className="max-w-[90%] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
-        style={{ borderColor: item.isError ? 'rgba(244,63,94,0.2)' : 'rgba(91,108,255,0.15)', background: item.isError ? 'rgba(244,63,94,0.04)' : 'rgba(91,108,255,0.04)' }}
+        className="max-w-[var(--legacy-maxw-065)] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
+        style={{ borderColor: item.isError ? 'var(--legacy-color-113)' : 'var(--legacy-color-151)', background: item.isError ? 'var(--legacy-color-109)' : 'var(--legacy-color-147)' }}
       >
         <div className="flex items-center gap-1.5">
           <Terminal size={11} style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }} />
@@ -105,18 +106,18 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
         {expanded && (
           <div className="mt-1.5 space-y-1">
             {item.args && (
-              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-muted)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: 'var(--legacy-color-049)', color: 'var(--text-muted)' }}>
                 {item.args}
               </pre>
             )}
             {item.result && (
-              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: item.isError ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.06)', color: item.isError ? 'var(--color-danger)' : 'var(--color-success)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: item.isError ? 'var(--legacy-color-111)' : 'var(--legacy-color-094)', color: item.isError ? 'var(--color-danger)' : 'var(--color-success)' }}>
                 {item.result}
               </pre>
             )}
           </div>
         )}
-      </button>
+      </Pressable>
     </div>
   );
 }
@@ -124,11 +125,11 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
 export function AiMessageItem({ text, reasoning, templateId, cardData }: { text: string; reasoning?: string; templateId?: string; cardData?: unknown }) {
   return (
     <div className="flex flex-col items-start gap-2 w-full">
-      <div className="max-w-[85%] flex flex-col gap-2">
+      <div className="max-w-[var(--legacy-maxw-064)] flex flex-col gap-2">
         {reasoning && (
-          <div 
+          <div
             className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs leading-relaxed border italic"
-            style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}
+            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--color-text-tertiary)' }}
           >
             {reasoning}
           </div>
@@ -165,7 +166,7 @@ function AiCardRenderer({ templateId, cardData }: { templateId: string; cardData
 export function UserMessageItem({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-sm leading-relaxed bg-primary text-white">
+      <div className="max-w-[var(--legacy-maxw-064)] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-sm leading-relaxed bg-primary text-on-accent">
         {text}
       </div>
     </div>
@@ -175,8 +176,8 @@ export function UserMessageItem({ text }: { text: string }) {
 export function ErrorItem({ text }: { text: string }) {
   return (
     <div className="flex justify-start">
-      <div className="flex items-start gap-2 max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm leading-relaxed border"
-        style={{ borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.04)', color: 'var(--color-danger)' }}>
+      <div className="flex items-start gap-2 max-w-[var(--legacy-maxw-064)] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm leading-relaxed border"
+        style={{ borderColor: 'var(--legacy-color-115)', background: 'var(--legacy-color-109)', color: 'var(--color-danger)' }}>
         <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
         {text}
       </div>
@@ -190,7 +191,7 @@ export function SystemReminderItem({ text }: { text: string }) {
     <div className="flex justify-center my-2">
       <div
         className="flex items-center gap-1.5 rounded-full px-3 py-1"
-        style={{ background: 'rgba(91,108,255,0.07)', border: '1px solid rgba(91,108,255,0.15)' }}
+        style={{ background: 'var(--legacy-color-148)', border: '1px solid var(--legacy-color-151)' }}
       >
         <span className="text-2xs">💡</span>
         <p className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>{text}</p>

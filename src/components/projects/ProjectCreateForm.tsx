@@ -1,5 +1,6 @@
-import { COLORS } from './projectUtils';
 import Button from '../ui/Button';
+import { ControlInput } from '../ui/ControlPrimitives';
+import { COLORS } from './projectUtils';
 import { Card } from '../ui/Card';
 
 interface ProjectForm {
@@ -20,7 +21,7 @@ interface Props {
 export function ProjectCreateForm({ form, busy, onChange, onSubmit }: Props) {
   return (
     <Card variant="glass" padding="1rem" className="space-y-3">
-      <input
+      <ControlInput
         autoFocus
         value={form.name}
         onChange={e => onChange({ name: e.target.value })}
@@ -28,14 +29,14 @@ export function ProjectCreateForm({ form, busy, onChange, onSubmit }: Props) {
         placeholder="Nazwa projektu..."
         className="w-full bg-transparent text-base font-medium text-text-primary outline-none placeholder:text-text-muted/40"
       />
-      <input
+      <ControlInput
         value={form.goal}
         onChange={e => onChange({ goal: e.target.value })}
         placeholder="Cel / kim staję się realizując ten projekt..."
         className="w-full bg-transparent text-sm text-text-secondary outline-none placeholder:text-text-muted/35"
       />
       <div className="flex items-center gap-3">
-        <input
+        <ControlInput
           type="date"
           value={form.deadline}
           onChange={e => onChange({ deadline: e.target.value })}
@@ -47,7 +48,7 @@ export function ProjectCreateForm({ form, busy, onChange, onSubmit }: Props) {
               key={c.id}
               variant="ghost"
               onClick={() => onChange({ color: c.id })}
-              className={`h-6 w-6 min-w-0 p-0 rounded-full ${c.dot} transition-transform ${form.color === c.id ? 'scale-125 ring-2 ring-offset-2 ring-offset-surface ring-current' : 'opacity-50 hover:opacity-80'}`}
+              className={`h-6 w-6 min-w-0 p-0 rounded-full ${c.dot} transition-transform ${form.color === c.id ? 'scale-125 ring-2 ring-offset-2 ring-offset-surface ring-current' : 'opacity-[var(--opacity-50)] hover:opacity-[var(--opacity-80)]'}`}
             />
           ))}
         </div>

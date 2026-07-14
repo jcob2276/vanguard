@@ -1,7 +1,7 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'lucide-react';
 import Spinner from '../../ui/Spinner';
-import Button from '../../ui/Button';
 
 declare global {
   interface Window {
@@ -50,12 +50,12 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
 
   return (
     <div className="space-y-3">
-      <button onClick={onClose} className="text-xs font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</button>
+      <Pressable onClick={onClose} className="text-xs font-bold text-text-muted hover:text-text-primary cursor-pointer">← Wstecz</Pressable>
       {detectorSupported && !cameraError ? (
-        <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
+        <div className="relative rounded-2xl overflow-hidden bg-scrim aspect-square">
           <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
           <div className="absolute inset-8 border-2 border-primary/70 rounded-xl pointer-events-none" />
-          {loading && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><Spinner size="md" className="!border-white/30 !border-t-white" /></div>}
+          {loading && <div className="absolute inset-0 flex items-center justify-center bg-scrim/50"><Spinner size="md" className="!border-on-accent/30 !border-t-white" /></div>}
         </div>
       ) : (
         <p className="text-xs text-text-muted text-center py-2">{cameraError || 'Skaner kamery niedostępny — wpisz kod ręcznie'}</p>
@@ -63,12 +63,12 @@ export default function BarcodeScanner({ onDetected, onClose, loading }: Barcode
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Keyboard size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input value={manualCode} onChange={(e) => setManualCode(e.target.value)}
+          <ControlInput value={manualCode} onChange={(e) => setManualCode(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && manualCode.trim()) onDetected(manualCode.trim()); }}
             inputMode="numeric" placeholder="Wpisz kod kreskowy..."
             className="w-full rounded-xl border border-border-custom bg-surface-solid/40 pl-9 pr-2 py-2.5 text-sm text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40" />
         </div>
-        <Button onClick={() => manualCode.trim() && onDetected(manualCode.trim())} disabled={!manualCode.trim() || loading} size="sm">Szukaj</Button>
+        <Pressable onClick={() => manualCode.trim() && onDetected(manualCode.trim())} disabled={!manualCode.trim() || loading} size="sm">Szukaj</Pressable>
       </div>
     </div>
   );

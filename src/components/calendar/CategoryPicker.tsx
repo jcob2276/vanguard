@@ -1,5 +1,5 @@
-import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 import Button from '../ui/Button';
+import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
 
 interface CategoryPickerProps {
   selected: string | null;

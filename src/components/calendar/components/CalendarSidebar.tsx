@@ -1,13 +1,15 @@
+import Button from '../../ui/Button';
 import React from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { useCalendar } from '../context/CalendarContext';
-import { ChevronLeft, Check, Sparkles } from 'lucide-react';
 import MiniCalendar from '../MiniCalendar';
 import SolarDayWidget from '../SolarDayWidget';
 import CalendarBudgetPanel from '../CalendarBudgetPanel';
 import CalendarSidebarTodos from '../CalendarSidebarTodos';
 import { LIFE_SPHERES } from '../../../lib/projects/lifeSpheres';
 import { weekMon } from '../calendarHelpers';
-import Button from '../../ui/Button';
+import WorkspaceNavigation from '../../shared/WorkspaceNavigation';
+import WorkspaceSidebar from '../../shared/WorkspaceSidebar';
 
 interface CalendarSidebarProps {
   onBack: () => void;
@@ -41,9 +43,9 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
   } = useCalendar();
 
   return (
-    <div className="w-[280px] shrink-0 border-r border-border-custom/50 flex flex-col bg-surface/10 select-none">
+    <WorkspaceSidebar className="select-none">
       {/* Back Navigation header */}
-      <div className="h-[60px] shrink-0 border-b border-border-custom/20 flex items-center px-4 gap-2">
+      <div className="hidden">
         <Button
           variant="ghost"
           size="sm"
@@ -54,32 +56,14 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
           Powrót
         </Button>
 
-        <div className="flex-1" />
-
-        {/* Shortcuts */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onNavigateTo?.('todo')}
-          title="Zadania"
-          icon={<Check size={13} />}
-          className="text-xs font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
-        >
-          Todo
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onNavigateTo?.('keep')}
-          title="Notatki"
-          icon={<Sparkles size={13} />}
-          className="text-xs font-black uppercase tracking-wider text-text-muted hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20"
-        >
-          Notatki
-        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        <div>
+          <p className="pixel-label mb-1.5 px-2.5 text-text-muted/60">Workspace</p>
+          <WorkspaceNavigation active="kalendarz" onNavigate={onNavigateTo} />
+        </div>
+
         <MiniCalendar
           selectedDay={selectedDay}
           onSelectDay={(day) => {
@@ -118,6 +102,6 @@ export default function CalendarSidebar({ onBack, onNavigateTo }: CalendarSideba
           goalChipFor={goalChipFor}
         />
       </div>
-    </div>
+    </WorkspaceSidebar>
   );
 }

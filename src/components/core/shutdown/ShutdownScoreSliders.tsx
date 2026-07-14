@@ -1,3 +1,4 @@
+import { ControlInput } from '../../ui/ControlPrimitives';
 import { Award, Smile, Flame } from 'lucide-react';
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 
 export default function ShutdownScoreSliders({ dayScore, setDayScore, moodScore, setMoodScore, rpeScore, setRpeScore }: Props) {
   return (
-    <div className="space-y-3.5 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 p-4 rounded-2xl">
+    <div className="space-y-3.5 bg-surface-2 dark:bg-on-accent/[0.015] border border-border-custom/50 p-4 rounded-2xl">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs font-bold">
           <span className="flex items-center gap-1 text-text-primary">
@@ -20,13 +21,13 @@ export default function ShutdownScoreSliders({ dayScore, setDayScore, moodScore,
           </span>
           <span className="text-primary font-extrabold">{dayScore}/10</span>
         </div>
-        <input
+        <ControlInput
           type="range"
           min="1"
           max="10"
           value={dayScore}
           onChange={(e) => setDayScore(Number(e.target.value))}
-          className="w-full accent-indigo-500 cursor-pointer h-1.5 rounded bg-border-custom/40"
+          className="w-full accent-primary cursor-pointer h-1.5 rounded bg-border-custom/40"
         />
       </div>
 
@@ -40,13 +41,13 @@ export default function ShutdownScoreSliders({ dayScore, setDayScore, moodScore,
             {moodScore === 5 ? '🔥 Świetnie' : moodScore === 4 ? '😊 Dobrze' : moodScore === 3 ? '😐 Neutralnie' : moodScore === 2 ? '🥱 Słabo' : '😫 Źle'}
           </span>
         </div>
-        <input
+        <ControlInput
           type="range"
           min="1"
           max="5"
           value={moodScore}
           onChange={(e) => setMoodScore(Number(e.target.value))}
-          className="w-full accent-emerald-500 cursor-pointer h-1.5 rounded bg-border-custom/40"
+          className="w-full accent-success cursor-pointer h-1.5 rounded bg-border-custom/40"
         />
       </div>
 
@@ -58,13 +59,13 @@ export default function ShutdownScoreSliders({ dayScore, setDayScore, moodScore,
           </span>
           <span className="text-warning font-extrabold">RPE {rpeScore}/10</span>
         </div>
-        <input
+        <ControlInput
           type="range"
           min="1"
           max="10"
           value={rpeScore}
           onChange={(e) => setRpeScore(Number(e.target.value))}
-          className="w-full accent-amber-500 cursor-pointer h-1.5 rounded bg-border-custom/40"
+          className="w-full accent-warning cursor-pointer h-1.5 rounded bg-border-custom/40"
         />
       </div>
     </div>

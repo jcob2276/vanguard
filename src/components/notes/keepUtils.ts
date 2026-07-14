@@ -17,14 +17,14 @@ export function sanitizeHtml(html: string): string {
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
-  
+
   const walk = (el: Element) => {
     for (const child of Array.from(el.children).reverse()) {
       if (FORBIDDEN.has(child.tagName.toLowerCase())) {
         child.remove();
         continue;
       }
-      
+
       for (const attr of Array.from(child.attributes)) {
         const attrName = attr.name.toLowerCase();
         if (attrName.startsWith('on')) {
@@ -39,7 +39,7 @@ export function sanitizeHtml(html: string): string {
             })
             .join('');
           const colonIndex = cleanVal.indexOf(':');
-          
+
           let hasScheme = false;
           if (colonIndex > -1) {
             const slashIndex = cleanVal.indexOf('/');
@@ -54,7 +54,7 @@ export function sanitizeHtml(html: string): string {
               hasScheme = true;
             }
           }
-          
+
           if (hasScheme) {
             const scheme = cleanVal.substring(0, colonIndex).toLowerCase();
             if (!ALLOWED_SCHEMES.includes(scheme)) {
@@ -66,7 +66,7 @@ export function sanitizeHtml(html: string): string {
       walk(child);
     }
   };
-  
+
   walk(doc.body);
   return doc.body.innerHTML;
 }
@@ -86,16 +86,16 @@ export const COLORS: {
   tagBg: string;
   tagText: string;
 }[] = [
-  { id: 'default', label: 'Domyślny',    bg: 'var(--keep-bg-default)', border: 'var(--keep-border-default)', dot: '#94a3b8', text: 'var(--keep-text-default)', textSub: 'var(--keep-text-sub-default)', tagBg: 'var(--keep-tag-bg-default)', tagText: 'var(--keep-tag-text-default)' },
-  { id: 'red',     label: 'Czerwony',    bg: 'var(--keep-bg-red)',     border: 'var(--keep-border-red)',     dot: '#f87171', text: 'var(--keep-text-red)',     textSub: 'var(--keep-text-sub-red)',     tagBg: 'var(--keep-tag-bg-red)',     tagText: 'var(--keep-tag-text-red)' },
-  { id: 'orange',  label: 'Pomarańczowy',bg: 'var(--keep-bg-orange)',   border: 'var(--keep-border-orange)',  dot: '#fb923c', text: 'var(--keep-text-orange)',  textSub: 'var(--keep-text-sub-orange)',  tagBg: 'var(--keep-tag-bg-orange)',  tagText: 'var(--keep-tag-text-orange)' },
-  { id: 'yellow',  label: 'Żółty',       bg: 'var(--keep-bg-yellow)',   border: 'var(--keep-border-yellow)',  dot: '#facc15', text: 'var(--keep-text-yellow)',  textSub: 'var(--keep-text-sub-yellow)',  tagBg: 'var(--keep-tag-bg-yellow)',  tagText: 'var(--keep-tag-text-yellow)' },
-  { id: 'green',   label: 'Zielony',     bg: 'var(--keep-bg-green)',    border: 'var(--keep-border-green)',   dot: '#4ade80', text: 'var(--keep-text-green)',   textSub: 'var(--keep-text-sub-green)',   tagBg: 'var(--keep-tag-bg-green)',   tagText: 'var(--keep-tag-text-green)' },
-  { id: 'teal',    label: 'Teal',        bg: 'var(--keep-bg-teal)',     border: 'var(--keep-border-teal)',    dot: '#2dd4bf', text: 'var(--keep-text-teal)',     textSub: 'var(--keep-text-sub-teal)',     tagBg: 'var(--keep-tag-bg-teal)',     tagText: 'var(--keep-tag-text-teal)' },
-  { id: 'blue',    label: 'Niebieski',   bg: 'var(--keep-bg-blue)',     border: 'var(--keep-border-blue)',    dot: '#60a5fa', text: 'var(--keep-text-blue)',     textSub: 'var(--keep-text-sub-blue)',     tagBg: 'var(--keep-tag-bg-blue)',     tagText: 'var(--keep-tag-text-blue)' },
-  { id: 'indigo',  label: 'Indygo',      bg: 'var(--keep-bg-indigo)',   border: 'var(--keep-border-indigo)',  dot: '#818cf8', text: 'var(--keep-text-indigo)',   textSub: 'var(--keep-text-sub-indigo)',   tagBg: 'var(--keep-tag-bg-indigo)',   tagText: 'var(--keep-tag-text-indigo)' },
-  { id: 'purple',  label: 'Fioletowy',   bg: 'var(--keep-bg-purple)',   border: 'var(--keep-border-purple)',  dot: '#c084fc', text: 'var(--keep-text-purple)',   textSub: 'var(--keep-text-sub-purple)',   tagBg: 'var(--keep-tag-bg-purple)',   tagText: 'var(--keep-tag-text-purple)' },
-  { id: 'pink',    label: 'Różowy',      bg: 'var(--keep-bg-pink)',     border: 'var(--keep-border-pink)',    dot: '#f472b6', text: 'var(--keep-text-pink)',     textSub: 'var(--keep-text-sub-pink)',     tagBg: 'var(--keep-tag-bg-pink)',     tagText: 'var(--keep-tag-text-pink)' },
+  { id: 'default', label: 'Domyślny',    bg: 'var(--keep-bg-default)', border: 'var(--keep-border-default)', dot: 'var(--legacy-color-031)', text: 'var(--keep-text-default)', textSub: 'var(--keep-text-sub-default)', tagBg: 'var(--keep-tag-bg-default)', tagText: 'var(--keep-tag-text-default)' },
+  { id: 'red',     label: 'Czerwony',    bg: 'var(--keep-bg-red)',     border: 'var(--keep-border-red)',     dot: 'var(--legacy-color-041)', text: 'var(--keep-text-red)',     textSub: 'var(--keep-text-sub-red)',     tagBg: 'var(--keep-tag-bg-red)',     tagText: 'var(--keep-tag-text-red)' },
+  { id: 'orange',  label: 'Pomarańczowy',bg: 'var(--keep-bg-orange)',   border: 'var(--keep-border-orange)',  dot: 'var(--legacy-color-044)', text: 'var(--keep-text-orange)',  textSub: 'var(--keep-text-sub-orange)',  tagBg: 'var(--keep-tag-bg-orange)',  tagText: 'var(--keep-tag-text-orange)' },
+  { id: 'yellow',  label: 'Żółty',       bg: 'var(--keep-bg-yellow)',   border: 'var(--keep-border-yellow)',  dot: 'var(--legacy-color-043)', text: 'var(--keep-text-yellow)',  textSub: 'var(--keep-text-sub-yellow)',  tagBg: 'var(--keep-tag-bg-yellow)',  tagText: 'var(--keep-tag-text-yellow)' },
+  { id: 'green',   label: 'Zielony',     bg: 'var(--keep-bg-green)',    border: 'var(--keep-border-green)',   dot: 'var(--legacy-color-021)', text: 'var(--keep-text-green)',   textSub: 'var(--keep-text-sub-green)',   tagBg: 'var(--keep-tag-bg-green)',   tagText: 'var(--keep-tag-text-green)' },
+  { id: 'teal',    label: 'Teal',        bg: 'var(--keep-bg-teal)',     border: 'var(--keep-border-teal)',    dot: 'var(--legacy-color-015)', text: 'var(--keep-text-teal)',     textSub: 'var(--keep-text-sub-teal)',     tagBg: 'var(--keep-tag-bg-teal)',     tagText: 'var(--keep-tag-text-teal)' },
+  { id: 'blue',    label: 'Niebieski',   bg: 'var(--keep-bg-blue)',     border: 'var(--keep-border-blue)',    dot: 'var(--legacy-color-023)', text: 'var(--keep-text-blue)',     textSub: 'var(--keep-text-sub-blue)',     tagBg: 'var(--keep-tag-bg-blue)',     tagText: 'var(--keep-tag-text-blue)' },
+  { id: 'indigo',  label: 'Indygo',      bg: 'var(--keep-bg-indigo)',   border: 'var(--keep-border-indigo)',  dot: 'var(--legacy-color-029)', text: 'var(--keep-text-indigo)',   textSub: 'var(--keep-text-sub-indigo)',   tagBg: 'var(--keep-tag-bg-indigo)',   tagText: 'var(--keep-tag-text-indigo)' },
+  { id: 'purple',  label: 'Fioletowy',   bg: 'var(--keep-bg-purple)',   border: 'var(--keep-border-purple)',  dot: 'var(--legacy-color-035)', text: 'var(--keep-text-purple)',   textSub: 'var(--keep-text-sub-purple)',   tagBg: 'var(--keep-tag-bg-purple)',   tagText: 'var(--keep-tag-text-purple)' },
+  { id: 'pink',    label: 'Różowy',      bg: 'var(--keep-bg-pink)',     border: 'var(--keep-border-pink)',    dot: 'var(--legacy-color-039)', text: 'var(--keep-text-pink)',     textSub: 'var(--keep-text-sub-pink)',     tagBg: 'var(--keep-tag-bg-pink)',     tagText: 'var(--keep-tag-text-pink)' },
 ];
 
 export const getColor = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
@@ -106,7 +106,7 @@ export function highlightHtml(html: string, query: string): string {
   const regex = new RegExp(`(<[^>]+>)|(${esc})`, 'gi');
   return html.replace(regex, (match, p1, p2) => {
     if (p1) return p1;
-    return `<mark class="bg-warning dark:bg-warning/50 text-black dark:text-white px-0.5 rounded">${p2}</mark>`;
+    return `<mark class="bg-warning dark:bg-warning/50 text-scrim dark:text-on-accent px-0.5 rounded">${p2}</mark>`;
   });
 }
 

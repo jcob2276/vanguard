@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { AlertTriangle, ArrowRight, CalendarDays, Flag } from 'lucide-react';
 import { Card } from '../ui/Card';
 import type { EnrichedCheckpoint } from '../../lib/checkpoints';
@@ -89,16 +90,16 @@ export default function PlanningCheckpointsStrip({
                   )}
                 </p>
               </div>
-              <button
+              <Pressable
                 type="button"
                 onClick={() => handleFill(cp)}
                 disabled={firstEmpty < 0}
-                className="flex shrink-0 items-center gap-0.5 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-2xs font-black uppercase text-primary transition-all hover:bg-primary/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex shrink-0 items-center gap-0.5 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-2xs font-black uppercase text-primary transition-all hover:bg-primary/20 active:scale-95 disabled:opacity-[var(--opacity-40)] disabled:cursor-not-allowed cursor-pointer"
                 title={firstEmpty >= 0 ? `Wpisz do zadania ${firstEmpty + 1}` : 'Wszystkie sloty zajęte'}
               >
                 {firstEmpty >= 0 ? `→ ${firstEmpty + 1}` : 'Pełne'}
                 <ArrowRight size={9} />
-              </button>
+              </Pressable>
             </div>
           );
         })}

@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { getTodayWarsaw, TIMEZONE } from '../../lib/date';
 import { Brain, CheckCircle2, Target, Zap } from 'lucide-react';
 import { useUserId } from '../../store/useStore';
@@ -46,7 +47,7 @@ export default function DailySnapshotCard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain size={13} className="text-primary" />
-          <p className="text-2xs font-bold uppercase tracking-[0.15em] text-text-muted">
+          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">
             Plan dnia{isYesterday ? ' (wczoraj)' : ''}
           </p>
         </div>
@@ -133,17 +134,17 @@ export default function DailySnapshotCard() {
           <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Jak był dzień? (1–10)</p>
           <div className="flex gap-1.5 flex-wrap">
             {SCORES.map(s => (
-              <button
+              <Pressable
                 key={s}
                 onClick={() => saveScore(s)}
                 disabled={savingScore}
-                className={`h-8 w-8 rounded-xl text-xs font-black transition-all active:scale-90 cursor-pointer disabled:opacity-40
+                className={`h-8 w-8 rounded-xl text-xs font-black transition-all active:scale-90 cursor-pointer disabled:opacity-[var(--opacity-40)]
                   ${s <= 3 ? 'bg-danger/10 text-danger hover:bg-danger/20' :
                     s <= 6 ? 'bg-warning/10 text-warning hover:bg-warning/20' :
                              'bg-success/10 text-success hover:bg-success/20'}`}
               >
                 {s}
-              </button>
+              </Pressable>
             ))}
           </div>
         </div>

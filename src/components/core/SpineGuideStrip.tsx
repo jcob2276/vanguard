@@ -1,7 +1,7 @@
+import Button from '../ui/Button';
 import { ChevronRight, Sparkles } from 'lucide-react';
 
 import type { SpineGuidance, SpineGuideTarget } from '../../lib/goal/goalSpineGuide';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 
@@ -58,7 +58,7 @@ export function SpineGuideStrip({
       padding="0.875rem 1rem"
     >
 
-      <p className="text-2xs font-black uppercase tracking-[0.2em] text-primary/70 mb-1.5">
+      <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-primary/70 mb-1.5">
 
         {readyForDay ? 'Dziś w kontekście tygodnia' : 'Następny krok'}
 
@@ -88,7 +88,7 @@ export function SpineGuideStrip({
 
             <div
 
-              className="h-full rounded-full bg-primary transition-all duration-500"
+              className="h-full rounded-full bg-primary transition-all duration-[var(--motion-long)]"
 
               style={{ width: `${progressPct}%` }}
 

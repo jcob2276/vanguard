@@ -1,6 +1,6 @@
+import { Pressable, ControlInput, ControlTextarea } from '../ui/ControlPrimitives';
 import { useEffect, useState } from 'react';
 import { Pencil, X, Star } from 'lucide-react';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PILLAR_META, PILLARS, type PillarId } from './projectUtils';
 import { saveLifeGoalDeclarations } from '../../lib/goal/goalSpine.mutations';
@@ -101,7 +101,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
           <Star size={12} className="text-primary" /> Cele Roczne (BHAG)
         </h3>
         {!editing && (
-          <Button
+          <Pressable
             variant="tonal"
             size="sm"
             onClick={startEdit}
@@ -109,7 +109,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
             icon={<Pencil size={11} />}
           >
             {hasAnyGoal ? 'Edytuj' : 'Uzupełnij'}
-          </Button>
+          </Pressable>
         )}
       </div>
 
@@ -153,23 +153,23 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
                   <span className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ${meta.text}`}>
                     <Icon size={12} /> {meta.label}
                   </span>
-                  <button
+                  <Pressable
                     onClick={() => setDraft((d) => ({ ...d, bhag_pillar: d.bhag_pillar === p ? null : p }))}
                     className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-black uppercase tracking-wider transition-colors ${
-                      draft.bhag_pillar === p ? 'bg-primary text-white' : 'bg-border-custom/20 text-text-muted hover:text-text-primary'
+                      draft.bhag_pillar === p ? 'bg-primary text-on-accent' : 'bg-border-custom/20 text-text-muted hover:text-text-primary'
                     }`}
                   >
                     <Star size={9} /> BHAG
-                  </button>
+                  </Pressable>
                 </div>
-                <textarea
+                <ControlTextarea
                   value={draft[`goal_${p}` as const]}
                   onChange={(e) => setDraft((d) => ({ ...d, [`goal_${p}`]: e.target.value }))}
                   placeholder={`Twój roczny cel — ${meta.label.toLowerCase()}...`}
                   rows={2}
                   className="w-full rounded-xl border border-border-custom bg-surface-solid/40 px-3 py-2 text-sm text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-none"
                 />
-                <input
+                <ControlInput
                   type="date"
                   value={draft[`date_${p}` as const]}
                   onChange={(e) => setDraft((d) => ({ ...d, [`date_${p}`]: e.target.value }))}
@@ -180,7 +180,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
           })}
 
           <div className="flex gap-2 pt-1">
-            <Button
+            <Pressable
               variant="primary"
               size="lg"
               onClick={save}
@@ -189,8 +189,8 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
               className="flex-1 rounded-xl py-2.5 text-sm font-black uppercase tracking-wider hover:bg-primary-hover active:scale-95 transition-all cursor-pointer"
             >
               {saving ? 'Zapisywanie…' : 'Zapisz'}
-            </Button>
-            <Button
+            </Pressable>
+            <Pressable
               variant="outline"
               size="lg"
               onClick={() => setEditing(false)}
@@ -199,7 +199,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
               icon={<X size={12} />}
             >
               Anuluj
-            </Button>
+            </Pressable>
           </div>
         </div>
       )}

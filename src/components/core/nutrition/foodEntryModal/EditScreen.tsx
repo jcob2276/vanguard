@@ -1,4 +1,4 @@
-import Button from '../../../ui/Button';
+import { Pressable, ControlInput } from '../../../ui/ControlPrimitives';
 import type { RecentEntry } from '../hooks/useFoodEntryData';
 
 const MEAL_TYPES = [
@@ -33,14 +33,14 @@ export default function EditScreen({
 }: EditScreenProps) {
   return (
     <div className="space-y-4">
-      <Button
+      <Pressable
         variant="ghost"
         size="sm"
         onClick={() => setEditingEntry(null)}
         className="px-0 py-0 text-text-muted hover:text-text-primary"
       >
         ← Wstecz
-      </Button>
+      </Pressable>
       <div>
         <p className="text-base font-black text-text-primary leading-tight">{editingEntry.name}</p>
         {editingEntry.brand && <p className="text-xs text-text-muted">{editingEntry.brand}</p>}
@@ -48,7 +48,7 @@ export default function EditScreen({
       <div>
         <label className="text-2xs font-bold uppercase tracking-wider text-text-muted block mb-1">Gramatura</label>
         <div className="flex items-center gap-2 mb-2">
-          <input
+          <ControlInput
             type="number" inputMode="numeric" autoFocus
             value={editGrams}
             onChange={(e) => setEditGrams(e.target.value)}
@@ -58,24 +58,24 @@ export default function EditScreen({
         </div>
         <div className="flex gap-1.5">
           {[50, 100, 150, 200, 250].map((g) => (
-            <button key={g} onClick={() => setEditGrams(String(g))}
+            <Pressable key={g} onClick={() => setEditGrams(String(g))}
               className={`flex-1 rounded-lg py-1 text-xs font-black transition-all cursor-pointer ${
                 editGrams === String(g)
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-on-accent'
                   : 'border border-border-custom text-text-muted hover:border-primary/40 hover:text-primary'
               }`}
             >
               {g}
-            </button>
+            </Pressable>
           ))}
         </div>
       </div>
       <div className="flex gap-1.5 flex-wrap">
         {MEAL_TYPES.map((m) => (
-          <button key={m.id} onClick={() => setEditMealType(m.id)}
-            className={`rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${editMealType === m.id ? 'bg-primary text-white' : 'border border-border-custom text-text-muted'}`}>
+          <Pressable key={m.id} onClick={() => setEditMealType(m.id)}
+            className={`rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${editMealType === m.id ? 'bg-primary text-on-accent' : 'border border-border-custom text-text-muted'}`}>
             {m.label}
-          </button>
+          </Pressable>
         ))}
       </div>
       {editPreview && (
@@ -97,22 +97,22 @@ export default function EditScreen({
       )}
       {error && <p className="text-xs text-danger">{error}</p>}
       <div className="flex gap-2">
-        <Button
+        <Pressable
           variant="danger"
           onClick={deleteEntry}
           loading={editDeleting}
           className="bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20 shadow-none hover:translate-y-0"
         >
           Usuń
-        </Button>
-        <Button
+        </Pressable>
+        <Pressable
           variant="primary"
           onClick={saveEntryEdit}
           loading={editSaving}
           className="flex-1"
         >
           Zapisz
-        </Button>
+        </Pressable>
       </div>
     </div>
   );

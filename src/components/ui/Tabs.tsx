@@ -15,16 +15,16 @@ export interface TabsProps {
 
 export default function Tabs({ tabs, active, onChange, className = '' }: TabsProps) {
   return (
-    <div className={`flex gap-1 p-1 rounded-[var(--radius-md)] bg-surface-solid/50 border border-border-custom/40 ${className}`}>
+    <div className={`flex gap-1 rounded-[var(--radius-md)] bg-surface-2 p-1 ${className}`}>
       {tabs.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-[var(--radius-sm)] transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] py-2 text-xs font-bold transition-[transform,background-color,color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-97 cursor-pointer ${
             active === tab.key
-              ? 'bg-background text-text-primary shadow-sm'
-              : 'text-text-muted hover:text-text-primary'
+              ? 'bg-surface-tonal text-primary shadow-sm'
+              : 'text-text-muted hover:bg-surface-3 hover:text-text-primary'
           }`}
         >
           {tab.icon && <span className="shrink-0">{tab.icon}</span>}

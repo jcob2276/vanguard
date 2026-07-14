@@ -9,26 +9,26 @@ function MagazineHeroCard({
 }) {
   return (
     <article
-      className="relative overflow-hidden rounded-2xl p-5 min-h-[188px] flex flex-col justify-end"
+      className="relative overflow-hidden rounded-2xl p-5 min-h-[var(--legacy-h-013)] flex flex-col justify-end"
       style={{
-        background: 'linear-gradient(135deg, #172554, #0F766E)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'linear-gradient(135deg, var(--legacy-color-008), var(--legacy-color-003))',
+        border: '1px solid var(--legacy-color-129)',
       }}
     >
       <span
         className="absolute top-4 left-4 text-xs font-semibold uppercase tracking-widest px-2.5 py-1 rounded-lg"
-        style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
+        style={{ background: 'var(--legacy-color-132)', color: 'var(--legacy-color-139)' }}
       >
         Wyróżnione
       </span>
-      <h3 className="text-xl font-bold leading-tight text-white mt-8">{hero.title}</h3>
+      <h3 className="text-xl font-bold leading-tight text-on-accent mt-8">{hero.title}</h3>
       {hero.description && (
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--legacy-color-135)' }}>
           {hero.description}
         </p>
       )}
       {hero.startTime && (
-        <p className="mt-3 flex items-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+        <p className="mt-3 flex items-center gap-1.5 text-sm" style={{ color: 'var(--legacy-color-134)' }}>
           <Clock size={14} />
           {hero.startTime}
         </p>
@@ -91,7 +91,7 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
 
       {view.timeline.length > 0 && (
         <div className="space-y-4">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-text-muted">Tydzień</p>
+          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-053)] text-text-muted">Tydzień</p>
           {view.timeline.map((day) => (
             <div key={day.dayDate}>
               <p className="text-xs font-bold uppercase tracking-wide text-text-muted mb-2">{day.dayLabel}</p>

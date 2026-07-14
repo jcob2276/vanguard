@@ -66,7 +66,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
         return (
           <div
             key={String(col.id)}
-            className="flex-shrink-0 w-[220px] flex flex-col rounded-2xl bg-surface/40 border border-border-custom/40"
+            className="flex-shrink-0 w-[var(--legacy-w-081)] flex flex-col rounded-2xl bg-surface/40 border border-border-custom/40"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();

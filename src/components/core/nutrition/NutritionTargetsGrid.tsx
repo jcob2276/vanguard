@@ -32,7 +32,7 @@ export default function NutritionTargetsGrid({
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-border-custom">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-warning to-warning shadow-[0_2px_8px_rgba(249,115,22,0.15)] transition-all duration-1000"
+              className="h-full rounded-full bg-gradient-to-r from-warning to-warning shadow-[var(--legacy-shadow-074)] transition-all duration-[var(--motion-ambient)]"
               style={{ width: `${caloriesProgress}%` }}
             />
           </div>
@@ -63,7 +63,7 @@ export default function NutritionTargetsGrid({
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-border-custom">
             <div
-              className="h-full rounded-full bg-primary shadow-[0_2px_8px_rgba(79,70,229,0.2)] transition-all duration-700"
+              className="h-full rounded-full bg-primary shadow-[0_2px_8px_var(--primary-25)] transition-all duration-[var(--motion-deliberate)]"
               style={{ width: `${proteinPct}%` }}
             />
           </div>

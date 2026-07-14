@@ -30,7 +30,7 @@ export default function DayTimeline({
   const hours = Array.from({ length: dayEndHour - dayStartHour + 1 }, (_, i) => dayStartHour + i);
 
   return (
-    <Card variant="outline" padding="0" className="overflow-y-auto" style={{ maxHeight: 240 }}>
+    <Card variant="outline" padding="0" className="overflow-y-auto" style={{ maxHeight: 'var(--legacy-inline-style-055)' }}>
       <div className="relative" style={{ height: heightPx }}>
         {hours.map((h) => (
           <div key={h} className="absolute left-0 right-0 flex items-start" style={{ top: (h - dayStartHour) * 60 * PX_PER_MIN }}>
@@ -40,7 +40,7 @@ export default function DayTimeline({
             <div className="flex-1 border-t border-border-custom/20" />
           </div>
         ))}
-        <div className="absolute inset-y-0 right-1" style={{ left: 42 }}>
+        <div className="absolute inset-y-0 right-1" style={{ left: 'var(--legacy-inline-style-040)' }}>
           {blocks.map((b) => {
             const clampedStart = Math.max(b.startMin, dayStartMin);
             const top = (clampedStart - dayStartMin) * PX_PER_MIN;
@@ -53,7 +53,7 @@ export default function DayTimeline({
                 className={`absolute left-0 right-0 rounded-md px-1.5 overflow-hidden whitespace-nowrap text-2xs font-bold leading-tight ${
                   isExisting
                     ? 'bg-text-primary/[0.08] text-text-secondary border border-border-custom/40'
-                    : 'bg-primary text-white shadow-sm z-10'
+                    : 'bg-primary text-on-accent shadow-sm z-[var(--z-raised)]'
                 }`}
                 style={{ top, height }}
               >

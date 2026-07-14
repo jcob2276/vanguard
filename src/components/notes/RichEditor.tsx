@@ -1,9 +1,9 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
 import { notify } from '../../lib/notify';
 import { SLASH_COMMANDS } from './richEditorCommands';
-
 export default function RichEditor({
   value,
   onChange,
@@ -60,7 +60,7 @@ export default function RichEditor({
       if (!bar) return;
       const keyboardH = window.innerHeight - (vv.offsetTop + vv.height);
       if (keyboardH > 50) {
-        bar.style.cssText = `position:fixed;bottom:${keyboardH}px;left:0;right:0;z-index:99999;margin:0;border-radius:0;width:100%;padding:0 12px;`;
+        bar.style.cssText = `position:fixed;bottom:${keyboardH}px;left:var(--legacy-inline-css-020);right:var(--legacy-inline-css-038);z-index:var(--legacy-inline-css-041);margin:var(--legacy-inline-css-026);border-radius:var(--legacy-inline-css-003);width:var(--legacy-inline-css-040);padding:var(--legacy-inline-css-036);`;
         bar.classList.add('kb-open');
       } else {
         bar.style.cssText = '';
@@ -99,7 +99,7 @@ export default function RichEditor({
       }
       setShowWikiMenu(true);
       setShowSlashMenu(false);
-      
+
       const range = selection.getRangeAt(0).cloneRange();
       try {
         range.setStart(node, wikiIdx);
@@ -152,7 +152,7 @@ export default function RichEditor({
         return;
       }
     }
-    
+
     setShowSlashMenu(false);
   };
 
@@ -164,7 +164,7 @@ export default function RichEditor({
     const offset = selection.anchorOffset;
     const text = node.textContent || '';
     const slashIdx = text.slice(0, offset).lastIndexOf('/');
-    
+
     if (slashIdx !== -1) {
       const range = selection.getRangeAt(0);
       range.setStart(node, slashIdx);
@@ -379,7 +379,7 @@ export default function RichEditor({
       handleSelection();
     } else if (action === 'highlight') {
       restoreSelection();
-      document.execCommand('hiliteColor', false, '#fef08a');
+      document.execCommand('hiliteColor', false, getComputedStyle(document.documentElement).getPropertyValue('--legacy-color-045').trim());
       handleInput();
       handleSelection();
     } else if (action === 'blockquote') {
@@ -450,7 +450,7 @@ export default function RichEditor({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (showSlashMenu || showWikiMenu) {
       const maxIndex = showSlashMenu ? filteredSlashCommands.length - 1 : filteredWikiNotes.length - 1;
-      
+
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedMenuIndex(prev => (prev >= maxIndex ? 0 : prev + 1));
@@ -519,7 +519,7 @@ export default function RichEditor({
           e.preventDefault();
           const textNode = todoItem.querySelector('.keep-todo-text') as HTMLElement;
           const textVal = textNode?.textContent?.trim() || '';
-          
+
           // If the item is empty, pressing Enter turns it back into a standard paragraph
           if (textVal === '' || textVal === '\u00a0' || textNode?.innerHTML === '<br>') {
             const p = document.createElement('p');
@@ -539,7 +539,7 @@ export default function RichEditor({
           const afterRange = document.createRange();
           afterRange.setStart(range.startContainer, range.startOffset);
           afterRange.setEndAfter(textNode.lastChild || textNode);
-          
+
           let frag: DocumentFragment;
           try {
             frag = afterRange.extractContents();
@@ -555,24 +555,24 @@ export default function RichEditor({
           // Create new checklist item below
           const newTodo = document.createElement('div');
           newTodo.className = 'keep-todo-item';
-          
+
           const checkbox = document.createElement('span');
           checkbox.className = 'keep-todo-checkbox';
           checkbox.setAttribute('contenteditable', 'false');
           newTodo.appendChild(checkbox);
-          
+
           const newTextSpan = document.createElement('span');
           newTextSpan.className = 'keep-todo-text';
-          
+
           if (!frag || frag.textContent?.trim() === '') {
             newTextSpan.innerHTML = '&nbsp;';
           } else {
             newTextSpan.appendChild(frag);
           }
           newTodo.appendChild(newTextSpan);
-          
+
           todoItem.parentNode?.insertBefore(newTodo, todoItem.nextSibling);
-          
+
           // Position cursor at start of new item
           editorRef.current?.focus();
           const r = document.createRange();
@@ -585,7 +585,7 @@ export default function RichEditor({
           }
           selection.removeAllRanges();
           selection.addRange(r);
-          
+
           handleInput();
           return;
         }
@@ -617,7 +617,7 @@ export default function RichEditor({
               p.innerHTML = '<br>';
             }
             todoItem.parentNode?.replaceChild(p, todoItem);
-            
+
             const r = document.createRange();
             if (p.firstChild) {
               r.setStart(p.firstChild, 0);
@@ -667,7 +667,7 @@ export default function RichEditor({
   return (
     <div className="relative w-full">
       {/* Hidden image file input */}
-      <input
+      <ControlInput
         ref={imageInputRef}
         type="file"
         accept="image/*"
@@ -692,18 +692,18 @@ export default function RichEditor({
           onMouseDown={e => e.preventDefault()}
         >
           {filteredSlashCommands.map((cmd, i) => (
-            <button
+            <Pressable
               key={cmd.key}
               type="button"
               className={`keep-autocomplete-item ${i === selectedMenuIndex ? 'active' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); executeSlashCommand(cmd); }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{cmd.icon}</span>
-                <strong style={{ fontSize: 12 }}>{cmd.label}</strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
+                <span style={{ fontSize: 'var(--legacy-inline-style-020)', width: 'var(--legacy-inline-style-093)', textAlign: 'center', flexShrink: 0 }}>{cmd.icon}</span>
+                <strong style={{ fontSize: 'var(--legacy-inline-style-019)' }}>{cmd.label}</strong>
               </span>
-              <span className="item-sub" style={{ marginLeft: 28 }}>{cmd.sub}</span>
-            </button>
+              <span className="item-sub" style={{ marginLeft: 'var(--legacy-inline-style-052)' }}>{cmd.sub}</span>
+            </Pressable>
           ))}
         </div>
       )}
@@ -713,27 +713,27 @@ export default function RichEditor({
           style={{ top: menuCoords.top, left: menuCoords.left }}
           onMouseDown={e => e.preventDefault()}
         >
-          <div style={{ padding: '6px 12px 4px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5 }}>Połącz notatkę</div>
+          <div style={{ padding: 'var(--legacy-inline-style-078)', fontSize: 'var(--legacy-inline-style-023)', fontWeight: 'var(--legacy-inline-style-026)', textTransform: 'uppercase', letterSpacing: 'var(--legacy-inline-style-043)', opacity: 'var(--legacy-inline-style-065)' }}>Połącz notatkę</div>
           {filteredWikiNotes.length > 0 ? filteredWikiNotes.map((note, i) => (
-            <button
+            <Pressable
               key={note.id}
               type="button"
               className={`keep-autocomplete-item ${i === selectedMenuIndex ? 'active' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); executeWikiLink(note); }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 14, flexShrink: 0 }}>📎</span>
-                <strong style={{ fontSize: 12 }}>{note.title || '(Bez tytułu)'}</strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
+                <span style={{ fontSize: 'var(--legacy-inline-style-020)', flexShrink: 0 }}>📎</span>
+                <strong style={{ fontSize: 'var(--legacy-inline-style-019)' }}>{note.title || '(Bez tytułu)'}</strong>
               </span>
-            </button>
+            </Pressable>
           )) : (
-            <div style={{ padding: '10px 12px', fontSize: 11, opacity: 0.5 }}>Brak notatek dla "{wikiSearchQuery}"</div>
+            <div style={{ padding: 'var(--legacy-inline-style-071)', fontSize: 'var(--legacy-inline-style-018)', opacity: 'var(--legacy-inline-style-065)' }}>Brak notatek dla "{wikiSearchQuery}"</div>
           )}
         </div>
       )}
       {/* CSS Placeholder fallback */}
       {(!value || value === '<br>' || value === '') && (
-        <span className="absolute left-0 top-0 pointer-events-none text-text-muted opacity-50 text-sm select-none">
+        <span className="absolute left-0 top-0 pointer-events-none text-text-muted opacity-[var(--opacity-50)] text-sm select-none">
           {placeholder}
         </span>
       )}
@@ -749,94 +749,94 @@ export default function RichEditor({
       {showStaticBar && (
         <div className="keep-static-bar" ref={staticBarRef}>
           {/* Text style group — iOS Notes Aa order */}
-          <button
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('bold'); }}
             className={`keep-static-btn ${activeState.bold ? 'active' : ''}`}
             title="Pogrubienie"
           >
-            <span style={{ fontWeight: 800, fontSize: 15, fontFamily: 'Georgia, serif', lineHeight: 1 }}>B</span>
-          </button>
-          <button
+            <span style={{ fontWeight: 'var(--legacy-inline-style-027)', fontSize: 'var(--legacy-inline-style-021)', fontFamily: 'var(--legacy-inline-style-015)', lineHeight: 'var(--legacy-inline-style-047)' }}>B</span>
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('italic'); }}
             className={`keep-static-btn ${activeState.italic ? 'active' : ''}`}
             title="Kursywa"
           >
-            <span style={{ fontStyle: 'italic', fontWeight: 600, fontSize: 15, fontFamily: 'Georgia, serif', lineHeight: 1 }}>I</span>
-          </button>
-          <button
+            <span style={{ fontStyle: 'italic', fontWeight: 'var(--legacy-inline-style-025)', fontSize: 'var(--legacy-inline-style-021)', fontFamily: 'var(--legacy-inline-style-015)', lineHeight: 'var(--legacy-inline-style-047)' }}>I</span>
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('underline'); }}
             className={`keep-static-btn ${activeState.underline ? 'active' : ''}`}
             title="Podkreślenie"
           >
             <Underline size={18} strokeWidth={2} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('strikethrough'); }}
             className={`keep-static-btn ${activeState.strikethrough ? 'active' : ''}`}
             title="Przekreślenie"
           >
             <Strikethrough size={18} strokeWidth={2} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('h1'); }}
             className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`}
             title="Nagłówek"
           >
-            <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: '-0.02em', lineHeight: 1 }}>H1</span>
-          </button>
-          <button
+            <span style={{ fontWeight: 'var(--legacy-inline-style-027)', fontSize: 'var(--legacy-inline-style-018)', letterSpacing: 'var(--legacy-inline-style-042)', lineHeight: 'var(--legacy-inline-style-047)' }}>H1</span>
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('blockquote'); }}
             className={`keep-static-btn ${activeState.blockquote ? 'active' : ''}`}
             title="Cytat"
           >
             <Quote size={18} strokeWidth={2} />
-          </button>
+          </Pressable>
 
           <div className="keep-static-sep" />
 
           {/* Block elements group */}
-          <button
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('todo'); }}
             className="keep-static-btn"
             title="Lista zadań"
           >
             <CheckSquare size={20} strokeWidth={1.5} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('table'); }}
             className="keep-static-btn"
             title="Tabela"
           >
             <Table2 size={20} strokeWidth={1.5} />
-          </button>
+          </Pressable>
 
           <div className="keep-static-sep" />
 
           {/* Media & highlight group */}
-          <button
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('highlight'); }}
             className="keep-static-btn"
             title="Zaznacz tekst"
           >
             <Highlighter size={18} strokeWidth={2} />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('image'); }}
             className="keep-static-btn"
             title="Dodaj zdjęcie"
           >
             <Image size={20} strokeWidth={1.5} />
-          </button>
+          </Pressable>
         </div>
       )}
 

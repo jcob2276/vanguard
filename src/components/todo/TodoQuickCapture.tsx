@@ -1,6 +1,6 @@
+import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from 'lucide-react';
-import Button from '../ui/Button';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 import NlpHighlightInput from './NlpHighlightInput';
@@ -73,7 +73,7 @@ export default function TodoQuickCapture({
           placeholder="Nazwa zadania"
           className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
         />
-        <textarea
+        <ControlTextarea
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           rows={2}
@@ -86,7 +86,7 @@ export default function TodoQuickCapture({
       <div className="flex flex-wrap items-center gap-2">
         {/* Date Button + popover */}
         <div className="relative">
-          <button
+          <Pressable
             type="button"
             onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
             className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${effectiveDueDate ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
@@ -94,7 +94,7 @@ export default function TodoQuickCapture({
             <Calendar size={12} className={effectiveDueDate ? 'text-primary' : 'text-text-muted/60'} />
             <span>{effectiveDueDate ? `${effectiveDueDate}${effectiveScheduledTime ? ` ${effectiveScheduledTime}` : ''}` : 'Termin'}</span>
             {effectiveRecurrence && <Repeat size={11} className="text-primary" />}
-          </button>
+          </Pressable>
           {openPopover === 'date' && (
             <TodoDatePickerPopover
               dueDate={effectiveDueDate || null}
@@ -114,17 +114,17 @@ export default function TodoQuickCapture({
 
         {/* Priority Selector */}
         <div className="relative">
-          <select
+          <ControlSelect
             value={form.priority}
             onChange={(e) => setForm({ ...form, priority: e.target.value })}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+            className="absolute inset-0 opacity-[var(--opacity-0)] cursor-pointer w-full h-full z-[var(--z-raised)]"
           >
             <option value="urgent">🚩 Priorytet 1 (P1)</option>
             <option value="high">🚩 Priorytet 2 (P2)</option>
             <option value="normal">🚩 Priorytet 3 (P3)</option>
             <option value="low">🚩 Priorytet 4 (P4)</option>
-          </select>
-          <button
+          </ControlSelect>
+          <Pressable
             type="button"
             className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
           >
@@ -132,12 +132,12 @@ export default function TodoQuickCapture({
             <span>
               {effectivePriority === 'urgent' ? 'P1' : effectivePriority === 'high' ? 'P2' : effectivePriority === 'normal' ? 'P3' : 'P4'}
             </span>
-          </button>
+          </Pressable>
         </div>
 
         {/* Reminder Button + popover */}
         <div className="relative">
-          <button
+          <Pressable
             type="button"
             onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
             className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${form.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
@@ -148,7 +148,7 @@ export default function TodoQuickCapture({
                 ? new Date(form.reminder_at).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                 : 'Przypomnienia'}
             </span>
-          </button>
+          </Pressable>
           {openPopover === 'reminder' && (
             <TodoReminderPopover
               dueDate={form.due_date || null}
@@ -160,9 +160,9 @@ export default function TodoQuickCapture({
         </div>
 
         {/* Tags input chip */}
-        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2.5 py-0.5 max-w-[150px]">
+        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2.5 py-0.5 max-w-[var(--legacy-maxw-051)]">
           <Tag size={11} className="text-text-muted/60" />
-          <input
+          <ControlInput
             value={form.tagsText}
             onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
             placeholder="Tagi"
@@ -172,14 +172,14 @@ export default function TodoQuickCapture({
 
         {/* Skan Tekstu trigger */}
         {onOpenScanText && (
-          <button
+          <Pressable
             type="button"
             onClick={onOpenScanText}
             className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-all"
           >
             <ScanText size={12} />
             <span>Skan tekstu</span>
-          </button>
+          </Pressable>
         )}
       </div>
 
@@ -187,17 +187,17 @@ export default function TodoQuickCapture({
       <div className="flex items-center justify-between border-t border-border-custom/80 pt-3 mt-1.5">
         {/* Left: Section Selector Dropdown */}
         <div className="relative flex items-center">
-          <select
+          <ControlSelect
             value={form.section_id || ''}
             onChange={(e) => setForm({ ...form, section_id: e.target.value })}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+            className="absolute inset-0 opacity-[var(--opacity-0)] cursor-pointer w-full h-full z-[var(--z-raised)]"
           >
             <option value="">Skrzynka</option>
             {sections.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-          </select>
-          <button
+          </ControlSelect>
+          <Pressable
             type="button"
             className="flex items-center gap-1 px-2.5 py-1 text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
           >
@@ -206,12 +206,12 @@ export default function TodoQuickCapture({
               {sections.find(s => s.id === form.section_id)?.name || 'Skrzynka'}
             </span>
             <ChevronDown size={11} className="text-text-muted/60" />
-          </button>
+          </Pressable>
         </div>
 
         {/* Right: Cancel & Add buttons */}
         <div className="flex gap-2">
-          <Button
+          <Pressable
             variant="ghost"
             size="sm"
             onClick={() => {
@@ -220,15 +220,15 @@ export default function TodoQuickCapture({
             }}
           >
             Anuluj
-          </Button>
-          <Button
+          </Pressable>
+          <Pressable
             variant="primary"
             size="sm"
             onClick={addItem}
             disabled={busy || !form.title.trim()}
           >
             Dodaj zadanie
-          </Button>
+          </Pressable>
         </div>
       </div>
     </Card>

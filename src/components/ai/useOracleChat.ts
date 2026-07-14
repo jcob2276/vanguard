@@ -145,7 +145,7 @@ export function useOracleChat({
     try {
       const status = approved ? 'approved' : 'denied';
       await updatePendingActionStatus(actionId, status);
-      
+
       if (approved && payload) {
         const typedPayload = payload as PendingActionPayload;
         if (actionType === 'schedule_mutation' && typedPayload.schedule_mutation) {
@@ -161,7 +161,7 @@ export function useOracleChat({
           }
         }
       }
-      
+
       setItems(prev => prev.map((item, idx) => {
         if (idx === itemId && item.type === 'action') {
           return {

@@ -1,10 +1,10 @@
+import Button from '../ui/Button';
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import { useUserId } from '../../store/useStore';
 import { useMorningPlanData } from './morningPlan/useMorningPlanData';
 import { useMorningPlanActions } from './morningPlan/useMorningPlanActions';
@@ -57,7 +57,7 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
 
   if (data.loading) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[60]" closeOnBackdropClick={false}>
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--legacy-arbitrary-029)]" closeOnBackdropClick={false}>
         <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-sm font-bold text-text-muted">Wczytywanie rytuału planowania...</span>
@@ -74,10 +74,10 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
       padding="p-0"
       overflowY={false}
       size="lg"
-      overlayClassName="z-[60]"
+      overlayClassName="z-[var(--legacy-arbitrary-029)]"
     >
       {/* Sheet / Dialog */}
-      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[750px] overflow-hidden">
+      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[var(--legacy-h-046)] sm:max-h-[var(--legacy-h-042)] overflow-hidden">
 
         {/* Header */}
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
@@ -104,9 +104,9 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
 
         {/* Wizard Progress Line */}
         <div className="grid grid-cols-3 h-1 bg-border-custom/20 shrink-0">
-          <div className={`h-full transition-all duration-300 ${step >= 1 ? 'bg-primary' : 'bg-transparent'}`} />
-          <div className={`h-full transition-all duration-300 ${step >= 2 ? 'bg-primary' : 'bg-transparent'}`} />
-          <div className={`h-full transition-all duration-300 ${step >= 3 ? 'bg-primary' : 'bg-transparent'}`} />
+          <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 1 ? 'bg-primary' : 'bg-transparent'}`} />
+          <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 2 ? 'bg-primary' : 'bg-transparent'}`} />
+          <div className={`h-full transition-all duration-[var(--motion-slow)] ${step >= 3 ? 'bg-primary' : 'bg-transparent'}`} />
         </div>
 
         {/* Content Box */}

@@ -1,6 +1,6 @@
+import Button from '../../ui/Button';
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import Button from '../../ui/Button';
 import {
   HOURS,
   PX_PER_HOUR,

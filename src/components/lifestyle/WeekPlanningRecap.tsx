@@ -33,9 +33,9 @@ export default function WeekPlanningRecap({
   if (!hasProjects && !hasLoop) return null;
 
   return (
-    <Card variant="receipt" className="space-y-4" style={{ background: 'rgba(79,70,229,0.03)' }}>
+    <Card variant="receipt" className="space-y-4" style={{ background: 'var(--primary-5)' }}>
       <div>
-        <p className="text-2xs font-black uppercase tracking-[0.2em] text-primary">
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-primary">
           Ten tydzień — zoom out
         </p>
         <p className="mt-1 text-xs text-text-secondary leading-relaxed">

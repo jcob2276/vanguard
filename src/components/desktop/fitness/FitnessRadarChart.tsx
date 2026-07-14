@@ -24,7 +24,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
 
   return (
     <div className="flex justify-center items-center py-2">
-      <svg width="100%" height={320} viewBox="0 0 380 320" className="overflow-visible max-w-[380px]">
+      <svg width="100%" height={320} viewBox="0 0 380 320" className="overflow-visible max-w-[var(--legacy-maxw-058)]">
         <defs>
           <filter id="radar-glow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -48,7 +48,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               stroke={grid}
               strokeWidth="1"
               strokeDasharray={k === 10 ? 'none' : '2,3'}
-              className="opacity-70"
+              className="opacity-[var(--opacity-70)]"
             />
           );
         })}
@@ -64,7 +64,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               y2={cy + r * Math.sin(angle)}
               stroke={grid}
               strokeWidth="1"
-              className="opacity-50"
+              className="opacity-[var(--opacity-50)]"
             />
           );
         })}
@@ -79,8 +79,8 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               return `${cx + r * val * Math.cos(angle)},${cy + r * val * Math.sin(angle)}`;
             })
             .join(' ')}
-          fill="rgba(163, 230, 53, 0.08)"
-          stroke="rgb(163, 230, 53)"
+          fill="var(--legacy-color-099)"
+          stroke="var(--legacy-color-048)"
           strokeWidth="2"
           filter="url(#radar-glow)"
         />
@@ -96,8 +96,8 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               cx={cx + r * val * Math.cos(angle)}
               cy={cy + r * val * Math.sin(angle)}
               r="4"
-              fill="rgb(163, 230, 53)"
-              stroke={theme === 'dark' ? '#000' : '#fff'}
+              fill="var(--legacy-color-048)"
+              stroke={theme === 'dark' ? 'var(--legacy-color-001)' : 'var(--legacy-color-046)'}
               strokeWidth="1.5"
             />
           );

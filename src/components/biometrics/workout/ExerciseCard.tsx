@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Plus } from 'lucide-react';
 import { Card } from '../../ui/Card';
@@ -84,18 +85,18 @@ export default function ExerciseCard({
           tags={exercise.tags}
           onChange={(name, t) => onChange({ ...exercise, name, tags: t })}
         />
-        <button
+        <Pressable
           onClick={() => setCollapsed((c) => !c)}
           className="p-1 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
         >
           {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           onClick={removeExercise}
           className="p-1 text-text-muted hover:text-danger transition-colors cursor-pointer"
         >
           <Trash2 size={14} />
-        </button>
+        </Pressable>
       </div>
 
       {/* Ostatnio + sugestia */}
@@ -134,12 +135,12 @@ export default function ExerciseCard({
             <ExerciseStrengthSets exercise={exercise} haptics={haptics} allTimeBest1RM={allTimeBest1RM} updateSet={updateSet} removeSet={removeSet} />
           )}
 
-          <button
+          <Pressable
             onClick={addSet}
             className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-custom bg-surface/30 py-2 text-xs font-black uppercase tracking-widest text-text-muted hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
           >
             <Plus size={11} /> Dodaj serię
-          </button>
+          </Pressable>
 
           {!isSaunaMode && current1RM > 0 && (
             <div className="flex justify-between items-center pt-1.5 border-t border-border-custom mt-2">

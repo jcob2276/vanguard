@@ -1,7 +1,7 @@
+import Button from '../ui/Button';
 import React from 'react';
 import { computeBudgetBarState } from './calendarHelpers';
 import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
-import Button from '../ui/Button';
 
 interface Budget {
   category: string;
@@ -44,7 +44,7 @@ export default function CalendarBudgetPanel({
     const { pct, statusText, barColor } = computeBudgetBarState(spent, minVal, maxVal, cat.color);
 
     return (
-      <div key={cat.key} className="p-2.5 bg-surface-solid/5 dark:bg-white/[0.015] border border-border-custom/30 rounded-xl flex flex-col justify-between hover:bg-surface-solid/10 dark:hover:bg-white/[0.025] transition-all">
+      <div key={cat.key} className="p-2.5 bg-surface-solid/5 dark:bg-on-accent/[0.015] border border-border-custom/30 rounded-xl flex flex-col justify-between hover:bg-surface-solid/10 dark:hover:bg-on-accent/[0.025] transition-all">
         <div className="flex items-center justify-between text-xs font-bold">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cat.dot}`} />
@@ -65,7 +65,7 @@ export default function CalendarBudgetPanel({
         {(minVal || maxVal) && (
           <div className="w-full h-1 bg-border-custom/40 rounded-full overflow-hidden mt-1.5">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+              className={`h-full rounded-full transition-all duration-[var(--motion-slow)] ${barColor}`}
               style={{ width: `${pct}%` }}
             />
           </div>

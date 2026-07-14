@@ -1,5 +1,5 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import { Plus, X } from 'lucide-react';
-import Button from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import type { useNutritionData, TodayEntry } from '../useNutritionData';
 
@@ -54,7 +54,7 @@ export default function NutritionMealGroupCard({
               <span className="text-danger">{group.totalFat}T</span>
             </div>
           )}
-          <Button
+          <Pressable
             variant="tonal"
             size="sm"
             onClick={onAddToMeal}
@@ -62,7 +62,7 @@ export default function NutritionMealGroupCard({
             title={`Dodaj do posiłku: ${group.label}`}
           >
             <Plus size={12} />
-          </Button>
+          </Pressable>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function NutritionMealGroupCard({
         <div className="space-y-2">
           {group.entries.map((e) => (
             <div key={e.id} className="flex items-center gap-3 rounded-xl border border-border-custom/40 bg-surface px-3 py-2.5 transition-all hover:bg-surface-solid/30">
-              <button
+              <Pressable
                 onClick={() => onEditEntry(e)}
                 className="flex-1 min-w-0 text-left cursor-pointer"
               >
@@ -96,11 +96,11 @@ export default function NutritionMealGroupCard({
                     </span>
                   )}
                 </div>
-              </button>
+              </Pressable>
               <span className="shrink-0 text-xs font-black text-text-secondary bg-surface-solid/60 px-2 py-0.5 rounded-lg border border-border-custom/30">
                 {e.calories ?? '?'} kcal
               </span>
-              <Button
+              <Pressable
                 variant="ghost"
                 onClick={() => deleteEntry(e.id)}
                 loading={deletingId === e.id}
@@ -109,7 +109,7 @@ export default function NutritionMealGroupCard({
                 size="sm"
               >
                 <X size={12} />
-              </Button>
+              </Pressable>
             </div>
           ))}
         </div>

@@ -1,9 +1,9 @@
+import { Pressable, ControlTextarea } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { PILLARS, PILLAR_META, GOAL_QUESTIONS, PillarId } from './projectUtils';
 import Spinner from '../ui/Spinner';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import type { GoalCreatePreview } from './useProjectsData';
 
 export interface GoalCreateModalProps {
@@ -94,13 +94,13 @@ export default function GoalCreateModal({
                   const meta = PILLAR_META[p];
                   const lg = lifeGoals?.[`goal_${p}`] as string | undefined;
                   return (
-                    <button
+                    <Pressable
                       key={p}
                       onClick={() => {
                         setGoalCreatePillar(p);
                         setGoalCreateStep(0);
                       }}
-                      className={`w-full text-left rounded-[16px] border p-3.5 transition-all hover:scale-[1.01] cursor-pointer ${meta.border} ${meta.bg}`}
+                      className={`w-full text-left rounded-[var(--radius-lg)] border p-3.5 transition-all hover:scale-[var(--legacy-arbitrary-013)] cursor-pointer ${meta.border} ${meta.bg}`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <meta.icon size={13} className={meta.text} />
@@ -109,7 +109,7 @@ export default function GoalCreateModal({
                         </span>
                       </div>
                       {lg && <p className="text-sm text-text-secondary leading-snug line-clamp-1">{lg}</p>}
-                    </button>
+                    </Pressable>
                   );
                 })}
               </div>
@@ -134,7 +134,7 @@ export default function GoalCreateModal({
                   ))}
                 </div>
                 <p className="text-xl font-black text-text-primary leading-snug">{q.q}</p>
-                <textarea
+                <ControlTextarea
                   autoFocus
                   rows={3}
                   value={val}
@@ -146,18 +146,18 @@ export default function GoalCreateModal({
                     }
                   }}
                   placeholder={q.hint}
-                  className="w-full resize-none rounded-[14px] border border-border-custom bg-surface-solid/40 px-4 py-3 text-base text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/35 leading-relaxed"
+                  className="w-full resize-none rounded-[var(--radius-md)] border border-border-custom bg-surface-solid/40 px-4 py-3 text-base text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/35 leading-relaxed"
                 />
                 <p className="text-xs text-text-muted/60">Enter = dalej · Shift+Enter = nowa linia</p>
                 <div className="flex gap-2">
-                  <Button
+                  <Pressable
                     variant="outline"
                     onClick={() => setGoalCreateStep(qIdx > 0 ? qIdx - 1 : 'pillar')}
                     className="px-4 py-3 text-sm"
                   >
                     ← Wstecz
-                  </Button>
-                  <Button
+                  </Pressable>
+                  <Pressable
                     onClick={() => {
                       if (val.trim()) handleGoalCreateNext(val);
                     }}
@@ -165,7 +165,7 @@ export default function GoalCreateModal({
                     className="flex-1 py-3 text-sm"
                   >
                     {qIdx < GOAL_QUESTIONS.length - 1 ? 'Dalej →' : 'Generuj cel ✦'}
-                  </Button>
+                  </Pressable>
                 </div>
               </div>
             );
@@ -199,7 +199,7 @@ export default function GoalCreateModal({
                   </p>
                   <div className="space-y-1.5">
                     {(goalCreatePreview.kpis ?? []).map((kpi, i) => (
-                      <div key={i} className={`flex items-center gap-2 rounded-[10px] px-3 py-2 ${pm.bg}`}>
+                      <div key={i} className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-2 ${pm.bg}`}>
                         <div className={`h-1.5 w-1.5 rounded-full ${pm.dot}`} />
                         <span className="text-sm font-semibold text-text-primary flex-1">
                           {kpi.name || kpi.label || kpi.description || kpi.indicator || ''}
@@ -238,14 +238,14 @@ export default function GoalCreateModal({
                 </div>
               )}
               <div className="flex gap-2 pt-1">
-                <Button
+                <Pressable
                   variant="outline"
                   onClick={() => setGoalCreateStep(GOAL_QUESTIONS.length - 1)}
                   className="px-4 py-3 text-sm"
                 >
                   Zmień
-                </Button>
-                <Button
+                </Pressable>
+                <Pressable
                   onClick={() => {
                     if (goalCreatePillar) {
                       onConfirm(goalCreatePreview, goalCreatePillar);
@@ -256,7 +256,7 @@ export default function GoalCreateModal({
                   className="flex-1 py-3 text-sm"
                 >
                   Utwórz projekt ✦
-                </Button>
+                </Pressable>
               </div>
             </div>
           )}

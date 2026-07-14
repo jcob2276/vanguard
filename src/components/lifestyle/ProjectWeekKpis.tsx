@@ -1,8 +1,8 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Plus, TrendingUp } from 'lucide-react';
 import { Card } from '../ui/Card';
-import Button from '../ui/Button';
 import {
   addProjectKpi,
   fetchProjectWeekKpis,
@@ -74,7 +74,7 @@ export default function ProjectWeekKpis({
 
   return (
     <section className="space-y-2">
-      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--legacy-arbitrary-053)] text-text-muted">
         <TrendingUp size={12} /> Projekty tego tygodnia ({projects.length})
       </p>
       <div className="space-y-2.5">
@@ -103,7 +103,7 @@ export default function ProjectWeekKpis({
                         {readOnly ? (
                           <span>{kpi.target ?? '—'}</span>
                         ) : (
-                          <input
+                          <ControlInput
                             type="number"
                             inputMode="decimal"
                             defaultValue={kpi.target ?? ''}
@@ -124,7 +124,7 @@ export default function ProjectWeekKpis({
               })}
 
               {kpis.length === 0 && !readOnly && addingFor !== project.id && (
-                <Button
+                <Pressable
                   type="button"
                   onClick={() => setAddingFor(project.id)}
                   variant="ghost"
@@ -133,12 +133,12 @@ export default function ProjectWeekKpis({
                   className="!px-0 text-primary"
                 >
                   ustal liczbę
-                </Button>
+                </Pressable>
               )}
 
               {addingFor === project.id && !readOnly && (
                 <div className="space-y-1.5 rounded-lg border border-primary/20 bg-primary/[0.03] p-2.5">
-                  <input
+                  <ControlInput
                     autoFocus
                     value={newKpi.name}
                     onChange={(e) => setNewKpi((f) => ({ ...f, name: e.target.value }))}
@@ -146,13 +146,13 @@ export default function ProjectWeekKpis({
                     className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
                   />
                   <div className="flex items-center gap-1.5">
-                    <input
+                    <ControlInput
                       value={newKpi.unit}
                       onChange={(e) => setNewKpi((f) => ({ ...f, unit: e.target.value }))}
                       placeholder="jednostka"
                       className="min-w-0 flex-1 bg-transparent text-xs text-text-secondary outline-none placeholder:text-text-muted/40 border-b border-border-custom/50 pb-0.5"
                     />
-                    <input
+                    <ControlInput
                       type="number"
                       inputMode="decimal"
                       value={newKpi.target}
@@ -163,7 +163,7 @@ export default function ProjectWeekKpis({
                   </div>
                   <div className="flex items-center gap-1">
                     {PILLAR_OPTIONS.map((p) => (
-                      <button
+                      <Pressable
                         key={p.id}
                         type="button"
                         onClick={() => setNewKpi((f) => ({ ...f, pillar: p.id }))}
@@ -172,11 +172,11 @@ export default function ProjectWeekKpis({
                         }`}
                       >
                         {p.label}
-                      </button>
+                      </Pressable>
                     ))}
                   </div>
                   <div className="flex gap-1.5 pt-0.5">
-                    <Button
+                    <Pressable
                       type="button"
                       onClick={() => setAddingFor(null)}
                       variant="outline"
@@ -184,8 +184,8 @@ export default function ProjectWeekKpis({
                       className="flex-1"
                     >
                       Anuluj
-                    </Button>
-                    <Button
+                    </Pressable>
+                    <Pressable
                       type="button"
                       onClick={() => submitNewKpi(project.id)}
                       disabled={!newKpi.name.trim()}
@@ -195,7 +195,7 @@ export default function ProjectWeekKpis({
                       className="flex-1"
                     >
                       Dodaj
-                    </Button>
+                    </Pressable>
                   </div>
                 </div>
               )}

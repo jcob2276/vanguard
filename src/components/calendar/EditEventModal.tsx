@@ -1,9 +1,10 @@
+import Button from '../ui/Button';
+import { ControlInput } from '../ui/ControlPrimitives';
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { useCalendarData } from './hooks/useCalendarData';
 
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
 
@@ -37,7 +38,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ calData, handleE
 
   return (
     <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Edytuj wydarzenie" size="sm">
-      <input
+      <ControlInput
         value={editTitle}
         onChange={(e) => setEditTitle(e.target.value)}
         placeholder="Tytuł wydarzenia..."
@@ -47,7 +48,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ calData, handleE
       <div className="grid grid-cols-2 gap-3.5">
         <div className="space-y-1">
           <label className="text-xs text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">Start</label>
-          <input
+          <ControlInput
             type="time"
             value={editStart}
             onChange={(e) => setEditStart(e.target.value)}
@@ -56,7 +57,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ calData, handleE
         </div>
         <div className="space-y-1">
           <label className="text-xs text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">Koniec</label>
-          <input
+          <ControlInput
             type="time"
             value={editEnd}
             onChange={(e) => setEditEnd(e.target.value)}

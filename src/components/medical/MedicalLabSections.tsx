@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, Scale, TrendingDown, TrendingUp } from 'lucide-react';
 import {
@@ -53,7 +54,7 @@ function TrendBadge({ series }: { series: MarkerSeries }) {
 function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
   return (
     <div className="overflow-x-auto -mx-1">
-      <table className="w-full min-w-[520px] text-left border-collapse">
+      <table className="w-full min-w-[var(--legacy-w-090)] text-left border-collapse">
         <thead>
           <tr className="text-2xs font-black uppercase tracking-wider text-text-muted border-b border-border-custom">
             <th className="py-2 pr-2 font-black">Marker</th>
@@ -78,8 +79,8 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
                 <td className="py-2.5 px-2">
                   <ValueCell row={s.latest} />
                 </td>
-                <td className="py-2.5 px-2 text-xs text-text-muted max-w-[120px]">{formatRef(s.latest)}</td>
-                <td className="py-2.5 px-2 text-xs max-w-[100px]">
+                <td className="py-2.5 px-2 text-xs text-text-muted max-w-[var(--legacy-maxw-050)]">{formatRef(s.latest)}</td>
+                <td className="py-2.5 px-2 text-xs max-w-[var(--legacy-maxw-049)]">
                   {opt ? (
                     <span
                       className={
@@ -116,7 +117,7 @@ export function CategorySection({ catKey, series }: { catKey: string; series: Ma
   const [open, setOpen] = useState(true);
   return (
     <Card variant="glass" className="bg-surface/30 border-border-custom overflow-hidden" padding="0">
-      <button
+      <Pressable
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left cursor-pointer hover:bg-surface/50"
@@ -132,7 +133,7 @@ export function CategorySection({ catKey, series }: { catKey: string; series: Ma
         ) : (
           <ChevronRight size={16} className="text-text-muted shrink-0" />
         )}
-      </button>
+      </Pressable>
       {open && (
         <div className="px-4 pb-4 border-t border-border-custom/60">
           <MarkerTable rows={series} />
@@ -155,7 +156,7 @@ export function PanelTimeline({ byDate }: { byDate: Map<string, MedicalLabRow[]>
         const fresh = labFreshness(age);
         return (
           <li key={date} className="rounded-xl border border-border-custom bg-background/40 overflow-hidden">
-            <button
+            <Pressable
               type="button"
               onClick={() => setExpandedDate(open ? null : date)}
               className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left cursor-pointer"
@@ -170,7 +171,7 @@ export function PanelTimeline({ byDate }: { byDate: Map<string, MedicalLabRow[]>
               <span className="shrink-0 text-2xs font-black uppercase text-text-muted">
                 {freshnessLabel(fresh)}
               </span>
-            </button>
+            </Pressable>
             {open && (
               <div className="border-t border-border-custom/60 px-3 py-2 space-y-1.5 max-h-64 overflow-y-auto">
                 {rows.map((r) => (
@@ -281,7 +282,7 @@ export function SectionShell({
       <div className="flex items-start gap-2">
         {icon}
         <div>
-          <h2 className="text-xs font-black uppercase tracking-[0.15em] text-text-primary">{title}</h2>
+          <h2 className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-primary">{title}</h2>
           {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
         </div>
       </div>

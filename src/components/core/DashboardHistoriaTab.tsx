@@ -13,7 +13,7 @@ const Photos            = lazy(() => import('../identity/Photos'));
 
 function ViewFallback() {
   return (
-    <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+    <div className="flex min-h-[var(--legacy-h-017)] items-center justify-center rounded-lg border border-on-accent/[0.06] bg-on-accent/[0.02]">
       <Spinner size="md" />
     </div>
   );

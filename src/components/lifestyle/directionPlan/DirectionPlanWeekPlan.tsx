@@ -1,7 +1,8 @@
+import Button from '../../ui/Button';
+import { ControlTextarea } from '../../ui/ControlPrimitives';
 import { formatSprintWeekBridge } from '../../../lib/goal/goalSpine';
 import { formatSprintFromLongTerm } from '../../../lib/goal/longTermBridge';
 import { Card } from '../../ui/Card';
-import Button from '../../ui/Button';
 
 type Phase2Recap = {
   block5_material?: { cialo: string; duch: string; konto: string };
@@ -19,8 +20,8 @@ function Divider({ title }: { title: string }) {
 
 function Textarea({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-      className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[80px] focus:outline-none focus:border-primary/50 transition-colors" />
+    <ControlTextarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+      className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-044)] focus:outline-none focus:border-primary/50 transition-colors" />
   );
 }
 
@@ -60,7 +61,7 @@ export default function DirectionPlanWeekPlan({
   const longTermBridge = formatSprintFromLongTerm(direction.bhagLine ?? null, direction.sprintGoal);
 
   return (
-    <div className={`space-y-4 transition-opacity duration-300 ${deepeningComplete ? "" : "opacity-30 pointer-events-none"}`}>
+    <div className={`space-y-4 transition-opacity duration-[var(--motion-slow)] ${deepeningComplete ? "" : "opacity-[var(--opacity-30)] pointer-events-none"}`}>
       <Divider title="Plan tygodnia" />
       {planWeekStart !== weekStart && (
         <p className="text-xs font-semibold text-text-muted">Cele zapiszą się na tydzień od {planWeekStart}</p>
@@ -94,7 +95,7 @@ export default function DirectionPlanWeekPlan({
 
       <div className="space-y-4">
         {(direction.monthTheme || direction.sprintGoal || direction.bhagLine) && (
-          <Card padding="0.625rem 0.75rem" className="space-y-1.5" style={{ background: 'rgba(11, 15, 25, 0.5)' }}>
+          <Card padding="0.625rem 0.75rem" className="space-y-1.5" style={{ background: 'var(--legacy-color-064)' }}>
             {longTermBridge && <p className="text-xs font-semibold text-text-primary leading-relaxed">{longTermBridge}</p>}
             {direction.monthTheme && (
               <p className="text-xs text-text-secondary leading-relaxed">

@@ -106,7 +106,7 @@ export function useTodoDragDrop({
     document.addEventListener('touchmove', onMove, { passive: false, capture: true });
     document.addEventListener('mouseup', onEnd, { capture: true });
     document.addEventListener('touchend', onEnd, { capture: true });
-    
+
     return () => {
       document.removeEventListener('mousemove', onMove, { capture: true });
       document.removeEventListener('touchmove', onMove, { capture: true });

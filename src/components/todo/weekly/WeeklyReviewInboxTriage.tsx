@@ -1,3 +1,4 @@
+import { Pressable, ControlSelect } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Inbox, Check, Trash2, Folder } from 'lucide-react';
@@ -52,9 +53,9 @@ export default function WeeklyReviewInboxTriage() {
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {/* Project Selector */}
-                  <div className="relative flex items-center gap-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-xs font-semibold text-text-secondary">
+                  <div className="relative flex items-center gap-1 bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-xs font-semibold text-text-secondary">
                     <Folder size={11} className="text-text-muted" />
-                    <select
+                    <ControlSelect
                       value={staged.section_id || ''}
                       onChange={(e) =>
                         stageUpdate(item.id, { section_id: e.target.value || null })
@@ -67,11 +68,11 @@ export default function WeeklyReviewInboxTriage() {
                           {sec.name}
                         </option>
                       ))}
-                    </select>
+                    </ControlSelect>
                   </div>
 
                   {/* Complete Button */}
-                  <button
+                  <Pressable
                     onClick={() =>
                       stageUpdate(item.id, {
                         status: 'done',
@@ -82,16 +83,16 @@ export default function WeeklyReviewInboxTriage() {
                     title="Wykonaj"
                   >
                     <Check size={12} />
-                  </button>
+                  </Pressable>
 
                   {/* Drop Button */}
-                  <button
+                  <Pressable
                     onClick={() => stageUpdate(item.id, { status: 'dropped' })}
                     className="p-1 rounded-lg border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 transition-colors btn-press"
                     title="Odpuść"
                   >
                     <Trash2 size={12} />
-                  </button>
+                  </Pressable>
                 </div>
               </div>
             );

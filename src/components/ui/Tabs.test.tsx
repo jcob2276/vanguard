@@ -28,7 +28,7 @@ describe('Tabs', () => {
     render(<Tabs tabs={tabs} active="b" onChange={() => {}} />);
     const buttons = screen.getAllByRole('button');
     const activeBtn = buttons[1];
-    expect(activeBtn.className).toContain('bg-background');
-    expect(activeBtn.className).toContain('text-text-primary');
+    expect(activeBtn.className).toContain('bg-surface-tonal');
+    expect(activeBtn.className).toContain('text-primary');
   });
 });

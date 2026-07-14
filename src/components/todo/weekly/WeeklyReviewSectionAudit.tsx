@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useWeeklyReview } from './context/WeeklyReviewContext';
 import { Folder, Calendar, Check, Trash2 } from 'lucide-react';
@@ -35,17 +36,17 @@ export default function WeeklyReviewSectionAudit() {
           {/* Current Section Indicator Tabs */}
           <div className="flex flex-wrap gap-1">
             {activeSections.map((sec, idx) => (
-              <button
+              <Pressable
                 key={sec.id}
                 onClick={() => setCurrentSectionIdx(idx)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
                   idx === currentSectionIdx
-                    ? 'bg-primary border-transparent text-white'
+                    ? 'bg-primary border-transparent text-on-accent'
                     : 'border-border-custom/60 text-text-muted bg-surface-solid/20'
                 }`}
               >
                 {sec.name}
-              </button>
+              </Pressable>
             ))}
           </div>
 
@@ -62,7 +63,7 @@ export default function WeeklyReviewSectionAudit() {
 
             return (
               <div className="space-y-2.5">
-                <div className="p-3 bg-slate-50 dark:bg-white/[0.01] rounded-xl border border-border-custom/30">
+                <div className="p-3 bg-surface-2 dark:bg-on-accent/[0.01] rounded-xl border border-border-custom/30">
                   <span className="text-xs font-black text-primary uppercase tracking-wider block">
                     Bieżący Projekt:
                   </span>
@@ -97,9 +98,9 @@ export default function WeeklyReviewSectionAudit() {
 
                           <div className="flex items-center gap-1.5 shrink-0">
                             {/* Datepicker */}
-                            <div className="relative flex items-center gap-1 bg-slate-50 dark:bg-white/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-xs font-semibold text-text-secondary">
+                            <div className="relative flex items-center gap-1 bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/50 px-2 py-1 rounded-lg text-xs font-semibold text-text-secondary">
                               <Calendar size={11} className="text-text-muted" />
-                              <input
+                              <ControlInput
                                 type="date"
                                 value={staged.due_date || ''}
                                 onChange={(e) =>
@@ -110,7 +111,7 @@ export default function WeeklyReviewSectionAudit() {
                             </div>
 
                             {/* Complete */}
-                            <button
+                            <Pressable
                               onClick={() =>
                                 stageUpdate(item.id, {
                                   status: 'done',
@@ -120,15 +121,15 @@ export default function WeeklyReviewSectionAudit() {
                               className="p-1 rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/10 transition-colors btn-press"
                             >
                               <Check size={12} />
-                            </button>
+                            </Pressable>
 
                             {/* Drop */}
-                            <button
+                            <Pressable
                               onClick={() => stageUpdate(item.id, { status: 'dropped' })}
                               className="p-1 rounded-lg border border-danger/20 bg-danger/5 text-danger hover:bg-danger/10 transition-colors btn-press"
                             >
                               <Trash2 size={12} />
-                            </button>
+                            </Pressable>
                           </div>
                         </div>
                       );

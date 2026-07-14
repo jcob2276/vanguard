@@ -17,7 +17,7 @@ export {
 export type { ExerciseHistoryRow };
 
 export const numInput =
-  "h-11 w-full bg-surface-solid border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_2px_rgba(79,70,229,0.08)] transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "h-11 w-full bg-surface-solid border border-border-custom rounded-xl text-sm font-black text-text-primary text-center outline-none focus:border-primary/50 focus:bg-surface-solid focus:shadow-[0_0_0_2px_var(--legacy-color-146)] transition-all placeholder:text-text-muted/40 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 export function useStopwatch(startTs: number | null): string | null {
   const [elapsed, setElapsed] = useState(0);

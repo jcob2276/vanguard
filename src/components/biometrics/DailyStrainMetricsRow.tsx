@@ -18,14 +18,14 @@ export default function DailyStrainMetricsRow({
   const metricCols = 2 + (fuelingScore != null ? 1 : 0) + (sleepDebtH != null ? 1 : 0);
 
   return (
-    <div className="grid gap-4 relative z-10" style={{ gridTemplateColumns: `repeat(${metricCols}, 1fr)` }}>
+    <div className="grid gap-4 relative z-[var(--z-raised)]" style={{ gridTemplateColumns: `repeat(${metricCols}, 1fr)` }}>
       <div>
         <p className="text-2xs font-bold uppercase tracking-widest text-text-muted">Strain</p>
         <p className={`text-xl font-black leading-none mt-0.5 ${strainTone}`}>
           {strainScore ?? '--'}<span className="text-2xs text-text-muted font-normal">/21</span>
         </p>
-        <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
-          <div className="h-[2px] rounded-full bg-warning transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
+        <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
+          <div className="h-[var(--legacy-h-021)] rounded-full bg-warning transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
         </div>
       </div>
 
@@ -34,8 +34,8 @@ export default function DailyStrainMetricsRow({
         <p className={`text-xl font-black leading-none mt-0.5 ${recovTone}`}>
           {recoveryScore ?? '--'}<span className="text-2xs text-text-muted font-normal">/100</span>
         </p>
-        <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
-          <div className={`h-[2px] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-success' : recoveryScore >= 55 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
+        <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
+          <div className={`h-[var(--legacy-h-021)] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-success' : recoveryScore >= 55 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
         </div>
       </div>
 
@@ -45,8 +45,8 @@ export default function DailyStrainMetricsRow({
           <p className={`text-xl font-black leading-none mt-0.5 ${fuelingScore >= 70 ? 'text-success' : 'text-warning'}`}>
             {fuelingScore}<span className="text-2xs text-text-muted font-normal">/100</span>
           </p>
-          <div className="mt-1.5 h-[2px] bg-border-custom/40 rounded-full">
-            <div className={`h-[2px] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
+          <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
+            <div className={`h-[var(--legacy-h-021)] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
           </div>
         </div>
       )}

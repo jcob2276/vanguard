@@ -1,3 +1,4 @@
+import { ControlTextarea } from '../../ui/ControlPrimitives';
 type Phase2Recap = {
   narrative_check: string;
   deepening_questions?: string[];
@@ -34,12 +35,12 @@ export default function DirectionPlanDeepening({ phase2, phase2Loading, deepenin
           {deepeningQuestions.map((q, i) => (
             <div key={i} className="space-y-1">
               <p className="text-xs text-text-secondary font-medium">{i + 1}. {q}</p>
-              <textarea
+              <ControlTextarea
                 value={deepeningAnswers[String(i)] ?? ""}
                 onChange={(e) => setDeepeningAnswers({ ...deepeningAnswers, [String(i)]: e.target.value })}
                 placeholder="Twoja odpowiedź…"
                 rows={2}
-                className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[64px] focus:outline-none focus:border-primary/50 transition-colors"
+                className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-038)] focus:outline-none focus:border-primary/50 transition-colors"
               />
             </div>
           ))}

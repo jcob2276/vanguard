@@ -1,7 +1,7 @@
+import Button from '../../ui/Button';
 import { X, Flame } from 'lucide-react';
 import { TodoSlot } from './types';
 import { PRIORITY_COLORS } from './useMorningPlanData';
-import Button from '../../ui/Button';
 
 interface Props {
   powerList: (TodoSlot | null)[];
@@ -45,7 +45,7 @@ export default function MorningPlanStep2PowerList({
             <div>
               <span className="text-xs font-bold text-success block uppercase tracking-wider">Dzienny Cel Żywieniowy</span>
               <span className="text-sm text-text-primary font-bold">
-                {nutritionTarget.target_kcal ? `${nutritionTarget.target_kcal} kcal` : '—'} 
+                {nutritionTarget.target_kcal ? `${nutritionTarget.target_kcal} kcal` : '—'}
                 <span className="text-text-muted font-normal mx-1.5">|</span>
                 {nutritionTarget.protein_floor_g ? `min. ${nutritionTarget.protein_floor_g}g białka` : '—'}
               </span>
@@ -54,7 +54,7 @@ export default function MorningPlanStep2PowerList({
         </div>
       )}
 
-      <div className="space-y-2 bg-slate-50 dark:bg-white/[0.015] border border-border-custom/50 p-3 rounded-2xl">
+      <div className="space-y-2 bg-surface-2 dark:bg-on-accent/[0.015] border border-border-custom/50 p-3 rounded-2xl">
         <span className="text-2xs font-bold text-text-muted uppercase tracking-wider block mb-1">Sloty Power List</span>
         {powerList.map((slot, idx) => (
           <div
@@ -95,7 +95,7 @@ export default function MorningPlanStep2PowerList({
       {/* Selection list */}
       <div className="space-y-2">
         <span className="text-2xs font-bold text-text-muted uppercase tracking-wider block">Dostępne zadania na {dayWord} i Inbox</span>
-        <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+        <div className="space-y-1.5 max-h-[var(--legacy-h-017)] overflow-y-auto pr-1">
           {[...todayTasks, ...inboxTasks].length === 0 ? (
             <p className="text-xs text-text-muted italic py-4 text-center">Brak wolnych zadań</p>
           ) : (
@@ -110,7 +110,7 @@ export default function MorningPlanStep2PowerList({
                   size="sm"
                   className={`w-full text-left !justify-between ${
                     isUsed
-                      ? '!opacity-40 !border-border-custom/20 !bg-surface-solid/10'
+                      ? '!opacity-[var(--opacity-40)] !border-border-custom/20 !bg-surface-solid/10'
                       : activeSlotIdx !== null
                       ? '!border-primary/40 hover:!border-primary hover:!bg-primary/[0.02]'
                       : ''

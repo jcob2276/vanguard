@@ -9,7 +9,7 @@
 
 /* Active navigation item highlight in sidebar */
 .todoist-theme aside .bg-primary\/10 {
-  background-color: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+  background-color: var(--legacy-local-css-105) !important;
   color: var(--primary) !important;
 }
 .todoist-theme aside .text-primary {
@@ -20,7 +20,7 @@
 .todoist-section-divider-line {
   position: relative;
   height: 20px;
-  margin: 8px 0;
+  margin: var(--legacy-local-css-093);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -29,32 +29,32 @@
 .todoist-section-divider-line::before {
   content: "";
   position: absolute;
-  left: 0;
+  left: var(--legacy-local-css-003);
   right: 0;
-  height: 1px;
+  height: var(--legacy-local-css-043);
   background-color: transparent;
-  transition: background-color 0.2s;
+  transition: var(--legacy-css-transition-053);
 }
 .todoist-section-divider-line:hover::before {
-  background-color: color-mix(in srgb, var(--primary) 40%, transparent) !important;
+  background-color: var(--legacy-local-css-107) !important;
 }
 .todoist-section-divider-line::after {
   content: "Dodaj sekcję";
   position: absolute;
   background-color: var(--background);
   padding: 2px 12px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 800;
   color: var(--primary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--legacy-local-css-006);
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: var(--legacy-css-transition-062);
   pointer-events: none;
   white-space: nowrap;
 }
 .todoist-section-divider-line:hover::after {
-  opacity: 1;
+  opacity: var(--legacy-local-css-018);
 }
 
 /* Custom checkbox priority colors */

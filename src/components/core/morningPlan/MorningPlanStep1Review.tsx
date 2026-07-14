@@ -1,7 +1,7 @@
+import Button from '../../ui/Button';
 import { CheckCircle2, Trash2 } from 'lucide-react';
 import { TodoSlot } from './types';
 import { PRIORITY_COLORS } from './useMorningPlanData';
-import Button from '../../ui/Button';
 
 interface Props {
   yesterdayTasks: TodoSlot[];
@@ -26,9 +26,9 @@ export default function MorningPlanStep1Review({ yesterdayTasks, dayWord, onActi
           <span className="text-xs text-text-muted mt-0.5">Brak zaległych zadań.</span>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[var(--legacy-h-025)] overflow-y-auto pr-1">
           {yesterdayTasks.map((task) => (
-            <div key={task.id} className="p-3 bg-slate-50 dark:bg-white/[0.01] border border-border-custom/40 rounded-xl space-y-2.5">
+            <div key={task.id} className="p-3 bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/40 rounded-xl space-y-2.5">
               <div className="flex items-start gap-2">
                 <span className={`text-2xs font-black mt-0.5 ${PRIORITY_COLORS[task.priority] || 'text-text-muted'}`}>
                   {task.priority === 'urgent' ? '!!' : task.priority === 'high' ? '!' : '·'}

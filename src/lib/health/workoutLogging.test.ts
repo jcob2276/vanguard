@@ -128,7 +128,7 @@ describe('workoutLogging', () => {
   describe('saveWorkoutSession manual time across midnight', () => {
     it('correctly shifts end date by 1 day if end time is before start time', async () => {
       const rpcSpy = vi.spyOn(supabase, 'rpc');
-      
+
       await saveWorkoutSession('test-user-1', {
         workoutName: 'Midnight Lift',
         exercises: [{ id: 1, name: 'Squats', tags: [], sets: [{ id: 1, kg: '100', reps: '5', rir: '', msp: false }] }],
@@ -144,7 +144,7 @@ describe('workoutLogging', () => {
 
       expect(rpcSpy).toHaveBeenCalled();
       const rpcArgs = rpcSpy.mock.calls[0][1] as Record<string, unknown>;
-      
+
       const expectedStart = new Date('2026-06-28T23:00:00').toISOString();
       const expectedEnd = new Date('2026-06-29T01:00:00').toISOString();
 

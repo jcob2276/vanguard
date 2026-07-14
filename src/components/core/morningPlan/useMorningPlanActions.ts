@@ -166,7 +166,7 @@ export function useMorningPlanActions({
       }
 
       await deleteDailyWinTasks(currentWinId);
- 
+
       const taskEntries = [];
       for (let idx = 0; idx < powerList.length; idx++) {
         const task = powerList[idx];
@@ -182,7 +182,7 @@ export function useMorningPlanActions({
           });
         }
       }
- 
+
       if (taskEntries.length > 0) {
         await insertDailyWinTasks(taskEntries);
       }

@@ -1,8 +1,8 @@
+import Button from '../ui/Button';
 import { Check, ExternalLink, FolderKanban, Trash2 } from 'lucide-react';
 import type { GrowthLinkRow, GrowthProjectSummary, GrowthTodoRow } from './hooks/useGrowthData';
 import type { GrowthPinSlot, LearningSkill, LearningWeekPin } from '../../lib/growth/growth';
 import { RESOURCE_TYPE_META } from '../../lib/growth/growth';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import { pinResourceType, pinTitle } from './PinPickerModal';
 
@@ -47,9 +47,9 @@ export default function SlotPinCard({
     focusTargetLevel != null;
 
   const borderColor = pin.done
-    ? 'rgba(16, 185, 129, 0.25)'
+    ? 'var(--legacy-color-098)'
     : slot === 'must'
-      ? 'rgba(244, 63, 94, 0.2)'
+      ? 'var(--legacy-color-113)'
       : undefined;
 
   return (
@@ -57,7 +57,7 @@ export default function SlotPinCard({
       variant="outline"
       padding="0.75rem"
       className={`transition-all h-full ${
-        pin.done ? 'bg-success/[0.04] opacity-75' : 'bg-surface/40'
+        pin.done ? 'bg-success/[0.04] opacity-[var(--opacity-75)]' : 'bg-surface/40'
       }`}
       style={borderColor ? { borderColor } : undefined}
     >

@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, CheckSquare, ListTodo, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Spinner from '../ui/Spinner';
 import Fab from '../ui/Fab';
 import EditNoteModal from './EditNoteModal';
@@ -9,6 +9,7 @@ import { useUserId } from '../../store/useStore';
 import { useNotesData } from './hooks/useNotesData';
 import { useKeepView } from './hooks/useKeepView';
 import './notes.css';
+import WorkspaceNavigation from '../shared/WorkspaceNavigation';
 
 export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; onNavigateTo?: (dest: string) => void }) {
   const userId = useUserId();
@@ -45,16 +46,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
 
   return (
     <div className="keep-root">
-      <KeepHeader
-        onBack={goBack}
-        search={search}
-        setSearch={setSearch}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-      />
-
-      <div className="keep-body">
-        <KeepSidebar
+      <KeepSidebar
           notes={notes}
           allTags={allTags}
           sidebarTab={sidebarTab}
@@ -65,8 +57,17 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
           goTo={goTo}
           onPromptCreateTag={handlePromptCreateTag}
           onConfirmDeleteTag={handleConfirmDeleteTag}
+      />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <KeepHeader
+          onBack={goBack}
+          search={search}
+          setSearch={setSearch}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          sidebarTab={sidebarTab}
+          onTabChange={(key) => { setSidebarTab(key); setActiveTag(() => null); }}
         />
-
         <KeepNotesList
           error={error}
           onClearError={() => setError(null)}
@@ -94,7 +95,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
         disabled={busy}
         title="Nowa notatka"
       >
-        {busy ? <Spinner size="sm" className="h-5 w-5 !border-white/30 !border-t-white" /> : <Plus size={24} strokeWidth={2} />}
+        {busy ? <Spinner size="sm" className="h-5 w-5 !border-on-accent/30 !border-t-white" /> : <Plus size={24} strokeWidth={2} />}
       </Fab>
 
       {/* Page-level Edit Modal */}
@@ -119,24 +120,12 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
       )}
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 flex border-t border-border-custom bg-background/95 backdrop-blur-xl">
-        <button className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-primary">
-          <CheckSquare size={22} />
-          <span className="text-xs font-semibold">Notatki</span>
-        </button>
-        <button onClick={() => goTo('todo')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
-          <ListTodo size={22} />
-          <span className="text-xs font-semibold">Zadania</span>
-        </button>
-        <button onClick={() => goTo('kalendarz')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
-          <Calendar size={22} />
-          <span className="text-xs font-semibold">Kalendarz</span>
-        </button>
-        <button onClick={() => goTo('links')} className="flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-text-muted active:bg-surface">
-          <BookOpen size={22} />
-          <span className="text-xs font-semibold">Pocket</span>
-        </button>
-      </nav>
+      <WorkspaceNavigation
+        active="keep"
+        orientation="horizontal"
+        onNavigate={goTo}
+        className="md:hidden fixed bottom-0 inset-x-0 z-[var(--z-overlay)] border-t border-border-custom bg-background/95 backdrop-blur-[var(--blur-xl)]"
+      />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Tag } from 'lucide-react';
 import { COLORS, getColor } from './keepUtils';
@@ -74,16 +75,16 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
           onClick={() => setIsExpanded(true)}
         >
           <span>Utwórz notatkę…</span>
-          <button
+          <Pressable
             type="button"
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           >
             <Plus size={16} />
-          </button>
+          </Pressable>
         </div>
       ) : (
         <div className="note-quick-capture-expanded">
-          <input
+          <ControlInput
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Tytuł"
@@ -91,20 +92,20 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
             style={{ color: c.text }}
             autoFocus
           />
-          
+
           <div className="note-quick-editor-wrapper">
             <RichEditor
               value={content}
               onChange={setContent}
               placeholder="Utwórz notatkę…"
-              className="min-h-[60px]"
+              className="min-h-[var(--legacy-h-036)]"
               style={{ color: c.textSub }}
             />
           </div>
 
           <div className="flex items-center gap-2 mb-3">
-            <Tag size={10} style={{ opacity: 0.4 }} />
-            <input
+            <Tag size={10} style={{ opacity: 'var(--legacy-inline-style-064)' }} />
+            <ControlInput
               value={tagsText}
               onChange={e => setTagsText(e.target.value)}
               placeholder="Tagi rozdzielone przecinkami…"
@@ -120,7 +121,7 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
                   const currentTags = tagsText.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
                   const isActive = currentTags.includes(tag.toLowerCase());
                   return (
-                    <button
+                    <Pressable
                       key={tag}
                       type="button"
                       onClick={() => {
@@ -137,7 +138,7 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
                       className={`tag-suggestion-pill ${isActive ? 'active' : ''}`}
                     >
                       {tag}
-                    </button>
+                    </Pressable>
                   );
                 })}
               </div>
@@ -147,7 +148,7 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
           <div className="note-quick-footer" style={{ borderColor: c.border }}>
             <div className="note-quick-actions">
               {COLORS.map(col => (
-                <button
+                <Pressable
                   key={col.id}
                   type="button"
                   onClick={() => setColor(col.id)}
@@ -159,21 +160,21 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
             </div>
 
             <div className="flex items-center gap-2">
-              <button
+              <Pressable
                 type="button"
                 onClick={handleClose}
                 className="note-quick-close-btn"
               >
                 Anuluj
-              </button>
-              <button
+              </Pressable>
+              <Pressable
                 type="button"
                 onClick={handleSave}
                 disabled={busy}
                 className="note-quick-save-btn"
               >
                 Dodaj
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>

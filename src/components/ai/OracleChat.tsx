@@ -1,5 +1,5 @@
-import type { RefObject } from 'react';
 import Button from '../ui/Button';
+import type { RefObject } from 'react';
 import {
   ChatItem,
   TimeDivider,

@@ -1,6 +1,6 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { useState } from 'react';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
-import Button from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { TrendArrow } from './TrendArrow';
 import { computeBmi, effectiveWaistForNavy, navyBodyFatPct } from '../../../lib/health/bodyMetrics';
@@ -56,7 +56,7 @@ function Field({
       <label className="text-xs font-bold uppercase tracking-wider text-text-muted font-display block">
         {label}
       </label>
-      <input
+      <ControlInput
         type="number" step="0.1" value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? '--'}
@@ -97,7 +97,7 @@ export function BodyMetricsSection({
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
         <div>
-          <p className="text-2xs font-bold uppercase tracking-[0.15em] text-text-muted font-display">
+          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">
             Pomiary ciała
           </p>
           <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">
@@ -115,7 +115,7 @@ export function BodyMetricsSection({
               Waga (kg)
               <TrendArrow current={trends.weight?.cur} previous={trends.weight?.prev} better="down" />
             </label>
-            <input
+            <ControlInput
               type="number" step="0.1" value={newMetric.weight}
               onChange={(e) => setNewMetric({ ...newMetric, weight: e.target.value })}
               className="w-full rounded-xl border border-border-custom bg-surface p-3.5 text-lg font-black text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus"
@@ -127,7 +127,7 @@ export function BodyMetricsSection({
               Talia (cm)
               <TrendArrow current={trends.waist?.cur} previous={trends.waist?.prev} better="down" />
             </label>
-            <input
+            <ControlInput
               type="number" step="0.1" value={newMetric.waist}
               onChange={(e) => setNewMetric({ ...newMetric, waist: e.target.value })}
               className="w-full rounded-xl border border-border-custom bg-surface p-3.5 text-lg font-black text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus"
@@ -137,14 +137,14 @@ export function BodyMetricsSection({
         </div>
 
         {/* Expand toggle */}
-        <button
+        <Pressable
           type="button"
           onClick={() => setExpanded(v => !v)}
           className="flex w-full items-center justify-between rounded-xl border border-border-custom bg-surface-solid/60 px-3.5 py-2.5 text-xs font-bold text-text-muted transition-all hover:text-text-primary hover:bg-surface-solid"
         >
           <span>Szczegółowe pomiary · BMI · BF% · WHR</span>
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
+        </Pressable>
 
         {/* Expandable panel */}
         {expanded && (
@@ -194,13 +194,13 @@ export function BodyMetricsSection({
           </Card>
         )}
 
-        <Button
+        <Pressable
           variant="primary"
           onClick={saveMetrics}
           className="w-full"
         >
           Zapisz pomiary
-        </Button>
+        </Pressable>
       </div>
     </section>
   );

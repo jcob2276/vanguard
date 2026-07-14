@@ -1,8 +1,8 @@
+import Button from '../ui/Button';
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HelpCircle, X } from 'lucide-react';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import { fetchActionCenterCount, fetchPendingClarificationRequests } from '../../lib/actionCenterApi';
 import { useUserId } from '../../store/useStore';
 import { actionCenterKeys } from '../../lib/queryKeys';
@@ -89,7 +89,7 @@ export function ActionCenterSheet({
       overflowY={true}
       size="lg"
       overlayClassName="p-0 items-end justify-center sm:p-4"
-      className="bg-surface-solid border border-border-custom rounded-t-[24px] sm:rounded-b-[24px] max-h-[80vh]"
+      className="bg-surface-solid border border-border-custom rounded-t-[var(--legacy-arbitrary-051)] sm:rounded-b-[var(--legacy-arbitrary-054)] max-h-[var(--legacy-h-045)]"
     >
       <div className="flex items-center justify-between mb-4">
         <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-text-muted">

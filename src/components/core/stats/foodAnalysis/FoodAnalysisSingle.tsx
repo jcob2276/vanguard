@@ -9,7 +9,7 @@ export default function FoodAnalysisSingle({ res }: FoodAnalysisSingleProps) {
   return (
     <div className="space-y-3">
       {res.fasting && (
-        <Card className="space-y-1.5 border border-info/15" style={{ background: 'rgba(59, 130, 246, 0.03)' }}>
+        <Card className="space-y-1.5 border border-info/15" style={{ background: 'var(--legacy-color-145)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">🔵</span>
             <span className="text-xs font-bold uppercase text-info dark:text-info">

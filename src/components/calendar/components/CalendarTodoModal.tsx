@@ -1,3 +1,5 @@
+import Button from '../../ui/Button';
+import { ControlInput, ControlTextarea } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { Check, Trash2 } from 'lucide-react';
@@ -5,7 +7,6 @@ import { combineDateTimeWarsawISO } from '../../../lib/date';
 import { updateTodoItem } from '../../../lib/todo/todo';
 import { addDays } from '../calendarHelpers';
 import Modal from '../../ui/Modal';
-import Button from '../../ui/Button';
 import { Card } from '../../ui/Card';
 
 export default function CalendarTodoModal() {
@@ -22,7 +23,7 @@ export default function CalendarTodoModal() {
 
   return (
     <Modal isOpen={!!editingTodo} onClose={closeEditTodoModal} title="Edytuj zadanie" size="sm">
-      <input
+      <ControlInput
         autoFocus
         value={editingTodoTitle}
         onChange={(e) => setEditingTodoTitle(e.target.value)}
@@ -34,7 +35,7 @@ export default function CalendarTodoModal() {
       <div className="space-y-2">
         <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Data i Czas</label>
         <div className="grid grid-cols-2 gap-2">
-          <input
+          <ControlInput
             type="date"
             value={editingTodo.due_date || ''}
             onChange={async (e) => {
@@ -48,7 +49,7 @@ export default function CalendarTodoModal() {
             }}
             className="bg-surface-solid border border-border-custom/60 rounded-xl px-2 py-2.5 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
           />
-          <input
+          <ControlInput
             type="time"
             value={editingTodo.scheduled_time ? editingTodo.scheduled_time.slice(11, 16) : ''}
             onChange={async (e) => {
@@ -82,11 +83,11 @@ export default function CalendarTodoModal() {
       {!completedTodoIds.has(editingTodo.id) && (
         <Card variant="glass" padding="0.875rem" className="space-y-2.5">
           <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
-          <textarea
+          <ControlTextarea
             placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
             value={editingTodo.notes || ''}
             onChange={(e) => setEditingTodo({ ...editingTodo, notes: e.target.value })}
-            className="w-full min-h-[60px] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-xs font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
+            className="w-full min-h-[var(--legacy-h-036)] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-xs font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
           />
           <Button
             variant="tonal"

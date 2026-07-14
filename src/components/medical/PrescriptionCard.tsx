@@ -12,7 +12,7 @@ export default function PrescriptionCard({ title, prescription }: PrescriptionCa
   if (!prescription) {
     return (
       <Card variant="glass" className="border-border-custom bg-surface/40 flex flex-col items-center justify-center text-center" padding="1.5rem">
-        <Glasses className="text-text-muted opacity-30 mb-2" size={32} />
+        <Glasses className="text-text-muted opacity-[var(--opacity-30)] mb-2" size={32} />
         <h4 className="text-sm font-semibold text-text-muted">{title}</h4>
         <p className="text-xs text-text-muted mt-1">Brak aktywnych szkieł w bazie</p>
       </Card>
@@ -23,8 +23,8 @@ export default function PrescriptionCard({ title, prescription }: PrescriptionCa
 
   return (
     <Card variant="glass" className={`border ${isNormalized ? 'bg-info/5 border-info/20' : 'bg-success/5 border-success/20'}`} padding="1.25rem">
-      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-20 pointer-events-none ${isNormalized ? 'bg-info' : 'bg-success'}`} />
-      
+      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-[var(--blur-3xl)] opacity-[var(--opacity-20)] pointer-events-none ${isNormalized ? 'bg-info' : 'bg-success'}`} />
+
       <div className="flex items-start justify-between mb-4">
         <div>
           <span className={`text-xs font-black uppercase tracking-wider px-2 py-1 rounded-full ${isNormalized ? 'bg-info/20 text-info' : 'bg-success/20 text-success'}`}>

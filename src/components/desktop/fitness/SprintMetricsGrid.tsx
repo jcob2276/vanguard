@@ -58,7 +58,7 @@ export default function SprintMetricsGrid({
   return (
     <div className="grid grid-cols-3 gap-6 pt-5 border-t border-primary/10">
       <div>
-        <p className="text-2xs font-black uppercase tracking-[0.25em] text-success mb-3">Ciało · sprint</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-success mb-3">Ciało · sprint</p>
         <div className="grid grid-cols-2 gap-x-5 gap-y-3">
           {BODY.map(({ label, curr, prev, fmt, dec }) => {
             const d = curr != null && prev != null ? delta(curr, prev, dec ?? 0) : null;
@@ -80,7 +80,7 @@ export default function SprintMetricsGrid({
       </div>
 
       <div>
-        <p className="text-2xs font-black uppercase tracking-[0.25em] text-warning mb-3">Projekty · sprint</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-warning mb-3">Projekty · sprint</p>
         <div className="grid grid-cols-2 gap-x-5 gap-y-3">
           {PROJECTS.map(({ label, val, color }) => (
             <div key={label}>
@@ -92,16 +92,16 @@ export default function SprintMetricsGrid({
       </div>
 
       <div>
-        <p className="text-2xs font-black uppercase tracking-[0.25em] text-primary mb-3">Cele kierunkowe</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-primary mb-3">Cele kierunkowe</p>
         <div className="space-y-2">
           {goals?.goal_konto && (
-            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-warning/[0.06] !border-warning/15 hover:scale-[1.03] hover:shadow-md hover:!border-warning/30 cursor-default">
+            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[var(--radius-sm)] !bg-warning/[0.06] !border-warning/15 hover:scale-[var(--legacy-arbitrary-040)] hover:shadow-md hover:!border-warning/30 cursor-default">
               <p className="text-3xs font-black uppercase tracking-wider text-warning mb-1">Konto</p>
               <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">{goals.goal_konto}</p>
             </Card>
           )}
           {goals?.goal_duch && (
-            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[10px] !bg-primary/[0.06] !border-primary/15 hover:scale-[1.03] hover:shadow-md hover:!border-primary/30 cursor-default">
+            <Card variant="outline" padding="0.625rem 0.75rem" className="!rounded-[var(--radius-sm)] !bg-primary/[0.06] !border-primary/15 hover:scale-[var(--legacy-arbitrary-040)] hover:shadow-md hover:!border-primary/30 cursor-default">
               <p className="text-3xs font-black uppercase tracking-wider text-primary mb-1">Duch</p>
               <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">{goals.goal_duch}</p>
             </Card>

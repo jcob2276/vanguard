@@ -1,5 +1,5 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { Plus, FolderKanban, ChevronDown, ChevronRight } from 'lucide-react';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import DataStateNotice from '../core/DataStateNotice';
 import LifeGoalsCard from './LifeGoalsCard';
@@ -61,22 +61,22 @@ function ProjectsInner({
         </div>
         <div className="flex items-center gap-2">
           {onNavigateTo && !(reviewOverdueDays !== undefined && reviewOverdueDays !== null && reviewOverdueDays >= 7) && (
-            <Button
+            <Pressable
               variant="outline"
               size="sm"
               onClick={() => onNavigateTo('tydzien')}
             >
               Podsumowanie
-            </Button>
+            </Pressable>
           )}
-          <Button
+          <Pressable
             variant="primary"
             size="sm"
             onClick={() => setGoalCreateOpen(true)}
             icon={<Plus size={14} />}
           >
             Nowy cel
-          </Button>
+          </Pressable>
         </div>
       </div>
 
@@ -113,11 +113,11 @@ function ProjectsInner({
       )}
 
       {pausedFiltered.length > 0 && (
-        <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
-          <button onClick={() => setPausedOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
+        <div className="rounded-[var(--radius-lg)] border border-border-custom/60 overflow-hidden">
+          <Pressable onClick={() => setPausedOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
             {pausedOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
             <span className="text-sm font-semibold text-text-secondary">Pauza ({pausedFiltered.length})</span>
-          </button>
+          </Pressable>
           {pausedOpen && (
             <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
               {pausedFiltered.map(p => <ProjectCardWrapper key={p.id} project={p} />)}
@@ -127,11 +127,11 @@ function ProjectsInner({
       )}
 
       {doneFiltered.length > 0 && (
-        <div className="rounded-[18px] border border-border-custom/60 overflow-hidden">
-          <button onClick={() => setDoneOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
+        <div className="rounded-[var(--radius-lg)] border border-border-custom/60 overflow-hidden">
+          <Pressable onClick={() => setDoneOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface-solid/50 transition-colors">
             {doneOpen ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
             <span className="text-sm font-semibold text-text-secondary">Zakończone ({doneFiltered.length})</span>
-          </button>
+          </Pressable>
           {doneOpen && (
             <div className="px-3 pb-3 space-y-3 border-t border-border-custom/30 pt-3">
               {doneFiltered.map(p => <ProjectCardWrapper key={p.id} project={p} />)}

@@ -1,3 +1,5 @@
+import Button from '../ui/Button';
+import { ControlInput, ControlTextarea } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { ChevronLeft, Flame, Save } from 'lucide-react';
 import { useHaptics } from '../../hooks/useHaptics';
@@ -6,7 +8,6 @@ import { saveSaunaSession } from '../../lib/health/workoutSauna';
 import { numInput } from './workout/workoutUtils';
 import { useUserId } from '../../store/useStore';
 import SaunaRpePicker from './SaunaRpePicker';
-import Button from '../ui/Button';
 
 export default function SaunaLoggerModal({
   onBack,
@@ -63,8 +64,8 @@ export default function SaunaLoggerModal({
   }
 
   return (
-    <div className="flex-1 bg-background flex flex-col min-h-screen pb-32 transition-colors duration-300">
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border-custom p-4 flex items-center gap-3">
+    <div className="flex-1 bg-background flex flex-col min-h-screen pb-32 transition-colors duration-[var(--motion-slow)]">
+      <header className="sticky top-0 z-[var(--z-sticky)] bg-background/80 backdrop-blur-[var(--blur-md)] border-b border-border-custom p-4 flex items-center gap-3">
         <Button
           variant="ghost"
           onClick={onBack}
@@ -73,7 +74,7 @@ export default function SaunaLoggerModal({
         />
         <div className="flex items-center gap-2 flex-1">
           <Flame size={16} className="text-warning" />
-          <h1 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary font-display">Sauna</h1>
+          <h1 className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-primary font-display">Sauna</h1>
         </div>
       </header>
 
@@ -85,7 +86,7 @@ export default function SaunaLoggerModal({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Minuty</label>
-            <input
+            <ControlInput
               type="number"
               min={1}
               step={1}
@@ -100,7 +101,7 @@ export default function SaunaLoggerModal({
           </div>
           <div className="space-y-2">
             <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Temperatura °C</label>
-            <input
+            <ControlInput
               type="number"
               min={1}
               step={1}
@@ -118,25 +119,25 @@ export default function SaunaLoggerModal({
 
         <div className="space-y-2">
           <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Notatka</label>
-          <textarea
+          <ControlTextarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="np. po treningu nóg, sucha sauna, zimny prysznic po"
-            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[90px] outline-none focus:border-primary/50 resize-none placeholder:text-text-muted/40"
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[var(--legacy-h-047)] outline-none focus:border-primary/50 resize-none placeholder:text-text-muted/40"
           />
         </div>
 
         <SaunaRpePicker sessionRpe={sessionRpe} setSessionRpe={setSessionRpe} />
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border-custom bg-background/90 backdrop-blur-md p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div className="fixed bottom-0 left-0 right-0 z-[var(--z-modal)] border-t border-border-custom bg-background/90 backdrop-blur-[var(--blur-md)] p-4 pb-[var(--legacy-arbitrary-007)]">
         <div className="mx-auto max-w-md">
           <Button
             variant="ghost"
             onClick={() => void save()}
             disabled={saving}
             icon={<Save size={14} />}
-            className="w-full min-w-0 rounded-2xl bg-warning py-3.5 text-xs font-black uppercase tracking-wider text-white hover:bg-warning-hover hover:text-white disabled:opacity-50"
+            className="w-full min-w-0 rounded-2xl bg-warning py-3.5 text-xs font-black uppercase tracking-wider text-on-accent hover:bg-warning-hover hover:text-on-accent disabled:opacity-[var(--opacity-50)]"
           >
             {saving ? 'Zapisywanie…' : 'Zapisz saunę'}
           </Button>

@@ -1,3 +1,4 @@
+import { ControlInput } from '../ui/ControlPrimitives';
 import { useMemo } from 'react';
 import type { LearningSkill } from '../../lib/growth/growth';
 import { SCORE_LABELS, SCORE_RUBRICS } from '../../lib/growth/growth';
@@ -64,7 +65,7 @@ export default function SkillRadarPanel({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[var(--legacy-arbitrary-045)] gap-6 items-start">
       <div className="flex justify-center overflow-visible">
         <svg width={CHART_SIZE} height={CHART_SIZE} className="overflow-visible">
           {[1, 2, 3, 4, 5].map((k) => {
@@ -100,21 +101,21 @@ export default function SkillRadarPanel({
           {showPrev && prevPolygon && (
             <polygon
               points={prevPolygon}
-              fill="rgba(148, 163, 184, 0.12)"
-              stroke="rgba(148, 163, 184, 0.5)"
+              fill="var(--legacy-color-074)"
+              stroke="var(--legacy-color-076)"
               strokeWidth="1.5"
               strokeDasharray="4,3"
             />
           )}
           <polygon
             points={polygon}
-            fill="rgba(79, 70, 229, 0.18)"
-            stroke="rgba(79, 70, 229, 0.85)"
+            fill="var(--primary-18)"
+            stroke="var(--primary-80)"
             strokeWidth="2"
           />
           {skills.map((s, i) => {
             const p = polar(i, n, display[s.key] ?? 0);
-            return <circle key={s.id} cx={p.x} cy={p.y} r="4" fill="rgb(79, 70, 229)" />;
+            return <circle key={s.id} cx={p.x} cy={p.y} r="4" fill="var(--primary)" />;
           })}
           {skills.map((s, i) => {
             const p = polar(i, n, 5.8);
@@ -137,7 +138,7 @@ export default function SkillRadarPanel({
         </svg>
       </div>
 
-      <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[var(--legacy-h-023)] overflow-y-auto pr-1">
         {skills.map((s) => {
           const val = display[s.key] ?? 0;
           const prev = prevScores?.[s.key];
@@ -156,7 +157,7 @@ export default function SkillRadarPanel({
                 </span>
               </div>
               {editing ? (
-                <input
+                <ControlInput
                   type="range"
                   min={0}
                   max={5}

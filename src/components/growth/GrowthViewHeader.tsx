@@ -1,7 +1,7 @@
+import Button from '../ui/Button';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatWeekRange, isCurrentWeek } from '../../lib/growth/growth';
-import Button from '../ui/Button';
 
 interface GrowthViewHeaderProps {
   weekStart: string;
@@ -12,8 +12,8 @@ interface GrowthViewHeaderProps {
 
 export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onEditScores }: GrowthViewHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border-custom bg-background/95 backdrop-blur-md">
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
+    <header className="sticky top-0 z-[var(--z-sticky)] w-full border-b border-border-custom bg-background/95 backdrop-blur-[var(--blur-md)]">
+      <div className="w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
         <Link
           to="/"
           className="rounded-xl border border-border-custom p-2.5 text-text-muted hover:text-text-primary shrink-0"
@@ -36,7 +36,7 @@ export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onE
                 onClick={() => onShiftWeek(1)}
                 disabled={isCurrentWeek(weekStart)}
                 icon={<ChevronRight size={15} />}
-                className="p-1 min-w-0 text-text-muted hover:text-primary disabled:opacity-30 hover:bg-transparent"
+                className="p-1 min-w-0 text-text-muted hover:text-primary disabled:opacity-[var(--opacity-30)] hover:bg-transparent"
               />
             </div>
           </div>

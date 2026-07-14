@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import React, { useEffect, useRef } from 'react';
 import { Pencil, Calendar, Sun, CalendarDays, MoreHorizontal, Flag, FolderInput, Copy, Trash2, ChevronRight } from 'lucide-react';
 import { shiftDateStr } from '../../lib/date';
@@ -73,11 +74,11 @@ export default function ContextMenu({
   return (
     <div
       ref={ref}
-      style={{ position: 'fixed', left, top, zIndex: 10000, minWidth: 230 }}
-      className="max-h-[420px] w-60 overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 p-1.5 shadow-2xl backdrop-blur-xl flex flex-col gap-0.5 text-sm text-text-secondary select-none"
+      style={{ position: 'fixed', left, top, zIndex: 'var(--legacy-inline-style-101)', minWidth: 'var(--legacy-inline-style-061)' }}
+      className="max-h-[var(--legacy-h-028)] w-60 overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 p-1.5 shadow-2xl backdrop-blur-[var(--blur-xl)] flex flex-col gap-0.5 text-sm text-text-secondary select-none"
     >
       {/* 1. Edytuj */}
-      <button
+      <Pressable
         onClick={() => {
           onEditStart();
           onClose();
@@ -89,7 +90,7 @@ export default function ContextMenu({
           <span>Edytuj</span>
         </div>
         <span className="text-2xs text-text-muted/40 font-mono tracking-wider">Ctrl E</span>
-      </button>
+      </Pressable>
 
       <div className="mx-2 my-0.5 border-t border-border-custom/40" />
 
@@ -100,19 +101,19 @@ export default function ContextMenu({
           <span className="font-mono">T</span>
         </div>
         <div className="flex gap-1">
-          {/* Dziś */}
-          <button
+          {/* DziĹ› */}
+          <Pressable
             onClick={() => {
               onSetDueDate(today);
               onClose();
             }}
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
-            title="Dziś"
+            title="DziĹ›"
           >
             <Calendar size={14} className="text-success" />
-          </button>
+          </Pressable>
           {/* Jutro */}
-          <button
+          <Pressable
             onClick={() => {
               onSetDueDate(getTomorrowDate());
               onClose();
@@ -121,20 +122,20 @@ export default function ContextMenu({
             title="Jutro"
           >
             <Sun size={14} className="text-warning" />
-          </button>
-          {/* Następny weekend */}
-          <button
+          </Pressable>
+          {/* NastÄ™pny weekend */}
+          <Pressable
             onClick={() => {
               onSetDueDate(getNextWeekend());
               onClose();
             }}
             className="flex-1 h-8 rounded-lg border border-border-custom/80 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] hover:border-text-primary/10 transition-all cursor-pointer"
-            title="Następny weekend"
+            title="NastÄ™pny weekend"
           >
             <CalendarDays size={14} className="text-info" />
-          </button>
-          {/* Wyczyść termin */}
-          <button
+          </Pressable>
+          {/* WyczyĹ›Ä‡ termin */}
+          <Pressable
             onClick={() => {
               onSetDueDate(null);
               onClose();
@@ -143,7 +144,7 @@ export default function ContextMenu({
             title="Brak terminu"
           >
             <MoreHorizontal size={14} className="text-text-muted/60" />
-          </button>
+          </Pressable>
         </div>
       </div>
 
@@ -161,7 +162,7 @@ export default function ContextMenu({
             const flagColor = p === 'urgent' ? 'text-danger' : p === 'high' ? 'text-warning' : p === 'normal' ? 'text-info' : 'text-text-muted/40';
             const borderActive = active ? 'border-primary bg-primary/5' : 'border-border-custom/80';
             return (
-              <button
+              <Pressable
                 key={p}
                 onClick={() => {
                   onSetPriority(p);
@@ -171,7 +172,7 @@ export default function ContextMenu({
                 title={p === 'urgent' ? 'P1' : p === 'high' ? 'P2' : p === 'normal' ? 'P3' : 'P4'}
               >
                 <Flag size={14} className={flagColor} />
-              </button>
+              </Pressable>
             );
           })}
         </div>
@@ -179,32 +180,32 @@ export default function ContextMenu({
 
       <div className="mx-2 my-0.5 border-t border-border-custom/40" />
 
-      {/* 4. Przenieś do, Duplikuj */}
+      {/* 4. PrzenieĹ› do, Duplikuj */}
       <div className="relative group/submenu">
-        <button className="flex w-full items-center justify-between px-3 py-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] transition-colors cursor-pointer font-semibold">
+        <Pressable className="flex w-full items-center justify-between px-3 py-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] transition-colors cursor-pointer font-semibold">
           <div className="flex items-center gap-2.5">
             <FolderInput size={14} className="text-text-muted/60" />
-            <span>Przenieś do...</span>
+            <span>PrzenieĹ› do...</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-2xs text-text-muted/40 font-mono tracking-wider">V</span>
             <ChevronRight size={11} className="text-text-muted/45" />
           </div>
-        </button>
+        </Pressable>
 
         {/* Submenu for sections picker */}
-        <div className="absolute left-full top-0 ml-1 hidden group-hover/submenu:flex flex-col bg-surface border border-border-custom rounded-2xl p-1 shadow-2xl min-w-[160px] max-h-[200px] overflow-y-auto">
-          <button
+        <div className="absolute left-full top-0 ml-1 hidden group-hover/submenu:flex flex-col bg-surface border border-border-custom rounded-2xl p-1 shadow-2xl min-w-[var(--legacy-w-078)] max-h-[var(--legacy-h-016)] overflow-y-auto">
+          <Pressable
             onClick={() => {
               onMoveSection(null);
               onClose();
             }}
             className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
           >
-            <span>📥 Skrzynka</span>
-          </button>
+            <span>đź“Ą Skrzynka</span>
+          </Pressable>
           {sections.map((s) => (
-            <button
+            <Pressable
               key={s.id}
               onClick={() => {
                 onMoveSection(s.id);
@@ -212,13 +213,13 @@ export default function ContextMenu({
               }}
               className="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-text-primary/[0.04] text-text-secondary hover:text-text-primary cursor-pointer"
             >
-              <span>📂 {s.name}</span>
-            </button>
+              <span>đź“‚ {s.name}</span>
+            </Pressable>
           ))}
         </div>
       </div>
 
-      <button
+      <Pressable
         onClick={() => {
           onDuplicate();
           onClose();
@@ -229,12 +230,12 @@ export default function ContextMenu({
           <Copy size={14} className="text-text-muted/60" />
           <span>Duplikuj zadanie</span>
         </div>
-      </button>
+      </Pressable>
 
       <div className="mx-2 my-0.5 border-t border-border-custom/40" />
 
-      {/* 5. Usuń */}
-      <button
+      {/* 5. UsuĹ„ */}
+      <Pressable
         onClick={() => {
           onDelete();
           onClose();
@@ -243,10 +244,10 @@ export default function ContextMenu({
       >
         <div className="flex items-center gap-2.5">
           <Trash2 size={14} className="text-danger" />
-          <span>Usuń</span>
+          <span>UsuĹ„</span>
         </div>
-        <span className="text-2xs text-danger/40 font-mono tracking-wider">↑ Usuń</span>
-      </button>
+        <span className="text-2xs text-danger/40 font-mono tracking-wider">â†‘ UsuĹ„</span>
+      </Pressable>
     </div>
   );
 }

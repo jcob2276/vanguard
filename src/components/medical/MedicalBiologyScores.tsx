@@ -8,7 +8,7 @@ function ScoreCard({ score }: { score: BiologyScoreResult }) {
     <Card
       variant="glass"
       className={`border-border-custom flex flex-col gap-2 ${
-        noData ? 'bg-surface/15 opacity-90' : 'bg-surface/30'
+        noData ? 'bg-surface/15 opacity-[var(--opacity-90)]' : 'bg-surface/30'
       }`}
       padding="1rem"
     >

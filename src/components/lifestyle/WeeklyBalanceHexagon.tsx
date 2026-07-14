@@ -1,4 +1,4 @@
-import Button from '../ui/Button';
+import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { Card } from '../ui/Card';
 import { notify } from '../../lib/notify';
 import { useCallback, useMemo, useState } from 'react';
@@ -144,36 +144,36 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
   };
 
   return (
-    <Card padding="1rem" className="space-y-4" style={{ background: 'rgba(17, 24, 39, 0.2)' }}>
+    <Card padding="1rem" className="space-y-4" style={{ background: 'var(--legacy-color-102)' }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-wider text-text-primary">Architektura Tygodnia</p>
           <p className="text-xs text-text-muted">Budżet (kontur) vs realny czas (wypełnienie) per sfera</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <button
+          <Pressable
             type="button"
             onClick={() => setWeekStart((w) => shiftWeekStart(w, -1))}
             className="p-1.5 rounded-lg border border-border-custom/50 text-text-muted hover:text-text-primary transition-colors btn-press"
           >
             <ChevronLeft size={14} />
-          </button>
-          <span className="text-xs font-bold text-text-secondary min-w-[80px] text-center">
+          </Pressable>
+          <span className="text-xs font-bold text-text-secondary min-w-[var(--legacy-w-094)] text-center">
             {formatWeekRange(weekStart)}{isCurrentWeek(weekStart) ? ' • dziś' : ''}
           </span>
-          <button
+          <Pressable
             type="button"
             onClick={() => setWeekStart((w) => shiftWeekStart(w, 1))}
             className="p-1.5 rounded-lg border border-border-custom/50 text-text-muted hover:text-text-primary transition-colors btn-press"
           >
             <ChevronRight size={14} />
-          </button>
+          </Pressable>
         </div>
       </div>
 
       <div className="flex justify-center">
         {loading ? (
-          <div className="h-[280px] w-[280px] animate-pulse rounded-full bg-surface border border-border-custom" />
+          <div className="h-[var(--legacy-h-020)] w-[var(--legacy-w-083)] animate-pulse rounded-full bg-surface border border-border-custom" />
         ) : (
           <svg width={SIZE} height={SIZE} className="overflow-visible">
             {[0.25, 0.5, 0.75, 1].map((k) => (
@@ -192,8 +192,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
               return <line key={i} x1={CENTER} y1={CENTER} x2={p.x} y2={p.y} stroke="currentColor" className="text-border-custom" strokeWidth={1} />;
             })}
 
-            <polygon points={budgetPoints} fill="none" stroke="rgba(99, 102, 241, 0.9)" strokeWidth={2} strokeDasharray="4,3" />
-            <polygon points={actualPoints} fill="rgba(99, 102, 241, 0.18)" stroke="rgba(99, 102, 241, 0.7)" strokeWidth={2} />
+            <polygon points={budgetPoints} fill="none" stroke="var(--primary)" strokeWidth={2} strokeDasharray="4,3" />
+            <polygon points={actualPoints} fill="var(--primary-18)" stroke="var(--primary-80)" strokeWidth={2} />
 
             {LIFE_SPHERES.map((s, i) => {
               const p = polarPoint(i, 1.28);
@@ -216,7 +216,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
 
       <div className="grid grid-cols-2 gap-1.5">
         {LIFE_SPHERES.map((s) => (
-          <button
+          <Pressable
             key={s.id}
             type="button"
             onClick={() => (selectedTaskId ? assignSelectedTask(s.id) : startEditing(s.id))}
@@ -231,7 +231,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             <span className="text-text-muted shrink-0">
               {(actuals?.[s.id] ?? 0).toFixed(1)}h{targetFor(s.id) > 0 ? ` / ${targetFor(s.id)}h` : ''}
             </span>
-          </button>
+          </Pressable>
         ))}
       </div>
 
@@ -240,7 +240,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
           <span className="text-xs font-bold text-text-primary flex-1">
             Cel godzin/tydzień: {LIFE_SPHERES.find((s) => s.id === editingSphere)?.label}
           </span>
-          <input
+          <ControlInput
             type="number"
             min={0}
             step={0.5}
@@ -250,7 +250,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             onKeyDown={(e) => { if (e.key === 'Enter') void saveTarget(); }}
             className="w-16 rounded-lg border border-border-custom/50 bg-surface-solid/60 px-2 py-1 text-xs text-text-primary outline-none focus:border-primary/30"
           />
-          <Button
+          <Pressable
             variant="primary"
             size="sm"
             type="button"
@@ -260,8 +260,8 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             className="rounded-lg px-2.5 py-1 text-xs font-black btn-press"
           >
             Zapisz
-          </Button>
-          <Button
+          </Pressable>
+          <Pressable
             variant="ghost"
             size="sm"
             type="button"
@@ -269,7 +269,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
             className="text-xs font-semibold text-text-muted hover:text-text-primary"
           >
             Anuluj
-          </Button>
+          </Pressable>
         </div>
       )}
 
@@ -283,7 +283,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
               const sphere = LIFE_SPHERES.find((s) => s.id === t.category);
               const isSelected = selectedTaskId === t.id;
               return (
-                <button
+                <Pressable
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedTaskId(isSelected ? null : t.id)}
@@ -296,7 +296,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
                   {sphere && <span className={`h-1.5 w-1.5 rounded-full ${sphere.dot}`} />}
                   {t.title}
                   {isSelected && <Check size={10} />}
-                </button>
+                </Pressable>
               );
             })}
           </div>

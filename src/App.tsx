@@ -1,5 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import Auth from './components/core/Auth';
@@ -8,6 +8,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { ErrorBoundary } from './components/core/ErrorBoundary';
 import { ToastHost } from './components/ui/ToastHost';
 import SettingsView from './components/settings/SettingsView';
+import PageTemplateBoundary, { type PageTemplateKind } from './components/shared/PageTemplateBoundary';
 
 const DesktopDashboard = lazy(() => import('./components/desktop/shell/DesktopDashboard'));
 const GrowthView = lazy(() => import('./components/growth/GrowthView'));
@@ -26,9 +27,14 @@ function KorealcjeRedirect() {
   return <Navigate to="/korelacje" replace />;
 }
 
+function Screen({ kind, children }: { kind: PageTemplateKind; children: ReactNode }) {
+  return <PageTemplateBoundary kind={kind}>{children}</PageTemplateBoundary>;
+}
+
 function AppRoutes() {
   const { session, setSession, fetchUserSettings } = useStore();
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useNotifications();
 
@@ -57,53 +63,61 @@ function AppRoutes() {
     return FALLBACK_SPINNER;
   }
 
+  if (import.meta.env.DEV && location.pathname === '/dev/design-system') {
+    return (
+      <Suspense fallback={FALLBACK_SPINNER}>
+        <DesignSystemPage />
+      </Suspense>
+    );
+  }
+
   if (!session) return <Auth />;
 
   return (
     <Routes>
-      <Route path="/" element={<Dashboard session={session} />} />
-      <Route path="/dzis" element={<Dashboard session={session} />} />
-      <Route path="/tydzien" element={<Dashboard session={session} />} />
-      <Route path="/projekty" element={<Dashboard session={session} />} />
-      <Route path="/historia" element={<Dashboard session={session} />} />
-      <Route path="/keep" element={<Dashboard session={session} />} />
-      <Route path="/todo" element={<Dashboard session={session} />} />
-      <Route path="/kalendarz" element={<Dashboard session={session} />} />
-      <Route path="/links" element={<Dashboard session={session} />} />
-      <Route path="/fundament" element={<Dashboard session={session} />} />
-      <Route path="/trening" element={<Dashboard session={session} />} />
-      <Route path="/sauna" element={<Dashboard session={session} />} />
+      <Route path="/" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
+      <Route path="/dzis" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
+      <Route path="/tydzien" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
+      <Route path="/projekty" element={<Screen kind="grid"><Dashboard session={session} /></Screen>} />
+      <Route path="/historia" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
+      <Route path="/keep" element={<Screen kind="grid"><Dashboard session={session} /></Screen>} />
+      <Route path="/todo" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
+      <Route path="/kalendarz" element={<Screen kind="timeline"><Dashboard session={session} /></Screen>} />
+      <Route path="/links" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
+      <Route path="/fundament" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
+      <Route path="/trening" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
+      <Route path="/sauna" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
 
       <Route path="/dashboard" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <DesktopDashboard session={session} />
+          <Screen kind="dashboard"><DesktopDashboard session={session} /></Screen>
         </Suspense>
       } />
-      <Route path="/settings" element={<SettingsView session={session} />} />
+      <Route path="/settings" element={<Screen kind="list"><SettingsView session={session} /></Screen>} />
       <Route path="/rozwoj" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <GrowthView session={session} />
+          <Screen kind="dashboard"><GrowthView session={session} /></Screen>
         </Suspense>
       } />
       <Route path="/badania" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <MedicalStudiesPage />
+          <Screen kind="list"><MedicalStudiesPage /></Screen>
         </Suspense>
       } />
       <Route path="/korelacje" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <CorrelationsPage />
+          <Screen kind="dashboard"><CorrelationsPage /></Screen>
         </Suspense>
       } />
       <Route path="/korealcje" element={<KorealcjeRedirect />} />
       <Route path="/optics" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <EndMyopiaCalculator />
+          <Screen kind="list"><EndMyopiaCalculator /></Screen>
         </Suspense>
       } />
       <Route path="/dev/design-system" element={
         <Suspense fallback={FALLBACK_SPINNER}>
-          <DesignSystemPage />
+          <Screen kind="grid"><DesignSystemPage /></Screen>
         </Suspense>
       } />
       <Route path="*" element={<Navigate to="/dzis" replace />} />

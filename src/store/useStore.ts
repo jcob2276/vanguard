@@ -20,9 +20,9 @@ export const useStore = create<VanguardStore>((set, get) => ({
   userSettings: null,
   todayWin: null,
   isSyncing: false,
-  
+
   setSession: (session: Session | null) => set({ session }),
-  
+
   fetchUserSettings: async () => {
     const { session } = get();
     if (!session) return;
@@ -44,7 +44,7 @@ export const useStore = create<VanguardStore>((set, get) => ({
   fetchTodayWin: async () => {
     const { session } = get();
     if (!session) return;
-    
+
     const today = getTodayWarsaw();
     const { data } = await supabase
       .from('daily_wins')
@@ -52,7 +52,7 @@ export const useStore = create<VanguardStore>((set, get) => ({
       .eq('user_id', session.user.id)
       .eq('date', today)
       .maybeSingle();
-    
+
     set({ todayWin: data });
   },
 

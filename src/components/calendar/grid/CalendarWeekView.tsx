@@ -1,3 +1,4 @@
+import { Pressable } from '../../ui/ControlPrimitives';
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
@@ -73,7 +74,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
-        <button
+        <Pressable
           onClick={() => {
             const w = addDays(weekStart, -7);
             setWeekStart(w);
@@ -82,13 +83,13 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           className="p-2 rounded-full hover:bg-surface-solid transition-colors"
         >
           <ChevronLeft size={18} className="text-text-muted" />
-        </button>
+        </Pressable>
         <div className="text-center">
           <p className="text-sm font-bold text-text-primary">
-            {dayLabel(weekStart)} – {dayLabel(addDays(weekStart, 6))}
+            {dayLabel(weekStart)} â€“ {dayLabel(addDays(weekStart, 6))}
           </p>
           {!weekDays.includes(today) && (
-            <button
+            <Pressable
               onClick={() => {
                 const w = weekMon(today);
                 setWeekStart(w);
@@ -96,11 +97,11 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
               }}
               className="text-xs text-primary font-semibold"
             >
-              Bieżący tydzień
-            </button>
+              BieĹĽÄ…cy tydzieĹ„
+            </Pressable>
           )}
         </div>
-        <button
+        <Pressable
           onClick={() => {
             const w = addDays(weekStart, 7);
             setWeekStart(w);
@@ -109,9 +110,9 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           className="p-2 rounded-full hover:bg-surface-solid transition-colors"
         >
           <ChevronRight size={18} className="text-text-muted" />
-        </button>
+        </Pressable>
       </div>
-      <div className="flex border-b border-border-custom/40" style={{ paddingLeft: 44 }}>
+      <div className="flex border-b border-border-custom/40" style={{ paddingLeft: 'var(--legacy-inline-style-081)' }}>
         {weekDays.map((day) => {
           const isToday = day === today;
           const dayForecast = weather?.daily?.[day];
@@ -121,18 +122,18 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                 {formatWeekdayShort(day)}
               </p>
               {dayForecast && (
-                <div className="mt-0.5 flex flex-col items-center gap-0.5 cursor-help" title={`${WMO_WEATHER_DESC[dayForecast.weatherCode]}: ${dayForecast.tempMax}°C / ${dayForecast.tempMin}°C`}>
-                  <div className="flex items-center justify-center transition-transform duration-200 hover:scale-110">
+                <div className="mt-0.5 flex flex-col items-center gap-0.5 cursor-help" title={`${WMO_WEATHER_DESC[dayForecast.weatherCode]}: ${dayForecast.tempMax}Â°C / ${dayForecast.tempMin}Â°C`}>
+                  <div className="flex items-center justify-center transition-transform duration-[var(--motion-medium)] hover:scale-110">
                     {getWMOWeatherIcon(dayForecast.weatherCode, 12)}
                   </div>
                   <span className="text-3xs font-black text-text-muted leading-none">
-                    {dayForecast.tempMax}°
+                    {dayForecast.tempMax}Â°
                   </span>
                 </div>
               )}
               <div className="mt-1 flex items-center justify-center h-8 w-8">
                 {isToday ? (
-                  <span className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-sm font-black text-white leading-none shadow-sm shadow-primary/20">
+                  <span className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-sm font-black text-on-accent leading-none shadow-sm shadow-[var(--shadow-glow-primary)]">
                     {parseInt(day.split('-')[2])}
                   </span>
                 ) : (

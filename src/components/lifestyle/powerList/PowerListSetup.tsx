@@ -1,3 +1,4 @@
+import { Pressable, ControlInput, ControlTextarea } from '../../ui/ControlPrimitives';
 import { Sparkles, Link2, X, Upload } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import Badge from '../../ui/Badge';
@@ -26,31 +27,31 @@ function YesterdayRecap({
   return (
     <Card variant="notice" padding="0.875rem" className="space-y-2.5">
       <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning">
-        Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
+        Zanim zaczniesz dziĹ› â€” wczoraj ({yesterdayWin.date})
       </p>
       <ul className="space-y-1">
         {(yesterdayWin.daily_win_tasks || []).map((t: Tables<'daily_win_tasks'>) => (
           <li key={t.id} className="flex items-center gap-2 text-xs font-medium">
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${t.done ? 'bg-dayC' : 'bg-text-muted/30'}`} />
-            <span className={t.done ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
+            <span className={t.done ? 'text-text-secondary line-through opacity-[var(--opacity-70)]' : 'text-text-primary'}>
               {t.title}
             </span>
           </li>
         ))}
       </ul>
       <p className="text-xs text-text-muted leading-relaxed">
-        Dlaczego zrealizowałeś / nie zrealizowałeś te zadania?{' '}
+        Dlaczego zrealizowaĹ‚eĹ› / nie zrealizowaĹ‚eĹ› te zadania?{' '}
         {yesterdayNoteRequired && (
           <span className="font-bold text-warning dark:text-warning">(wymagane)</span>
         )}
       </p>
-      <textarea
+      <ControlTextarea
         value={yesterdayNote}
         onChange={(e) => setYesterdayNote(e.target.value)}
-        placeholder="Napisz szczerze…"
+        placeholder="Napisz szczerzeâ€¦"
         rows={3}
         className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
-          text-text-primary placeholder-text-muted resize-y min-h-[64px]
+          text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-038)]
           focus:outline-none focus:border-primary/50 transition-colors"
       />
     </Card>
@@ -70,19 +71,19 @@ function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) 
         <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-primary">
           <Sparkles size={12} className="animate-pulse" /> Asystent AI
         </span>
-        <button
+        <Pressable
           type="button"
           onClick={generateQuestions}
           disabled={aiLoading}
-          className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-2xs font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-50 cursor-pointer"
+          className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-2xs font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-[var(--opacity-50)] cursor-pointer"
         >
-          {aiLoading ? 'Analizowanie...' : aiQuestions ? '🔄 Zadaj inne pytania' : '❓ Pomoc AI (Zadaj pytania)'}
-        </button>
+          {aiLoading ? 'Analizowanie...' : aiQuestions ? 'đź”„ Zadaj inne pytania' : 'âť“ Pomoc AI (Zadaj pytania)'}
+        </Pressable>
       </div>
 
       {aiQuestions && (
-        <div className="rounded-lg border border-border-custom bg-surface p-3 text-left animate-in fade-in duration-300">
-          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyślenia:</p>
+        <div className="rounded-lg border border-border-custom bg-surface p-3 text-left animate-in fade-in duration-[var(--motion-slow)]">
+          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyĹ›lenia:</p>
           <div className="text-xs font-semibold text-text-primary leading-relaxed whitespace-pre-line">
             {aiQuestions}
           </div>
@@ -154,12 +155,12 @@ export default function PowerListSetup({
 
       <div>
         <h3 className="font-display text-base font-black tracking-tight text-text-primary">
-          Zdefiniuj 5 zwycięstw
+          Zdefiniuj 5 zwyciÄ™stw
         </h3>
         <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary">
-          Wpisz ręcznie lub wybierz z{' '}
+          Wpisz rÄ™cznie lub wybierz z{' '}
           <span className="inline-flex items-center gap-1 font-bold text-primary">
-            Zadań <Link2 size={10} />
+            ZadaĹ„ <Link2 size={10} />
           </span>
           .
         </p>
@@ -195,7 +196,7 @@ export default function PowerListSetup({
                     <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{slot.task}</span>
                   </div>
                 ) : (
-                  <input
+                  <ControlInput
                     placeholder={sphere?.placeholder ?? `Zadanie ${i + 1}`}
                     value={slot.task}
                     onChange={(e) => updateSlot(i, { task: e.target.value })}
@@ -204,23 +205,23 @@ export default function PowerListSetup({
                 )}
 
                 {slot.todoId ? (
-                  <button
+                  <Pressable
                     onClick={() => updateSlot(i, { task: '', todoId: null })}
                     className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-danger/10 hover:text-danger"
-                    title="Usuń powiązanie"
+                    title="UsuĹ„ powiÄ…zanie"
                   >
                     <X size={14} />
-                  </button>
+                  </Pressable>
                 ) : (
-                  <button
+                  <Pressable
                     onClick={() => setPickerSlot(pickerSlot === i ? -1 : i)}
                     className={`mr-3 shrink-0 rounded-full p-1.5 transition-colors ${
                       pickerSlot === i ? 'bg-primary/15 text-primary' : 'text-text-muted hover:bg-primary/10 hover:text-primary'
                     }`}
-                    title="Wybierz z zadań"
+                    title="Wybierz z zadaĹ„"
                   >
                     <Link2 size={14} />
-                  </button>
+                  </Pressable>
                 )}
               </div>
 
@@ -238,16 +239,16 @@ export default function PowerListSetup({
 
       {!allFilled && (
         <p className="text-center text-xs font-bold text-text-muted">
-          Wypełnione {filledCount}/5 — uzupełnij wszystkie, żeby zacząć dzień
+          WypeĹ‚nione {filledCount}/5 â€” uzupeĹ‚nij wszystkie, ĹĽeby zaczÄ…Ä‡ dzieĹ„
         </p>
       )}
-      <button
+      <Pressable
         onClick={startNewDay}
         disabled={submitting || !allFilled || (yesterdayNoteRequired && !yesterdayNote.trim())}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-on-accent shadow-lg shadow-[var(--shadow-glow-primary)] transition-all hover:bg-primary-hover active:scale-[var(--legacy-arbitrary-001)] disabled:opacity-[var(--opacity-50)] disabled:cursor-not-allowed"
       >
-        <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
-      </button>
+        <Upload size={14} /> {submitting ? 'Zapisywanieâ€¦' : 'Zacznij dzieĹ„'}
+      </Pressable>
     </Card>
   );
 }

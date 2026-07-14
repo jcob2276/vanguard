@@ -1,9 +1,9 @@
+import Button from '../ui/Button';
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import Spinner from '../ui/Spinner';
 import type { SavedLink, TriageSuggestion } from '../../lib/linksApi';
 import Modal from '../ui/Modal';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 interface LinksTriagePanelProps {
@@ -44,9 +44,9 @@ export function LinksTriagePanel({
           )}
 
           {!triageLoading && triageSuggestions.length === 0 && (
-            <div className="text-center py-20 text-slate-500">
+            <div className="text-center py-20 text-text-muted">
               <p className="text-sm font-semibold">Brak zalecanych sugestii AI</p>
-              <p className="text-xs text-slate-600 mt-1">Wszystkie linki wydają się być odpowiednio sklasyfikowane.</p>
+              <p className="text-xs text-text-muted mt-1">Wszystkie linki wydają się być odpowiednio sklasyfikowane.</p>
             </div>
           )}
 
@@ -54,13 +54,13 @@ export function LinksTriagePanel({
             const link = links.find(l => l.id === s.id);
             if (!link) return null;
             return (
-              <Card key={s.id} variant="outline" padding="1rem" className="!bg-slate-950/40 !border-slate-800 !rounded-xl space-y-3">
+              <Card key={s.id} variant="outline" padding="1rem" className="!bg-surface-2/40 !border-border-custom !rounded-xl space-y-3">
                 <h4 className="text-sm font-bold text-text-primary leading-snug">{link.title}</h4>
-                
+
                 <div className="flex flex-wrap gap-2 text-xs font-black uppercase">
                   <span className={`px-2 py-0.5 rounded ${
                     s.action === 'keep' ? 'bg-primary/10 text-primary' :
-                    s.action === 'archive' ? 'bg-slate-500/10 text-slate-400' :
+                    s.action === 'archive' ? 'bg-surface-2/10 text-text-muted' :
                     'bg-success/10 text-success'
                   }`}>
                     Sugerowana akcja: {s.action === 'keep' ? 'Zostaw' : s.action === 'archive' ? 'Archiwizuj' : 'Zrób Todo'}
@@ -71,14 +71,14 @@ export function LinksTriagePanel({
                 </div>
 
                 {s.reasoning && (
-                  <p className="text-xs text-text-muted italic bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
+                  <p className="text-xs text-text-muted italic bg-surface-2/50 p-2 rounded-lg border border-border-custom/40">
                     "{s.reasoning}"
                   </p>
                 )}
 
                 {s.takeaways && s.takeaways.length > 0 && (
                   <div className="space-y-1">
-                    <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Kluczowe wnioski:</span>
+                    <span className="text-2xs font-bold uppercase tracking-wider text-text-muted">Kluczowe wnioski:</span>
                     <ul className="list-disc list-inside text-xs text-text-secondary pl-1 space-y-0.5">
                       {s.takeaways.map((t: string, idx: number) => (
                         <li key={idx} className="font-medium">{t}</li>

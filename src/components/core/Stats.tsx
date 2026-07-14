@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import Button from '../ui/Button';
+import type { ReactNode } from 'react';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { BodyMetricsSection } from './stats/BodyMetricsSection';
@@ -48,7 +48,7 @@ export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?
   } = useStatsData();
 
   if (!userId) return null;
-  if (loading) return <div className="p-8 text-center text-neutral-500 uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
+  if (loading) return <div className="p-8 text-center text-text-muted uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
   const mergedBody = mergeLatestBodyMetrics(bodyData);
   const latestBody = mergedBody

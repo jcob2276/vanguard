@@ -81,13 +81,13 @@ export default function Modal({
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className={`fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm animate-fadeIn ${backdropPadding} ${verticalAlignClass} ${justifyClass} ${flexDirClass} ${overlayClassName}`}
+      className={`fixed inset-0 z-[var(--z-overlay)] flex bg-scrim/40 backdrop-blur-[var(--blur-sm)] animate-fadeIn ${backdropPadding} ${verticalAlignClass} ${justifyClass} ${flexDirClass} ${overlayClassName}`}
       role="dialog"
       aria-modal="true"
     >
       <div
         ref={containerRef}
-        className={`w-full ${sizeClasses[size]} ios-surface rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[90vh] overflow-y-auto' : ''} ${className}`}
+        className={`w-full ${sizeClasses[size]} ios-surface rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[var(--legacy-arbitrary-058)] overflow-y-auto' : ''} ${className}`}
       >
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-start justify-between gap-4">

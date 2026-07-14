@@ -1,8 +1,8 @@
+import Button from '../ui/Button';
 import { notify } from '../../lib/notify';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import { Card } from '../ui/Card';
 import { useUserId } from '../../store/useStore';
@@ -22,10 +22,10 @@ export default function GlassesCabinet() {
     queryFn: () => fetchPrescriptions(userId!),
     enabled: !!userId,
   });
- 
+
   const prescriptions = prescriptionsQuery.data ?? [];
   const loading = prescriptionsQuery.isLoading;
- 
+
   const loadFromExcel = async () => {
     if (!userId) return;
     try {
@@ -37,7 +37,7 @@ export default function GlassesCabinet() {
         { user_id: userId, type: 'differential' as const, status: 'past' as const, started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za mocne', sphere_r: -1.75, cyl_r: null, axis_r: null, sphere_l: -3.25, cyl_l: -0.75, axis_l: 10 },
         { user_id: userId, type: 'differential' as const, status: 'past' as const, started_at: '2024-12-25', ended_at: '2024-12-25', notes: 'za słabe', sphere_r: -1.25, cyl_r: null, axis_r: null, sphere_l: -2.75, cyl_l: -0.75, axis_l: 10 }
       ];
- 
+
       await importPrescriptions(excelData);
 
       await prescriptionsQuery.refetch();

@@ -13,7 +13,7 @@ export function DetailPageLayout({ title, subtitle, onBack, actions, children }:
   return (
     <div className="flex flex-col min-h-0 h-full">
       <header
-        className="sticky top-0 z-20 flex items-center gap-3 border-b border-border-custom bg-surface-solid/95 backdrop-blur-md px-4 py-3"
+        className="sticky top-0 z-[var(--z-popover)] flex items-center gap-3 border-b border-border-custom bg-surface-solid/95 backdrop-blur-[var(--blur-md)] px-4 py-3"
       >
         {onBack && (
           <button

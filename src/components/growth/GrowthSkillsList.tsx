@@ -1,12 +1,12 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, ExternalLink, Target } from 'lucide-react';
 import type { SkillInventoryRow } from '../../lib/growth/growthOverview';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 
 function scoreBar(val: number) {
   return (
-    <div className="flex items-center gap-2 min-w-[72px]">
+    <div className="flex items-center gap-2 min-w-[var(--legacy-w-093)]">
       <div className="flex-1 h-1.5 rounded-full bg-border-custom overflow-hidden">
         <div className="h-full bg-primary/70 rounded-full" style={{ width: `${(val / 5) * 100}%` }} />
       </div>
@@ -59,7 +59,7 @@ export default function GrowthSkillsList({
           <p className="text-xs text-text-muted mt-0.5">Twoja ocena 0–5 · pod-skilli po rozwinięciu</p>
         </div>
         {!readOnly && onEditScores && (
-          <Button
+          <Pressable
             type="button"
             onClick={onEditScores}
             variant="ghost"
@@ -67,16 +67,16 @@ export default function GrowthSkillsList({
             className="shrink-0 text-2xs font-black uppercase text-primary hover:underline"
           >
             Oceń →
-          </Button>
+          </Pressable>
         )}
       </div>
 
-      <ul className="space-y-1.5 flex-1 overflow-y-auto max-h-[520px] pr-1">
+      <ul className="space-y-1.5 flex-1 overflow-y-auto max-h-[var(--legacy-h-035)] pr-1">
         {rows.map((row) => {
           const open = expanded.has(row.parent.id);
           const hasSubs = row.subskills.length > 0;
           const matchedLinks = unreadLinks.filter(l => matchLinkToSkill(l, row.parent.key));
-          
+
           return (
             <li
               key={row.parent.id}
@@ -84,7 +84,7 @@ export default function GrowthSkillsList({
                 row.isFocus ? 'border-primary/35 bg-primary/[0.06]' : 'border-border-custom bg-background/40'
               }`}
             >
-              <button
+              <Pressable
                 type="button"
                 onClick={() => (hasSubs || matchedLinks.length > 0) && toggle(row.parent.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2.5 text-left ${(hasSubs || matchedLinks.length > 0) ? 'cursor-pointer' : 'cursor-default'}`}
@@ -96,7 +96,7 @@ export default function GrowthSkillsList({
                     <ChevronRight size={14} className="text-text-muted shrink-0" />
                   )
                 ) : (
-                  <span className="w-[14px] shrink-0" />
+                  <span className="w-[var(--legacy-w-076)] shrink-0" />
                 )}
                 <span className="flex-1 min-w-0">
                   <span className="flex items-center gap-1.5">
@@ -107,7 +107,7 @@ export default function GrowthSkillsList({
                   </span>
                 </span>
                 {scoreBar(row.parentScore)}
-              </button>
+              </Pressable>
               {open && (
                 <div className="border-t border-border-custom/60 pb-2">
                   {hasSubs && (
@@ -145,7 +145,7 @@ export default function GrowthSkillsList({
                                 <ExternalLink size={10} />
                               </a>
                               {!readOnly && onQuickPinLink && (
-                                <Button
+                                <Pressable
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); onQuickPinLink(link.id, 'active'); }}
                                   variant="tonal"
@@ -153,7 +153,7 @@ export default function GrowthSkillsList({
                                   className="rounded px-1.5 py-0.5 text-2xs font-black uppercase"
                                 >
                                   Przypnij
-                                </Button>
+                                </Pressable>
                               )}
                             </div>
                           </li>

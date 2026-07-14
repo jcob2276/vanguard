@@ -1,3 +1,4 @@
+import { Pressable } from '../ui/ControlPrimitives';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useFaceDistance } from './hooks/useFaceDistance';
 import { supabase } from '../../lib/supabase';
@@ -11,7 +12,6 @@ import { useUserId } from '../../store/useStore';
 import { STORAGE_KEYS } from '../../lib/constants';
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
-
 export default function EndMyopiaCalculator() {
   const haptics = useHaptics();
   const userId = useUserId();
@@ -128,10 +128,10 @@ export default function EndMyopiaCalculator() {
       });
       if (error) throw error;
       setRefreshTrigger(prev => prev + 1);
-      
+
       const currentEye = selectedEye;
       setPhase('saved');
-      
+
       setTimeout(() => {
         if (currentEye === 'left') {
           startMeasure('right');
@@ -159,21 +159,21 @@ export default function EndMyopiaCalculator() {
         // NOTE: custom overlay — EndMyopiaCalculator renders full-screen immersive camera measurement phases
         // (measure / captured / saved). These require full-viewport coverage with camera PIP and focus
         // target elements. ui/Modal cannot provide this full-screen camera layout.
-        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+        <div className="fixed inset-0 z-[var(--z-overlay)] bg-on-accent flex flex-col">
 
           {/* PIP Camera - top right corner */}
-          <div className="absolute top-4 right-4 w-16 h-20 rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
+          <div className="absolute top-4 right-4 w-16 h-20 rounded-xl overflow-hidden border-2 border-border-custom shadow-lg">
             <video ref={pipVideoRef} autoPlay playsInline muted className="w-full h-full object-cover -scale-x-100" style={{ objectFit: 'cover' }} />
           </div>
 
           {/* Back + status bar */}
-          <div className="absolute top-4 left-4 flex items-center gap-3 z-10">
-            <button
+          <div className="absolute top-4 left-4 flex items-center gap-3 z-[var(--z-raised)]">
+            <Pressable
               onClick={() => setPhase('select-eye')}
-              className="p-2 rounded-xl bg-black/5 text-gray-500 hover:bg-black/10 transition-colors"
+              className="p-2 rounded-xl bg-scrim/5 text-text-muted hover:bg-scrim/10 transition-colors"
             >
               <ArrowLeft size={18} />
-            </button>
+            </Pressable>
             <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
               faceDetected ? 'bg-success text-success' : 'bg-danger text-danger'
             }`}>
@@ -183,14 +183,14 @@ export default function EndMyopiaCalculator() {
           </div>
 
           {/* Stability ring — top center */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-10">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-[var(--z-raised)]">
             <StabilityRing progress={stability} size={52} />
           </div>
 
           {/* FOCUS word — centered */}
           <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-32">
             <p
-              className="text-black font-black tracking-[0.25em] text-center leading-none select-none"
+              className="text-scrim font-black tracking-[var(--legacy-arbitrary-039)] text-center leading-none select-none"
               style={{ fontSize: `${FOCUS_SIZES[sizeLevel - 1]}rem` }}
             >
               FOCUS
@@ -201,47 +201,47 @@ export default function EndMyopiaCalculator() {
           <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3 px-8">
             {/* Zoom + capture row */}
             <div className="flex items-center justify-between w-full">
-              <button
+              <Pressable
                 onClick={() => setSizeLevel(l => Math.max(1, l - 1))}
-                className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+                className="p-3 rounded-full bg-scrim/5 text-text-muted hover:bg-scrim/10 active:scale-90 transition-all"
               >
                 <ZoomOut size={20} />
-              </button>
+              </Pressable>
 
               {autoCapture ? (
                 <div className="flex flex-col items-center text-center">
-                  <p className="text-xs text-gray-400 font-medium">Stój na krawędzi rozmycia</p>
-                  <p className="text-xs text-gray-300 mt-0.5">Kółko wypełni się samo i zapisze</p>
+                  <p className="text-xs text-text-muted font-medium">Stój na krawędzi rozmycia</p>
+                  <p className="text-xs text-text-muted mt-0.5">Kółko wypełni się samo i zapisze</p>
                 </div>
               ) : (
-                <button
+                <Pressable
                   onClick={handleManualCapture}
                   disabled={!faceDetected}
-                  className="bg-info text-white font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-30 active:scale-95 transition-all shadow-lg"
+                  className="bg-info text-on-accent font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-[var(--opacity-30)] active:scale-95 transition-all shadow-lg"
                 >
                   Złap pomiar
-                </button>
+                </Pressable>
               )}
 
-              <button
+              <Pressable
                 onClick={() => setSizeLevel(l => Math.min(6, l + 1))}
-                className="p-3 rounded-full bg-black/5 text-gray-500 hover:bg-black/10 active:scale-90 transition-all"
+                className="p-3 rounded-full bg-scrim/5 text-text-muted hover:bg-scrim/10 active:scale-90 transition-all"
               >
                 <ZoomIn size={20} />
-              </button>
+              </Pressable>
             </div>
 
             {/* Auto/manual toggle */}
-            <button
+            <Pressable
               onClick={toggleAutoCapture}
               className={`text-xs font-black px-3 py-1.5 rounded-full transition-all ${
                 autoCapture
                   ? 'bg-info text-info border border-info'
-                  : 'bg-gray-100 text-gray-400 border border-gray-200'
+                  : 'bg-surface-2 text-text-muted border border-border-custom'
               }`}
             >
               {autoCapture ? '● Auto-capture' : '○ Ręczne złapanie'}
-            </button>
+            </Pressable>
           </div>
         </div>
       )}
@@ -251,7 +251,7 @@ export default function EndMyopiaCalculator() {
       ══════════════════════════════════════════════ */}
       {phase === 'captured' && (
         // NOTE: custom overlay — see 'measure' phase comment above.
-        <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6 gap-8">
+        <div className="fixed inset-0 z-[var(--z-overlay)] bg-background flex flex-col items-center justify-center px-6 gap-8">
           <div className="w-full max-w-xs rounded-3xl bg-surface border-2 border-primary/30 p-8 text-center shadow-2xl">
             <p className="text-xs uppercase tracking-widest text-text-muted mb-5 font-bold">
               {selectedEye === 'left' ? '👁 Lewe oko' : 'Prawe oko 👁'}
@@ -277,21 +277,21 @@ export default function EndMyopiaCalculator() {
           )}
 
           <div className="w-full max-w-xs flex flex-col gap-3">
-            <button
+            <Pressable
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full py-5 bg-primary text-background font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+              className="w-full py-5 bg-primary text-background font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-[var(--opacity-50)]"
             >
               <Check size={18} />
               {isSaving ? 'Zapisywanie...' : 'Zapisz pomiar'}
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               onClick={handleRetry}
               className="w-full py-3 text-sm text-text-muted flex items-center justify-center gap-1.5 hover:text-text-primary transition-colors"
             >
               <RotateCcw size={14} />
               Zmierz ponownie
-            </button>
+            </Pressable>
           </div>
         </div>
       )}
@@ -301,7 +301,7 @@ export default function EndMyopiaCalculator() {
       ══════════════════════════════════════════════ */}
       {phase === 'saved' && (
         // NOTE: custom overlay — see 'measure' phase comment above.
-        <div className="fixed inset-0 z-50 bg-success flex flex-col items-center justify-center gap-4">
+        <div className="fixed inset-0 z-[var(--z-overlay)] bg-success flex flex-col items-center justify-center gap-4">
           <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center">
             <Check size={36} className="text-success" />
           </div>
@@ -317,7 +317,7 @@ export default function EndMyopiaCalculator() {
       ══════════════════════════════════════════════ */}
       {(phase === 'calibrate' || phase === 'select-eye') && (
         <>
-          <header className="sticky top-0 z-40 w-full px-4 py-3 flex items-center gap-3 border-b border-border-custom bg-background/90 backdrop-blur-md">
+          <header className="sticky top-0 z-[var(--z-modal)] w-full px-4 py-3 flex items-center gap-3 border-b border-border-custom bg-background/90 backdrop-blur-[var(--blur-md)]">
             <Link to="/medical" className="rounded-xl border border-border-custom p-2 text-text-muted hover:text-text-primary bg-surface transition-colors">
               <ArrowLeft size={18} />
             </Link>
@@ -353,13 +353,13 @@ export default function EndMyopiaCalculator() {
                     Twarz wykryta — gotowy do kalibracji
                   </div>
                 )}
-                <button
+                <Pressable
                   onClick={handleCalibrate}
                   disabled={!isReady || !faceDetected}
-                  className="w-full bg-primary text-background font-bold py-4 rounded-2xl disabled:opacity-30 active:scale-95 transition-all"
+                  className="w-full bg-primary text-background font-bold py-4 rounded-2xl disabled:opacity-[var(--opacity-30)] active:scale-95 transition-all"
                 >
                   {!isReady ? 'Ładowanie AI...' : 'Skalibruj na 40 cm'}
-                </button>
+                </Pressable>
               </div>
             )}
 
@@ -372,28 +372,28 @@ export default function EndMyopiaCalculator() {
                 </div>
 
                 <div className="w-full max-w-sm grid grid-cols-2 gap-4">
-                  <button
+                  <Pressable
                     onClick={() => startMeasure('left')}
                     className="aspect-square bg-surface border border-border-custom rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all hover:border-primary/50 hover:bg-primary/5"
                   >
                     <span className="text-5xl">👁</span>
                     <span className="font-black text-lg">Lewe</span>
-                  </button>
-                  <button
+                  </Pressable>
+                  <Pressable
                     onClick={() => startMeasure('right')}
                     className="aspect-square bg-surface border border-border-custom rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all hover:border-primary/50 hover:bg-primary/5"
                   >
                     <span className="text-5xl">👁</span>
                     <span className="font-black text-lg">Prawe</span>
-                  </button>
+                  </Pressable>
                 </div>
 
-                <button
+                <Pressable
                   onClick={resetCalibration}
                   className="text-xs text-text-muted/50 hover:text-text-muted transition-colors underline underline-offset-4 mt-2"
                 >
                   Powtórz kalibrację
-                </button>
+                </Pressable>
               </>
             )}
           </main>

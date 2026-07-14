@@ -1,5 +1,5 @@
+import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import { Edit3, Plus, Save, Trash2, CalendarDays, Flag, Check, Repeat2, X, Zap } from 'lucide-react';
-import Button from '../ui/Button';
 import { Card } from '../ui/Card';
 import Badge from '../ui/Badge';
 import { format } from 'date-fns';
@@ -36,35 +36,35 @@ export default function ProjectCardExpanded({
     <div className="border-t border-border-custom/30 px-4 pb-4 pt-3 space-y-3">
 
       {/* Project metadata / edit form */}
-      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: '14px' }}>
+      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
         {editingProjectId === project.id ? (
           <div className="space-y-3">
-            <input
+            <ControlInput
               value={editForm.name}
               onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
               className="w-full bg-transparent text-base font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
               placeholder="Nazwa projektu"
             />
-            <textarea
+            <ControlTextarea
               value={editForm.goal}
               onChange={e => setEditForm(f => ({ ...f, goal: e.target.value }))}
               rows={2}
-              className="w-full resize-none rounded-[10px] border border-border-custom/50 bg-background/60 px-3 py-2 text-sm text-text-secondary outline-none focus:border-primary/30"
+              className="w-full resize-none rounded-[var(--radius-sm)] border border-border-custom/50 bg-background/60 px-3 py-2 text-sm text-text-secondary outline-none focus:border-primary/30"
               placeholder="Cel / opis projektu... (kim staję się realizując ten cel?)"
             />
             <div className="flex items-center gap-2">
-              <input
+              <ControlInput
                 type="date"
                 value={editForm.deadline}
                 onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))}
-                className="min-w-0 flex-1 rounded-[10px] border border-border-custom/50 bg-background/60 px-3 py-2 text-sm font-medium text-text-secondary outline-none focus:border-primary/30"
+                className="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-border-custom/50 bg-background/60 px-3 py-2 text-sm font-medium text-text-secondary outline-none focus:border-primary/30"
               />
               <div className="flex gap-1">
                 {COLORS.map(c => (
-                  <button
+                  <Pressable
                     key={c.id}
                     onClick={() => setEditForm(f => ({ ...f, color: c.id }))}
-                    className={`h-6 w-6 rounded-full ${c.dot} transition-transform ${editForm.color === c.id ? 'scale-110 ring-2 ring-offset-2 ring-offset-surface ring-current' : 'opacity-45 hover:opacity-80'}`}
+                    className={`h-6 w-6 rounded-full ${c.dot} transition-transform ${editForm.color === c.id ? 'scale-110 ring-2 ring-offset-2 ring-offset-surface ring-current' : 'opacity-[var(--opacity-45)] hover:opacity-[var(--opacity-80)]'}`}
                     title={c.id}
                   />
                 ))}
@@ -73,28 +73,28 @@ export default function ProjectCardExpanded({
             {parentSkills.length > 0 && (
               <div>
                 <label className="text-2xs font-black uppercase tracking-wider text-text-muted">Skill główny</label>
-                <select
+                <ControlSelect
                   value={editForm.primary_skill_id}
                   onChange={(e) => setEditForm((f) => ({ ...f, primary_skill_id: e.target.value }))}
-                  className="mt-1 w-full rounded-[10px] border border-border-custom/50 bg-background/60 px-3 py-2 text-sm text-text-secondary outline-none focus:border-primary/30"
+                  className="mt-1 w-full rounded-[var(--radius-sm)] border border-border-custom/50 bg-background/60 px-3 py-2 text-sm text-text-secondary outline-none focus:border-primary/30"
                 >
                   <option value="">— brak —</option>
                   {parentSkills.map((sk) => (
                     <option key={sk.id} value={sk.id}>{sk.label}</option>
                   ))}
-                </select>
+                </ControlSelect>
               </div>
             )}
             <div className="flex justify-end gap-2">
-              <Button
+              <Pressable
                 variant="ghost"
                 size="sm"
                 onClick={() => setEditingProjectId(null)}
                 className="rounded-full bg-surface-solid px-3 py-1.5 text-xs font-semibold text-text-muted hover:text-text-secondary"
               >
                 Anuluj
-              </Button>
-              <Button
+              </Pressable>
+              <Pressable
                 variant="primary"
                 size="sm"
                 onClick={() => handlers.handleSaveProject(project)}
@@ -103,7 +103,7 @@ export default function ProjectCardExpanded({
                 icon={<Save size={11} />}
               >
                 Zapisz
-              </Button>
+              </Pressable>
             </div>
           </div>
         ) : (
@@ -138,7 +138,7 @@ export default function ProjectCardExpanded({
                 </Badge>
               </div>
             </div>
-            <Button
+            <Pressable
               variant="ghost"
               size="sm"
               onClick={() => handlers.startEditProject(project)}
@@ -152,7 +152,7 @@ export default function ProjectCardExpanded({
 
       {/* Next action highlight */}
       {nextAction && (
-        <div className={`flex items-center gap-2.5 rounded-[12px] px-3 py-2.5 ${col.bar.replace('bg-', 'bg-').replace('-500', '-500/8')} border ${col.dot.replace('bg-', 'border-').replace('-500', '-500/20')}`}>
+        <div className={`flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5 ${col.bar.replace('bg-', 'bg-').replace('-500', '-500/8')} border ${col.dot.replace('bg-', 'border-').replace('-500', '-500/20')}`}>
           <Zap size={12} className={col.text} />
           <div className="min-w-0 flex-1">
             <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-0.5">Next Action</p>
@@ -162,11 +162,11 @@ export default function ProjectCardExpanded({
       )}
 
       {/* Checkpoints */}
-      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: '14px' }}>
+      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
         <div className="flex items-center justify-between">
           <p className="text-xs font-black uppercase tracking-widest text-text-muted">Checkpointy</p>
           {newCheckpoint?.projectId !== project.id && (
-            <Button
+            <Pressable
               variant="tonal"
               size="sm"
               onClick={() => setNewCheckpoint({ projectId: project.id, title: '', due_date: '' })}
@@ -174,28 +174,28 @@ export default function ProjectCardExpanded({
               icon={<Plus size={11} />}
             >
               Dodaj
-            </Button>
+            </Pressable>
           )}
         </div>
         {projectCheckpoints.length > 0 && (
           <div className="space-y-1">
             {projectCheckpoints.map(cp => (
-              <div key={cp.id} className="flex items-center gap-2 rounded-[10px] px-1.5 py-1.5 hover:bg-background/40">
-                <button
+              <div key={cp.id} className="flex items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1.5 hover:bg-background/40">
+                <Pressable
                   onClick={() => handlers.handleToggleCheckpoint(cp)}
-                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${
-                    cp.status === 'done' ? 'border-success bg-success text-white' : 'border-border-custom text-transparent'
+                  className={`flex h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] shrink-0 items-center justify-center rounded-full border ${
+                    cp.status === 'done' ? 'border-success bg-success text-on-accent' : 'border-border-custom text-transparent'
                   }`}
                 >
                   <Check size={10} strokeWidth={3} />
-                </button>
+                </Pressable>
                 <span className={`min-w-0 flex-1 truncate text-sm ${cp.status === 'done' ? 'text-text-muted line-through' : 'text-text-primary'}`}>{cp.title}</span>
                 {cp.due_date && (
                   <span className="shrink-0 text-xs font-semibold text-text-muted">
                     {format(new Date(cp.due_date + 'T00:00:00'), 'dd.MM')}
                   </span>
                 )}
-                <Button
+                <Pressable
                   variant="ghost"
                   size="sm"
                   onClick={() => handlers.deleteCheckpoint(cp.id)}
@@ -207,8 +207,8 @@ export default function ProjectCardExpanded({
           </div>
         )}
         {newCheckpoint?.projectId === project.id ? (
-          <div className="rounded-[12px] border border-border-custom/50 bg-background/50 p-2 space-y-2">
-            <input
+          <div className="rounded-[var(--radius-md)] border border-border-custom/50 bg-background/50 p-2 space-y-2">
+            <ControlInput
               autoFocus
               value={newCheckpoint!.title}
               onChange={e => setNewCheckpoint(cp => cp ? { ...cp, title: e.target.value } : cp)}
@@ -220,14 +220,14 @@ export default function ProjectCardExpanded({
               placeholder="Nazwa checkpointu..."
             />
             <div className="flex items-center gap-2">
-              <input
+              <ControlInput
                 type="date"
                 value={newCheckpoint!.due_date}
                 onChange={e => setNewCheckpoint(cp => cp ? { ...cp, due_date: e.target.value } : cp)}
-                className="min-w-0 flex-1 rounded-[9px] border border-border-custom/50 bg-surface px-2.5 py-1.5 text-xs text-text-secondary outline-none"
+                className="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-border-custom/50 bg-surface px-2.5 py-1.5 text-xs text-text-secondary outline-none"
               />
-              <Button variant="ghost" size="sm" onClick={() => setNewCheckpoint(null)} className="rounded-full p-1.5 text-text-muted hover:text-text-secondary" icon={<X size={13} />} />
-              <Button
+              <Pressable variant="ghost" size="sm" onClick={() => setNewCheckpoint(null)} className="rounded-full p-1.5 text-text-muted hover:text-text-secondary" icon={<X size={13} />} />
+              <Pressable
                 variant="primary"
                 size="sm"
                 onClick={() => handlers.handleAddCheckpoint(project.id)}
@@ -235,7 +235,7 @@ export default function ProjectCardExpanded({
                 className="rounded-full px-3 py-1.5 text-xs font-semibold"
               >
                 Dodaj
-              </Button>
+              </Pressable>
             </div>
           </div>
         ) : projectCheckpoints.length === 0 ? (
@@ -246,29 +246,29 @@ export default function ProjectCardExpanded({
       {/* Task list */}
       <div className="space-y-1">
         {s.openItems.map((item) => (
-          <button
+          <Pressable
             key={item.id}
             onClick={() => handlers.handleToggleTask(item)}
-            className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left"
+            className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left"
           >
-            <div className="h-[18px] w-[18px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all border-border-custom">
+            <div className="h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] shrink-0 rounded-full border-2 flex items-center justify-center transition-all border-border-custom">
               <div className="h-1.5 w-1.5 rounded-full bg-transparent" />
             </div>
             <span className="flex-1 truncate text-sm text-text-primary">{item.title}</span>
             {item.recurrence && <Repeat2 size={10} className="shrink-0 text-primary" />}
-          </button>
+          </Pressable>
         ))}
         {s.doneItems.slice(0, 2).map((item) => (
-          <button
+          <Pressable
             key={item.id}
             onClick={() => handlers.handleToggleTask(item)}
-            className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left opacity-35"
+            className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left opacity-[var(--opacity-35)]"
           >
-            <div className="h-[18px] w-[18px] shrink-0 rounded-full bg-success flex items-center justify-center">
-              <Check size={10} className="text-white" strokeWidth={3} />
+            <div className="h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] shrink-0 rounded-full bg-success flex items-center justify-center">
+              <Check size={10} className="text-on-accent" strokeWidth={3} />
             </div>
             <span className="flex-1 truncate text-sm line-through text-text-muted">{item.title}</span>
-          </button>
+          </Pressable>
         ))}
         {s.total === 0 && newTask?.projectId !== project.id && (
           <p className="text-sm text-text-muted/40 px-2 py-1">Brak zadań. Dodaj pierwsze poniżej.</p>
@@ -277,8 +277,8 @@ export default function ProjectCardExpanded({
 
       {/* Inline new task */}
       {newTask?.projectId === project.id ? (
-        <div className="rounded-[12px] border border-border-custom/50 bg-surface-solid/40 px-3 py-2 space-y-2">
-          <input
+        <div className="rounded-[var(--radius-md)] border border-border-custom/50 bg-surface-solid/40 px-3 py-2 space-y-2">
+          <ControlInput
             autoFocus
             value={newTask!.title}
             onChange={e => setNewTask(t => t ? { ...t, title: e.target.value } : t)}
@@ -290,7 +290,7 @@ export default function ProjectCardExpanded({
             className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted/40"
           />
           <div className="flex items-center gap-2">
-            <Button
+            <Pressable
               variant="ghost"
               size="sm"
               onClick={() => setNewTask(t => t ? { ...t, recurrence: RECURRENCE_CYCLE[(RECURRENCE_CYCLE.indexOf(t.recurrence as typeof RECURRENCE_CYCLE[number]) + 1) % RECURRENCE_CYCLE.length] } : t)}
@@ -298,10 +298,10 @@ export default function ProjectCardExpanded({
               icon={<Repeat2 size={10} />}
             >
               {RECURRENCE_LABEL[newTask!.recurrence]}
-            </Button>
+            </Pressable>
             <div className="flex-1" />
-            <Button variant="ghost" size="sm" onClick={() => setNewTask(null)} className="text-text-muted hover:text-text-secondary" icon={<X size={13} />} />
-            <Button
+            <Pressable variant="ghost" size="sm" onClick={() => setNewTask(null)} className="text-text-muted hover:text-text-secondary" icon={<X size={13} />} />
+            <Pressable
               variant="primary"
               size="sm"
               onClick={() => handlers.handleAddTask(project, s.section)}
@@ -309,19 +309,19 @@ export default function ProjectCardExpanded({
               className="rounded-full px-3 py-1 text-xs font-semibold"
             >
               Dodaj
-            </Button>
+            </Pressable>
           </div>
         </div>
       ) : (
-        <Button
+        <Pressable
           variant="outline"
           size="sm"
           onClick={() => setNewTask({ projectId: project.id, title: '', recurrence: '' })}
-          className="flex w-full items-center gap-2 rounded-[12px] border border-dashed border-border-custom/60 px-3 py-2 text-sm font-medium text-text-muted hover:text-text-secondary hover:border-border-custom transition-colors"
+          className="flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border-custom/60 px-3 py-2 text-sm font-medium text-text-muted hover:text-text-secondary hover:border-border-custom transition-colors"
           icon={<Plus size={13} />}
         >
           Dodaj zadanie
-        </Button>
+        </Pressable>
       )}
 
       {/* Footer actions */}
@@ -330,7 +330,7 @@ export default function ProjectCardExpanded({
       <div className="flex items-center gap-2 pt-0.5">
         <div className="flex gap-1">
           {(['active', 'paused', 'done'] as const).map(st => (
-            <button
+            <Pressable
               key={st}
               disabled={busy}
               onClick={() => {
@@ -345,11 +345,11 @@ export default function ProjectCardExpanded({
               }`}
             >
               {STATUS_LABEL[st]}
-            </button>
+            </Pressable>
           ))}
         </div>
         <div className="flex-1" />
-        <Button
+        <Pressable
           variant="ghost"
           size="sm"
           onClick={() => handlers.handleDelete(project.id)}

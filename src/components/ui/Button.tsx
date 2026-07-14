@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import Spinner from './Spinner';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -9,7 +9,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   iconPosition?: 'left' | 'right';
 }
 
-export default function Button({
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -20,9 +20,9 @@ export default function Button({
   disabled,
   type = 'button',
   ...props
-}: ButtonProps) {
-  const baseClass = 'inline-flex items-center justify-center font-bold font-display rounded-[var(--radius-md)] transition-all duration-150 active:scale-97 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
-  
+}, ref) {
+  const baseClass = 'inline-flex items-center justify-center font-bold font-display rounded-[var(--radius-md)] transition-[transform,background-color,color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-97 disabled:opacity-[var(--opacity-50)] disabled:pointer-events-none cursor-pointer';
+
   const sizeClasses = {
     sm: 'px-3 py-1.5 text-xs gap-1',
     md: 'px-4.5 py-2.5 text-sm gap-1.5',
@@ -30,16 +30,17 @@ export default function Button({
   };
 
   const variantClasses = {
-    primary: 'bg-primary text-white shadow-md shadow-primary/22 hover:bg-primary-hover hover:-translate-y-0.5 active:translate-y-0',
-    secondary: 'bg-surface-solid border border-border-custom/80 text-text-primary hover:bg-surface-solid/80',
-    outline: 'bg-white/2 dark:bg-white/[0.02] border border-border-custom text-text-secondary hover:bg-surface-solid hover:text-text-primary hover:-translate-y-0.5 active:translate-y-0',
-    ghost: 'bg-transparent text-text-muted hover:bg-surface-solid hover:text-text-primary',
-    danger: 'bg-danger text-white shadow-md shadow-danger/22 hover:bg-danger-hover hover:-translate-y-0.5 active:translate-y-0',
-    tonal: 'bg-primary/8 text-primary hover:bg-primary/14 border border-primary/20',
+    primary: 'bg-primary text-on-accent shadow-sm hover:bg-primary-hover active:shadow-none',
+    secondary: 'bg-surface-2 border border-transparent text-text-primary hover:bg-surface-3',
+    outline: 'bg-transparent border border-border-custom text-text-secondary hover:bg-surface-2 hover:text-text-primary',
+    ghost: 'bg-transparent text-text-muted hover:bg-surface-2 hover:text-text-primary',
+    danger: 'bg-danger text-on-accent shadow-sm hover:bg-danger-hover active:shadow-none',
+    tonal: 'bg-surface-tonal text-primary hover:bg-surface-tonal-strong border border-transparent',
   };
 
   return (
     <button
+      ref={ref}
       type={type}
       disabled={disabled || loading}
       className={`${baseClass} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
@@ -51,4 +52,8 @@ export default function Button({
       {!loading && icon && iconPosition === 'right' && <span className="shrink-0">{icon}</span>}
     </button>
   );
-}
+});
+
+Button.displayName = 'Button';
+
+export default Button;

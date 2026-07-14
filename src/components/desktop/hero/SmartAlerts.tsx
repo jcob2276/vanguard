@@ -1,3 +1,4 @@
+import Button from '../../ui/Button';
 import { useState } from 'react';
 
 interface AlertItem {
@@ -9,7 +10,6 @@ interface SmartAlertsProps {
   alerts: AlertItem[];
 }
 
-import Button from '../../ui/Button';
 
 export default function SmartAlerts({ alerts }: SmartAlertsProps) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -38,7 +38,7 @@ export default function SmartAlerts({ alerts }: SmartAlertsProps) {
                 next.add(a.msg);
                 return next;
               })}
-              className="ml-1 opacity-40 hover:opacity-100 transition-opacity cursor-pointer text-sm leading-none"
+              className="ml-1 opacity-[var(--opacity-40)] hover:opacity-[var(--opacity-100)] transition-opacity cursor-pointer text-sm leading-none"
             >
               ×
             </Button>

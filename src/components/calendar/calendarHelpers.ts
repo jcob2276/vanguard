@@ -90,7 +90,7 @@ function getWarsawParts(isoStr: string) {
 
   const parts = warsawPartsFormatter.formatToParts(date);
   const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
-  
+
   return {
     year: getPart('year'),
     month: getPart('month'),
@@ -186,12 +186,20 @@ export function eventColor(ev: CalRow) {
   const summaryLower = ev.summary?.toLowerCase() || '';
   const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
   if (isFocusTime) {
-    return 'bg-primary dark:bg-primary text-white border border-primary/20 font-black shadow-sm';
+    return 'bg-primary/12 dark:bg-primary/18 text-primary border border-primary/25 font-bold';
   }
 
   // 1. Explicit database category
   if (ev.category && CATEGORY_COLORS[ev.category.toLowerCase()]) {
-    return CATEGORY_COLORS[ev.category.toLowerCase()];
+    const tonalCategoryColors: Record<string, string> = {
+      praca: 'bg-info/12 dark:bg-info/15 text-text-primary border border-info/25 font-bold',
+      cialo_trening: 'bg-success/12 dark:bg-success/15 text-text-primary border border-success/25 font-bold',
+      duch_refleksja: 'bg-info/12 dark:bg-info/15 text-text-primary border border-info/25 font-bold',
+      finanse: 'bg-warning/14 dark:bg-warning/15 text-text-primary border border-warning/30 font-bold',
+      relacje_rodzina: 'bg-primary/12 dark:bg-primary/15 text-text-primary border border-primary/25 font-bold',
+      odpoczynek_regeneracja: 'bg-danger/12 dark:bg-danger/15 text-text-primary border border-danger/25 font-bold',
+    };
+    return tonalCategoryColors[ev.category.toLowerCase()] || CATEGORY_COLORS[ev.category.toLowerCase()];
   }
 
   // 2. Keyword-based fallbacks for uncategorized events
@@ -213,7 +221,7 @@ export function eventColor(ev: CalRow) {
     }
   }
 
-  return 'bg-primary dark:bg-primary text-white font-black border border-primary/20 shadow-sm';
+  return 'bg-primary/12 dark:bg-primary/18 text-primary font-bold border border-primary/25';
 }
 
 export function layoutDayEvents(dayEvents: CalRow[]) {

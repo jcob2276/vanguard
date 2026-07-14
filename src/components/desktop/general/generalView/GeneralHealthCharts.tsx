@@ -178,7 +178,7 @@ export default function GeneralHealthCharts({
         <div className="flex gap-4 mt-2 text-xs text-text-muted">
           <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Recovery</span>
           <span><span className="inline-block w-2 h-2 rounded-full bg-danger mr-1" />Strain</span>
-          <span className="ml-auto opacity-60">linia: 70 (dobry recovery) / 40 (niski)</span>
+          <span className="ml-auto opacity-[var(--opacity-60)]">linia: 70 (dobry recovery) / 40 (niski)</span>
         </div>
       </Panel>
 

@@ -24,7 +24,7 @@ export default function SaunaRpePicker({ sessionRpe, setSessionRpe }: SaunaRpePi
                 : n <= 8
                   ? 'border-warning/35 text-warning bg-warning/8'
                   : 'border-dayB/35 text-dayB bg-dayB/8';
-          const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : 'opacity-80';
+          const active = sessionRpe === n ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : 'opacity-[var(--opacity-80)]';
           return (
             <Button
               key={n}

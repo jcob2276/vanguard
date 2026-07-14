@@ -1,5 +1,5 @@
+import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { Plus, X, Sparkles, ImageIcon, Type } from 'lucide-react';
-import Button from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { Panel } from '../shell/Panel';
 import type { Tables } from '../../../lib/database.types';
@@ -44,13 +44,13 @@ export default function VisionBoardPanel({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xs font-black uppercase tracking-[0.25em] text-text-muted">Wizualizacja</p>
+            <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">Wizualizacja</p>
             <p className="mt-0.5 font-display text-base font-black tracking-tight text-text-primary leading-none">
               Vision Board
               <span className="ml-2 text-xs font-bold text-text-muted">{visionItems.length} elementów</span>
             </p>
           </div>
-          <Button
+          <Pressable
             variant="tonal"
             size="sm"
             onClick={() => setIsAddingVision(p => !p)}
@@ -58,7 +58,7 @@ export default function VisionBoardPanel({
             icon={<Plus size={11} />}
           >
             Dodaj
-          </Button>
+          </Pressable>
         </div>
 
         {/* Add form */}
@@ -71,7 +71,7 @@ export default function VisionBoardPanel({
                 { v: 'image',       label: 'Obraz (URL)', icon: <ImageIcon size={10} /> },
                 { v: 'word',        label: 'Słowo',    icon: <Type size={10} /> },
               ].map(({ v, label, icon }) => (
-                <button
+                <Pressable
                   key={v}
                   onClick={() => setNewVisionType(v)}
                   className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
@@ -79,14 +79,14 @@ export default function VisionBoardPanel({
                   }`}
                 >
                   {icon} {label}
-                </button>
+                </Pressable>
               ))}
             </div>
             {/* Color selector */}
             <div className="flex gap-1.5 items-center">
               <span className="text-2xs font-black uppercase tracking-widest text-text-muted">Kolor:</span>
               {Object.keys(VB_COLORS).map(c => (
-                <button
+                <Pressable
                   key={c}
                   onClick={() => setNewVisionColor(c)}
                   className={`w-5 h-5 rounded-full border-2 transition-all cursor-pointer ${VB_COLORS[c].bg} ${newVisionColor === c ? 'border-primary scale-125' : 'border-transparent hover:scale-110'}`}
@@ -94,7 +94,7 @@ export default function VisionBoardPanel({
               ))}
             </div>
             <div className="flex gap-2">
-              <input
+              <ControlInput
                 autoFocus
                 value={newVisionContent}
                 onChange={e => setNewVisionContent(e.target.value)}
@@ -102,10 +102,10 @@ export default function VisionBoardPanel({
                 placeholder={newVisionType === 'image' ? 'URL obrazka...' : newVisionType === 'word' ? 'Jedno słowo...' : 'Afirmacja: Jestem...'}
                 className="flex-1 rounded-xl border border-border-custom bg-surface px-3.5 py-2 text-sm font-semibold text-text-primary outline-none focus:border-primary placeholder:text-text-muted/40"
               />
-              <Button variant="primary" size="sm" onClick={addVisionItem} className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
+              <Pressable variant="primary" size="sm" onClick={addVisionItem} className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
                 Dodaj
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={13} />} />
+              </Pressable>
+              <Pressable variant="ghost" size="sm" onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={13} />} />
             </div>
           </div>
         )}
@@ -123,40 +123,40 @@ export default function VisionBoardPanel({
               return (
                 <div key={item.id} className="group relative break-inside-avoid mb-2">
                   {item.type === 'image' ? (
-                    <Card variant="glass" padding="0" className="relative overflow-hidden" style={{ borderRadius: '14px' }}>
+                    <Card variant="glass" padding="0" className="relative overflow-hidden" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
                       <img
                         src={item.content}
                         alt=""
                         className="w-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
-                      <Button
+                      <Pressable
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteVisionItem(item.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-all cursor-pointer"
+                        className="absolute top-2 right-2 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] flex h-6 w-6 items-center justify-center rounded-full bg-scrim/50 text-on-accent transition-all cursor-pointer"
                         icon={<X size={10} />}
                       />
                     </Card>
                   ) : item.type === 'word' ? (
-                    <Card variant="glass" padding="1.25rem 1rem" className={`relative flex items-center justify-center ${c.border} ${c.bg}`} style={{ borderRadius: '14px' }}>
+                    <Card variant="glass" padding="1.25rem 1rem" className={`relative flex items-center justify-center ${c.border} ${c.bg}`} style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
                       <p className={`font-display text-2xl font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
-                      <Button
+                      <Pressable
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteVisionItem(item.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
+                        className="absolute top-2 right-2 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
                         icon={<X size={10} />}
                       />
                     </Card>
                   ) : (
-                    <Card variant="glass" padding="1rem 0.875rem" className={`relative ${c.border} ${c.bg}`} style={{ borderRadius: '14px' }}>
+                    <Card variant="glass" padding="1rem 0.875rem" className={`relative ${c.border} ${c.bg}`} style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
                       <p className={`text-sm font-bold leading-snug ${c.text}`}>{item.content}</p>
-                      <Button
+                      <Pressable
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteVisionItem(item.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
+                        className="absolute top-2 right-2 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
                         icon={<X size={10} />}
                       />
                     </Card>

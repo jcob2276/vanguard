@@ -1,7 +1,7 @@
+import Button from '../../ui/Button';
 import { Check, Zap } from 'lucide-react'
 import { useHaptics } from '../../../hooks/useHaptics'
 import { Card } from '../../ui/Card'
-import Button from '../../ui/Button'
 import type { PlyoExercisePrescription, PlyoSessionPlan } from '../../../lib/health/plyoMarathonProgram'
 import { formatPlyoPrescription } from '../../../lib/health/plyoMarathonProgram'
 
@@ -17,12 +17,12 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
   const totalSets = session.exercises.reduce((s, ex) => s + ex.sets, 0)
   const completedSets = done.reduce((s, row) => s + row.filter(Boolean).length, 0)
   return (
-    <Card variant="glass" className="border border-lime-500/25 space-y-4" style={{ background: 'rgba(132, 204, 22, 0.06)' }}>
+    <Card variant="glass" className="border border-success/25 space-y-4" style={{ background: 'var(--legacy-color-070)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Zap size={14} className="text-lime-500 shrink-0" />
-            <span className="text-2xs font-black uppercase tracking-[0.16em] text-lime-600 dark:text-lime-400">
+            <Zap size={14} className="text-success shrink-0" />
+            <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-012)] text-success dark:text-success">
               Plajometria
             </span>
           </div>
@@ -42,7 +42,7 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
 
       <div className="h-1.5 rounded-full bg-surface-solid overflow-hidden">
         <div
-          className="h-full bg-lime-500 transition-all duration-300"
+          className="h-full bg-success transition-all duration-[var(--motion-slow)]"
           style={{ width: totalSets ? `${(completedSets / totalSets) * 100}%` : '0%' }}
         />
       </div>
@@ -79,12 +79,12 @@ function PlyoExerciseRow({
     <div
       className={`rounded-2xl border px-3 py-2.5 transition-colors ${
         allSetsDone
-          ? 'border-lime-500/30 bg-lime-500/10'
+          ? 'border-success/30 bg-success/10'
           : 'border-border-custom bg-surface/80'
       }`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className={`text-sm font-black tracking-tight ${allSetsDone ? 'text-lime-700 dark:text-lime-300' : 'text-text-primary'}`}>
+        <span className={`text-sm font-black tracking-tight ${allSetsDone ? 'text-success dark:text-success' : 'text-text-primary'}`}>
           {ex.name}
         </span>
         <span className="text-xs font-bold text-text-muted tabular-nums">{formatPlyoPrescription(ex)}</span>
@@ -96,10 +96,10 @@ function PlyoExerciseRow({
             type="button"
             variant="ghost"
             onClick={() => onToggle(setIdx)}
-            className={`h-9 min-w-[2.25rem] gap-1 rounded-xl border px-2 text-xs font-black ${
+            className={`h-9 min-w-[var(--legacy-w-080)] gap-1 rounded-xl border px-2 text-xs font-black ${
               isDone
-                ? 'border-lime-500 bg-lime-500 text-white shadow-sm'
-                : 'border-border-custom bg-surface-solid text-text-muted hover:border-lime-500/40 hover:text-text-primary'
+                ? 'border-success bg-success text-on-accent shadow-sm'
+                : 'border-border-custom bg-surface-solid text-text-muted hover:border-success/40 hover:text-text-primary'
             }`}
             aria-label={`Seria ${setIdx + 1}`}
           >

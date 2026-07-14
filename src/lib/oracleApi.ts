@@ -265,7 +265,7 @@ export async function sendOracleChatPrompt({
               if (parsed.t) accumulatedText += parsed.t;
               if (parsed.r) accumulatedReasoning += parsed.r;
               if (parsed._final) finalData = parsed._final;
-              
+
               onChunk(accumulatedText, accumulatedReasoning);
             } catch {
               // Ignore partial parsing errors
@@ -291,7 +291,7 @@ export async function processAndUploadChatImages(userId: string, files: File[]):
       const pad = (n: number) => String(n).padStart(2, '0');
       occurredDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
-    
+
     const fileName = `${userId}/${Date.now()}_chat_${i}.${file.name.split('.').pop()}`;
     const publicUrl = await uploadProgressPhoto(fileName, file);
     await insertProgressPhoto(userId, fileName, occurredDate);

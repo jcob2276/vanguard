@@ -1,16 +1,16 @@
 /* Anatomiczna mapa mięśni (react-body-highlighter, MIT) */
 .muscle-map-model .rbh-wrapper {
-  width: 100%;
+  width: var(--legacy-local-css-022);
 }
 .muscle-map-model .rbh polygon {
-  transition: fill 0.2s ease, opacity 0.2s ease;
-  stroke: rgba(15, 23, 42, 0.08);
-  stroke-width: 0.35;
+  transition: var(--legacy-css-transition-059);
+  stroke: var(--legacy-color-079);
+  stroke-width: var(--legacy-local-css-007);
 }
 .dark .muscle-map-model .rbh polygon {
-  stroke: rgba(255, 255, 255, 0.06);
+  stroke: var(--legacy-color-127);
 }
 .muscle-map-model .rbh polygon:hover {
-  opacity: 0.88;
+  opacity: var(--legacy-local-css-017);
   filter: brightness(1.08);
 }
