@@ -1,5 +1,6 @@
 import { Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
 import type { Tables } from '../../lib/database.types';
+import { StatHero } from '../ui/StatHero';
 import { zToVitalColor } from './dailyStrainCardStyles';
 
 interface DailyStrainVitalsRowProps {
@@ -30,11 +31,7 @@ export default function DailyStrainVitalsRow({ oura, hrvZ, rhrZ, sleepZ, sleepSc
       <div className="flex items-center justify-between relative z-[var(--z-raised)]">
         {vitals.map(({ icon: Icon, label, value, color }, idx) => (
           <div key={label} className={`flex-1 flex flex-col items-center text-center ${idx > 0 ? 'border-l border-border-custom/30' : ''}`}>
-            <div className="flex items-center gap-0.5">
-              <Icon size={9} className={color} />
-              <span className="text-2xs font-bold tracking-wider text-text-muted uppercase">{label}</span>
-            </div>
-            <span className={`text-xs font-black font-mono mt-0.5 ${color}`}>{value}</span>
+            <StatHero value={value} label={label} icon={Icon} color={color} size="sm" />
           </div>
         ))}
       </div>

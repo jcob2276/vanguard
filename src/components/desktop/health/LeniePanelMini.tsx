@@ -1,6 +1,7 @@
 import { getTodayWarsaw } from '../../../lib/date';
 import React from 'react';
 import { Card } from '../../ui/Card';
+import { StatHero } from '../../ui/StatHero';
 import { computeLenieInsight, daysBefore, type LenieLogRow } from '../desktopUtils';
 
 export interface LeniePanelMiniProps {
@@ -41,10 +42,7 @@ export default function LeniePanelMini({ logs }: LeniePanelMiniProps) {
             color: freeColor
           }
         ].map(({ label, val, color }) => (
-          <div key={label} className="text-center">
-            <p className="text-3xs font-black uppercase tracking-wider text-text-muted mb-0.5">{label}</p>
-            <p className={`font-display text-lg font-black leading-none ${color}`}>{val}</p>
-          </div>
+          <StatHero key={label} value={val} label={label} color={color} size="sm" />
         ))}
       </div>
 

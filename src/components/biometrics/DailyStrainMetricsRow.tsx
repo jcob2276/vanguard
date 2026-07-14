@@ -1,3 +1,5 @@
+import { StatHero } from '../ui/StatHero';
+
 interface DailyStrainMetricsRowProps {
   strainScore: number;
   strainTone: string;
@@ -20,20 +22,14 @@ export default function DailyStrainMetricsRow({
   return (
     <div className="grid gap-4 relative z-[var(--z-raised)]" style={{ gridTemplateColumns: `repeat(${metricCols}, 1fr)` }}>
       <div>
-        <p className="text-2xs font-bold uppercase tracking-widest text-text-muted">Strain</p>
-        <p className={`text-xl font-black leading-none mt-0.5 ${strainTone}`}>
-          {strainScore ?? '--'}<span className="text-2xs text-text-muted font-normal">/21</span>
-        </p>
+        <StatHero value={strainScore ?? '--'} label="Strain" suffix="/21" color={strainTone} size="sm" />
         <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
           <div className="h-[var(--legacy-h-021)] rounded-full bg-warning transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
         </div>
       </div>
 
       <div>
-        <p className="text-2xs font-bold uppercase tracking-widest text-text-muted">Recovery</p>
-        <p className={`text-xl font-black leading-none mt-0.5 ${recovTone}`}>
-          {recoveryScore ?? '--'}<span className="text-2xs text-text-muted font-normal">/100</span>
-        </p>
+        <StatHero value={recoveryScore ?? '--'} label="Recovery" suffix="/100" color={recovTone} size="sm" />
         <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
           <div className={`h-[var(--legacy-h-021)] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-success' : recoveryScore >= 55 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
         </div>
@@ -41,10 +37,7 @@ export default function DailyStrainMetricsRow({
 
       {fuelingScore != null && (
         <div>
-          <p className="text-2xs font-bold uppercase tracking-widest text-text-muted">Fueling</p>
-          <p className={`text-xl font-black leading-none mt-0.5 ${fuelingScore >= 70 ? 'text-success' : 'text-warning'}`}>
-            {fuelingScore}<span className="text-2xs text-text-muted font-normal">/100</span>
-          </p>
+          <StatHero value={fuelingScore} label="Fueling" suffix="/100" color={fuelingScore >= 70 ? 'text-success' : 'text-warning'} size="sm" />
           <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
             <div className={`h-[var(--legacy-h-021)] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
           </div>
@@ -53,12 +46,12 @@ export default function DailyStrainMetricsRow({
 
       {sleepDebtH != null && (
         <div>
-          <p className="text-2xs font-bold uppercase tracking-widest text-text-muted">
-            {sleepDebtH < 0 ? 'Dług snu' : 'Nadwyżka'}
-          </p>
-          <p className={`text-xl font-black leading-none mt-0.5 ${sleepDebtH < -0.5 ? 'text-danger' : sleepDebtH > 0.5 ? 'text-success' : 'text-text-primary'}`}>
-            {sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}
-          </p>
+          <StatHero
+            value={sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}
+            label={sleepDebtH < 0 ? 'Dług snu' : 'Nadwyżka'}
+            color={sleepDebtH < -0.5 ? 'text-danger' : sleepDebtH > 0.5 ? 'text-success' : 'text-text-primary'}
+            size="sm"
+          />
         </div>
       )}
     </div>

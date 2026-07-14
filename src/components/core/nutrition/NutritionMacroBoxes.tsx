@@ -1,4 +1,5 @@
 import { Zap, Flame, Droplet } from 'lucide-react';
+import { StatHero } from '../../ui/StatHero';
 import type { useNutritionData } from '../useNutritionData';
 
 type NutritionData = ReturnType<typeof useNutritionData>;
@@ -21,12 +22,7 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
       <div className="mb-4 grid grid-cols-3 gap-2.5">
         {/* Protein Box */}
         <div className={`rounded-2xl border-l-4 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between ${protLow ? 'border-l-rose-500/80 bg-danger/5' : 'border-l-primary/70'}`}>
-          <div>
-            <p className={`text-2xs font-black uppercase tracking-wider mb-1 flex items-center justify-center gap-1 ${protLow ? 'text-danger' : 'text-primary'}`}>
-              <Zap size={9} className={protLow ? 'fill-danger' : 'fill-primary'} /> Białko (B)
-            </p>
-            <p className="font-display text-lg font-black text-text-primary">{todayMacros.protein}g</p>
-          </div>
+          <StatHero value={`${todayMacros.protein}g`} label="Białko (B)" icon={Zap} color={protLow ? 'text-danger' : 'text-primary'} size="sm" />
           <div>
             <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
               <div
@@ -42,12 +38,7 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
 
         {/* Carbs Box */}
         <div className="rounded-2xl border-l-4 border-l-amber-500/70 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between">
-          <div>
-            <p className="text-2xs font-black uppercase tracking-wider text-warning mb-1 flex items-center justify-center gap-1">
-              <Flame size={9} className="fill-warning" /> Węgle (W)
-            </p>
-            <p className="font-display text-lg font-black text-text-primary">{todayMacros.carbs}g</p>
-          </div>
+          <StatHero value={`${todayMacros.carbs}g`} label="Węgle (W)" icon={Flame} color="text-warning" size="sm" />
           <div>
             <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
               <div
@@ -63,12 +54,7 @@ export default function NutritionMacroBoxes({ proteinGoal, todayMacros, pPct, cP
 
         {/* Fat Box */}
         <div className="rounded-2xl border-l-4 border-l-rose-500/70 border border-border-custom/40 bg-surface-solid/20 p-3 text-center flex flex-col justify-between">
-          <div>
-            <p className="text-2xs font-black uppercase tracking-wider text-danger mb-1 flex items-center justify-center gap-1">
-              <Droplet size={9} className="fill-danger" /> Tłuszcze (T)
-            </p>
-            <p className="font-display text-lg font-black text-text-primary">{todayMacros.fat}g</p>
-          </div>
+          <StatHero value={`${todayMacros.fat}g`} label="Tłuszcze (T)" icon={Droplet} color="text-danger" size="sm" />
           <div>
             <div className="w-full h-1 bg-border-custom rounded-full mt-2 overflow-hidden">
               <div
