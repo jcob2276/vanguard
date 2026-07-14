@@ -60,13 +60,13 @@ test('Detailed error trace on /dashboard', async ({ page }) => {
 
   console.log('Navigating to /dashboard...');
   await page.goto('http://localhost:5173/dashboard');
-  
+
   // Wait for the error or wait a bit
   await page.waitForTimeout(5000);
 
   const html = await page.content();
   console.log(`Page HTML length: ${html.length}`);
-  
+
   const bodyText = await page.innerText('body');
   console.log(`Body text contains 'Coś poszło nie tak': ${bodyText.includes('Coś poszło nie tak')}`);
   console.log(`Body text contains 'Wystąpił błąd': ${bodyText.includes('Wystąpił błąd')}`);

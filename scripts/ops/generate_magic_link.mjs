@@ -38,7 +38,7 @@ async function main() {
     console.error('Error fetching user:', userError);
     process.exit(1);
   }
-  
+
   console.log('Generating magic link for:', user.email);
   const { data, error } = await supabase.auth.admin.generateLink({
     type: 'magiclink',

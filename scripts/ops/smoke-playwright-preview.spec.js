@@ -58,7 +58,7 @@ test('Detailed error trace on preview /dashboard', async ({ page }) => {
 
   console.log('Navigating to /dashboard on preview server...');
   await page.goto('http://localhost:4173/dashboard');
-  
+
   // Wait for the error or wait a bit
   await page.waitForTimeout(5000);
 });

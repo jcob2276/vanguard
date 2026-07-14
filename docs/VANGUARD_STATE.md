@@ -64,7 +64,7 @@ Wielokolumnowy cockpit z panelami:
 
 ## Backend — Edge Functions
 
-Dla zachowania spójności i zapobiegania rozjazdowi informacji, pełny rejestr wszystkich wdrożonych Edge Functions oraz ich konfiguracji jest utrzymywany w jednym miejscu. 
+Dla zachowania spójności i zapobiegania rozjazdowi informacji, pełny rejestr wszystkich wdrożonych Edge Functions oraz ich konfiguracji jest utrzymywany w jednym miejscu.
 
 Zobacz Single Source of Truth (SSOT) dla backendu:
 👉 **[supabase/functions/README.md](../supabase/functions/README.md)**

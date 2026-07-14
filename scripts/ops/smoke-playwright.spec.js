@@ -89,7 +89,7 @@ test('Test dashboard login and click through all functions', async ({ page }) =>
 
   const actionLink = linkData.properties.action_link;
   console.log(`Navigating to magic link to authenticate...`);
-  
+
   await page.goto(actionLink);
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(3000); // Wait for redirects and React load
@@ -125,14 +125,14 @@ test('Test dashboard login and click through all functions', async ({ page }) =>
   for (let i = 0; i < routes.length; i++) {
     const route = routes[i];
     console.log(`\n--- Testing route: ${route.name} (${route.path}) ---`);
-    
+
     // Go to route
     await page.goto(`http://localhost:5173${route.path}`);
-    
+
     // Wait for page load
     await page.waitForLoadState('load');
     await page.waitForTimeout(3000); // Give time for charts, fetch calls, etc.
-    
+
     // Capture screenshot
     const screenshotName = `${String(i + 1).padStart(2, '0')}-${route.name.toLowerCase().replace(/\s+/g, '-')}.png`;
     const screenshotPath = path.join(screenyDir, screenshotName);

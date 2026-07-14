@@ -28,7 +28,7 @@ async function listAllFiles(bucketName, folder = '') {
     throw error;
   }
   if (!data) return [];
-  
+
   for (const item of data) {
     // folders have id = null or metadata = null, but checked by lack of metadata/id
     if (!item.id && item.name) {

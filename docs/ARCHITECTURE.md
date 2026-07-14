@@ -1,7 +1,7 @@
 # Vanguard OS — Architecture (current)
 
-> **Source of truth for agents:** behavior and deploy live in `AGENTS.md` and `supabase/functions/README.md`.  
-> This file is the **one-page map**: data flow, crons, subsystems.  
+> **Source of truth for agents:** behavior and deploy live in `AGENTS.md` and `supabase/functions/README.md`.
+> This file is the **one-page map**: data flow, crons, subsystems.
 
 Supabase project: configured per deployment through environment variables.
 
@@ -216,11 +216,11 @@ Do not add or deploy a function that is not listed there with status `active` or
 
 ## What we do not build (constitution)
 
-- Shadow engine / brutal provocation  
-- System auto-orzekający „manifestacja zadziałała” / pendulum detector (intencja jako **deklaracja** do konfrontacji — TAK; jako mechanizm magii / auto-status — NIE; patrz „Transurfing Layer Guardrail” w PRODUCT_PRINCIPLES)  
-- Oracle auto-writing to graph or `vanguard_knowledge` on every turn  
-- Second friction pipeline in architect or telegram  
-- “Confirmed pattern” language without explicit N  
+- Shadow engine / brutal provocation
+- System auto-orzekający „manifestacja zadziałała” / pendulum detector (intencja jako **deklaracja** do konfrontacji — TAK; jako mechanizm magii / auto-status — NIE; patrz „Transurfing Layer Guardrail” w PRODUCT_PRINCIPLES)
+- Oracle auto-writing to graph or `vanguard_knowledge` on every turn
+- Second friction pipeline in architect or telegram
+- “Confirmed pattern” language without explicit N
 
 See `docs/PRODUCT_PRINCIPLES.md` for the full gate.
 

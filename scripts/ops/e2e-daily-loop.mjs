@@ -183,7 +183,7 @@ await step('vanguard_pipeline_runs — latest nightly run check', async () => {
   // Group by run_id of the latest run
   const latestRunId = data[0].run_id
   const latestRunSteps = data.filter(r => r.run_id === latestRunId)
-  
+
   const failedSteps = latestRunSteps.filter(s => s.status === 'error')
   if (failedSteps.length > 0) {
     const details = failedSteps.map(s => `${s.step_name}: ${s.error_message}`).join(', ')
@@ -288,10 +288,10 @@ if (failed > 0) {
     console.log(`  ✗  ${r.name}\n     ${r.error}`)
   )
   const errorText = `❌ *Vanguard E2E Heartbeat Failed*\n\n` + results.filter(r => !r.ok && !r.optional).map(r => `• *${r.name}*\n  ${r.error}`).join('\n\n')
-  
+
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
   const CHAT_ID   = process.env.TELEGRAM_CHAT_ID
-  
+
   if (BOT_TOKEN && CHAT_ID) {
     try {
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
