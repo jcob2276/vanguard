@@ -2,6 +2,7 @@ import { Pressable, ControlInput, ControlSelect } from '../../ui/ControlPrimitiv
 import { Plus, X, Star, Check, Trash2 } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import { Panel } from '../shell/Panel';
+import { ToggleChip } from '../../ui/ToggleChip';
 import type { DreamRow } from '../../../lib/dreamsApi';
 
 interface DreamsPanelProps {
@@ -104,11 +105,10 @@ export default function DreamsPanel({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-2xs font-black uppercase tracking-widest text-text-muted">Cel:</span>
-              {([['cialo', 'Ciało', 'border-success/40 bg-success/10 text-success'], ['duch', 'Duch', 'border-primary/40 bg-primary/10 text-primary'], ['konto', 'Konto', 'border-warning/40 bg-warning/10 text-warning']] as [string, string, string][]).map(([val, label, active]) => (
-                <Pressable key={val} onClick={() => setNewDreamLifeGoal(newDreamLifeGoal === val ? null : val)}
-                  className={`rounded-lg border px-2.5 py-1 text-2xs font-black uppercase tracking-widest transition-all cursor-pointer ${newDreamLifeGoal === val ? active : 'border-border-custom text-text-muted hover:text-text-secondary'}`}>
+              {([['cialo', 'Ciało', 'success'], ['duch', 'Duch', 'primary'], ['konto', 'Konto', 'warning']] as [string, string, 'success' | 'primary' | 'warning'][]).map(([val, label, variant]) => (
+                <ToggleChip key={val} active={newDreamLifeGoal === val} onClick={() => setNewDreamLifeGoal(newDreamLifeGoal === val ? null : val)} variant={variant}>
                   {label}
-                </Pressable>
+                </ToggleChip>
               ))}
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function DreamsPanel({
             </p>
             <div className="space-y-1.5">
               {top5Dreams.map(dream => (
-                <Card key={dream.id} variant="glass" padding="0.625rem 0.875rem" className="flex items-center gap-2.5" style={{ borderRadius: 'var(--legacy-inline-style-006)', border: 'var(--border-width-thin) solid var(--legacy-color-121)', background: 'var(--legacy-color-118)' }}>
+                <Card key={dream.id} variant="glass" padding="0.625rem 0.875rem" className="rounded-xl flex items-center gap-2.5" style={{ border: 'var(--border-width-thin) solid var(--legacy-color-121)', background: 'var(--legacy-color-118)' }}>
                   <Star size={10} className="shrink-0 text-warning" fill="currentColor" />
                   <Pressable variant="ghost" size="sm" onClick={() => openDreamModal(dream)} className="flex-1 text-left text-xs font-bold text-text-primary hover:text-primary truncate cursor-pointer">
                     {dream.title}
@@ -139,20 +139,17 @@ export default function DreamsPanel({
         {/* Category filter */}
         <div className="flex gap-1.5 flex-wrap">
           {DREAM_CATEGORIES.map(cat => (
-            <Pressable
+            <ToggleChip
               key={cat}
+              active={dreamFilter === cat}
               onClick={() => setDreamFilter(cat)}
-              className={`rounded-lg border px-2.5 py-1 text-2xs font-black uppercase tracking-widest transition-all cursor-pointer ${
-                dreamFilter === cat
-                  ? 'border-primary/30 bg-primary/10 text-primary'
-                  : 'border-border-custom text-text-muted hover:border-text-secondary hover:text-text-secondary'
-              }`}
+              variant="primary"
             >
               {DREAM_CAT_LABEL[cat]}
               {cat !== 'all' && dreams.filter(d => d.category === cat).length > 0 && (
                 <span className="ml-1 opacity-[var(--opacity-60)]">{dreams.filter(d => d.category === cat).length}</span>
               )}
-            </Pressable>
+            </ToggleChip>
           ))}
         </div>
 
@@ -168,13 +165,12 @@ export default function DreamsPanel({
                 key={dream.id}
                 variant="glass"
                 padding="0.625rem 0.875rem"
-                className={`group flex items-center gap-2.5 transition-all duration-[var(--motion-medium)] cursor-pointer ${
+                className={`rounded-xl group flex items-center gap-2.5 transition-all duration-[var(--motion-medium)] cursor-pointer ${
                   dream.is_done
                     ? 'opacity-[var(--opacity-60)]'
                     : 'hover:shadow-sm hover:-translate-y-0.5'
                 }`}
                 style={{
-                  borderRadius: 'var(--legacy-inline-style-006)',
                   ...(dream.is_done
                     ? { border: 'var(--border-width-thin) solid var(--legacy-color-096)', background: 'var(--legacy-color-092)' }
                     : dream.is_top5

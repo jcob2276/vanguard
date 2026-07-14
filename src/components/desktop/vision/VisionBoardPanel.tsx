@@ -2,6 +2,7 @@ import { Pressable, ControlInput } from '../../ui/ControlPrimitives';
 import { Plus, X, Sparkles, ImageIcon, Type } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import { Panel } from '../shell/Panel';
+import { ToggleChip } from '../../ui/ToggleChip';
 import type { Tables } from '../../../lib/database.types';
 
 interface VBColor {
@@ -71,15 +72,9 @@ export default function VisionBoardPanel({
                 { v: 'image',       label: 'Obraz (URL)', icon: <ImageIcon size={10} /> },
                 { v: 'word',        label: 'Słowo',    icon: <Type size={10} /> },
               ].map(({ v, label, icon }) => (
-                <Pressable
-                  key={v}
-                  onClick={() => setNewVisionType(v)}
-                  className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-2xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                    newVisionType === v ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom text-text-muted hover:text-text-secondary'
-                  }`}
-                >
+                <ToggleChip key={v} active={newVisionType === v} onClick={() => setNewVisionType(v)}>
                   {icon} {label}
-                </Pressable>
+                </ToggleChip>
               ))}
             </div>
             {/* Color selector */}
@@ -123,7 +118,7 @@ export default function VisionBoardPanel({
               return (
                 <div key={item.id} className="group relative break-inside-avoid mb-2">
                   {item.type === 'image' ? (
-                    <Card variant="glass" padding="0" className="relative overflow-hidden" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+                    <Card variant="glass" padding="0" className="rounded-xl relative overflow-hidden">
                       <img
                         src={item.content}
                         alt=""
@@ -139,7 +134,7 @@ export default function VisionBoardPanel({
                       />
                     </Card>
                   ) : item.type === 'word' ? (
-                    <Card variant="glass" padding="1.25rem 1rem" className={`relative flex items-center justify-center ${c.border} ${c.bg}`} style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+                    <Card variant="glass" padding="1.25rem 1rem" className={`rounded-xl relative flex items-center justify-center ${c.border} ${c.bg}`}>
                       <p className={`font-display text-2xl font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
                       <Pressable
                         variant="ghost"
@@ -150,7 +145,7 @@ export default function VisionBoardPanel({
                       />
                     </Card>
                   ) : (
-                    <Card variant="glass" padding="1rem 0.875rem" className={`relative ${c.border} ${c.bg}`} style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+                    <Card variant="glass" padding="1rem 0.875rem" className={`rounded-xl relative ${c.border} ${c.bg}`}>
                       <p className={`text-sm font-bold leading-snug ${c.text}`}>{item.content}</p>
                       <Pressable
                         variant="ghost"
