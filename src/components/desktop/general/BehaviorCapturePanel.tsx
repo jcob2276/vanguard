@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapPin, RefreshCw } from 'lucide-react';
 import { Card } from '../../ui/Card';
+import { ToggleChip } from '../../ui/ToggleChip';
 import {
   BEHAVIOR_CAPTURE_ENTRIES,
   BEHAVIOR_CONFOUNDERS,
@@ -114,20 +115,16 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
           {BEHAVIOR_CONFOUNDERS.map(({ key, label, icon }) => {
             const on = activeKeys.has(key);
             return (
-              <Pressable
+              <ToggleChip
                 key={key}
-                type="button"
-                disabled={savingKey === key}
+                active={on}
                 onClick={() => void toggleConfounder(key)}
-                className={`rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer disabled:opacity-[var(--opacity-60)] ${
-                  on
-                    ? 'border-primary/40 bg-primary/10 text-text-primary'
-                    : 'border-border-custom bg-surface text-text-muted hover:text-text-secondary'
-                }`}
+                disabled={savingKey === key}
+                className="text-left justify-start py-2"
               >
                 <span className="text-xs mr-1">{icon}</span>
                 <span className="text-2xs font-black uppercase tracking-wide">{label}</span>
-              </Pressable>
+              </ToggleChip>
             );
           })}
         </div>

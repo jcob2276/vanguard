@@ -4,6 +4,7 @@ import { subDays } from 'date-fns';
 import { getTodayWarsaw, formatWarsawDate } from '../../../lib/date';
 import type { HabitRow, HabitLogRow } from '../../../lib/health/habitsApi';
 import { Card } from '../../ui/Card';
+import { ToggleChip } from '../../ui/ToggleChip';
 
 interface NewHabit {
   name: string;
@@ -56,8 +57,8 @@ export default function HabitsPanel({
             <ControlInput value={newHabit.name} onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addHabit()} className="rounded-lg border border-border-custom bg-surface px-3 py-2 text-xs font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50" placeholder="Nazwa" />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Pressable onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} className={`rounded-lg border py-2 text-2xs font-black uppercase tracking-widest cursor-pointer ${newHabit.is_positive ? 'border-success/35 bg-success/10 text-success' : 'border-border-custom text-text-muted'}`}>Wzmacniać</Pressable>
-            <Pressable onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} className={`rounded-lg border py-2 text-2xs font-black uppercase tracking-widest cursor-pointer ${!newHabit.is_positive ? 'border-danger/35 bg-danger/10 text-danger' : 'border-border-custom text-text-muted'}`}>Unikać</Pressable>
+            <ToggleChip active={newHabit.is_positive} onClick={() => setNewHabit(p => ({ ...p, is_positive: true }))} variant="success">Wzmacniać</ToggleChip>
+            <ToggleChip active={!newHabit.is_positive} onClick={() => setNewHabit(p => ({ ...p, is_positive: false }))} variant="danger">Unikać</ToggleChip>
           </div>
           <Pressable onClick={addHabit} variant="primary" size="sm" className="w-full uppercase tracking-widest">Dodaj</Pressable>
         </Card>
