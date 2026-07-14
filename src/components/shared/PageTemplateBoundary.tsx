@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export type PageTemplateKind = 'list' | 'grid' | 'dashboard' | 'timeline';
 
@@ -14,7 +14,7 @@ const prefersReduced =
 
 const reducedTransition = { duration: 0.2 };
 
-const kindVariants: Record<PageTemplateKind, { initial: object; animate: object; exit: object }> = {
+const kindVariants = {
   list: {
     initial: { opacity: 0, x: 40 },
     animate: { opacity: 1, x: 0 },
@@ -35,7 +35,7 @@ const kindVariants: Record<PageTemplateKind, { initial: object; animate: object;
     animate: { opacity: 1, scale: 1 },
     exit: { opacity: 0, scale: 0.98 },
   },
-};
+} as const;
 
 const spring = { type: 'spring' as const, damping: 1, duration: 0.35 };
 

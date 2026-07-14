@@ -48,7 +48,8 @@ export function useDashboardState(session: Session) {
     if (typeof to === 'number') {
       rawNavigate(to);
     } else {
-      rawNavigate(to, { replace: true, ...options });
+      const shouldReplace = !!window.history.state?.modal;
+      rawNavigate(to, { replace: shouldReplace, ...options });
     }
   }, [rawNavigate]);
 
