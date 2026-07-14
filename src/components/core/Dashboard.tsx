@@ -9,7 +9,6 @@ import { DashboardNavBar } from './DashboardNavBar';
 import { DashboardModals } from './DashboardModals';
 import { DashboardFastCaptureMenu, DashboardFastCaptureFAB } from './DashboardFastCapture';
 import OrientationFooter from './OrientationFooter';
-import { SpineGuideStrip } from './SpineGuideStrip';
 import PowerList from '../lifestyle/PowerList';
 import SearchModal from './SearchModal';
 import { useDashboardState } from './hooks/useDashboardState';
@@ -152,7 +151,6 @@ export default function Dashboard({ session }: { session: Session }) {
             {showLock ? (
               <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
                 <OrientationFooter />
-                <SpineGuideStrip guidance={s.spineGuidance} loading={s.spineGuidanceLoading} onNavigate={s.handleSpineGuideNavigate} onPlanDay={s.handlePlanDay} onFocusPlan={s.handleFocusPlan} />
                 {weeklyReviewNudge}
                 <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
                 {s.todayWin && isAfter20() && (

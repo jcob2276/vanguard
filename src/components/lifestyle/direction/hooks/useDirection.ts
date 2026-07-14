@@ -250,7 +250,7 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
     void (() => {
       setPhase1Loading(true);
       actions.callWeekRecap('before')
-        .then(data => setPhase1(data.phase1))
+        .then(data => { if ('phase1' in data) setPhase1(data.phase1); })
         .catch(err => console.error('Layer 1 (before) failed:', err))
         .finally(() => setPhase1Loading(false));
     })();
@@ -262,7 +262,7 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
     void (() => {
       setMonthRecapLoading(true);
       actions.callMonthRecap()
-        .then(data => { if (data?.phase1) setMonthRecap(data.phase1); })
+        .then(data => { if (data && 'phase1' in data) setMonthRecap(data.phase1); })
         .catch(err => console.error('Month recap failed:', err))
         .finally(() => setMonthRecapLoading(false));
     })();

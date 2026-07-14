@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, type NavigateOptions, type To } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { flushSync } from 'react-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -38,8 +38,19 @@ export function useDashboardState(session: Session) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
   const location = useLocation();
-  const navigate = useNavigate();
+  const rawNavigate = useNavigate();
   const haptics = useHaptics();
+
+  const isNavigatingRef = useRef(false);
+
+  const navigate = useCallback((to: To | number, options?: NavigateOptions) => {
+    isNavigatingRef.current = true;
+    if (typeof to === 'number') {
+      rawNavigate(to);
+    } else {
+      rawNavigate(to, { replace: true, ...options });
+    }
+  }, [rawNavigate]);
 
   const rawView = location.pathname === '/' ? 'dzis' : location.pathname.substring(1);
   const view = normalizeView(rawView);
@@ -333,7 +344,10 @@ export function useDashboardState(session: Session) {
     if (curr && !prev) {
       window.history.pushState({ modal: curr }, '');
     } else if (!curr && prev) {
-      window.history.back();
+      if (!isNavigatingRef.current) {
+        window.history.back();
+      }
+      isNavigatingRef.current = false;
     } else if (curr && prev && curr !== prev) {
       window.history.replaceState({ modal: curr }, '');
     }

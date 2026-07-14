@@ -19,7 +19,7 @@ export const Pressable = forwardRef<HTMLButtonElement, PressableProps>(
     if (usesButtonContract) {
       return <Button ref={ref} type={type} variant={variant} size={size} loading={loading} icon={icon} iconPosition={iconPosition} className={className} {...props} />;
     }
-    return <button ref={ref} type={type} data-ui="pressable" className={`${CONTROL_MOTION} ${className}`} {...props} />;
+    return <button ref={ref} type={type} data-ui="pressable" className={`${CONTROL_MOTION} active:scale-97 cursor-pointer ${className}`} {...props} />;
   },
 );
 Pressable.displayName = 'Pressable';

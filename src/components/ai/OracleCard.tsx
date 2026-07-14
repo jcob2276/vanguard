@@ -68,7 +68,7 @@ export default function OracleCard({
     loading,
     currentMode,
     pendingClarification,
-    setPendingClarification,
+    clearClarification,
     pendingImages,
     setPendingImages,
     previewUrls,
@@ -76,7 +76,6 @@ export default function OracleCard({
     setFocused,
     handleAttachImage,
     handlePendingAction,
-    loadClarification,
     ask,
   } = useOracleChat({
     storageScope,
@@ -176,7 +175,7 @@ export default function OracleCard({
             <div className="px-4 pt-3">
               <ClarificationRequestCard
                 request={pendingClarification}
-                onAnswered={() => { setPendingClarification(null); void loadClarification(); }}
+                onAnswered={() => clearClarification()}
               />
             </div>
           )}

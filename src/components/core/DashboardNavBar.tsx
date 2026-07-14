@@ -24,7 +24,7 @@ export function DashboardNavBar({
   tabOrder,
 }: DashboardNavBarProps) {
   return (
-    <nav className="fixed left-1/2 z-[var(--z-modal)] flex w-[var(--legacy-w-096)] max-w-[var(--legacy-maxw-057)] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/80 p-1.5 shadow-[var(--shadow-nav)] backdrop-blur-[var(--blur-xl)]" style={{ bottom: 'var(--legacy-inline-style-014)' }}>
+    <nav className="fixed left-1/2 z-[var(--z-modal)] flex w-[var(--legacy-w-096)] max-w-[var(--legacy-maxw-057)] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/75 p-1.5 shadow-[var(--shadow-nav)] ios-glass-structural" style={{ bottom: 'var(--legacy-inline-style-014)' }}>
       {/* Sliding background indicator pill */}
       <div
         className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-[var(--motion-slow)]"

@@ -1,22 +1,49 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
+import type { EdgeFunctionResponses } from './edgeTypes';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient<Database>(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder');
 
+/**
+ * Invoke a Supabase Edge Function with type-safe responses.
+ *
+ * Register the function name in `EdgeFunctionResponses` (src/lib/edgeTypes.ts)
+ * to get compile-time response checking. Unregistered names return
+ * `Record<string, unknown>` — add the name to the registry instead of using `<any>`.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function invokeEdge<T = any>(
-  functionName: string,
+type EdgeBody = string | Record<string, any> | File | Blob | ArrayBuffer | FormData | ReadableStream<Uint8Array> | undefined;
+
+export async function invokeEdge<K extends keyof EdgeFunctionResponses>(
+  functionName: K,
   options?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    body?: any;
+    body?: EdgeBody;
     method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
     headers?: Record<string, string>;
     signal?: AbortSignal;
   }
-): Promise<T> {
+): Promise<EdgeFunctionResponses[K]>;
+export async function invokeEdge(
+  functionName: string,
+  options?: {
+    body?: EdgeBody;
+    method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
+    headers?: Record<string, string>;
+    signal?: AbortSignal;
+  }
+): Promise<Record<string, unknown>>;
+export async function invokeEdge(
+  functionName: string,
+  options?: {
+    body?: EdgeBody;
+    method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
+    headers?: Record<string, string>;
+    signal?: AbortSignal;
+  }
+): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke(functionName, {
     body: options?.body,
     method: options?.method || 'POST',
@@ -27,14 +54,13 @@ export async function invokeEdge<T = any>(
   if (error) {
     throw new Error(error.message || `Edge function ${functionName} failed`);
   }
-  return data as T;
+  return data as Record<string, unknown>;
 }
 
 export async function invokeEdgeStream(
   functionName: string,
   options?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    body?: any;
+    body?: unknown;
     method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
     headers?: Record<string, string>;
     signal?: AbortSignal;

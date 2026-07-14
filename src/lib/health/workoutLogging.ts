@@ -1,6 +1,7 @@
 import { supabase } from '../supabase'
 import { scheduleStrainRecompute } from './strainRefresh'
 import { invokeEdge } from '../supabase'
+import type { AnalyzeTrainingLoadResponse } from '../edgeTypes'
 import { TIMEOUTS } from '../constants'
 import { rpcWithOfflineFallback } from '../offlineQueue'
 import { shiftDateStr } from '../date'
@@ -246,7 +247,7 @@ async function runTrainingLoadAnalysis(userId: string, date: string): Promise<vo
     const json = await invokeEdge('analyze-training-load', {
       body: { userId },
       signal: AbortSignal.timeout(TIMEOUTS.llm),
-    })
+    }) as AnalyzeTrainingLoadResponse
     const line =
       json.coach_decision_summary ||
       json.load_summary ||

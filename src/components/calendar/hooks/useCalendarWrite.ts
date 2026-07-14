@@ -12,7 +12,7 @@ export function useCalendarWrite({
 }) {
   const call = useCallback(
     async (action: 'create' | 'update' | 'delete', event: CalendarEvent) => {
-      const data = await invokeEdge<{ success: boolean; eventId?: string; error?: string }>('calendar-write', {
+      const data = await invokeEdge('calendar-write', {
         body: { userId, action, event },
         signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
       });

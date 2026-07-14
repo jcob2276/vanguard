@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import Auth from './components/core/Auth';
@@ -32,7 +33,7 @@ function Screen({ kind, children }: { kind: PageTemplateKind; children: ReactNod
 }
 
 function AppRoutes() {
-  const { session, setSession, fetchUserSettings } = useStore();
+  const { session, setSession } = useStore();
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
@@ -41,15 +42,13 @@ function AppRoutes() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) fetchUserSettings();
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) fetchUserSettings();
     });
     return () => subscription.unsubscribe();
-  }, [setSession, fetchUserSettings]);
+  }, [setSession]);
 
   useEffect(() => {
     if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
@@ -74,7 +73,8 @@ function AppRoutes() {
   if (!session) return <Auth />;
 
   return (
-    <Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
       <Route path="/" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
       <Route path="/dzis" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
       <Route path="/tydzien" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
@@ -121,7 +121,8 @@ function AppRoutes() {
         </Suspense>
       } />
       <Route path="*" element={<Navigate to="/dzis" replace />} />
-    </Routes>
+      </Routes>
+    </AnimatePresence>
   );
 }
 

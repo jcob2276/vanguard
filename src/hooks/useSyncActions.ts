@@ -58,11 +58,14 @@ export function useSyncActions({
     setSyncing(true);
     window.history.replaceState({}, document.title, window.location.pathname);
     try {
-      const res = await invokeEdge<{ success?: boolean; error?: string }>('sync?service=calendar', {
-        method: 'POST',
-        body: { userId, code, redirectUri: window.location.origin },
-        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-      });
+      const res = await invokeEdge(
+        'sync?service=calendar',
+        {
+          method: 'POST',
+          body: { userId, code, redirectUri: window.location.origin },
+          signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
+        }
+      ) as { success?: boolean; error?: string };
       if (res?.success) {
         await syncCalendar();
       } else {

@@ -19,7 +19,7 @@ import {
   updateDailyWin,
 } from '../../../../lib/goal/goalSpine';
 import { supabase, invokeEdge } from '../../../../lib/supabase';
-import type { RecapResponse } from '../../../../lib/edgeTypes';
+import type { RecapResponse, RecapWeeklyRecapPhase2 } from '../../../../lib/edgeTypes';
 import { useHaptics } from '../../../../hooks/useHaptics';
 import { notify } from '../../../../lib/notify';
 import { TIMEOUTS } from '../../../../lib/constants';
@@ -165,7 +165,7 @@ export function createDirectionActions(params: {
     setPhase2Loading(true);
     try {
       const recap = await callWeekRecap('after');
-      if (recap.phase2 && Array.isArray(recap.phase2.deepening_questions)) setPhase2(recap.phase2);
+      if ('phase2' in recap && recap.phase2 && Array.isArray(recap.phase2.deepening_questions)) setPhase2(recap.phase2 as RecapWeeklyRecapPhase2['phase2']);
     } catch (err: unknown) { console.warn('[directionActions] Failed to call weekly recap:', err); } finally {
       setPhase2Loading(false);
     }

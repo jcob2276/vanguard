@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useStore } from '../../../store/useStore';
+import { useUserSettings } from '../../../hooks/useUserSettings';
 import {
   useCalendarEvents,
   useCreateCalendarEvent,
@@ -122,13 +122,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     });
   };
 
-  const { userSettings, fetchUserSettings } = useStore();
-
-  useEffect(() => {
-    if (!userSettings) {
-      fetchUserSettings();
-    }
-  }, [userSettings, fetchUserSettings]);
+  const { data: userSettings } = useUserSettings(userId);
 
   const { weather, weatherLoading } = useCalendarWeather({
     today,

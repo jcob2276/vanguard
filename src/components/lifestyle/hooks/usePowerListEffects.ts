@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { parseDailyWinWithTasks } from '../../../lib/db-json-guards';
-import { listTodoItems, listTodoSections, type TodoItemRow } from '../../../lib/todo/todo';
+import { listTodoItems, listTodoSections } from '../../../lib/todo/todo';
 import { listProjects } from '../../../lib/projects/projects';
 import { getYesterdayWarsaw } from '../../../lib/date';
 import {
@@ -18,14 +18,10 @@ interface UsePowerListEffectsArgs {
   today: string;
   todayWin: DailyWinWithTasks | null;
   draftLoadedRef: React.MutableRefObject<boolean>;
-  planDaySignalMountedRef: React.MutableRefObject<boolean>;
   newTaskForm: TaskSlot[];
   setNewTaskForm: React.Dispatch<React.SetStateAction<TaskSlot[]>>;
   yesterdayNote: string;
   setYesterdayNote: React.Dispatch<React.SetStateAction<string>>;
-  setYesterdayWin: React.Dispatch<React.SetStateAction<DailyWinWithTasks | null>>;
-  setProjectMap: React.Dispatch<React.SetStateAction<Record<string, { name: string; color: string | null }>>>;
-  setTodoItems: React.Dispatch<React.SetStateAction<TodoItemRow[]>>;
   planDaySignal: number | undefined;
   directionLoading: boolean;
 }
@@ -35,14 +31,10 @@ export function usePowerListEffects({
   today,
   todayWin,
   draftLoadedRef,
-  planDaySignalMountedRef: _planDaySignalMountedRef,
   newTaskForm,
   setNewTaskForm,
   yesterdayNote,
   setYesterdayNote,
-  setYesterdayWin,
-  setProjectMap,
-  setTodoItems,
   planDaySignal: _planDaySignal,
   directionLoading: _directionLoading,
 }: UsePowerListEffectsArgs) {
@@ -89,12 +81,6 @@ export function usePowerListEffects({
     enabled: (todoIds.length > 0 || directProjectIds.length > 0),
   });
 
-  useEffect(() => {
-    if (projectMetadataQuery.data) {
-      setProjectMap(projectMetadataQuery.data);
-    }
-  }, [projectMetadataQuery.data, setProjectMap]);
-
   // 2. Fetch yesterday's win details
   const yesterdayWinQuery = useQuery<DailyWinWithTasks | null>({
     queryKey: ['powerlist-yesterday-win', userId],
@@ -113,17 +99,10 @@ export function usePowerListEffects({
 
   useEffect(() => {
     if (yesterdayWinQuery.data !== undefined) {
-      setYesterdayWin(yesterdayWinQuery.data ?? null);
       setYesterdayNote(yesterdayWinQuery.data?.day_note ?? '');
       draftLoadedRef.current = false;
     }
-  }, [yesterdayWinQuery.data, setYesterdayWin, setYesterdayNote, draftLoadedRef]);
-
-  useEffect(() => {
-    if (yesterdayWinQuery.isError) {
-      setYesterdayWin(null);
-    }
-  }, [yesterdayWinQuery.isError, setYesterdayWin]);
+  }, [yesterdayWinQuery.data, setYesterdayNote, draftLoadedRef]);
 
   // 3. LocalStorage draft loading (NOT react-query — localStorage)
   useEffect(() => {
@@ -196,9 +175,10 @@ export function usePowerListEffects({
     enabled: !!userId && !todayWin,
   });
 
-  useEffect(() => {
-    if (openTodosQuery.data) {
-      setTodoItems(openTodosQuery.data);
-    }
-  }, [openTodosQuery.data, setTodoItems]);
+  return {
+    projectMap: projectMetadataQuery.data ?? {},
+    yesterdayWin: yesterdayWinQuery.data ?? null,
+    todoItems: openTodosQuery.data ?? [],
+    loading: projectMetadataQuery.isLoading || yesterdayWinQuery.isLoading || openTodosQuery.isLoading,
+  };
 }

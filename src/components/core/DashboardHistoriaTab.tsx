@@ -6,7 +6,6 @@ import Tabs from '../ui/Tabs';
 
 const Stats             = lazy(() => import('./Stats'));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
-const TaskAnalyticsCard = lazy(() => import('../insights/TaskAnalyticsCard'));
 const StravaWidget      = lazy(() => import('../integrations/StravaWidget'));
 
 const Photos            = lazy(() => import('../identity/Photos'));
@@ -41,12 +40,9 @@ export function DashboardHistoriaTab({ historySubTab, onSetSubTab }: Props) {
             <Tabs tabs={tabs} active={historySubTab} onChange={onSetSubTab as (key: string) => void} />
           </div>
 
-          <div className={historySubTab === 'chronicle' ? 'lg:grid lg:grid-cols-2 lg:gap-5 space-y-7 lg:space-y-0' : 'hidden'}>
-            <TaskAnalyticsCard />
+          <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
             <InsightsDashboard />
-            <div className="lg:col-span-2">
-              <Photos />
-            </div>
+            <Photos />
           </div>
           <div className={historySubTab === 'bio' ? '' : 'hidden'}>
             <Stats runningSlot={<StravaWidget session={session} />} />

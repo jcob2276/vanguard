@@ -1,45 +1,9 @@
-import { Clock, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import type { ScheduleViewData } from '../../types/schedule';
 import { Card } from '../ui/Card';
 
-function MagazineHeroCard({
-  hero,
-}: {
-  hero: NonNullable<ScheduleViewData['hero']>;
-}) {
-  return (
-    <article
-      className="relative overflow-hidden rounded-2xl p-5 min-h-[var(--legacy-h-013)] flex flex-col justify-end"
-      style={{
-        background: 'linear-gradient(135deg, var(--legacy-color-008), var(--legacy-color-003))',
-        border: 'var(--border-width-thin) solid var(--legacy-color-129)',
-      }}
-    >
-      <span
-        className="absolute top-4 left-4 text-xs font-semibold uppercase tracking-widest px-2.5 py-1 rounded-lg"
-        style={{ background: 'var(--legacy-color-132)', color: 'var(--legacy-color-139)' }}
-      >
-        Wyróżnione
-      </span>
-      <h3 className="text-xl font-bold leading-tight text-on-accent mt-8">{hero.title}</h3>
-      {hero.description && (
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--legacy-color-135)' }}>
-          {hero.description}
-        </p>
-      )}
-      {hero.startTime && (
-        <p className="mt-3 flex items-center gap-1.5 text-sm" style={{ color: 'var(--legacy-color-134)' }}>
-          <Clock size={14} />
-          {hero.startTime}
-        </p>
-      )}
-    </article>
-  );
-}
-
 export function MagazineBar({ view }: { view: ScheduleViewData }) {
   if (
-    !view.hero &&
     !view.editorialIntro &&
     !view.monthTheme &&
     !view.sprintWeekBridge &&
@@ -52,7 +16,6 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
 
   return (
     <section className="space-y-4">
-      {view.hero && <MagazineHeroCard hero={view.hero} />}
 
       {view.monthTheme && (
         <p className="text-sm leading-relaxed text-text-secondary px-0.5">

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
-import { useStore, useUserId } from '../../../store/useStore';
+import { useUserId } from '../../../store/useStore';
+import { useUserSettings } from '../../../hooks/useUserSettings';
 import type { Tables, TablesInsert } from '../../../lib/database.types';
 import { analyzeFoodQuality, analyzeTrainingLoad as requestTrainingLoad } from '../stats/statsApi';
 import { exportStatsMarkdown, exportOuraCsv } from '../../../lib/stats/exportStats';
@@ -24,7 +25,7 @@ export type EditFormState = { date: string | null; workout_day: string; logs: Ed
 
 export function useStatsData() {
   const userId = useUserId();
-  const { userSettings } = useStore();
+  const { data: userSettings } = useUserSettings(userId);
   const queryClient = useQueryClient();
   const { data: overview, isLoading: loading } = useStatsOverviewQuery(userId);
   const bodyData = overview?.bodyData ?? [];
@@ -109,13 +110,13 @@ export function useStatsData() {
         analyzeDate,
         analyzePeriod
       });
-      if (!res.success) {
-        throw new Error(res.error || 'Nieznany błąd');
+      if (!res.success || 'error' in res) {
+        throw new Error(('error' in res ? res.error : null) || 'Nieznany błąd');
       }
       return res;
     },
     onSuccess: (res) => {
-      setAnalyzeResult(res);
+      setAnalyzeResult(res as FoodAnalysisResult);
     },
     onError: (err: Error) => {
       notify('Błąd analizy: ' + err.message, 'error');

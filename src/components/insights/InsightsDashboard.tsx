@@ -13,8 +13,6 @@ import {
 } from '../../lib/insightsApi';
 import { notify } from '../../lib/notify';
 import { PatternsView } from './PatternsView';
-import { TrendChart } from '../widgets/TrendChart';
-import { BarChartWidget } from '../widgets/BarChart';
 import { DetailPageLayout } from '../ui/DetailPageLayout';
 import { Card } from '../ui/Card';
 import { useUserId } from '../../store/useStore';
@@ -36,23 +34,6 @@ export function InsightsDashboard() {
   const cards = useMemo(() => cardsQuery.data ?? [], [cardsQuery.data]);
   const cardsLoading = cardsQuery.isLoading;
 
-  const activityTrend = useMemo(() => {
-    if (!snapshot?.daily?.length) return null;
-    const points = [...snapshot.daily].reverse().slice(-14).map((d) => ({
-      label: d.date.slice(5),
-      value: d.inputs,
-    }));
-    return { points, unit: 'wpisów', color: 'var(--color-primary)' };
-  }, [snapshot]);
-
-  const activityBars = useMemo(() => {
-    if (!snapshot?.daily?.length) return null;
-    const points = [...snapshot.daily].reverse().slice(-7).map((d) => ({
-      label: d.date.slice(5),
-      value: d.inputs + d.completedTodos,
-    }));
-    return { points, color: 'var(--color-success)' };
-  }, [snapshot]);
 
   const invalidate = useCallback(() => {
     if (!userId) return;
@@ -121,19 +102,6 @@ export function InsightsDashboard() {
     <div className="space-y-5">
       <UserStatsOverviewCard snapshot={snapshot} loading={statsLoading} />
 
-      {activityTrend && (
-        <Card variant="glass" padding="16px">
-          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)] text-text-tertiary mb-3">Aktywność — trend</p>
-          <TrendChart data={activityTrend} />
-        </Card>
-      )}
-
-      {activityBars && (
-        <Card variant="glass" padding="16px">
-          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)] text-text-tertiary mb-3">Aktywność — 7 dni</p>
-          <BarChartWidget data={activityBars} />
-        </Card>
-      )}
 
       <PatternsView />
 

@@ -6,17 +6,20 @@ import { Link } from 'react-router-dom';
 import { Save, MapPin, Watch, Calendar, ArrowLeft, User } from 'lucide-react';
 import {
   fetchNutritionProfile,
-  upsertUserSettings,
   upsertNutritionProfile,
 } from '../../lib/userSettingsApi';
-import { useStore } from '../../store/useStore';
+import { useUserSettings, useUpdateUserSettings } from '../../hooks/useUserSettings';
+import { useQueryClient } from '@tanstack/react-query';
+import { userSettingsKeys } from '../../lib/queryKeys';
 import { useSyncActions } from '../../hooks/useSyncActions';
 import { notify } from '../../lib/notify';
 import type { Tables } from '../../lib/database.types';
 import { Card } from '../ui/Card';
 
 export default function SettingsView({ session }: { session: Session }) {
-  const { userSettings, fetchUserSettings } = useStore();
+  const queryClient = useQueryClient();
+  const { data: userSettings } = useUserSettings(session.user.id);
+  const updateSettingsMutation = useUpdateUserSettings();
   const [form, setForm] = useState<Partial<Tables<'user_settings'>>>({});
   const [profile, setProfile] = useState<Partial<Tables<'nutrition_profile'>>>({});
   const [saving, setSaving] = useState(false);
@@ -24,13 +27,13 @@ export default function SettingsView({ session }: { session: Session }) {
   const { syncCalendar, startGoogleAuth } = useSyncActions({
     userId: session.user.id,
     accessToken: session.access_token,
-    onRefresh: () => fetchUserSettings(),
+    onRefresh: () => {
+      void queryClient.invalidateQueries({
+        queryKey: userSettingsKeys.detail(session.user.id),
+      });
+    },
     setSyncing: () => {},
   });
-
-  useEffect(() => {
-    fetchUserSettings();
-  }, [fetchUserSettings]);
 
   useEffect(() => {
     if (userSettings) void (async () => { setForm(userSettings); })();
@@ -51,7 +54,7 @@ export default function SettingsView({ session }: { session: Session }) {
   const save = async () => {
     setSaving(true);
     try {
-      await upsertUserSettings({
+      await updateSettingsMutation.mutateAsync({
         user_id: session.user.id,
         oura_token: form.oura_token || null,
         home_lat: form.home_lat ?? null,
@@ -71,7 +74,6 @@ export default function SettingsView({ session }: { session: Session }) {
         updated_at: new Date().toISOString(),
       });
 
-      await fetchUserSettings();
       notify('Ustawienia zapisane.', 'success');
     } catch (e: unknown) {
       notify(e instanceof Error ? (e as Error).message : 'Błąd zapisu', 'error');

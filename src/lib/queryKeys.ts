@@ -321,3 +321,16 @@ export const lifeGoalsKeys = {
 export const todoPushSubscriptionKeys = {
   forUser: (userId: string) => ['todo-push-subscription', userId] as const,
 };
+
+// ── USER SETTINGS KEYS ──
+export const userSettingsKeys = {
+  all: ['user-settings'] as const,
+  detail: (userId: string) => [...userSettingsKeys.all, userId] as const,
+};
+
+// ── ORACLE CHAT KEYS ──
+export const oracleChatKeys = {
+  all: ['oracle-chat'] as const,
+  dailyMode: (userId: string) => [...oracleChatKeys.all, 'dailyMode', userId] as const,
+  pendingClarification: (userId: string) => [...oracleChatKeys.all, 'pendingClarification', userId] as const,
+};

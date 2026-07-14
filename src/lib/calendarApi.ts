@@ -54,7 +54,7 @@ export function useCreateCalendarEvent() {
       accessToken?: string;
       event: Omit<CalendarEvent, 'id'>;
     }) => {
-      return invokeEdge<{ success: boolean; eventId?: string }>('calendar-write', {
+      return invokeEdge('calendar-write', {
         body: { userId, action: 'create', event },
       });
     },
@@ -75,7 +75,7 @@ export function useUpdateCalendarEvent() {
       accessToken?: string;
       event: CalendarEvent & { id: string };
     }) => {
-      return invokeEdge<{ success: boolean }>('calendar-write', {
+      return invokeEdge('calendar-write', {
         body: { userId, action: 'update', event },
       });
     },
@@ -98,7 +98,7 @@ export function useDeleteCalendarEvent() {
       eventId: string;
       deleteScope?: 'this' | 'all';
     }) => {
-      return invokeEdge<{ success: boolean }>('calendar-write', {
+      return invokeEdge('calendar-write', {
         body: {
           userId,
           action: 'delete',

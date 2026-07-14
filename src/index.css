@@ -515,32 +515,32 @@
   --legacy-inline-css-041: 99999;
   --on-accent: #ffffff;
   --scrim: #000000;
-  --background: #f7f9fc;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --surface: #ffffff;
-  --surface-solid: #ffffff;
-  --border: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --background: #FAF7F3;
+  --primary: #BC5B39;
+  --primary-hover: #A54A2B;
+  --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
+  --border: #E8DFD5;
+  --text-primary: #1C1917;
+  --text-secondary: #6B5D52;
+  --text-muted: #A69488;
   --bg-gradient-a: color-mix(in srgb, var(--primary) 2%, transparent);
   --bg-gradient-b: rgba(245, 158, 11, 0.015);
   --bg-gradient-c: rgba(16, 185, 129, 0.01);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
   --shadow-nav: 0 12px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.02);
-  --input-bg: #ffffff;
-  --nav-bg: rgba(255, 255, 255, 0.9);
-  --btn-outline-bg: #ffffff;
-  --btn-secondary-bg: #f8fafc;
-  --btn-secondary-hover: #f1f5f9;
+  --input-bg: var(--surface);
+  --nav-bg: color-mix(in srgb, var(--surface) 75%, transparent);
+  --btn-outline-bg: var(--surface);
+  --btn-secondary-bg: color-mix(in srgb, var(--background) 40%, var(--surface));
+  --btn-secondary-hover: color-mix(in srgb, var(--background) 70%, var(--surface));
 
   /* Theme variables */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --accent: #3b82f6;
-  --border-color: #e2e8f0;
+  --bg-primary: var(--background);
+  --bg-secondary: var(--surface);
+  --accent: var(--primary);
+  --border-color: var(--border);
 
   /* ── Memex design tokens (additive — do not rename existing) ── */
   --color-text-tertiary: #99A1AF;
@@ -863,6 +863,7 @@
   /* iOS-style spring easing */
   --spring: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --motion-fast: 120ms;
   --motion-medium: 200ms;
   --motion-slow: 300ms;
@@ -888,15 +889,15 @@
 }
 
 .dark {
-  --background: #030712;
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --surface: #0b0f19;
-  --surface-solid: #111827;
-  --border: rgba(255, 255, 255, 0.06);
-  --text-primary: #f9fafb; /* Slate 50 */
-  --text-secondary: #9ca3af; /* Slate 400 */
-  --text-muted: #818999; /* Improved contrast for dark mode metadata */
+  --background: #1C1917;
+  --primary: #D97757;
+  --primary-hover: #E8916F;
+  --surface: #262220;
+  --surface-solid: #2D2825;
+  --border: #3A332E;
+  --text-primary: #F5F0EB;
+  --text-secondary: #A69488;
+  --text-muted: #7A6D62;
   --bg-gradient-a: var(--primary-12);
   --bg-gradient-b: rgba(236, 72, 153, 0.08);
   --bg-gradient-c: rgba(139, 92, 246, 0.08);
@@ -906,17 +907,17 @@
   --shadow-focus: 0 0 0 3px var(--primary-25);
   --shadow-glow-primary: 0 0 16px var(--primary-50);
   --shadow-accent-active: 0 4px 25px var(--primary-20);
-  --input-bg: #111827;
-  --nav-bg: rgba(11, 15, 25, 0.85);
+  --input-bg: var(--surface-solid);
+  --nav-bg: color-mix(in srgb, var(--surface) 75%, transparent);
   --btn-outline-bg: rgba(255, 255, 255, 0.02);
   --btn-secondary-bg: rgba(255, 255, 255, 0.04);
   --btn-secondary-hover: rgba(255, 255, 255, 0.08);
 
   /* Theme variables */
-  --bg-primary: #030712;
-  --bg-secondary: #0b0f19;
+  --bg-primary: var(--background);
+  --bg-secondary: var(--surface);
   --accent: var(--primary);
-  --border-color: rgba(255, 255, 255, 0.06);
+  --border-color: var(--border);
 
   --color-success: #34d399;
   --color-warning: #fbbf24;
@@ -978,7 +979,7 @@
   --color-dayB: #f43f5e;
   --color-dayC: #10b981;
   --color-dayD: #f59e0b;
-  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-display: 'Cabinet Grotesk', 'Outfit', system-ui, sans-serif;
   --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
   --shadow-card: var(--shadow-card);
@@ -1056,9 +1057,41 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
   }
+
+  /* ── Typographic tracking discipline ── */
+  .text-2xl, .text-3xl, .stat-hero-number { letter-spacing: -0.02em; }
+  .text-3xs, .text-2xs { letter-spacing: 0.02em; }
 }
 
 @layer components {
+  .stat-hero-number {
+    font-size: var(--text-5xl);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── iOS premium glass chrome ── */
+  .ios-glass-chrome {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* ── iOS glass material hierarchy ── */
+  /* Structural: sidebar, bottom-nav — heavier material, more opacity */
+  .ios-glass-structural {
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+  }
+  /* Interactive: header, toolbar, floating action — lighter material, more transparency */
+  .ios-glass-interactive {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+  }
+
   /* ── Card — iOS large radius + glass ── */
   .card {
     background-color: var(--surface);
@@ -1126,8 +1159,8 @@
   /* ── Glass panel — iOS frosted surface ── */
   .glass-panel {
     background: color-mix(in srgb, var(--surface) 80%, transparent);
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
   }
@@ -1155,9 +1188,9 @@
 
   /* ── iOS surface — sheet / modal surface ── */
   .ios-surface {
-    background: color-mix(in srgb, var(--surface) 80%, transparent);
-    backdrop-filter: blur(32px) saturate(160%);
-    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    background: color-mix(in srgb, var(--surface) 75%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 0.5px solid var(--border);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
@@ -1177,8 +1210,8 @@
   /* ── iOS modal backdrop — heavier blur variant for sheets, promoted from notes.css .keep-modal-backdrop ── */
   .ios-modal-backdrop {
     background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
   /* ── iOS full-screen sheet modifier — opt-in for .ios-surface consumers that are bottom sheets, not centered

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '../../store/useStore';
 import type { ChatItem } from './ChatItems';
 import type { CardTemplateId } from '../cards/CardFactory';
@@ -11,10 +12,10 @@ import {
   sendOracleChatPrompt,
   applyScheduleMutation,
   processAndUploadChatImages,
-  type ClarificationRequest,
   type ScheduleMutation,
   type InsightCardPayload,
 } from '../../lib/oracleApi';
+import { oracleChatKeys } from '../../lib/queryKeys';
 import { notify } from '../../lib/notify';
 
 const oracleChatKey = (userId: string, scope: 'default' | 'medical' = 'default') =>
@@ -56,15 +57,29 @@ export function useOracleChat({
 }: UseOracleChatProps) {
   const session = useSession();
   const userId = session?.user?.id;
+  const queryClient = useQueryClient();
   const [items, setItems] = useState<ChatItem[]>([]);
   const [input, setInput] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
-  const [currentMode, setCurrentMode] = useState<string>('default');
-  const [pendingClarification, setPendingClarification] = useState<ClarificationRequest | null>(null);
   const [pendingImages, setPendingImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
   const idleTurnsRef = useRef(0);
+
+  // ── Queries (replacing raw useEffect fetching) ──
+  const { data: currentMode = 'default' } = useQuery({
+    queryKey: oracleChatKeys.dailyMode(userId ?? ''),
+    queryFn: () => fetchCurrentDailyMode(userId!),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: pendingClarification = null, refetch: refetchClarification } = useQuery({
+    queryKey: oracleChatKeys.pendingClarification(userId ?? ''),
+    queryFn: () => fetchPendingClarification(userId!),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  });
 
   useEffect(() => {
     if (!userId) return;
@@ -99,14 +114,6 @@ export function useOracleChat({
   }, [pendingImages]);
 
   useEffect(() => {
-    if (!userId) return;
-    void (async () => {
-      const mode = await fetchCurrentDailyMode(userId);
-      setCurrentMode(mode);
-    })();
-  }, [userId]);
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [items, loading, messagesEndRef]);
 
@@ -123,16 +130,6 @@ export function useOracleChat({
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
   }, []);
-
-  const loadClarification = useCallback(async () => {
-    if (!userId) return;
-    const request = await fetchPendingClarification(userId);
-    setPendingClarification(request);
-  }, [userId]);
-
-  useEffect(() => {
-    void loadClarification();
-  }, [loadClarification]);
 
   const handleAttachImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -273,7 +270,7 @@ export function useOracleChat({
           ...extraItems
         ];
       });
-      void loadClarification();
+      void refetchClarification();
     } catch (e: unknown) {
       setItems(prev => [...prev, { type: 'error', text: `Błąd: ${e instanceof Error ? e.message : 'nieznany'}`, timestamp: new Date() }]);
     } finally {
@@ -282,6 +279,12 @@ export function useOracleChat({
     }
   };
 
+  const clearClarification = useCallback(() => {
+    if (!userId) return;
+    queryClient.setQueryData(oracleChatKeys.pendingClarification(userId), null);
+    void refetchClarification();
+  }, [userId, queryClient, refetchClarification]);
+
   return {
     items,
     input,
@@ -289,7 +292,7 @@ export function useOracleChat({
     loading,
     currentMode,
     pendingClarification,
-    setPendingClarification,
+    clearClarification,
     pendingImages,
     setPendingImages,
     previewUrls,
@@ -297,7 +300,6 @@ export function useOracleChat({
     setFocused,
     handleAttachImage,
     handlePendingAction,
-    loadClarification,
     ask,
   };
 }

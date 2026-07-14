@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import type { Database } from '../database.types';
-import { unwrap, unwrapList } from '../supabaseUtils';
+import { unwrap, unwrapList, unwrapMaybe } from '../supabaseUtils';
 import { getTodayWarsaw } from '../date';
 import { isOfflineError, queueOfflineWrite } from '../offlineQueue';
 
@@ -276,16 +276,17 @@ const TASK_REVIEW_KIND = 'weekly_review';
 
 /** Warsaw date (YYYY-MM-DD) of the last completed weekly task review, or null if never done. */
 export async function fetchLatestTaskReviewDate(userId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('vanguard_stream')
-    .select('metadata')
-    .eq('user_id', userId)
-    .eq('source', TASK_REVIEW_SOURCE)
-    .eq('metadata->>kind', TASK_REVIEW_KIND)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
+  const data = await unwrapMaybe<{ metadata: Record<string, unknown> }>(
+    await supabase
+      .from('vanguard_stream')
+      .select('metadata')
+      .eq('user_id', userId)
+      .eq('source', TASK_REVIEW_SOURCE)
+      .eq('metadata->>kind', TASK_REVIEW_KIND)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  );
   const metadata = data?.metadata as Record<string, unknown> | null;
   return typeof metadata?.date === 'string' ? metadata.date : null;
 }

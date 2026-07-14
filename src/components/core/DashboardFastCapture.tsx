@@ -50,9 +50,15 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
             >
               <span className="text-xl">{item.emoji}</span>
             </Pressable>
-            <span className="rounded-lg bg-surface-2/90 border border-border-custom px-2 py-1 text-xs font-black uppercase tracking-wider text-on-accent shadow-md">
+            <Pressable
+              onClick={() => {
+                item.action();
+                onClose();
+              }}
+              className="rounded-lg bg-surface-2/90 border border-border-custom px-2 py-1 text-xs font-black uppercase tracking-wider text-on-accent shadow-md active:scale-95 transition-transform cursor-pointer"
+            >
               {item.label}
-            </span>
+            </Pressable>
           </div>
         ))}
       </div>

@@ -3,7 +3,6 @@ import { Target } from 'lucide-react';
 import { usePowerListData } from './usePowerListData';
 import type { Session } from '@supabase/supabase-js';
 
-import PowerListHeader from './powerList/PowerListHeader';
 import PowerListSetup from './powerList/PowerListSetup';
 import PowerListActive from './powerList/PowerListActive';
 
@@ -66,9 +65,6 @@ export default function PowerList({
 
   return (
     <section className="space-y-4">
-      {/* Calendar Card showing today's date */}
-      <PowerListHeader today={today} />
-
       <div className="flex items-end justify-between">
         <h3 className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-wider text-text-muted">
           <Target size={13} className="text-primary" /> 5 zwycięstw

@@ -1,7 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
 import NutritionCard from './NutritionCard';
-import NutritionTrainingBarCard from './nutrition/NutritionTrainingBarCard';
 import Spinner from '../ui/Spinner';
 
 const Direction = lazy(() => import('../lifestyle/Direction'));
@@ -27,7 +26,6 @@ export function DashboardTydzienTab({ weeklyCalories, nutritionKey, onOpenAction
     <div className="p-5 pb-8">
       <Suspense fallback={<ViewFallback />}>
         <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-7 lg:space-y-0">
-          <NutritionTrainingBarCard refreshSignal={nutritionKey} />
           <NutritionCard weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />
           <div className="lg:col-span-2">
             <Direction session={session} onOpenActionCenter={onOpenActionCenter} />

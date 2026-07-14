@@ -34,13 +34,13 @@ async function fetchFoodSearch(userId: string, query: string): Promise<FoodBase[
     .ilike('name', `%${trimmed}%`)
     .limit(10);
 
-  const offPromise = invokeEdge<{ results?: FoodBase[] }>(
+  const offPromise = invokeEdge(
     `lookup-food?q=${encodeURIComponent(trimmed)}`,
     {
       method: 'GET',
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     }
-  );
+  ) as Promise<{ results?: FoodBase[] }>;
 
   const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
   if (libraryRes.error) {

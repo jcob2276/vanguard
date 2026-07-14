@@ -2,7 +2,6 @@ import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
-import { SpineGuideStrip } from './SpineGuideStrip';
 import OrientationFooter from './OrientationFooter';
 import PowerList from '../lifestyle/PowerList';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
@@ -54,13 +53,6 @@ export function DashboardDzisTab() {
         {/* Lewa kolumna: Planowanie i aktywne zadania */}
         <div className="space-y-5">
           <OrientationFooter />
-          <SpineGuideStrip
-            guidance={s.spineGuidance}
-            loading={s.spineGuidanceLoading}
-            onNavigate={s.handleSpineGuideNavigate}
-            onPlanDay={s.handlePlanDay}
-            onFocusPlan={s.handleFocusPlan}
-          />
           {weeklyReviewNudge}
           <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
           {s.todayWin && isAfter20() && (

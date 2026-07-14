@@ -19,13 +19,13 @@ async function searchFood(query: string, userId: string): Promise<FoodBase[]> {
     .ilike('name', `%${query.trim()}%`)
     .limit(10);
 
-  const offPromise = invokeEdge<{ results: FoodBase[] }>(
+  const offPromise = invokeEdge(
     `lookup-food?q=${encodeURIComponent(query.trim())}`,
     {
       method: 'GET',
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     }
-  );
+  ) as Promise<{ results: FoodBase[] }>;
 
   const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
   if (libraryRes.error) {
@@ -52,13 +52,13 @@ async function searchFood(query: string, userId: string): Promise<FoodBase[]> {
 }
 
 async function lookupBarcodeApi(code: string): Promise<FoodBase | null> {
-  const json = await invokeEdge<{ results: FoodBase[] }>(
+  const json = await invokeEdge(
     `lookup-food?barcode=${encodeURIComponent(code)}`,
     {
       method: 'GET',
       signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     }
-  );
+  ) as { results: FoodBase[] };
   return (json.results || [])[0] ?? null;
 }
 

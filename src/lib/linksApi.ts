@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { unwrapList } from './supabaseUtils';
 import { NETWORK_TIMEOUT_MS, TIMEOUTS } from './constants';
 import { invokeEdge } from './supabase';
+import type { KeepTriageResponse } from './edgeTypes';
 
 export interface SavedLink {
   id: string;
@@ -58,10 +59,10 @@ export async function addNewLink(
 export async function fetchTriageSuggestions(
   userId: string
 ): Promise<TriageSuggestion[]> {
-  const data = await invokeEdge<{ suggestions?: TriageSuggestion[] }>('vanguard-keep-triage', {
+  const data = await invokeEdge('vanguard-keep-triage', {
     body: { user_id: userId },
     signal: AbortSignal.timeout(TIMEOUTS.default),
-  });
+  }) as KeepTriageResponse;
   return data?.suggestions || [];
 }
 

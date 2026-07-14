@@ -69,14 +69,14 @@ export default function SearchModal({ onClose }: Props) {
     const delay = setTimeout(async () => {
       setLoading(true);
       try {
-        const data = await invokeEdge<{
+        const data = await invokeEdge('vanguard-oracle', {
+          body: { query: query.trim(), action: 'search' },
+        }) as {
           graph: GraphSearchResult[];
           todos: TodoSearchResult[];
           projects: ProjectSearchResult[];
           notes: NoteSearchResult[];
-        }>('vanguard-oracle', {
-          body: { query: query.trim(), action: 'search' },
-        });
+        };
 
         setResults({
           graph: data.graph || [],
