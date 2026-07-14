@@ -5,6 +5,7 @@ import { PillarId, ProjectStats } from '../projectUtils';
 import { ProjectCheckpoint } from '../../../lib/projects/projects';
 
 export type PillarFilter = PillarId | 'all';
+export type StatusFilter = 'active' | 'paused' | 'done' | 'all';
 
 type ProjectsData = ReturnType<typeof useProjectsData>;
 
@@ -48,6 +49,10 @@ export interface ProjectsContextType {
   // filter & modal states
   pillarFilter: PillarFilter;
   setPillarFilter: React.Dispatch<React.SetStateAction<PillarFilter>>;
+  statusFilter: StatusFilter;
+  setStatusFilter: React.Dispatch<React.SetStateAction<StatusFilter>>;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   pausedOpen: boolean;
   setPausedOpen: React.Dispatch<React.SetStateAction<boolean>>;
   doneOpen: boolean;

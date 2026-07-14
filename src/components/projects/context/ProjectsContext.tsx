@@ -6,7 +6,7 @@ import { COLOR_TO_PILLAR } from '../../../lib/projects/pillars';
 import { formatWarsawDate, getTodayWarsaw } from '../../../lib/date';
 import { differenceInDays } from 'date-fns';
 import { ProjectCheckpoint } from '../../../lib/projects/projects';
-import { ProjectsContext, type PillarFilter, type ProjectsContextType } from './projectsContextStore';
+import { ProjectsContext, type PillarFilter, type StatusFilter, type ProjectsContextType } from './projectsContextStore';
 
 const emptyStats: ProjectStats = {
   section: null, openItems: [], doneItems: [], total: 0, progress: 0,
@@ -15,6 +15,8 @@ const emptyStats: ProjectStats = {
 
 export function ProjectsProvider({ userId, children }: { userId: string; children: React.ReactNode }) {
   const [pillarFilter, setPillarFilter] = useState<PillarFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [pausedOpen, setPausedOpen]     = useState(false);
   const [doneOpen, setDoneOpen]         = useState(false);
   const [showForm, setShowForm]         = useState(false);
@@ -77,15 +79,20 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
 
   const matchesPillar = useCallback((p: ProjectRow) => pillarFilter === 'all' || projectPillar(p) === pillarFilter, [pillarFilter, projectPillar]);
 
+  const matchesSearch = useCallback((p: ProjectRow) => {
+    if (!searchQuery) return true;
+    return p.name.toLowerCase().includes(searchQuery.toLowerCase());
+  }, [searchQuery]);
+
   const sortByHealth = useCallback((a: ProjectRow, b: ProjectRow) => {
     const ha = calculateHealthScore(a, stats[a.id] ?? emptyStats, kpisByProject[a.id] ?? []);
     const hb = calculateHealthScore(b, stats[b.id] ?? emptyStats, kpisByProject[b.id] ?? []);
     return ha - hb;
   }, [stats, kpisByProject]);
 
-  const activeFiltered  = useMemo(() => projects.filter(p => p.status === 'active' && matchesPillar(p)).sort(sortByHealth), [projects, matchesPillar, sortByHealth]);
-  const pausedFiltered  = useMemo(() => projects.filter(p => p.status === 'paused' && matchesPillar(p)), [projects, matchesPillar]);
-  const doneFiltered    = useMemo(() => projects.filter(p => p.status === 'done'   && matchesPillar(p)), [projects, matchesPillar]);
+  const activeFiltered  = useMemo(() => projects.filter(p => p.status === 'active' && matchesPillar(p) && matchesSearch(p)).sort(sortByHealth), [projects, matchesPillar, matchesSearch, sortByHealth]);
+  const pausedFiltered  = useMemo(() => projects.filter(p => p.status === 'paused' && matchesPillar(p) && matchesSearch(p)), [projects, matchesPillar, matchesSearch]);
+  const doneFiltered    = useMemo(() => projects.filter(p => p.status === 'done'   && matchesPillar(p) && matchesSearch(p)), [projects, matchesPillar, matchesSearch]);
   const activeProjects  = useMemo(() => projects.filter(p => p.status === 'active'), [projects]);
   const directionalGoalCount = useMemo(() => PILLARS.filter(pillar => Boolean(lifeGoals?.[`goal_${pillar}`])).length, [lifeGoals]);
 
@@ -111,6 +118,10 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
     handlers,
     pillarFilter,
     setPillarFilter,
+    statusFilter,
+    setStatusFilter,
+    searchQuery,
+    setSearchQuery,
     pausedOpen,
     setPausedOpen,
     doneOpen,
@@ -141,7 +152,7 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
     editingKpiId, setEditingKpiId, retroProject, setRetroProject,
     retroForm, setRetroForm, loading, error, setError, busy,
     setItems, setSections, run,
-    handlers, pillarFilter, pausedOpen, doneOpen, showForm, form, goalCreateOpen,
+    handlers, pillarFilter, statusFilter, searchQuery, pausedOpen, doneOpen, showForm, form, goalCreateOpen,
     dreamById, stats, checkpointsByProject, kpisByProject, projectPillar,
     activeFiltered, pausedFiltered, doneFiltered, activeProjects, directionalGoalCount,
     focusProject, userId,
