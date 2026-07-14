@@ -171,41 +171,6 @@
   opacity: 0.6;
 }
 
-.keep-sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: var(--legacy-local-css-100);
-  padding: 7px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--legacy-local-css-069);
-  color: var(--text-secondary);
-  transition: var(--legacy-css-transition-045);
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-}
-.keep-sidebar-item:hover {
-  background: var(--legacy-local-css-108);
-  color: var(--text-primary);
-}
-.keep-sidebar-item.active {
-  background: var(--legacy-local-css-106);
-  color: var(--primary);
-  font-weight: var(--legacy-local-css-083);
-}
-.keep-sidebar-item .keep-sidebar-count {
-  margin-left: auto;
-  font-size: var(--text-2xs);
-  font-weight: var(--legacy-local-css-087);
-  color: var(--text-muted);
-  background: var(--legacy-color-127);
-  border-radius: var(--radius-xl);
-  padding: var(--legacy-local-css-044);
-  min-width: 18px;
-  text-align: center;
-}
-
 /* ── Main area ───────────────────────────────────────────────────────────── */
 .keep-main {
   flex: var(--legacy-local-css-018);
