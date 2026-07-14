@@ -76,6 +76,11 @@ export default function Dashboard({ session }: { session: Session }) {
       <CalendarView session={session} onBack={s.goBack} onSyncCalendar={s.startGoogleAuth} onResyncCalendar={s.syncCalendar} isSyncing={s.isSyncing} onNavigateTo={dest => s.navigate('/' + dest)} />
     </Suspense>
   );
+  if (s.view === 'projekty') return (
+    <Suspense fallback={<ViewFallback />}>
+      <Projects onNavigateTo={dest => s.navigate('/' + dest)} reviewOverdueDays={s.reviewOverdueDays} />
+    </Suspense>
+  );
   if (s.view === 'sauna') return (
     <div className="animate-ios-modal flex-1 flex flex-col min-h-screen">
       <Suspense fallback={<ViewFallback />}>
@@ -188,15 +193,6 @@ export default function Dashboard({ session }: { session: Session }) {
                         onSetSubTab={s.setHistorySubTab}
                       />
                     </Suspense>
-                  )}
-                </ErrorBoundary>
-                <ErrorBoundary>
-                  {s.view === 'projekty' && (
-                    <div className="p-5 pb-8">
-                      <Suspense fallback={<ViewFallback />}>
-                        <Projects reviewOverdueDays={s.reviewOverdueDays} onNavigateTo={dest => s.navigate('/' + dest)} />
-                      </Suspense>
-                    </div>
                   )}
                 </ErrorBoundary>
               </>
