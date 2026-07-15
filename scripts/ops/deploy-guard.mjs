@@ -104,7 +104,7 @@ console.log(`\nDeploying: ${fnList}`);
 
 if (targets.length > 0) {
   // Do NOT force --no-verify-jwt here. config.toml's [functions.<name>] verify_jwt is the
-  // declared source of truth (DEV_GUIDE.md checklist item 3) and the CLI reads it when no
+  // declared source of truth (BACKEND_CONTRACT.md section 3) and the CLI reads it when no
   // flag overrides it. A blanket --no-verify-jwt silently flips verify_jwt=true functions to
   // false on the platform regardless of what's declared — found the hard way: this exact
   // bug turned analyze-food-quality's gateway JWT check off during a bulk deploy. It happened

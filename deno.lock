@@ -4100,6 +4100,7 @@
         "npm:eslint-plugin-react-refresh@~0.5.2",
         "npm:eslint@^10.2.1",
         "npm:exifr@^7.1.3",
+        "npm:framer-motion@^12.42.2",
         "npm:globals@^17.5.0",
         "npm:happy-dom@^20.10.6",
         "npm:husky@^9.1.7",
