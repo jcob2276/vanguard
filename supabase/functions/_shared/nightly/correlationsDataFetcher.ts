@@ -78,6 +78,14 @@ export async function fetchAndPrepareCorrelationData(
       value: r.metric_value ? Number(r.metric_value) : null,
     }));
 
+  // §5.1 — days the user acknowledged as an unlabeled logging gap (illness/travel/other) are
+  // excluded from the nutrition signal so a gap doesn't get misread as a fasting day.
+  const acknowledgedGapDates = new Set(
+    behaviorRows.filter((r: { behavior_key: string }) => r.behavior_key === 'przerwa_w_logowaniu').map((r: { date: string }) => r.date),
+  );
+  const excludeGapDays = <T extends { date: string }>(rows: T[]): T[] =>
+    acknowledgedGapDates.size === 0 ? rows : rows.filter((r) => !acknowledgedGapDates.has(r.date));
+
   const slugMap = new Map((suppR.data ?? []).map((s: any) => [s.id, s.slug]));
   const supplementRows = (suppLogR.data ?? []).map((row: any) => ({
     date: row.date,
@@ -91,10 +99,10 @@ export async function fetchAndPrepareCorrelationData(
       strainRows: strainR.data ?? [],
       ouraRows: ouraR.data ?? [],
       ouraEnhRows: ouraEnhR.data ?? [],
-      nutrRows: nutrR.data ?? [],
+      nutrRows: excludeGapDays(nutrR.data ?? []),
       aggregateRows: aggregatesR.data ?? [],
       frictionRows: frictionR.data ?? [],
-      foodRows: foodR.data ?? [],
+      foodRows: excludeGapDays(foodR.data ?? []),
       workoutRows,
       winsRows: winsR.data ?? [],
       reconRows: (reconR.data ?? []).map((r: any) => ({ date: r.date, day_score: r.day_score, phone_drift_morning: r.phone_drift_morning })),
