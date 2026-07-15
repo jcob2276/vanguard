@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTodayWarsaw } from '../../../lib/date';
 import { notify } from '../../../lib/notify';
 import { updateDailyWin } from '../../../lib/goal/goalSpine.mutations';
 import { useUserId } from '../../../store/useStore';
 import type { Tables } from '../../../lib/database.types';
+import { shutdownKeys } from '../../../lib/queryKeys';
 import {
   fetchDailyWin,
   fetchDailyReconciliationScore,
@@ -16,64 +18,66 @@ function taskField(win: Tables<'daily_wins'>, key: string): string | null {
   return (win as unknown as Record<string, string | null>)[key] ?? null;
 }
 
-export interface ShutdownTasksList {
+interface ShutdownTasksList {
   title: string | null;
   todoId: string | null;
   done: boolean;
   idx: number;
 }
 
+interface ShutdownFetchedData {
+  todayWin: Tables<'daily_wins'> | null;
+  dayScore: number;
+  rpeScore: number;
+}
+
+function computeInitialFromCache(queryClient: ReturnType<typeof useQueryClient>, userId: string, today: string) {
+  const cached = queryClient.getQueryData<ShutdownFetchedData>(shutdownKeys.data(userId, today));
+  if (!cached) return null;
+  const win = cached.todayWin;
+  return {
+    completedTasks: win ? [!!win.done_1, !!win.done_2, !!win.done_3, !!win.done_4, !!win.done_5] : [false, false, false, false, false],
+    reflectionText: win?.day_note || '',
+    actualAccomplishmentText: win?.journal_entry || '',
+    moodScore: win?.mood_score || 3,
+    rpeScore: cached.rpeScore,
+    dayScore: cached.dayScore,
+  };
+}
+
 export function useShutdownData() {
   const userId = useUserId();
   const today = getTodayWarsaw();
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
+  const initial = userId ? computeInitialFromCache(queryClient, userId, today) : null;
+
+  const { data: fetched, isLoading: loading } = useQuery({
+    queryKey: shutdownKeys.data(userId ?? '', today),
+    queryFn: async (): Promise<ShutdownFetchedData> => {
+      const [todayWin, dayScoreVal, rpeVals] = await Promise.all([
+        fetchDailyWin(userId!, today),
+        fetchDailyReconciliationScore(userId!, today),
+        fetchWorkoutSessionsRpe(userId!, today),
+      ]);
+
+      const dayScore = dayScoreVal ?? 7;
+      const maxRpe = rpeVals.length > 0 ? Math.max(...rpeVals) : 5;
+
+      return { todayWin, dayScore, rpeScore: maxRpe };
+    },
+    enabled: !!userId,
+  });
+
+  const todayWin = fetched?.todayWin ?? null;
+
+  const [completedTasks, setCompletedTasks] = useState<boolean[]>(initial?.completedTasks ?? [false, false, false, false, false]);
+  const [reflectionText, setReflectionText] = useState(initial?.reflectionText ?? '');
+  const [actualAccomplishmentText, setActualAccomplishmentText] = useState(initial?.actualAccomplishmentText ?? '');
+  const [moodScore, setMoodScore] = useState(initial?.moodScore ?? 3);
+  const [rpeScore, setRpeScore] = useState(initial?.rpeScore ?? 5);
+  const [dayScore, setDayScore] = useState(initial?.dayScore ?? 7);
   const [saving, setSaving] = useState(false);
-  const [todayWin, setTodayWin] = useState<Tables<'daily_wins'> | null>(null);
-  const [completedTasks, setCompletedTasks] = useState<boolean[]>([false, false, false, false, false]);
-  const [reflectionText, setReflectionText] = useState('');
-  const [actualAccomplishmentText, setActualAccomplishmentText] = useState('');
-  const [moodScore, setMoodScore] = useState(3);
-  const [rpeScore, setRpeScore] = useState(5);
-  const [dayScore, setDayScore] = useState(7);
-
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchDailyWin(userId, today);
-
-        if (data) {
-          setTodayWin(data);
-          setCompletedTasks([!!data.done_1, !!data.done_2, !!data.done_3, !!data.done_4, !!data.done_5]);
-          setReflectionText(data.day_note || '');
-          setActualAccomplishmentText(data.journal_entry || '');
-          setMoodScore(data.mood_score || 3);
-          setRpeScore(data.daily_rpe || 5);
-        }
-
-        const [dayScoreVal, rpeVals] = await Promise.all([
-          fetchDailyReconciliationScore(userId, today),
-          fetchWorkoutSessionsRpe(userId, today),
-        ]);
-
-        if (dayScoreVal !== null) {
-          setDayScore(dayScoreVal);
-        }
-
-        if (rpeVals.length > 0) {
-          const maxRpe = Math.max(...rpeVals);
-          if (maxRpe > 0) setRpeScore(maxRpe);
-        }
-      } catch (err: unknown) {
-        console.error('[Action Error]', err);
-        notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [userId, today]);
 
   const tasksList: ShutdownTasksList[] = todayWin
     ? [1, 2, 3, 4, 5]
@@ -117,6 +121,8 @@ export function useShutdownData() {
         classification: 'reflection:evening',
         metadata: { kind: 'day_close', date: today, day_score: dayScore, mood: moodScore, rpe: rpeScore },
       });
+
+      await queryClient.invalidateQueries({ queryKey: shutdownKeys.data(userId, today) });
     } catch (err: unknown) {
       console.error('Error saving daily shutdown:', err);
       notify('Nie udało się zamknąć dnia', 'error');
