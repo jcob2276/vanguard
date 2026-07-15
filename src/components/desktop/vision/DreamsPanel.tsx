@@ -101,7 +101,7 @@ export default function DreamsPanel({
               <Pressable variant="primary" size="sm" onClick={addDream} className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
                 Dodaj
               </Pressable>
-              <Pressable variant="ghost" size="sm" onClick={() => setIsAddingDream(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={13} />} />
+              <Pressable variant="ghost" size="sm" onClick={() => setIsAddingDream(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={11} />} />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-2xs font-black uppercase tracking-widest text-text-muted">Cel:</span>
@@ -123,7 +123,7 @@ export default function DreamsPanel({
             <div className="space-y-1.5">
               {top5Dreams.map(dream => (
                 <Card key={dream.id} variant="glass" padding="0.625rem 0.875rem" className="rounded-xl flex items-center gap-2.5" style={{ border: 'var(--border-width-thin) solid var(--legacy-color-121)', background: 'var(--legacy-color-118)' }}>
-                  <Star size={10} className="shrink-0 text-warning" fill="currentColor" />
+                  <Star size={9} className="shrink-0 text-warning" fill="currentColor" />
                   <Pressable variant="ghost" size="sm" onClick={() => openDreamModal(dream)} className="flex-1 text-left text-xs font-bold text-text-primary hover:text-primary truncate cursor-pointer">
                     {dream.title}
                   </Pressable>
@@ -168,7 +168,7 @@ export default function DreamsPanel({
                 className={`rounded-xl group flex items-center gap-2.5 transition-all duration-[var(--motion-medium)] cursor-pointer ${
                   dream.is_done
                     ? 'opacity-[var(--opacity-60)]'
-                    : 'hover:shadow-sm hover:-translate-y-0.5'
+                    : 'hover:-translate-y-0.5'
                 }`}
                 style={{
                   ...(dream.is_done
@@ -193,7 +193,7 @@ export default function DreamsPanel({
                   {dream.title}
                 </p>
                 <div className="flex items-center gap-1 shrink-0">
-                  {dream.is_top5 && !dream.is_done && <Star size={8} className="text-warning" fill="currentColor" />}
+                  {dream.is_top5 && !dream.is_done && <Star size={9} className="text-warning" fill="currentColor" />}
                   {dream.description && <span className="w-1 h-1 rounded-full bg-primary/40" />}
                   <span className={`text-3xs font-black uppercase tracking-widest ${DREAM_CAT_COLOR[dream.category] || 'text-text-muted'}`}>
                     {dream.category}
@@ -203,7 +203,7 @@ export default function DreamsPanel({
                     size="sm"
                     onClick={e => { e.stopPropagation(); deleteDream(dream.id); }}
                     className="opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
-                    icon={<Trash2 size={10} />}
+                    icon={<Trash2 size={11} />}
                   />
                 </div>
               </Card>

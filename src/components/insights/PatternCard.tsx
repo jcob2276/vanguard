@@ -70,7 +70,6 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
       style={{
         background: 'var(--color-surface, var(--legacy-color-046))',
         borderRadius: 'var(--legacy-inline-style-007)',
-        boxShadow: 'var(--shadow-pattern-card)',
         opacity: pattern.status === 'user_rejected' ? 'var(--opacity-pattern-rejected)' : 'var(--opacity-100)',
       }}
     >

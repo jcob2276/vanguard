@@ -42,7 +42,7 @@ export default function HabitsPanel({
           <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">Nawyki</p>
           <p className="text-2xs text-text-muted/70 mt-0.5">Kanoniczny log → habit_logs (Lenie = ten sam mechanizm co /lenie)</p>
         </div>
-        <Pressable onClick={() => setIsAddingHabit(p => !p)} variant="tonal" size="sm" icon={<Plus size={10} />} className="uppercase tracking-widest">
+        <Pressable onClick={() => setIsAddingHabit(p => !p)} variant="tonal" size="sm" icon={<Plus size={12} />} className="uppercase tracking-widest">
           Dodaj
         </Pressable>
       </div>
@@ -50,7 +50,7 @@ export default function HabitsPanel({
         <Card variant="accent" padding="0.75rem" className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-2xs font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
-            <Pressable onClick={() => setIsAddingHabit(false)} variant="ghost" size="sm" className="!p-1 text-text-muted"><X size={13} /></Pressable>
+            <Pressable onClick={() => setIsAddingHabit(false)} variant="ghost" size="sm" className="!p-1 text-text-muted"><X size={12} /></Pressable>
           </div>
           <div className="grid grid-cols-[var(--legacy-arbitrary-042)] gap-2">
             <ControlInput value={newHabit.icon} onChange={e => setNewHabit(p => ({ ...p, icon: e.target.value }))} className="rounded-lg border border-border-custom bg-surface p-2 text-center text-sm font-black text-text-primary outline-none focus:border-primary/50" placeholder="✅" />
@@ -68,7 +68,7 @@ export default function HabitsPanel({
           const today = getTodayWarsaw();
           const doneToday = habitLogs.some(l => l.habit_id === habit.id && l.date === today);
           return (
-            <div key={habit.id} className="group rounded-[var(--radius-md)] border border-border-custom bg-surface p-3 hover:border-primary/25 hover:shadow-sm transition-all duration-[var(--motion-medium)]">
+            <div key={habit.id} className="group rounded-[var(--radius-md)] border border-border-custom bg-surface p-3 hover:border-primary/25 transition-all duration-[var(--motion-medium)]">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-base shrink-0">{habit.icon || '✅'}</span>
@@ -79,9 +79,9 @@ export default function HabitsPanel({
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Pressable onClick={() => toggleHabit(habit.id)} aria-label={`${doneToday ? 'Cofnij oznaczenie' : 'Oznacz wykonanie'}: ${habit.name}`} className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${doneToday ? (habit.is_positive ? 'border-success bg-success text-on-accent' : 'border-danger bg-danger text-on-accent') : 'border-border-custom text-text-muted hover:text-text-primary'}`}>
-                    {doneToday ? <CheckSquare size={14} /> : <Square size={14} />}
+                    {doneToday ? <CheckSquare size={12} /> : <Square size={12} />}
                   </Pressable>
-                  <Pressable onClick={() => deleteHabit(habit.id)} aria-label={`Usuń nawyk: ${habit.name}`} className="p-1.5 text-text-muted/40 hover:text-danger rounded-lg cursor-pointer"><Trash2 size={11} /></Pressable>
+                  <Pressable onClick={() => deleteHabit(habit.id)} aria-label={`Usuń nawyk: ${habit.name}`} className="p-1.5 text-text-muted/40 hover:text-danger rounded-lg cursor-pointer"><Trash2 size={12} /></Pressable>
                 </div>
               </div>
               <div className="flex h-2 gap-0.5 overflow-hidden">

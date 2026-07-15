@@ -68,7 +68,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
     };
 
     return (
-      <Card padding="1rem" className="space-y-3.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
+      <Card padding="1rem" className="space-y-3.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom">
         <div className="flex items-center justify-between">
           <span className="text-sm font-black text-text-secondary">{title}</span>
           <div className={`${colorClass} opacity-[var(--opacity-80)]`}>{icon}</div>
@@ -139,7 +139,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom">
               <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Snu</span>
               <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.sleep_mae !== null
@@ -149,7 +149,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
               <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) snu</span>
             </Card>
 
-            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom">
               <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Gotowości</span>
               <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.readiness_mae !== null
@@ -159,7 +159,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
               <span className="text-2xs text-text-muted leading-snug">Średni błąd (MAE) gotowości</span>
             </Card>
 
-            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom hover:shadow-lg">
+            <Card padding="1rem" className="flex flex-col justify-between space-y-1.5 transition-all duration-[var(--motion-medium)] hover:border-border-custom">
               <span className="text-2xs font-black text-text-muted uppercase tracking-wider">Błąd Wykonania</span>
               <span className="text-lg font-black text-primary">
                 {healthQuery.data.calibrationSummary.execution_mae !== null

@@ -14,7 +14,6 @@ import {
 import { notify } from '../../lib/notify';
 import { PatternsView } from './PatternsView';
 import { DetailPageLayout } from '../ui/DetailPageLayout';
-import { Card } from '../ui/Card';
 import { useUserId } from '../../store/useStore';
 
 import { insightCardsKeys } from '../../lib/queryKeys';

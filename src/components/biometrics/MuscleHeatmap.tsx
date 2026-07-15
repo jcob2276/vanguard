@@ -261,7 +261,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                 <div className="flex flex-wrap gap-1.5 border-t border-border-custom pt-3">
                   <span className="mr-1 text-2xs font-black uppercase tracking-widest text-text-muted">Bez bodźca</span>
                   {neglected.map((tag) => (
-                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-xs font-bold capitalize text-text-secondary shadow-sm">
+                    <span key={tag} className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-xs font-bold capitalize text-text-secondary">
                       {tag}
                     </span>
                   ))}

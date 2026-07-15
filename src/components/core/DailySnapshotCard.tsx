@@ -75,7 +75,7 @@ export default function DailySnapshotCard() {
       {snap.one_clear_move && (
         <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] px-4 py-3">
           <p className="text-2xs font-black uppercase tracking-widest text-primary/60 mb-1.5 flex items-center gap-1">
-            <Target size={9} /> Główny ruch
+            <Target size={10} /> Główny ruch
           </p>
           <p className="text-sm font-bold leading-snug text-text-primary">
             {snap.one_clear_move}
@@ -100,7 +100,7 @@ export default function DailySnapshotCard() {
       {/* Tension action */}
       {snap.tension_action?.action && snap.tension_action.action !== 'Zdefiniuj ruch napięciowy' && (
         <div className="flex items-start gap-2 rounded-xl border border-warning/15 bg-warning/[0.04] px-3 py-2">
-          <Zap size={11} className="mt-0.5 shrink-0 text-warning" />
+          <Zap size={10} className="mt-0.5 shrink-0 text-warning" />
           <p className="text-xs leading-snug text-text-secondary">{snap.tension_action.action}</p>
         </div>
       )}
@@ -108,7 +108,7 @@ export default function DailySnapshotCard() {
       {/* Midday blocker */}
       {midday?.blocker && (
         <div className="flex items-start gap-2 rounded-xl border border-danger/15 bg-danger/[0.04] px-3 py-2">
-          <CheckCircle2 size={11} className="mt-0.5 shrink-0 text-danger" />
+          <CheckCircle2 size={10} className="mt-0.5 shrink-0 text-danger" />
           <p className="text-xs leading-snug text-text-secondary">Bloker: {midday.blocker}</p>
         </div>
       )}

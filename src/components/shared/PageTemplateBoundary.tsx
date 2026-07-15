@@ -39,15 +39,15 @@ const kindVariants = {
 
 const spring = { type: 'spring' as const, bounce: 0, duration: 0.35 };
 
-/** Route-level design contract. `display: contents` preserves existing layout while
- * every descendant inherits the selected template's density and geometry tokens.
- * Wrapped in motion.div for spatial page transitions. */
+/** Route-level design contract. The wrapper is a real element (not display:contents)
+ * so framer-motion can animate transform/opacity. Children inherit the selected
+ * template's density and geometry tokens via CSS custom properties. */
 export function PageTemplateBoundary({ kind, children }: PageTemplateBoundaryProps) {
   const v = kindVariants[kind];
 
   return (
     <motion.div
-      className={`contents page-template-${kind}`}
+      className={`min-h-full page-template-${kind}`}
       data-page-template={kind}
       variants={v}
       initial="initial"

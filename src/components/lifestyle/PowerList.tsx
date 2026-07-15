@@ -23,7 +23,6 @@ export default function PowerList({
   planDaySignal,
 }: PowerListProps) {
   const {
-    today,
     direction,
     projectMap,
     checkpointPrompt,

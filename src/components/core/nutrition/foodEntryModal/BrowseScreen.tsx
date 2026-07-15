@@ -68,14 +68,14 @@ export default function BrowseScreen({
             className="shrink-0 rounded-full p-1.5"
             title="Wyczyść"
           >
-            <X size={14} />
+            <X size={15} />
           </Pressable>
         )}
         {searching ? (
           <Spinner size="sm" className="shrink-0 mx-1.5" />
         ) : (
           <Pressable variant="ghost" size="sm" onClick={() => { setError(null); setScannerOpen(true); }} className="shrink-0 rounded-full p-2" title="Skanuj kod">
-            <ScanLine size={16} />
+            <ScanLine size={15} />
           </Pressable>
         )}
       </div>
@@ -286,7 +286,7 @@ function RecentList({
                 loading={quickAddingId === e.id}
                 onTap={() => openEditEntry(e)}
                 onQuickAdd={() => quickRepeatEntry(e)}
-                quickAddIcon={<RotateCcw size={12} />}
+                quickAddIcon={<RotateCcw size={13} />}
               />
             ))}
           </div>

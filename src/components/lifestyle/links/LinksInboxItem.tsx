@@ -46,7 +46,7 @@ export function LinksInboxItem({
       {d.viewMode === 'list' ? (
         // List Mode
         <div
-          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3.5 transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/30 hover:shadow-md hover:scale-[var(--legacy-arbitrary-015)] ${
+          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3.5 transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/30 hover:scale-[var(--legacy-arbitrary-015)] ${
             link.status === 'read' ? 'opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-90)]' : ''
           }`}
         >
@@ -110,7 +110,7 @@ export function LinksInboxItem({
       ) : (
         // Card Mode
         <div
-          className={`pocket-card group transition-all duration-[var(--motion-medium)] shadow-md hover:shadow-lg hover:bg-surface-solid/80 hover:scale-[var(--legacy-arbitrary-015)] ${
+          className={`pocket-card group transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/80 hover:scale-[var(--legacy-arbitrary-015)] ${
             link.status === 'read' ? 'opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-90)]' : ''
           }`}
         >
@@ -180,7 +180,7 @@ export function LinksInboxItem({
               onClick={() => haptic([6])}
               className="btn-press shrink-0 rounded-full p-1.5 text-text-muted/60 hover:text-text-primary hover:bg-surface-solid/60 opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-100)] transition-all duration-[var(--motion-medium)] active:scale-[var(--legacy-arbitrary-052)]"
             >
-              <ExternalLink size={14} />
+              <ExternalLink size={13} />
             </a>
           </div>
         </div>

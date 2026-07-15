@@ -114,7 +114,7 @@ export default function SearchModal({ onClose }: Props) {
     >
       {/* Search Input Bar */}
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border-custom bg-surface-2/40">
-        <Search size={18} className="text-text-muted shrink-0" />
+        <Search size={16} className="text-text-muted shrink-0" />
         <ControlInput
           ref={inputRef}
           type="text"
@@ -132,7 +132,7 @@ export default function SearchModal({ onClose }: Props) {
             onClick={onClose}
             className="p-1 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary shrink-0"
           >
-            <X size={15} />
+            <X size={16} />
           </Button>
         )}
       </div>

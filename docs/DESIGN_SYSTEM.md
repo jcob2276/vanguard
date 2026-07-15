@@ -41,6 +41,18 @@
 - **iOS tylko dla gestów i sheetów**: płynność, interruptibility i większy promień 28px zostają tam, gdzie wynikają z fizyki interakcji.
 - **Zero dekoracji dla dekoracji.** Gęstość danych > efekciarstwo.
 
+### 1.1 Zasady projektowania komponentów
+
+Siedem reguł, które decydują "jak wygląda dobry komponent w Vanguardzie" — niezależnie kto go pisze. Nowy komponent w `ui/` sprawdzany jest względem tej listy, nie tylko względem tego czy działa.
+
+1. **Materialna uczciwość.** Afordancja klikalności przez kolor/kontrast/typografię, nie przez fałszywą głębię. Karty różnicują się przez `border` + przesunięcie tła (`--surface-2/3`), nie przez `box-shadow` na każdej z osobna. Cień/blur (`--shadow-float`, `.ios-glass-*`) zarezerwowany **tylko** dla naprawdę pływających warstw (modal, FAB, toast, sheet, sticky nav) — nigdy dla zwykłej karty w liście.
+2. **Kształt jest funkcją rozmiaru, nie wyborem.** Promień wynika z tego, czym jest element (§2.4), nikt nie wpisuje dowolnego `rounded-[13px]`. Egzekwowane przez guard, ale to jest w pierwszej kolejności zasada projektowa.
+3. **Dyscyplina stanu.** Każdy interaktywny element ma te same 4 stany zdefiniowane raz na poziomie prymitywu (`ControlPrimitives`/`Button`), nie per-komponent: hover (kolor), active (`scale(0.97)`, 0ms opóźnienia), focus (widoczny ring), disabled (opacity 0.4–0.5 + `cursor-not-allowed`).
+4. **Treść jest bohaterem, chrome jest tłem.** Komponent wyświetlający dane (liczba, status, wykres) maksymalizuje wizualny ciężar danych i minimalizuje ozdobniki wokół nich — patrz `.stat-hero-number` / `ui/StatHero`. Dotyczy nie tylko statystyk: też np. jak `Badge` pokazuje status, jak `Card` pokazuje nagłówek.
+5. **Ikony jako jeden system.** Jedna grubość obrysu w `lucide-react`, jeden rozmiar powiązany ze skalą tekstu obok (nie `size={13}` w jednym miejscu i `size={16}` dla tej samej hierarchii gdzie indziej), nigdy filled+outline zmieszane na tym samym poziomie hierarchii.
+6. **Ruch ma znaczenie, nie dekorację.** Przed dodaniem animacji: *jak często użytkownik to zobaczy?* Element używany dziesiątki razy dziennie (checkbox w Todo, tab switch) — animacja prawie niewidoczna (100–150ms) albo żadna. Element rzadki (onboarding, pierwsza konfiguracja, pusty stan) — może mieć charakter. Nie każdy nowy komponent dostaje "fajną" animację niezależnie od kontekstu użycia.
+7. **Zero komponentu bez tokenów.** Nowy komponent nigdy nie zaczyna się od "jaki kolor" — zaczyna się od "który semantyczny token pasuje" (`--primary`, `--color-danger`, `--surface-tonal`). Wybór koloru to wybór *roli*, nie wartości. Egzekwowane przez ESLint guard (§0), ale to jest źródłowa zasada, guard to tylko siatka bezpieczeństwa.
+
 ---
 
 ## 2. Tokeny (`src/index.css`)

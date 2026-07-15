@@ -228,7 +228,7 @@ export function TrainingAnalysisSection({ trainingAnalysis, analyzeTrainingLoad,
                 <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning mb-2">Brakujące partie</p>
                 <div className="flex flex-wrap gap-2">
                   {r.missing_muscles!.map((m, i) => (
-                    <span key={i} className="rounded-lg border border-warning/20 bg-surface/80 dark:bg-scrim/20 px-2.5 py-0.5 text-2xs font-black text-warning dark:text-warning shadow-sm">{m}</span>
+                    <span key={i} className="rounded-lg border border-warning/20 bg-surface/80 dark:bg-scrim/20 px-2.5 py-0.5 text-2xs font-black text-warning dark:text-warning">{m}</span>
                   ))}
                 </div>
               </div>

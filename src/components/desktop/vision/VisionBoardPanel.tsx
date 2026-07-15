@@ -100,7 +100,7 @@ export default function VisionBoardPanel({
               <Pressable variant="primary" size="sm" onClick={addVisionItem} className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-primary/90 transition-all cursor-pointer">
                 Dodaj
               </Pressable>
-              <Pressable variant="ghost" size="sm" onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={13} />} />
+              <Pressable variant="ghost" size="sm" onClick={() => setIsAddingVision(false)} className="rounded-xl border border-border-custom px-3 py-2 text-text-muted hover:text-text-primary cursor-pointer" icon={<X size={11} />} />
             </div>
           </div>
         )}
@@ -130,7 +130,7 @@ export default function VisionBoardPanel({
                         size="sm"
                         onClick={() => deleteVisionItem(item.id)}
                         className="absolute top-2 right-2 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] flex h-6 w-6 items-center justify-center rounded-full bg-scrim/50 text-on-accent transition-all cursor-pointer"
-                        icon={<X size={10} />}
+                        icon={<X size={11} />}
                       />
                     </Card>
                   ) : item.type === 'word' ? (
@@ -141,7 +141,7 @@ export default function VisionBoardPanel({
                         size="sm"
                         onClick={() => deleteVisionItem(item.id)}
                         className="absolute top-2 right-2 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
-                        icon={<X size={10} />}
+                        icon={<X size={11} />}
                       />
                     </Card>
                   ) : (
@@ -152,7 +152,7 @@ export default function VisionBoardPanel({
                         size="sm"
                         onClick={() => deleteVisionItem(item.id)}
                         className="absolute top-2 right-2 opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] p-0.5 text-text-muted/40 hover:text-danger transition-all cursor-pointer"
-                        icon={<X size={10} />}
+                        icon={<X size={11} />}
                       />
                     </Card>
                   )}

@@ -1,6 +1,7 @@
 import type { BiologyScoreResult } from '../../lib/getBased/biologyScoresLite';
 import { toneColorClass } from '../../lib/getBased/biologyScoresLite';
 import { Card } from '../ui/Card';
+import { StatHero } from '../ui/StatHero';
 
 function ScoreCard({ score }: { score: BiologyScoreResult }) {
   const noData = score.score == null && score.toneLabel === 'Brak danych';
@@ -17,12 +18,13 @@ function ScoreCard({ score }: { score: BiologyScoreResult }) {
           <p className="text-2xs font-black uppercase tracking-wider text-text-muted">{score.kicker}</p>
           <h3 className="text-sm font-bold text-text-primary mt-0.5">{score.title}</h3>
         </div>
-        <div className="text-right shrink-0">
-          <p className={`text-2xl font-black tabular-nums ${noData ? 'text-text-muted' : toneColorClass(score.tone)}`}>
-            {noData ? '—' : (score.score ?? '—')}
-          </p>
-          <p className="text-2xs font-black uppercase text-text-muted">{score.toneLabel}</p>
-        </div>
+        <StatHero
+          value={noData ? '--' : (score.score ?? '--')}
+          label={score.toneLabel}
+          color={noData ? 'text-text-muted' : toneColorClass(score.tone)}
+          size="sm"
+          className="shrink-0"
+        />
       </div>
       <p className="text-xs text-text-muted leading-relaxed">{score.summary}</p>
       <p className="text-2xs text-text-muted">
