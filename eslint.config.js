@@ -157,7 +157,7 @@ const CANONICAL_DATE_FORMATTERS = [
 
 
 export default defineConfig([
-  globalIgnores(['dist', '.tmp-get-based']),
+  globalIgnores(['dist', '.tmp-get-based', 'coverage']),
   {
     files: ['scripts/**/*.{js,cjs,mjs}'],
     extends: [
