@@ -19,7 +19,7 @@ export default function MedicalDesktopTeaser({ userId }: { userId: string }) {
     .slice(0, 4);
 
   return (
-    <Card variant="glass" className="bg-surface/30 border-border-custom space-y-4" padding="1.25rem">
+    <Card variant="surface" className="bg-surface/30 border-border-custom space-y-4" padding="1.25rem">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-text-muted">

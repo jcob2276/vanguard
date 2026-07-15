@@ -217,7 +217,7 @@ export default function EndMyopiaCalculator() {
                 <Pressable
                   onClick={handleManualCapture}
                   disabled={!faceDetected}
-                  className="bg-info text-on-accent font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-[var(--opacity-30)] active:scale-95 transition-all shadow-lg"
+                  className="bg-info text-on-accent font-black px-7 py-3 rounded-2xl text-sm disabled:opacity-[var(--opacity-30)] active:scale-95 transition-all"
                 >
                   Złap pomiar
                 </Pressable>

@@ -52,7 +52,7 @@ export default function GrowthSkillsList({
   }
 
   return (
-    <Card variant="glass" padding="1rem" className="h-full flex flex-col">
+    <Card variant="surface" padding="1rem" className="h-full flex flex-col">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <p className="text-2xs font-black uppercase tracking-wider text-text-muted">Umiejętności</p>
@@ -142,7 +142,7 @@ export default function GrowthSkillsList({
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <a href={link.url} target="_blank" rel="noopener noreferrer" className="p-1 text-text-muted hover:text-text-primary">
-                                <ExternalLink size={10} />
+                                <ExternalLink size={12} />
                               </a>
                               {!readOnly && onQuickPinLink && (
                                 <Pressable

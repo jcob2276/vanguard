@@ -590,8 +590,8 @@
   bottom: var(--legacy-local-css-003);
   background: var(--legacy-color-054);
   backdrop-filter: var(--legacy-local-css-101);
-  -webkit-backdrop-filter: blur(16px);
-  z-index: var(--legacy-local-css-097);
+  -webkit-backdrop-filter: var(--legacy-local-css-102);
+  z-index: var(--z-overlay);
   cursor: pointer;
   animation: var(--legacy-css-animation-002);
 }
@@ -1392,7 +1392,7 @@
 }
 .note-quick-save-btn {
   background: var(--primary);
-  color: var(--legacy-color-047);
+  color: white;
   font-size: var(--text-xs);
   font-weight: 700;
   padding: var(--legacy-local-css-086);
@@ -1524,7 +1524,7 @@
 }
 .keep-autocomplete-item:hover, .keep-autocomplete-item.active {
   background: var(--primary);
-  color: var(--legacy-color-046) !important;
+  color: white !important;
 }
 .keep-autocomplete-item .item-sub {
   font-size: var(--text-2xs);
@@ -1595,7 +1595,7 @@
 }
 .keep-backlink-item:hover {
   background: var(--primary);
-  color: var(--legacy-color-046);
+  color: white;
   transform: var(--legacy-local-css-125);
 }
 

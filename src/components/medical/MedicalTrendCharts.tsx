@@ -44,7 +44,7 @@ function MarkerTrendCard({ series }: { series: MarkerSeries }) {
     opt?.optimalMin != null && opt?.optimalMax != null && opt.optimalMin < opt.optimalMax;
 
   return (
-    <Card variant="glass" className="bg-surface/30 border-border-custom" padding="1rem">
+    <Card variant="surface" className="bg-surface/30 border-border-custom" padding="1rem">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-text-primary">{series.marker_name}</p>

@@ -213,7 +213,7 @@ export default function EditNoteModal({
                   display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-030)',
                   padding: 'var(--legacy-inline-style-077)', borderRadius: 'var(--legacy-inline-style-011)', fontSize: 'var(--legacy-inline-style-018)', fontWeight: 'var(--legacy-inline-style-026)',
                   background: showAI ? 'var(--primary)' : 'var(--primary-12)',
-                  color: showAI ? 'var(--legacy-color-046)' : 'var(--primary)',
+                  color: showAI ? 'white' : 'var(--primary)',
                   border: 'none', cursor: 'pointer', transition: 'var(--legacy-inline-style-086)',
                 }}
               >
@@ -344,7 +344,7 @@ export default function EditNoteModal({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
                 <div style={{ width: 'var(--legacy-inline-style-095)', height: 'var(--legacy-inline-style-036)', borderRadius: 'var(--legacy-inline-style-011)', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Bot size={14} color="var(--legacy-color-046)" />
+                  <Bot size={14} color="white" />
                 </div>
                 <div>
                   <div style={{ fontSize: 'var(--legacy-inline-style-019)', fontWeight: 'var(--legacy-inline-style-027)', color: 'var(--text-primary)', letterSpacing: 'var(--legacy-inline-style-042)' }}>AI Companion</div>
@@ -359,7 +359,7 @@ export default function EditNoteModal({
             <div style={{ padding: 'var(--legacy-inline-style-072)', display: 'flex', flexDirection: 'column', gap: 'var(--legacy-inline-style-032)' }}>
               {[
                 { key: 'summary', label: 'Stworz podsumowanie', sub: 'TL;DR notatki jednym kliknieciem', Icon: BrainCircuit, color: 'var(--primary)', bg: 'var(--primary-12)', action: aiSummarize },
-                { key: 'tasks', label: 'Wyciagnij zadania', sub: 'Automatycznie tworzy zadania w Todo', Icon: ListTodo, color: 'var(--legacy-color-010)', bg: 'var(--legacy-color-144)', action: aiExtractTasks },
+                { key: 'tasks', label: 'Wyciagnij zadania', sub: 'Automatycznie tworzy zadania w Todo', Icon: ListTodo, color: 'var(--color-success)', bg: 'var(--legacy-color-144)', action: aiExtractTasks },
                 { key: 'connect', label: 'Polacz tematy', sub: 'Sugestie powiazanych notatek', Icon: Cpu, color: 'var(--legacy-color-033)', bg: 'var(--legacy-color-101)', action: aiConnectTopics },
               ].map(btn => (
                 <Pressable key={btn.key} type="button" disabled={!!aiLoading} onClick={btn.action}

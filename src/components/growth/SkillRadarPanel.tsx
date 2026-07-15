@@ -58,7 +58,7 @@ export default function SkillRadarPanel({
 
   if (n === 0) {
     return (
-      <Card variant="glass" padding="2rem" className="text-center text-sm text-text-muted">
+      <Card variant="surface" padding="2rem" className="text-center text-sm text-text-muted">
         Dodaj skilli, żeby zobaczyć radar.
       </Card>
     );

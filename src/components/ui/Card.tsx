@@ -1,6 +1,6 @@
 import { ReactNode, CSSProperties, ElementType, ComponentPropsWithoutRef } from 'react';
 
-export type CardVariant = 'glass' | 'immersive' | 'canvas' | 'receipt' | 'outline' | 'notice' | 'danger' | 'accent';
+export type CardVariant = 'surface' | 'glass' | 'immersive' | 'canvas' | 'receipt' | 'outline' | 'notice' | 'danger' | 'accent';
 
 type CardOwnProps = {
   variant?: CardVariant;
@@ -21,8 +21,15 @@ const DOT_GRID_SVG = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmln
 const BASE = 'relative overflow-hidden transition-[transform,background-color,border-color,box-shadow] duration-[var(--motion-medium)] ease-[var(--spring)]';
 
 const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }> = {
-  glass: {
+  surface: {
     className: `${BASE} border border-border-custom/45 bg-surface-1`,
+    style: {
+      borderRadius: 'var(--radius-lg)',
+      boxShadow: 'var(--shadow-card)',
+    },
+  },
+  glass: {
+    className: `${BASE} border border-border-custom/45 glass-elevated`,
     style: {
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-card)',
@@ -79,7 +86,7 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
   },
 };
 
-export function Card({ variant = 'glass', children, className = '', style, onClick, padding, as: Tag = 'div' }: CardProps) {
+export function Card({ variant = 'surface', children, className = '', style, onClick, padding, as: Tag = 'div' }: CardProps) {
   const v = VARIANTS[variant];
   return (
     <Tag

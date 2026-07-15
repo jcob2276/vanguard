@@ -28,7 +28,7 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
 
   return (
     <Card
-      variant="glass"
+      variant="surface"
       padding="1rem"
       className={`border ${item.significant ? 'border-primary/25' : 'border-border-custom'}`}
     >

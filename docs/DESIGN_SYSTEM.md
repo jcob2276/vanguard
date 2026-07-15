@@ -165,6 +165,26 @@ Nigdy nie pisz `text-[10px]` — używaj tokenu. Skala poniżej definiuje **kied
 
 **Zasada:** 80% przypadków to `text-2xs`–`text-sm` (dane, dashboardy, KPI). Większe rozmiary tylko dla nagłówków i hero.
 
+### 2.9 Glass Material Hierarchy
+
+Trzy poziomy szkła, każdy z własnymi tokenami blur/saturate/bg/border:
+
+| Level | Klasa | Blur | Saturate | BG opacity | Border | Do czego |
+|-------|-------|------|----------|------------|--------|----------|
+| 1 — Structural | `.glass-structural` | 24px | 160% | 85% surface | full border | Sidebar, bottom-nav |
+| 2 — Elevated | `.glass-elevated` | 16px | 180% | 75% surface | 60% border | Header, toolbar, sticky |
+| 3 — Floating | `.glass-floating` | 12px | 200% | 65% surface | 40% border | Modal, sheet, popover |
+
+**Tokeny:** `--glass-blur-{1,2,3}`, `--glass-saturate-{1,2,3}`, `--glass-bg-{1,2,3}`, `--glass-border-{1,2,3}`
+
+**Drzewo decyzyjne:**
+- Element jest **stale widoczny** (sidebar, bottom-nav) → `glass-structural`
+- Element jest **przyklejony** (header, toolbar) → `glass-elevated`
+- Element **pojawia się nad treścią** (modal, sheet, dropdown) → `glass-floating`
+- Zwykła karta w liście → **nie używaj glass**, użyj `Card variant="surface"`
+
+**Kiedy NIE używać glass:** karty w listach, elementy inline, elementy bez tła za sobą (glass wymaga contentu pod spodem żeby działał blur).
+
 ---
 
 ## 3. Komponenty `src/components/ui/`
@@ -220,20 +240,21 @@ import Button from '../ui/Button';
 ```tsx
 import { Card } from '../ui/Card';
 
-<Card variant="glass" padding="1rem" onClick={() => {}}>
+<Card variant="surface" padding="1rem" onClick={() => {}}>
   {children}
 </Card>
 ```
 
 | Prop | Typ | Default | Opcje |
 |---|---|---|---|
-| `variant` | CardVariant | `'glass'` | `glass`, `immersive`, `canvas`, `receipt`, `outline`, `notice`, `danger`, `accent` |
+| `variant` | CardVariant | `'surface'` | `surface`, `glass`, `immersive`, `canvas`, `receipt`, `outline`, `notice`, `danger`, `accent` |
 | `padding` | string | `'1rem'` | Dowolny CSS padding |
 | `onClick` | function | — | Dodaje `cursor-pointer` + `active:scale-[0.98]` |
 | `as` | ElementType | `'div'` | Polimorficzny rendering |
 
 **Variant guide:**
-- `glass` — domyślna karta, bg-surface + border + shadow
+- `surface` — domyślna karta, bg-surface + border + shadow (bez blur)
+- `glass` — frosted glass karta z backdrop-blur (glass-elevated level)
 - `immersive` — ciemne tło (#0A0A0A), float shadow
 - `canvas` — kropkowane tło (dot-grid)
 - `receipt` — subtelna ramka, bez shadow
@@ -400,10 +421,9 @@ Te klasy CSS z `index.css` są używane bezpośrednio w JSX (nie przez `ui/` kom
 |---|---|
 | `.card` | Prosty bordered container z hover-lift (21 konsumentów) |
 | `.surface-card` | Dwuwarstwowy cień + hover-lift |
-| `.glass-panel` | iOS frosted glass (backdrop-blur) |
-| `.ios-surface` | Sheet/modal surface (asymmetric radius) |
-| `.ios-nav-bar` | Sticky top bar (back/title/done) |
-| `.ios-modal-backdrop` | Ciemny backdrop blur |
+| `.glass-structural` | Glass level 1 — sidebar, bottom-nav (blur 24px, 85% bg) |
+| `.glass-elevated` | Glass level 2 — header, toolbar, sticky (blur 16px, 75% bg) |
+| `.glass-floating` | Glass level 3 — modal, sheet, popover (blur 12px, 65% bg) |
 | `.pixel-tile` | Ikona w zaokrąglonym kwadracie (tonal bg) |
 | `.pixel-label` | Uppercase metadata (9px, bold, tracked) |
 | `.nav-pill-active` | Aktywna pozycja nawigacji |

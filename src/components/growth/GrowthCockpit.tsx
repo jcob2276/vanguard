@@ -43,7 +43,7 @@ export default function GrowthCockpit({
   const mustPct = mustTotal > 0 ? Math.round((mustDone / mustTotal) * 100) : 0;
 
   return (
-    <Card variant="glass" padding="1.25rem" className="space-y-4">
+    <Card variant="surface" padding="1.25rem" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">Tydzień · podsumowanie</p>

@@ -116,7 +116,7 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
 export function CategorySection({ catKey, series }: { catKey: string; series: MarkerSeries[] }) {
   const [open, setOpen] = useState(true);
   return (
-    <Card variant="glass" className="bg-surface/30 border-border-custom overflow-hidden" padding="0">
+    <Card variant="surface" className="bg-surface/30 border-border-custom overflow-hidden" padding="0">
       <Pressable
         type="button"
         onClick={() => setOpen((v) => !v)}

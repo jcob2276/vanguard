@@ -119,7 +119,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
   if (loading) return <div className="p-4 text-text-muted">Wczytywanie dziennika...</div>;
 
   return (
-    <Card variant="glass" className="w-full flex flex-col gap-8 bg-surface/50 border-border-custom" padding="1.5rem">
+    <Card variant="surface" className="w-full flex flex-col gap-8 bg-surface/50 border-border-custom" padding="1.5rem">
       <div className="flex items-center justify-between border-b border-border-custom/40 pb-4">
         <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Agregacja wykresu</span>
         <div className="flex bg-surface-2 dark:bg-on-accent/[0.02] border border-border-custom/60 rounded-xl p-0.5">
@@ -127,7 +127,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
             onClick={() => setViewMode('daily')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'daily'
-                ? 'bg-primary text-on-accent shadow-sm font-black'
+                ? 'bg-primary text-on-accent font-black'
                 : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -137,7 +137,7 @@ export default function VisionJournal({ refreshTrigger = 0 }: { refreshTrigger?:
             onClick={() => setViewMode('monthly')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'monthly'
-                ? 'bg-primary text-on-accent shadow-sm font-black'
+                ? 'bg-primary text-on-accent font-black'
                 : 'text-text-muted hover:text-text-primary'
             }`}
           >

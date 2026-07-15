@@ -7,7 +7,7 @@ function ScoreCard({ score }: { score: BiologyScoreResult }) {
   const noData = score.score == null && score.toneLabel === 'Brak danych';
   return (
     <Card
-      variant="glass"
+      variant="surface"
       className={`border-border-custom flex flex-col gap-2 ${
         noData ? 'bg-surface/15 opacity-[var(--opacity-90)]' : 'bg-surface/30'
       }`}

@@ -17,7 +17,7 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
   const totalSets = session.exercises.reduce((s, ex) => s + ex.sets, 0)
   const completedSets = done.reduce((s, row) => s + row.filter(Boolean).length, 0)
   return (
-    <Card variant="glass" className="border border-success/25 space-y-4" style={{ background: 'var(--legacy-color-070)' }}>
+    <Card variant="surface" className="border border-success/25 space-y-4" style={{ background: 'var(--legacy-color-070)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">

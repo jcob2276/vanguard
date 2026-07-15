@@ -11,7 +11,7 @@ export interface PageToolbarProps {
 
 export function PageToolbar({ title, description, leading, center, actions, navigation }: PageToolbarProps) {
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-custom/40 bg-background/75 ios-glass-interactive">
+    <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-custom/40 bg-background/75 glass-elevated">
       <div className="flex min-h-[var(--toolbar-height)] items-center gap-[var(--space-3)] px-[var(--space-4)] md:px-[var(--space-6)]">
         {leading}
         <div className="min-w-0 shrink-0 md:w-44">

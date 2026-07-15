@@ -118,7 +118,7 @@ export default function VisionBoardPanel({
               return (
                 <div key={item.id} className="group relative break-inside-avoid mb-2">
                   {item.type === 'image' ? (
-                    <Card variant="glass" padding="0" className="rounded-xl relative overflow-hidden">
+                    <Card variant="surface" padding="0" className="rounded-xl relative overflow-hidden">
                       <img
                         src={item.content}
                         alt=""
@@ -134,7 +134,7 @@ export default function VisionBoardPanel({
                       />
                     </Card>
                   ) : item.type === 'word' ? (
-                    <Card variant="glass" padding="1.25rem 1rem" className={`rounded-xl relative flex items-center justify-center ${c.border} ${c.bg}`}>
+                    <Card variant="surface" padding="1.25rem 1rem" className={`rounded-xl relative flex items-center justify-center ${c.border} ${c.bg}`}>
                       <p className={`font-display text-2xl font-black tracking-tight ${c.text} text-center`}>{item.content}</p>
                       <Pressable
                         variant="ghost"
@@ -145,7 +145,7 @@ export default function VisionBoardPanel({
                       />
                     </Card>
                   ) : (
-                    <Card variant="glass" padding="1rem 0.875rem" className={`rounded-xl relative ${c.border} ${c.bg}`}>
+                    <Card variant="surface" padding="1rem 0.875rem" className={`rounded-xl relative ${c.border} ${c.bg}`}>
                       <p className={`text-sm font-bold leading-snug ${c.text}`}>{item.content}</p>
                       <Pressable
                         variant="ghost"

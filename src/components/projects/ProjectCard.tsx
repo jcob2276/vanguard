@@ -9,7 +9,7 @@ import { useProjectsContext } from './context/projectsContextStore';
 
 const MOMENTUM_META: Record<string, { label: string; color: string }> = {
   accelerating: { label: '↑ Momentum', color: 'var(--color-success)' },
-  steady:       { label: '→ Steady',   color: 'var(--legacy-color-020)' },
+  steady:       { label: '→ Steady',   color: 'var(--color-info)' },
   slipping:     { label: '↓ Slipuje',  color: 'var(--color-warning)' },
   stalled:      { label: '✕ Stale',   color: 'var(--color-danger)' },
 };
@@ -49,7 +49,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <Card
-      variant="glass"
+      variant="surface"
       padding="0"
       className={`overflow-hidden hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] ${
         healthLevel === 'critical' && project.status === 'active'

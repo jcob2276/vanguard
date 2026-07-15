@@ -81,7 +81,7 @@ export default function CalendarTodoModal() {
       </Button>
 
       {!completedTodoIds.has(editingTodo.id) && (
-        <Card variant="glass" padding="0.875rem" className="space-y-2.5">
+        <Card variant="surface" padding="0.875rem" className="space-y-2.5">
           <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">Przełóż na jutro</label>
           <ControlTextarea
             placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"

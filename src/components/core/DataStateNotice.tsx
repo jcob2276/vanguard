@@ -39,7 +39,7 @@ export default function DataStateNotice({ title, detail, tone = 'info' }: DataSt
 
   return (
     <Card
-      variant="glass"
+      variant="surface"
       padding="0.75rem"
       style={{ boxShadow: 'none' }}
       className={`flex items-start gap-3 !bg-transparent !rounded-xl border ${state.border} ${state.bg}`}

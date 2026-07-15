@@ -20,7 +20,7 @@ interface Props {
 
 export function ProjectCreateForm({ form, busy, onChange, onSubmit }: Props) {
   return (
-    <Card variant="glass" padding="1rem" className="space-y-3">
+    <Card variant="surface" padding="1rem" className="space-y-3">
       <ControlInput
         autoFocus
         value={form.name}

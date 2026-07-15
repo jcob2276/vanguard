@@ -87,7 +87,7 @@ export default function Modal({
     >
       <div
         ref={containerRef}
-        className={`w-full ${sizeClasses[size]} ios-surface rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[var(--legacy-arbitrary-058)] overflow-y-auto' : ''} ${className}`}
+        className={`w-full ${sizeClasses[size]} glass-floating rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[var(--legacy-arbitrary-058)] overflow-y-auto' : ''} ${className}`}
       >
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-start justify-between gap-4">

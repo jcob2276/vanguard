@@ -47,7 +47,7 @@ export default function GrowthLearningPanel({
 }) {
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <Card variant="glass" padding="1rem">
+      <Card variant="surface" padding="1rem">
         <div className="flex items-center gap-1.5 mb-2">
           <BookOpen size={12} className="text-text-muted" />
           <p className="text-2xs font-black uppercase tracking-wider text-text-muted">
@@ -122,7 +122,7 @@ export default function GrowthLearningPanel({
         )}
       </Card>
 
-      <Card variant="glass" padding="1rem" className="flex-1 flex flex-col min-h-[var(--legacy-h-016)]">
+      <Card variant="surface" padding="1rem" className="flex-1 flex flex-col min-h-[var(--legacy-h-016)]">
         <p className="text-2xs font-black uppercase tracking-wider text-text-muted mb-2">
           Nauczyłem się w tym tygodniu
         </p>

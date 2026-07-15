@@ -44,7 +44,7 @@ interface Props { snapshot: UserStatsSnapshot | null; loading?: boolean; }
 
 export function UserStatsOverviewCard({ snapshot, loading }: Props) {
   return (
-    <Card variant="glass" padding="1rem" className="space-y-3">
+    <Card variant="surface" padding="1rem" className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--legacy-color-149)' }}>
           <BarChart2 size={13} style={{ color: 'var(--color-primary)' }} />

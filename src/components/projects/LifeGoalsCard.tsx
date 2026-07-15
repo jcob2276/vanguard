@@ -95,7 +95,7 @@ export default function LifeGoalsCard({ userId, lifeGoals }: Props) {
   };
 
   return (
-    <Card variant="glass" padding="1.25rem" className="space-y-3.5">
+    <Card variant="surface" padding="1.25rem" className="space-y-3.5">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-wider text-text-muted">
           <Star size={12} className="text-primary" /> Cele Roczne (BHAG)

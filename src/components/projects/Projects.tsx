@@ -109,7 +109,7 @@ function ProjectsInner({
           />
 
           {activeFiltered.length === 0 ? (
-            <Card variant="glass" padding="4rem 2rem" className="flex flex-col items-center justify-center text-center">
+            <Card variant="surface" padding="4rem 2rem" className="flex flex-col items-center justify-center text-center">
               <FolderKanban size={28} className="text-text-muted/30 mb-3" />
               <p className="text-base font-semibold text-text-secondary">Brak aktywnych projektów</p>
               <p className="text-sm text-text-muted mt-1">Kliknij „Nowy cel" żeby zacząć.</p>

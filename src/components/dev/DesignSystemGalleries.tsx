@@ -170,17 +170,17 @@ export function BadgeGallery() {
         <Badge variant="count" count={3} />
         <Badge variant="count" count={42} />
         <Badge variant="count" count={999} />
-        <Badge variant="count" count={7} color="var(--legacy-color-038)" />
+        <Badge variant="count" count={7} color="var(--color-danger)" />
       </Row>
       <Row label="Dot">
         <Badge variant="dot" />
-        <Badge variant="dot" color="var(--legacy-color-004)" />
-        <Badge variant="dot" color="var(--legacy-color-040)" />
+        <Badge variant="dot" color="var(--color-success)" />
+        <Badge variant="dot" color="var(--color-warning)" />
       </Row>
       <Row label="Tag">
         <Badge variant="tag">Pilne</Badge>
-        <Badge variant="tag" color="var(--legacy-color-004)">Gotowe</Badge>
-        <Badge variant="tag" color="var(--legacy-color-038)">Krytyczne</Badge>
+        <Badge variant="tag" color="var(--color-success)">Gotowe</Badge>
+        <Badge variant="tag" color="var(--color-danger)">Krytyczne</Badge>
       </Row>
     </Section>
   );

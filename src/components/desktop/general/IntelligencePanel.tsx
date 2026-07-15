@@ -97,7 +97,7 @@ export default function IntelligencePanel({
           const cfg = INTEL_CFG[card.type] || INTEL_CFG.data;
           const urgency = card.urgency || 'medium';
           return (
-            <Card key={`${card.type}-${card.headline}-${index}`} variant="glass" padding="1rem" className={`flex flex-col gap-2 ${cfg.urgencyMap[urgency]}`}>
+            <Card key={`${card.type}-${card.headline}-${index}`} variant="surface" padding="1rem" className={`flex flex-col gap-2 ${cfg.urgencyMap[urgency]}`}>
               <div className="flex items-center gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot[urgency]}`} />
                 <span

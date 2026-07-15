@@ -17,7 +17,7 @@ export default function GrowthMediaQueue({ links }: { links: GrowthLinkRow[] }) 
   const rest = links.filter((l) => !videos.includes(l));
 
   return (
-    <Card variant="glass" padding="1rem" className="h-full flex flex-col">
+    <Card variant="surface" padding="1rem" className="h-full flex flex-col">
       <div className="flex items-center justify-between gap-2 mb-3">
         <div>
           <p className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-wider text-text-muted">
@@ -91,7 +91,7 @@ function MediaRow({ row }: { row: GrowthLinkRow }) {
         className="p-1.5 text-text-muted hover:text-primary shrink-0"
         title="Otwórz"
       >
-        <ExternalLink size={14} />
+        <ExternalLink size={12} />
       </a>
     </li>
   );

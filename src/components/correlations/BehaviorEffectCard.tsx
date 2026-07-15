@@ -8,7 +8,7 @@ export default function BehaviorEffectCard({ item }: { item: BehaviorEffectResul
   const deltaStr = delta != null ? (delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)) : '—';
 
   return (
-    <Card variant="glass" padding="1rem">
+    <Card variant="surface" padding="1rem">
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <span className="text-2xs font-black uppercase tracking-widest text-text-muted">

@@ -163,7 +163,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
   }, [exercisesByTag, loadByTag]);
 
   return (
-    <Card variant="glass" className="border border-border-custom backdrop-blur-[var(--blur-md)]" padding="0">
+    <Card variant="glass" className="border border-border-custom" padding="0">
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">

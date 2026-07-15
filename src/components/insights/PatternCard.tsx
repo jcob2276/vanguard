@@ -68,7 +68,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
       padding="1rem"
       className="space-y-3"
       style={{
-        background: 'var(--color-surface, var(--legacy-color-046))',
+        background: 'var(--color-surface, white)',
         borderRadius: 'var(--legacy-inline-style-007)',
         opacity: pattern.status === 'user_rejected' ? 'var(--opacity-pattern-rejected)' : 'var(--opacity-100)',
       }}

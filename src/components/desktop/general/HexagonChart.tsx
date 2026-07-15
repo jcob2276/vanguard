@@ -64,7 +64,7 @@ export default function HexagonChart({ scores, theme, grid }: { scores: HexagonS
             cy={y}
             r="4"
             fill="var(--primary)"
-            stroke={theme === 'dark' ? 'var(--legacy-color-001)' : 'var(--legacy-color-046)'}
+            stroke={theme === 'dark' ? 'var(--scrim)' : 'white'}
             strokeWidth="1.5"
           />
         );

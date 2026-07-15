@@ -43,7 +43,7 @@ export default function GrowthProjectsPanel({
   }
 
   return (
-    <Card variant="glass" padding="1rem" className="space-y-3 h-full">
+    <Card variant="surface" padding="1rem" className="space-y-3 h-full">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-wider text-text-muted">
           <FolderKanban size={12} /> Projekty &middot; dow&oacute;d

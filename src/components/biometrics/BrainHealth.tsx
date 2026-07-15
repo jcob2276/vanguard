@@ -32,7 +32,7 @@ export default function BrainHealth() {
   if (!userId) return null;
 
   return (
-    <Card variant="glass" className="border border-border-custom backdrop-blur-[var(--blur-md)] space-y-4" style={{ background: 'rgba(var(--color-surface), 0.4)' }} padding="1.25rem">
+    <Card variant="glass" className="border border-border-custom space-y-4" padding="1.25rem">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-black text-text-primary uppercase tracking-widest flex items-center gap-2">
           <Brain size={14} className="text-primary" /> Vanguard Brain Health

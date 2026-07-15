@@ -9,7 +9,7 @@ export default function StabilityRing({ progress, size = 64 }: StabilityRingProp
   const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
   const dash = circ * progress;
-  const color = progress === 1 ? 'var(--legacy-color-010)' : progress > 0.5 ? 'var(--color-warning)' : 'var(--legacy-color-020)';
+  const color = progress === 1 ? 'var(--color-success)' : progress > 0.5 ? 'var(--color-warning)' : 'var(--color-info)';
 
   return (
     <svg width={size} height={size} style={{ transform: 'var(--legacy-inline-style-083)' }}>

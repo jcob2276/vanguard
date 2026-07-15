@@ -129,7 +129,7 @@ export default function OracleCard({
       ) : open ? (
         <Card
           as="section"
-          variant="glass"
+          variant="surface"
           padding="0"
           className="border border-primary/15 backdrop-blur-[var(--blur-md)]"
           style={{

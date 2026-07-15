@@ -15,7 +15,7 @@ interface ManualTimePickerProps {
 
 function ManualTimePicker({ logger }: ManualTimePickerProps) {
   return (
-    <Card variant="glass" className="border border-border-custom space-y-3">
+    <Card variant="surface" className="border border-border-custom space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock size={14} className="text-text-muted" />

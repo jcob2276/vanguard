@@ -142,7 +142,7 @@ export default function ProjectCardCollapsed({
             {pm && (
               <Badge
                 variant="tag"
-                color={PILLAR_HEX_COLORS[pm.color] || 'var(--legacy-color-020)'}
+                color={PILLAR_HEX_COLORS[pm.color] || 'var(--color-info)'}
                 className="gap-1 text-2xs font-black uppercase tracking-widest"
               >
                 <pm.icon size={9} />

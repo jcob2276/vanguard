@@ -36,7 +36,7 @@ export default function ProjectCardExpanded({
     <div className="border-t border-border-custom/30 px-4 pb-4 pt-3 space-y-3">
 
       {/* Project metadata / edit form */}
-      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+      <Card variant="surface" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
         {editingProjectId === project.id ? (
           <div className="space-y-3">
             <ControlInput
@@ -162,7 +162,7 @@ export default function ProjectCardExpanded({
       )}
 
       {/* Checkpoints */}
-      <Card variant="glass" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+      <Card variant="surface" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
         <div className="flex items-center justify-between">
           <p className="text-xs font-black uppercase tracking-widest text-text-muted">Checkpointy</p>
           {newCheckpoint?.projectId !== project.id && (

@@ -55,7 +55,7 @@ export default function ExerciseNameInput({
       />
       {open && matches.length > 0 && (
         <Card
-          variant="glass"
+          variant="surface"
           padding="0"
           className="absolute left-0 right-0 top-full mt-2 z-[var(--z-overlay)] border border-border-custom shadow-lg"
           style={{ borderRadius: 'var(--legacy-inline-style-005)' }}

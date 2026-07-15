@@ -12,7 +12,7 @@ interface WorkspaceSidebarProps {
 export default function WorkspaceSidebar({ children, collapsed = false, className = '', onCollapse }: WorkspaceSidebarProps) {
   return (
     <aside
-      className={`hidden w-[var(--sidebar-width)] shrink-0 flex-col overflow-y-auto border-r border-border-custom/30 bg-surface-1 px-[var(--space-3)] py-[var(--space-3)] transition-[width,padding,border-color] duration-[var(--motion-medium)] ease-[var(--spring)] md:flex ios-glass-structural ${
+      className={`hidden w-[var(--sidebar-width)] shrink-0 flex-col overflow-y-auto border-r border-border-custom/30 bg-surface-1 px-[var(--space-3)] py-[var(--space-3)] transition-[width,padding,border-color] duration-[var(--motion-medium)] ease-[var(--spring)] md:flex glass-structural ${
         collapsed ? '!w-0 overflow-hidden !border-r-0 !px-0 !py-0' : ''
       } ${className}`}
     >

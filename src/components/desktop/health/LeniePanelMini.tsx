@@ -28,7 +28,7 @@ export default function LeniePanelMini({ logs }: LeniePanelMiniProps) {
   if (!logs?.length) return null;
 
   return (
-    <Card variant="glass" padding="1rem 1.5rem" className="flex items-center gap-8"
+    <Card variant="surface" padding="1rem 1.5rem" className="flex items-center gap-8"
       style={{ border: 'var(--border-width-thin) solid var(--legacy-color-112)', background: 'var(--legacy-color-108)' }}>
       <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-danger/50 shrink-0">Lenie</p>
 

@@ -47,7 +47,7 @@ export function DashboardHeader({
   handleLogoPressEnd,
 }: DashboardHeaderProps) {
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/75 px-5 py-4.5 ios-glass-interactive shadow-[var(--shadow-nav)]">
+    <header className="sticky top-0 z-[var(--z-sticky)] flex items-center justify-between gap-2 border-b border-border-custom/50 bg-background/75 px-5 py-4.5 glass-elevated shadow-[var(--shadow-nav)]">
       <div className="min-w-0 shrink-0">
         <h1
           className="font-display text-sm text-primary select-none cursor-pointer flex items-center gap-1.5"

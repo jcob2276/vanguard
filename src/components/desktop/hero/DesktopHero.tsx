@@ -72,7 +72,7 @@ export default function DesktopHero({
 
   return (
     <section id="sprint" className="scroll-mt-28">
-      <Card variant="glass" padding="0" className="overflow-hidden" style={{ borderRadius: 'var(--legacy-inline-style-009)', background: cfg.bg, border: cfg.border }}>
+      <Card variant="surface" padding="0" className="overflow-hidden" style={{ borderRadius: 'var(--legacy-inline-style-009)', background: cfg.bg, border: cfg.border }}>
         <div className="px-8 py-5 flex items-center justify-between gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5 mb-2">

@@ -97,7 +97,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               cy={cy + r * val * Math.sin(angle)}
               r="4"
               fill="var(--legacy-color-048)"
-              stroke={theme === 'dark' ? 'var(--legacy-color-001)' : 'var(--legacy-color-046)'}
+              stroke={theme === 'dark' ? 'var(--scrim)' : 'white'}
               strokeWidth="1.5"
             />
           );

@@ -99,7 +99,7 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
                 <h2 className="text-lg font-black text-text-primary uppercase tracking-wider">Dzień Zamknięty</h2>
                 <p className="text-sm text-text-muted">Praca została mentalnie domknięta. Czas na odpoczynek i regenerację.</p>
               </div>
-              <Card variant="glass" className="w-full text-left space-y-2" style={{ background: 'var(--surface)', border: 'var(--border-width-thin) solid var(--border)' }}>
+              <Card variant="surface" className="w-full text-left space-y-2" style={{ background: 'var(--surface)', border: 'var(--border-width-thin) solid var(--border)' }}>
                 <div className="flex items-center justify-between text-xs font-bold text-text-primary">
                   <span>Wynik Dnia:</span>
                   <span className="text-primary font-black">{d.dayScore}/10</span>

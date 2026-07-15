@@ -11,7 +11,7 @@ interface PrescriptionCardProps {
 export default function PrescriptionCard({ title, prescription }: PrescriptionCardProps) {
   if (!prescription) {
     return (
-      <Card variant="glass" className="border-border-custom bg-surface/40 flex flex-col items-center justify-center text-center" padding="1.5rem">
+      <Card variant="surface" className="border-border-custom bg-surface/40 flex flex-col items-center justify-center text-center" padding="1.5rem">
         <Glasses className="text-text-muted opacity-[var(--opacity-30)] mb-2" size={32} />
         <h4 className="text-sm font-semibold text-text-muted">{title}</h4>
         <p className="text-xs text-text-muted mt-1">Brak aktywnych szkieł w bazie</p>
@@ -22,7 +22,7 @@ export default function PrescriptionCard({ title, prescription }: PrescriptionCa
   const isNormalized = prescription.type === 'normalized';
 
   return (
-    <Card variant="glass" className={`border ${isNormalized ? 'bg-info/5 border-info/20' : 'bg-success/5 border-success/20'}`} padding="1.25rem">
+    <Card variant="surface" className={`border ${isNormalized ? 'bg-info/5 border-info/20' : 'bg-success/5 border-success/20'}`} padding="1.25rem">
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-[var(--blur-3xl)] opacity-[var(--opacity-20)] pointer-events-none ${isNormalized ? 'bg-info' : 'bg-success'}`} />
 
       <div className="flex items-start justify-between mb-4">

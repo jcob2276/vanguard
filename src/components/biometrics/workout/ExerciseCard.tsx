@@ -77,7 +77,7 @@ export default function ExerciseCard({
   }, 0);
 
   return (
-    <Card variant="glass" className="border border-border-custom" padding="0">
+    <Card variant="surface" className="border border-border-custom" padding="0">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border-custom bg-text-primary/[0.01]">
         <ExerciseNameInput

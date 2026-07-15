@@ -20,7 +20,7 @@ export function PriorityTasksPanel({ items, onToggleDone }: Props) {
   if (importantTasks.length === 0) return null;
 
   return (
-    <Card variant="glass" padding="1.25rem" className="space-y-3">
+    <Card variant="surface" padding="1.25rem" className="space-y-3">
       <h3 className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-wider text-text-muted">
         <Zap size={12} className="text-warning" /> Priorytetowe Zadania
       </h3>

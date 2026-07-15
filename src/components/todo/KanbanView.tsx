@@ -120,7 +120,7 @@ export default function KanbanView({ items, sections, setItems, today }: Props) 
               })}
 
               {colItems.length === 0 && (
-                <Card variant="glass" padding="1rem" style={{ boxShadow: 'none' }} className="!bg-transparent !rounded-xl border border-dashed border-border-custom/20 text-center">
+                <Card variant="surface" padding="1rem" style={{ boxShadow: 'none' }} className="!bg-transparent !rounded-xl border border-dashed border-border-custom/20 text-center">
                   <p className="text-2xs text-text-muted/40">Przeciągnij tutaj</p>
                 </Card>
               )}

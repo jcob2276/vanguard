@@ -39,7 +39,7 @@ function Section({ title, icon: Icon, value, onChange, placeholder, description,
 }) {
   const themeStyles = colorMap[color] || colorMap['purple-500'];
   return (
-    <Card variant="glass" padding="1.25rem" className="border border-border-custom space-y-4 hover:border-primary/20">
+    <Card variant="surface" padding="1.25rem" className="border border-border-custom space-y-4 hover:border-primary/20">
       <div className="flex items-center gap-3">
         <div className={`p-2.5 rounded-xl ${themeStyles.bg} border ${themeStyles.border}`}>
           <Icon size={18} className={themeStyles.text} />

@@ -25,7 +25,7 @@ export default function SolarDayWidget({ dateStr }: Props) {
   const sunsetPct = (sunTimes.sunsetMin / 1440) * 100;
 
   return (
-    <Card variant="glass" padding="0.75rem" className="space-y-2.5 select-none">
+    <Card variant="surface" padding="0.75rem" className="space-y-2.5 select-none">
       {/* Wschód / Zachód */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">

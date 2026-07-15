@@ -64,16 +64,16 @@
   --legacy-arbitrary-060: 3px;
   --legacy-arbitrary-061: 21px;
   /* Generated compatibility bridge. Guarded: every reference below has a definition. */
-  --legacy-color-001: #000;
+  var(--scrim): #000;
   --legacy-color-002: #0A0A0A;
   --legacy-color-003: #0F766E;
-  --legacy-color-004: #10b981;
+  var(--color-success): #10b981;
   --legacy-color-005: #12d6c8;
   --legacy-color-006: #13cfe8;
   --legacy-color-007: #14b8a6;
   --legacy-color-008: #172554;
   --legacy-color-009: #21e7ff;
-  --legacy-color-010: #22c55e;
+  var(--color-success): #22c55e;
   --legacy-color-011: #22d3ee;
   --legacy-color-012: #24b7ff;
   --legacy-color-013: #26d3c8;
@@ -82,8 +82,8 @@
   --legacy-color-016: #2de0b8;
   --legacy-color-017: #32d99a;
   --legacy-color-018: #33333322;
-  --legacy-color-019: #38bdf8;
-  --legacy-color-020: #3b82f6;
+  var(--color-info): #38bdf8;
+  var(--color-info): #3b82f6;
   --legacy-color-021: #4ade80;
   --legacy-color-022: #4f46e5;
   --legacy-color-023: #60a5fa;
@@ -92,7 +92,7 @@
   --legacy-color-026: #7cc8ff;
   --legacy-color-027: #7ce0ff;
   --legacy-color-028: #7ee56d;
-  --legacy-color-029: #818cf8;
+  var(--color-info-hover): #818cf8;
   --legacy-color-030: #888;
   --legacy-color-031: #94a3b8;
   --legacy-color-032: #a78bfa;
@@ -101,16 +101,16 @@
   --legacy-color-035: #c084fc;
   --legacy-color-036: #e5e7eb;
   --legacy-color-037: #ef4444;
-  --legacy-color-038: #F43F5E;
+  var(--color-danger): #F43F5E;
   --legacy-color-039: #f472b6;
-  --legacy-color-040: #f59e0b;
+  var(--color-warning): #f59e0b;
   --legacy-color-041: #f87171;
   --legacy-color-042: #f97316;
   --legacy-color-043: #facc15;
   --legacy-color-044: #fb923c;
   --legacy-color-045: #fef08a;
-  --legacy-color-046: #fff;
-  --legacy-color-047: #ffffff;
+  white: #fff;
+  white: #ffffff;
   --legacy-color-048: rgb(163, 230, 53);
   --legacy-color-049: rgba(0,0,0,0.04);
   --legacy-color-050: rgba(0, 0, 0, 0.05);
@@ -637,7 +637,6 @@
   --content-default: 55rem;
   --content-wide: 73.75rem;
   --toolbar-height: 4rem;
-  --blur-chrome: 20px;
   --blur-overlay: 8px;
   --blur-sm: 4px;
   --blur-md: 12px;
@@ -646,6 +645,24 @@
   --blur-3xl: 64px;
   --blur-ambient: 120px;
   --blur-fine: 2.5px;
+
+  /* ── Glass Material Hierarchy tokens ── */
+  /* Level 1: Structural — sidebar, bottom-nav (heavy, opaque) */
+  /* Level 2: Elevated — header, toolbar, sticky (medium) */
+  /* Level 3: Floating — modal, sheet, popover (light, transparent) */
+  --glass-blur-1: 24px;
+  --glass-blur-2: 16px;
+  --glass-blur-3: 12px;
+  --glass-saturate-1: 160%;
+  --glass-saturate-2: 180%;
+  --glass-saturate-3: 200%;
+  --glass-bg-1: color-mix(in srgb, var(--surface) 85%, transparent);
+  --glass-bg-2: color-mix(in srgb, var(--surface) 75%, transparent);
+  --glass-bg-3: color-mix(in srgb, var(--surface) 65%, transparent);
+  --glass-border-1: var(--border);
+  --glass-border-2: color-mix(in srgb, var(--border) 60%, transparent);
+  --glass-border-3: color-mix(in srgb, var(--border) 40%, transparent);
+
   --opacity-0: 0;
   --opacity-20: 0.2;
   --opacity-30: 0.3;
@@ -666,12 +683,10 @@
   --z-base: 0;
   --z-sticky: 30;
   --z-overlay: 50;
-  --z-toast: 70;
   --z-raised: 10;
   --z-popover: 20;
   --z-nav: 35;
   --z-modal: 40;
-  --z-critical: 60;
   --z-floating: 200;
   --z-fullscreen: 1000;
   --z-emergency: 9999;
@@ -1072,24 +1087,27 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── iOS premium glass chrome ── */
-  .ios-glass-chrome {
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* ── Glass Material Hierarchy ── */
+  /* Level 1: Structural — sidebar, bottom-nav (heavy, opaque) */
+  .glass-structural {
+    backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate-1));
+    -webkit-backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate-1));
+    background: var(--glass-bg-1);
+    border-color: var(--glass-border-1);
   }
-
-  /* ── iOS glass material hierarchy ── */
-  /* Structural: sidebar, bottom-nav — heavier material, more opacity */
-  .ios-glass-structural {
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    background: color-mix(in srgb, var(--surface) 85%, transparent);
+  /* Level 2: Elevated — header, toolbar, sticky (medium) */
+  .glass-elevated {
+    backdrop-filter: blur(var(--glass-blur-2)) saturate(var(--glass-saturate-2));
+    -webkit-backdrop-filter: blur(var(--glass-blur-2)) saturate(var(--glass-saturate-2));
+    background: var(--glass-bg-2);
+    border-color: var(--glass-border-2);
   }
-  /* Interactive: header, toolbar, floating action — lighter material, more transparency */
-  .ios-glass-interactive {
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
+  /* Level 3: Floating — modal, sheet, popover (light, transparent) */
+  .glass-floating {
+    backdrop-filter: blur(var(--glass-blur-3)) saturate(var(--glass-saturate-3));
+    -webkit-backdrop-filter: blur(var(--glass-blur-3)) saturate(var(--glass-saturate-3));
+    background: var(--glass-bg-3);
+    border-color: var(--glass-border-3);
   }
 
   /* ── Card — iOS large radius + glass ── */
@@ -1156,15 +1174,6 @@
     box-shadow: none;
   }
 
-  /* ── Glass panel — iOS frosted surface ── */
-  .glass-panel {
-    background: color-mix(in srgb, var(--surface) 80%, transparent);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-  }
-
   /* ── Pixel tile — ikonka w zaokrąglonym kwadracie ── */
   .pixel-tile {
     display: flex;
@@ -1186,38 +1195,9 @@
     color: var(--text-muted);
   }
 
-  /* ── iOS surface — sheet / modal surface ── */
-  .ios-surface {
-    background: color-mix(in srgb, var(--surface) 75%, transparent);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  }
-
-  /* ── iOS nav bar — sticky top bar (back/title/done), promoted from notes.css .keep-ios-nav ── */
-  .ios-nav-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 14px 10px;
-    flex-shrink: 0;
-    border-bottom: 0.5px solid var(--border);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    overflow: hidden;
-  }
-
-  /* ── iOS modal backdrop — heavier blur variant for sheets, promoted from notes.css .keep-modal-backdrop ── */
-  .ios-modal-backdrop {
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-  }
-
-  /* ── iOS full-screen sheet modifier — opt-in for .ios-surface consumers that are bottom sheets, not centered
-     modals, promoted from notes.css's @media (max-width: 640px) .keep-modal-content rule ── */
+  /* ── iOS full-screen sheet modifier — opt-in for glass-floating consumers that are bottom sheets ── */
   @media (max-width: 640px) {
-    .ios-surface.ios-sheet-fullscreen {
+    .glass-floating.ios-sheet-fullscreen {
       top: 0 !important;
       bottom: 0 !important;
       left: 0 !important;
@@ -1226,10 +1206,6 @@
       max-width: 100% !important;
       border-radius: 0 !important;
       max-height: 100dvh !important;
-    }
-    .ios-sheet-fullscreen .ios-nav-bar {
-      padding-top: max(env(safe-area-inset-top), 14px);
-      border-radius: 0;
     }
   }
 
