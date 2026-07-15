@@ -46,7 +46,6 @@ kolejność czytania albo listę odnośników, powinien zamiast tego cytować te
 | [`runbooks/`](./runbooks/) | Przy incydentach (deploy, bot, DB, Telegram timeout) |
 | [`surface-contracts/BIOMETRICS.md`](./surface-contracts/BIOMETRICS.md) | Przed zmianą powierzchni biometrycznych (regression checklist) |
 | [`career/`](./career/) | Domena sprzedaż/closer — nie dotyczy Vanguard Core |
-| [`OPEN_SOURCE.md`](./OPEN_SOURCE.md) | Przed publikacją repo publicznie |
 
 ## Authority (gdy sprzeczne)
 

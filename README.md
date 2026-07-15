@@ -85,7 +85,7 @@ vanguard-os/
 ├── docs/                   # Knowledge Base
 │   ├── ARCHITECTURE.md     # System design and data flow
 │   ├── PRODUCT_PRINCIPLES.md # The unshakeable laws of the Vanguard AI
-│   └── DEV_GUIDE.md        # Technical contribution rules
+│   └── BACKEND_CONTRACT.md  # Technical contribution rules (backend contract)
 └── scripts/                # Local automation and analytics scripts
 ```
 

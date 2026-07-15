@@ -24,7 +24,7 @@ Supabase project: configured per deployment through environment variables.
 | `supabase/functions/` | Deno Edge Functions — CRONs, webhooks, AI logic. Each folder is one deployed function. |
 | `supabase/migrations/` | Applied SQL migrations. Immutable. |
 | `src/` | React 19 SPA — data visualization, timelines, specialized panels. |
-| `docs/` | Knowledge base (this file, `PRODUCT_PRINCIPLES.md`, `DEV_GUIDE.md`, `FRONTEND_GUIDE.md`). |
+| `docs/` | Knowledge base (this file, `PRODUCT_PRINCIPLES.md`, `BACKEND_CONTRACT.md`, `FRONTEND_GUIDE.md`). |
 | `scripts/` | Local ops automation, eval scripts, testing (`scripts/ops/`). |
 
 ### Frontend directory map (`src/`)

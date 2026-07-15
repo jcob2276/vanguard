@@ -257,6 +257,6 @@ Zasady wypracowane na realnych regresjach podczas sesji porządkowania `lib/`/`h
 
 ---
 
-*Powiązane: [`DEV_GUIDE.md`](DEV_GUIDE.md) (backend), [`README.md`](README.md) (kolejność czytania), [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) (tokeny, komponenty ui/, reguły dla agentów, motion, a11y), `../BACKLOG.md` część IV (otwarta praca strukturalna: god-files, `as any`, itd.), `lessons.md` (incydenty, z których część reguł w sekcji 6/13 wynika wprost).*
+*Powiązane: [`BACKEND_CONTRACT.md`](BACKEND_CONTRACT.md) (backend), [`README.md`](README.md) (kolejność czytania), [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) (tokeny, komponenty ui/, reguły dla agentów, motion, a11y), `../BACKLOG.md` część IV (otwarta praca strukturalna: god-files, `as any`, itd.), `lessons.md` (incydenty, z których część reguł w sekcji 6/13 wynika wprost).*
 
 *Ostatnia weryfikacja z kodem: 2026-07-11*

@@ -130,6 +130,5 @@ System, który nie wie "lepiej" od Ciebie — po prostu pamięta to, o czym Ty z
 **Powiązane dokumenty:**
 - `docs/PRODUCT_PRINCIPLES.md` — guardrails, które muszą być przestrzegane po drodze
 - `docs/FEATURE_LIFECYCLE.md` — co jest aktywne, co deprecated
-- `docs/OPEN_SOURCE.md` — co musi być prawdą przed publikacją repo publicznie
 
 Ten plik jest ważniejszy niż wszystkie inne.
