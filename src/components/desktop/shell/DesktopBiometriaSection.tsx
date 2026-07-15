@@ -37,8 +37,8 @@ export default function DesktopBiometriaSection({
             </LineChart>
           </ResponsiveContainer>
           <div className="flex gap-4 mt-2">
-            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--legacy-h-021)] inline-block rounded" style={{ backgroundColor: C.indigo }} /> Sen (h)</span>
-            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--legacy-h-021)] inline-block rounded" style={{ backgroundColor: C.emerald }} /> HRV (ms)</span>
+            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--ds-h-2px)] inline-block rounded" style={{ backgroundColor: C.indigo }} /> Sen (h)</span>
+            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--ds-h-2px)] inline-block rounded" style={{ backgroundColor: C.emerald }} /> HRV (ms)</span>
           </div>
         </Panel>
 
@@ -71,8 +71,8 @@ export default function DesktopBiometriaSection({
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-4 mt-2">
-            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--legacy-h-021)] inline-block rounded" style={{ backgroundColor: C.rose }} /> Kcal</span>
-            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--legacy-h-021)] inline-block rounded" style={{ backgroundColor: C.sky  }} /> Białko (g)</span>
+            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--ds-h-2px)] inline-block rounded" style={{ backgroundColor: C.rose }} /> Kcal</span>
+            <span className="flex items-center gap-1.5 text-2xs text-text-muted"><span className="w-3 h-[var(--ds-h-2px)] inline-block rounded" style={{ backgroundColor: C.sky  }} /> Białko (g)</span>
           </div>
         </Panel>
       </div>

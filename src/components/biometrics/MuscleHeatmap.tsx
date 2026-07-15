@@ -17,17 +17,17 @@ const PERIODS = [
 ];
 
 const TAG_COLORS: Record<string, string> = {
-  klatka: 'var(--legacy-color-012)',
-  plecy: 'var(--legacy-color-005)',
-  barki: 'var(--legacy-color-009)',
-  biceps: 'var(--legacy-color-026)',
-  triceps: 'var(--legacy-color-006)',
-  brzuch: 'var(--legacy-color-016)',
-  czworogłowe: 'var(--legacy-color-028)',
-  'dwugłowe ud': 'var(--legacy-color-034)',
-  pośladki: 'var(--legacy-color-017)',
-  łydki: 'var(--legacy-color-013)',
-  przedramiona: 'var(--legacy-color-027)',
+  klatka: 'var(--color-theme-hex-24b7ff)',
+  plecy: 'var(--color-theme-hex-12d6c8)',
+  barki: 'var(--color-theme-hex-21e7ff)',
+  biceps: 'var(--color-theme-hex-7cc8ff)',
+  triceps: 'var(--color-theme-hex-13cfe8)',
+  brzuch: 'var(--color-theme-hex-2de0b8)',
+  czworogłowe: 'var(--color-theme-hex-7ee56d)',
+  'dwugłowe ud': 'var(--color-theme-hex-a8d66d)',
+  pośladki: 'var(--color-theme-hex-32d99a)',
+  łydki: 'var(--color-theme-hex-26d3c8)',
+  przedramiona: 'var(--color-theme-hex-7ce0ff)',
 };
 
 function tagsForLog(log: { muscle_tags?: string[] | null; exercise_name?: string | null }) {
@@ -38,7 +38,7 @@ function tagsForLog(log: { muscle_tags?: string[] | null; exercise_name?: string
 }
 
 function tagColor(tag: string) {
-  return TAG_COLORS[tag] ?? 'var(--legacy-color-011)';
+  return TAG_COLORS[tag] ?? 'var(--color-theme-hex-22d3ee)';
 }
 
 function BodyModel({
@@ -59,7 +59,7 @@ function BodyModel({
       bodyColor={BODY_BASE}
       highlightedColors={[...HEAT_SCALE]}
       onClick={onMuscleClick}
-      style={{ width: 'var(--legacy-inline-style-092)', padding: 'var(--legacy-inline-style-070)' }}
+      style={{ width: 'var(--ds-inline-style-100)', padding: 'var(--ds-inline-style-0-5rem-0-25rem-0)' }}
       svgStyle={{ display: 'block', overflow: 'visible' }}
     />
   );
@@ -167,7 +167,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Mapa mięśni</p>
+            <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">Mapa mięśni</p>
             <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">Co trenowałeś</h2>
           </div>
           <div className="flex shrink-0 gap-1">
@@ -177,7 +177,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                 onClick={() => setPeriod(p.days)}
                 className={`h-9 min-w-12 rounded-xl border px-3 text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
                   period === p.days
-                    ? 'border-info/40 bg-info/15 text-info dark:text-info shadow-[var(--legacy-shadow-069)]'
+                    ? 'border-info/40 bg-info/15 text-info dark:text-info shadow-[var(--ds-shadow-0-0-12px-rgba-56-189-248-0-1)]'
                     : 'border-border-custom bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-solid'
                 }`}
               >
@@ -191,8 +191,8 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
           <div className="mt-4 flex flex-wrap gap-2">
             <div className="flex items-center gap-2 rounded-xl border border-border-custom bg-surface px-3 py-2 shadow-sm">
               <span
-                className="h-2 w-2 rounded-full shadow-[var(--legacy-shadow-068)]"
-                style={{ color: topTag ? tagColor(topTag) : 'var(--legacy-color-082)', backgroundColor: 'currentColor' }}
+                className="h-2 w-2 rounded-full shadow-[var(--ds-shadow-0-0-10px-currentcolor)]"
+                style={{ color: topTag ? tagColor(topTag) : 'var(--color-theme-hex-ba15015015003)', backgroundColor: 'currentColor' }}
               />
               <span className="text-xs font-black uppercase tracking-widest text-text-muted">Top</span>
               <span className="text-xs font-black capitalize text-text-primary">{topTag ?? 'brak'}</span>
@@ -218,8 +218,8 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
               { label: 'Tył', view: 'posterior' as const },
             ]).map(({ label, view }) => (
               <div key={view} className="relative flex flex-col items-center gap-2">
-                <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">{label}</span>
-                <div className="muscle-map-model w-full max-w-[var(--legacy-maxw-053)]">
+                <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-18em)] text-text-muted">{label}</span>
+                <div className="muscle-map-model w-full max-w-[var(--ds-maxw-168px)]">
                   <BodyModel view={view} loadByTag={loadByTag} onMuscleClick={handleMuscleClick} />
                 </div>
               </div>
@@ -229,7 +229,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
           {ranked.length > 0 ? (
             <div className="space-y-3 border-t border-border-custom bg-text-primary/[0.01] px-5 py-4">
               {ranked.map(([tag, count]) => (
-                <div key={tag} className="grid grid-cols-[var(--legacy-arbitrary-006)] items-center gap-3">
+                <div key={tag} className="grid grid-cols-[var(--ds-arbitrary-90px-1fr-72px)] items-center gap-3">
                   <span className="flex min-w-0 items-center gap-2 text-xs font-black capitalize text-text-secondary">
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
@@ -242,7 +242,7 @@ export default function MuscleHeatmap({ session }: { session: { user?: { id?: st
                       className="h-full rounded-full transition-all duration-[var(--motion-deliberate)]"
                       style={{
                         width: `${(count / maxLoad) * 100}%`,
-                        background: `linear-gradient(90deg, ${tagColor(tag)}, var(--legacy-color-138))`,
+                        background: `linear-gradient(90deg, ${tagColor(tag)}, var(--color-theme-hex-ba255255255082))`,
                         boxShadow: count / maxLoad > 0.5 ? `0 0 8px color-mix(in srgb, ${tagColor(tag)} 50%, transparent)` : 'none',
                       }}
                     />

@@ -88,10 +88,10 @@ export default function WeekHub({
           size="md"
           type="button"
           onClick={onStartWeeklyReview}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3.5 text-left transition-colors hover:bg-primary/15 active:scale-[var(--legacy-arbitrary-014)]"
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3.5 text-left transition-colors hover:bg-primary/15 active:scale-[var(--ds-arbitrary-0-99)]"
         >
           <div className="min-w-0">
-            <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-primary">
+            <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-18em)] text-primary">
               <CalendarDays size={12} /> Zamknięcie tygodnia
             </p>
             <p className="mt-1 text-sm font-semibold text-text-primary leading-snug">
@@ -108,7 +108,7 @@ export default function WeekHub({
           size="md"
           type="button"
           onClick={onStartWeeklyReview}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-warning/25 bg-warning/[0.06] px-4 py-3.5 text-left transition-colors hover:bg-warning/10 active:scale-[var(--legacy-arbitrary-014)]"
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-warning/25 bg-warning/[0.06] px-4 py-3.5 text-left transition-colors hover:bg-warning/10 active:scale-[var(--ds-arbitrary-0-99)]"
         >
           <div className="min-w-0">
             <p className="text-2xs font-black uppercase tracking-widest text-warning">Refleksja tygodnia</p>
@@ -124,7 +124,7 @@ export default function WeekHub({
 
       {proposals.length > 0 && (
         <section className="space-y-3">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--legacy-arbitrary-053)] text-warning">
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-14em)] text-warning">
             <AlertCircle size={12} /> Do decyzji ({proposals.length})
           </p>
           {proposals.slice(0, 2).map((p) => (
@@ -186,7 +186,7 @@ export default function WeekHub({
 
       {openMust.length > 0 && (
         <section className="space-y-2">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--legacy-arbitrary-053)] text-text-muted">
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-14em)] text-text-muted">
             <Target size={12} /> Must tygodnia ({openMust.length})
           </p>
           <ul className="space-y-2">

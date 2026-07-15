@@ -46,7 +46,7 @@ export default function DataStateNotice({ title, detail, tone = 'info' }: DataSt
     >
       <Icon size={14} className={`${state.iconTone} mt-0.5 shrink-0 ${tone === 'loading' ? 'animate-spin' : ''}`} />
       <div className="min-w-0 space-y-1">
-        <p className={`text-xs font-black uppercase tracking-[var(--legacy-arbitrary-012)] ${state.titleTone}`}>
+        <p className={`text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-16em)] ${state.titleTone}`}>
           {title}
         </p>
         {detail && (

@@ -131,7 +131,7 @@ export default function GeneralRecommendationsPanel({
         {/* Active Recommendations */}
         <div className="md:col-span-2">
           <Panel title={`Aktywne Zalecenia Wyroczni (${pending.length})`}>
-            <div className="space-y-3 max-h-[var(--legacy-h-022)] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[var(--ds-h-300px)] overflow-y-auto pr-1">
               {pending.map((rec) => (
                 <RecommendationPendingCard key={rec.id} rec={rec} todayStr={todayStr} />
               ))}
@@ -184,7 +184,7 @@ export default function GeneralRecommendationsPanel({
       {/* Recommendations History */}
       {evaluated.length > 0 && (
         <Panel title={`Historia Zaleceń (${evaluated.length})`}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 max-h-[var(--legacy-h-025)] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 max-h-[var(--ds-h-350px)] overflow-y-auto pr-1">
             {evaluated.map((rec) => (
               <RecommendationHistoryCard key={rec.id} rec={rec} />
             ))}

@@ -60,7 +60,7 @@ export default function RichEditor({
       if (!bar) return;
       const keyboardH = window.innerHeight - (vv.offsetTop + vv.height);
       if (keyboardH > 50) {
-        bar.style.cssText = `position:fixed;bottom:${keyboardH}px;left:var(--legacy-inline-css-020);right:var(--legacy-inline-css-038);z-index:var(--legacy-inline-css-041);margin:var(--legacy-inline-css-026);border-radius:var(--legacy-inline-css-003);width:var(--legacy-inline-css-040);padding:var(--legacy-inline-css-036);`;
+        bar.style.cssText = `position:fixed;bottom:${keyboardH}px;left:var(--ds-inline-css-0-coll-2);right:var(--ds-inline-css-0-coll-5);z-index:var(--ds-inline-css-99999);margin:var(--ds-inline-css-0-coll-3);border-radius:var(--ds-inline-css-0);width:var(--ds-inline-css-100);padding:var(--ds-inline-css-0-12px);`;
         bar.classList.add('kb-open');
       } else {
         bar.style.cssText = '';
@@ -379,7 +379,7 @@ export default function RichEditor({
       handleSelection();
     } else if (action === 'highlight') {
       restoreSelection();
-      document.execCommand('hiliteColor', false, getComputedStyle(document.documentElement).getPropertyValue('--legacy-color-045').trim());
+      document.execCommand('hiliteColor', false, getComputedStyle(document.documentElement).getPropertyValue('--color-theme-hex-fef08a').trim());
       handleInput();
       handleSelection();
     } else if (action === 'blockquote') {
@@ -698,11 +698,11 @@ export default function RichEditor({
               className={`keep-autocomplete-item ${i === selectedMenuIndex ? 'active' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); executeSlashCommand(cmd); }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
-                <span style={{ fontSize: 'var(--legacy-inline-style-020)', width: 'var(--legacy-inline-style-093)', textAlign: 'center', flexShrink: 0 }}>{cmd.icon}</span>
-                <strong style={{ fontSize: 'var(--legacy-inline-style-019)' }}>{cmd.label}</strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--ds-inline-style-8-coll-3)' }}>
+                <span style={{ fontSize: 'var(--ds-inline-style-14)', width: 'var(--ds-inline-style-20-coll-3)', textAlign: 'center', flexShrink: 0 }}>{cmd.icon}</span>
+                <strong style={{ fontSize: 'var(--ds-inline-style-12)' }}>{cmd.label}</strong>
               </span>
-              <span className="item-sub" style={{ marginLeft: 'var(--legacy-inline-style-052)' }}>{cmd.sub}</span>
+              <span className="item-sub" style={{ marginLeft: 'var(--ds-inline-style-28-coll-2)' }}>{cmd.sub}</span>
             </Pressable>
           ))}
         </div>
@@ -713,7 +713,7 @@ export default function RichEditor({
           style={{ top: menuCoords.top, left: menuCoords.left }}
           onMouseDown={e => e.preventDefault()}
         >
-          <div style={{ padding: 'var(--legacy-inline-style-078)', fontSize: 'var(--legacy-inline-style-023)', fontWeight: 'var(--legacy-inline-style-026)', textTransform: 'uppercase', letterSpacing: 'var(--legacy-inline-style-043)', opacity: 'var(--legacy-inline-style-065)' }}>Połącz notatkę</div>
+          <div style={{ padding: 'var(--ds-inline-style-6px-12px-4px)', fontSize: 'var(--ds-inline-style-9)', fontWeight: 'var(--ds-inline-style-700)', textTransform: 'uppercase', letterSpacing: 'var(--ds-inline-style-0-05em)', opacity: 'var(--ds-inline-style-0-5)' }}>Połącz notatkę</div>
           {filteredWikiNotes.length > 0 ? filteredWikiNotes.map((note, i) => (
             <Pressable
               key={note.id}
@@ -721,13 +721,13 @@ export default function RichEditor({
               className={`keep-autocomplete-item ${i === selectedMenuIndex ? 'active' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); executeWikiLink(note); }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
-                <span style={{ fontSize: 'var(--legacy-inline-style-020)', flexShrink: 0 }}>📎</span>
-                <strong style={{ fontSize: 'var(--legacy-inline-style-019)' }}>{note.title || '(Bez tytułu)'}</strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--ds-inline-style-8-coll-3)' }}>
+                <span style={{ fontSize: 'var(--ds-inline-style-14)', flexShrink: 0 }}>📎</span>
+                <strong style={{ fontSize: 'var(--ds-inline-style-12)' }}>{note.title || '(Bez tytułu)'}</strong>
               </span>
             </Pressable>
           )) : (
-            <div style={{ padding: 'var(--legacy-inline-style-071)', fontSize: 'var(--legacy-inline-style-018)', opacity: 'var(--legacy-inline-style-065)' }}>Brak notatek dla "{wikiSearchQuery}"</div>
+            <div style={{ padding: 'var(--ds-inline-style-10px-12px)', fontSize: 'var(--ds-inline-style-11)', opacity: 'var(--ds-inline-style-0-5)' }}>Brak notatek dla "{wikiSearchQuery}"</div>
           )}
         </div>
       )}
@@ -755,7 +755,7 @@ export default function RichEditor({
             className={`keep-static-btn ${activeState.bold ? 'active' : ''}`}
             title="Pogrubienie"
           >
-            <span style={{ fontWeight: 'var(--legacy-inline-style-027)', fontSize: 'var(--legacy-inline-style-021)', fontFamily: 'var(--legacy-inline-style-015)', lineHeight: 'var(--legacy-inline-style-047)' }}>B</span>
+            <span style={{ fontWeight: 'var(--ds-inline-style-800)', fontSize: 'var(--ds-inline-style-15)', fontFamily: 'var(--ds-inline-style-georgia-serif)', lineHeight: 'var(--ds-inline-style-1)' }}>B</span>
           </Pressable>
           <Pressable
             type="button"
@@ -763,7 +763,7 @@ export default function RichEditor({
             className={`keep-static-btn ${activeState.italic ? 'active' : ''}`}
             title="Kursywa"
           >
-            <span style={{ fontStyle: 'italic', fontWeight: 'var(--legacy-inline-style-025)', fontSize: 'var(--legacy-inline-style-021)', fontFamily: 'var(--legacy-inline-style-015)', lineHeight: 'var(--legacy-inline-style-047)' }}>I</span>
+            <span style={{ fontStyle: 'italic', fontWeight: 'var(--ds-inline-style-600)', fontSize: 'var(--ds-inline-style-15)', fontFamily: 'var(--ds-inline-style-georgia-serif)', lineHeight: 'var(--ds-inline-style-1)' }}>I</span>
           </Pressable>
           <Pressable
             type="button"
@@ -787,7 +787,7 @@ export default function RichEditor({
             className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`}
             title="Nagłówek"
           >
-            <span style={{ fontWeight: 'var(--legacy-inline-style-027)', fontSize: 'var(--legacy-inline-style-018)', letterSpacing: 'var(--legacy-inline-style-042)', lineHeight: 'var(--legacy-inline-style-047)' }}>H1</span>
+            <span style={{ fontWeight: 'var(--ds-inline-style-800)', fontSize: 'var(--ds-inline-style-11)', letterSpacing: 'var(--ds-inline-style-0-02em)', lineHeight: 'var(--ds-inline-style-1)' }}>H1</span>
           </Pressable>
           <Pressable
             type="button"

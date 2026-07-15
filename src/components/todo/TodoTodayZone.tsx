@@ -36,7 +36,7 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
       className={`rounded-2xl p-2 transition-all duration-[var(--motion-medium)] ${
         draggingItem !== null
           ? dragTarget === 'today'
-            ? 'border border-warning/40 bg-warning/10 scale-[var(--legacy-arbitrary-013)] shadow-[var(--shadow-accent-active)]'
+            ? 'border border-warning/40 bg-warning/10 scale-[var(--ds-arbitrary-1-01)] shadow-[var(--shadow-accent-active)]'
             : 'border border-dashed border-warning/20 bg-warning/5'
           : 'border border-transparent bg-transparent'
       }`}
@@ -55,7 +55,7 @@ export default function TodoTodayZone({ renderInlineQuickCapture, renderAddTodoB
             <span className="text-2xs font-semibold uppercase tracking-wider text-text-muted/40">Zaplanowane</span>
             <span className={`text-2xs font-bold tabular-nums ${over ? 'text-danger' : 'text-text-muted/50'}`}>{label} / 8h</span>
           </div>
-          <div className="h-[var(--legacy-h-027)] rounded-full bg-surface-solid overflow-hidden">
+          <div className="h-[var(--ds-h-3px)] rounded-full bg-surface-solid overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-[var(--motion-long)] ${over ? 'bg-danger/70' : 'bg-warning/60'}`}
               style={{ width: `${pct}%` }}

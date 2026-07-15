@@ -113,10 +113,10 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
   const [planCarriedFromMonth, setPlanCarriedFromMonth] = useState(false);
 
   // ── Sync query result → local state (runs once per fresh data) ──────────
-  const syncedVersionRef = useRef(0);
+  const syncedVersionRef = useRef('');
   useEffect(() => {
     if (!raw) return;
-    const v = directionQuery.dataUpdatedAt;
+    const v = JSON.stringify(raw);
     if (v === syncedVersionRef.current) return;
     syncedVersionRef.current = v;
 
@@ -183,7 +183,7 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
         if (planSource.week_goal_konto) setWeekGoalKonto(planSource.week_goal_konto);
       }
     });
-  }, [raw, directionQuery.dataUpdatedAt, isSunday,
+  }, [raw, isSunday,
     setPatternNote, setLeverageNote, setCorrectionNote, setMonthTheme,
     setSprintReflection, setProudOf, setDoDifferently, setSabotage,
     setObligation, setWeekHighlight, setWeekRegret, setNewBelief,

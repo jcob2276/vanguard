@@ -43,7 +43,7 @@ export default function CalendarBudgetModal() {
 
   return (
     <Modal isOpen={!!showBudgetConfig} onClose={() => setShowBudgetConfig(false)} title="Ustaw Budżety Czasu" size="sm">
-      <div className="space-y-3 max-h-[var(--legacy-h-026)] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[var(--ds-h-380px)] overflow-y-auto pr-1">
         {LIFE_SPHERES.map((sphere) => {
           let placeholderMin = 'np. 3';
           let placeholderMax = 'brak';

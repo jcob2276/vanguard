@@ -83,7 +83,7 @@ export default function TodoCardExpandedPanel({
                 href={att.file_url}
                 target="_blank"
                 rel="noreferrer"
-                className="max-w-[var(--legacy-maxw-050)] truncate text-primary hover:underline"
+                className="max-w-[var(--ds-maxw-120px)] truncate text-primary hover:underline"
               >
                 {att.file_name}
               </a>
@@ -205,7 +205,7 @@ export default function TodoCardExpandedPanel({
         </div>
 
         {/* Tags input chip */}
-        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2 py-0.5 max-w-[var(--legacy-maxw-051)]">
+        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2 py-0.5 max-w-[var(--ds-maxw-150px)]">
           <Tag size={11} className="text-text-muted/60" />
           <ControlInput
             value={tagInput}

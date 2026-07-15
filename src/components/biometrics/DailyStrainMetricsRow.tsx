@@ -23,23 +23,23 @@ export default function DailyStrainMetricsRow({
     <div className="grid gap-4 relative z-[var(--z-raised)]" style={{ gridTemplateColumns: `repeat(${metricCols}, 1fr)` }}>
       <div>
         <StatHero value={strainScore ?? '--'} label="Strain" suffix="/21" color={strainTone} size="sm" />
-        <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
-          <div className="h-[var(--legacy-h-021)] rounded-full bg-warning transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
+        <div className="mt-1.5 h-[var(--ds-h-2px)] bg-border-custom/40 rounded-full">
+          <div className="h-[var(--ds-h-2px)] rounded-full bg-warning transition-all" style={{ width: `${Math.min(100, (strainScore / 21) * 100)}%` }} />
         </div>
       </div>
 
       <div>
         <StatHero value={recoveryScore ?? '--'} label="Recovery" suffix="/100" color={recovTone} size="sm" />
-        <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
-          <div className={`h-[var(--legacy-h-021)] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-success' : recoveryScore >= 55 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
+        <div className="mt-1.5 h-[var(--ds-h-2px)] bg-border-custom/40 rounded-full">
+          <div className={`h-[var(--ds-h-2px)] rounded-full transition-all ${recoveryScore >= 75 ? 'bg-success' : recoveryScore >= 55 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${Math.min(100, recoveryScore)}%` }} />
         </div>
       </div>
 
       {fuelingScore != null && (
         <div>
           <StatHero value={fuelingScore} label="Fueling" suffix="/100" color={fuelingScore >= 70 ? 'text-success' : 'text-warning'} size="sm" />
-          <div className="mt-1.5 h-[var(--legacy-h-021)] bg-border-custom/40 rounded-full">
-            <div className={`h-[var(--legacy-h-021)] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
+          <div className="mt-1.5 h-[var(--ds-h-2px)] bg-border-custom/40 rounded-full">
+            <div className={`h-[var(--ds-h-2px)] rounded-full transition-all ${fuelingScore >= 70 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${Math.min(100, fuelingScore)}%` }} />
           </div>
         </div>
       )}

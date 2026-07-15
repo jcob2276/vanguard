@@ -1,5 +1,5 @@
 import { LIFE_SPHERES, LEGACY_CATEGORY_TO_SPHERE } from '../../../lib/projects/lifeSpheres';
-import { addDays } from '../calendarHelpers';
+import { addDays, type CalRow } from '../calendarHelpers';
 
 export const buildRecurrenceRule = (
   r: '' | 'daily' | 'weekly' | 'monthly' | 'custom',
@@ -22,7 +22,7 @@ export const buildRecurrenceRule = (
   return [`RRULE:${rule}`];
 };
 
-export function calculateWeeklyTotals(events: any[], weekStart: string, offsetDays: number) { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function calculateWeeklyTotals(events: CalRow[], weekStart: string, offsetDays: number) {
   const totals: Record<string, number> = Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, 0]));
   const targetWeekStart = offsetDays === 0 ? weekStart : addDays(weekStart, offsetDays);
   const targetWeekEnd = addDays(targetWeekStart, 7);

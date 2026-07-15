@@ -190,7 +190,7 @@ export default function EndMyopiaCalculator() {
           {/* FOCUS word — centered */}
           <div className="flex-1 flex items-center justify-center px-6 pt-20 pb-32">
             <p
-              className="text-scrim font-black tracking-[var(--legacy-arbitrary-039)] text-center leading-none select-none"
+              className="text-scrim font-black tracking-[var(--ds-arbitrary-0-25em)] text-center leading-none select-none"
               style={{ fontSize: `${FOCUS_SIZES[sizeLevel - 1]}rem` }}
             >
               FOCUS

@@ -32,7 +32,7 @@ const TAB_ORDER = ['dzis', 'tydzien', 'projekty', 'historia'];
 
 function ViewFallback() {
   return (
-    <div className="flex min-h-[var(--legacy-h-017)] items-center justify-center rounded-lg border border-on-accent/[0.06] bg-on-accent/[0.02]">
+    <div className="flex min-h-[var(--ds-h-220px)] items-center justify-center rounded-lg border border-on-accent/[0.06] bg-on-accent/[0.02]">
       <Spinner size="md" />
     </div>
   );
@@ -124,7 +124,7 @@ export default function Dashboard({ session }: { session: Session }) {
     { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'var(--color-success)', action: () => s.setShowQuickFoodEntry(true) },
     { label: 'Zaloguj Trening', emoji: '🏋️', color: 'var(--color-warning)', action: () => { s.openWorkout(); } },
     { label: 'Zaloguj Saunę', emoji: '🧖', color: 'var(--color-warning)', action: () => s.navigate('/sauna') },
-    { label: 'Zmierz Wzrok', emoji: '👁️', color: 'var(--legacy-color-007)', action: () => s.navigate('/optics') },
+    { label: 'Zmierz Wzrok', emoji: '👁️', color: 'var(--color-theme-hex-14b8a6)', action: () => s.navigate('/optics') },
   ];
 
   return (
@@ -212,6 +212,8 @@ export default function Dashboard({ session }: { session: Session }) {
           showMorningPlan={s.showMorningPlan} setShowMorningPlan={s.setShowMorningPlan}
           morningPlanTargetDate={s.morningPlanTargetDate} setMorningPlanTargetDate={s.setMorningPlanTargetDate}
           showShutdown={s.showShutdown} setShowShutdown={s.setShowShutdown}
+          userId={userId}
+          gapLastLoggedDate={s.gapLastLoggedDate} setGapLastLoggedDate={s.setGapLastLoggedDate}
           showWeeklyReview={s.showWeeklyReview} setShowWeeklyReview={s.setShowWeeklyReview}
           setTaskReviewDoneThisWeek={s.setTaskReviewDoneThisWeek}
           showQuickFoodEntry={s.showQuickFoodEntry} setShowQuickFoodEntry={s.setShowQuickFoodEntry}

@@ -17,7 +17,7 @@ export function TimelineWidget({ data }: { data: TimelineWidgetData }) {
       {data.events.map((ev, i) => (
         <li key={`${ev.title}-${i}`} className="relative pl-3">
           <span
-            className="absolute -left-[var(--legacy-arbitrary-061)] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface-solid"
+            className="absolute -left-[var(--ds-arbitrary-21px)] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface-solid"
             style={{ background: ev.color ?? 'var(--color-primary)' }}
           />
           {ev.time && (

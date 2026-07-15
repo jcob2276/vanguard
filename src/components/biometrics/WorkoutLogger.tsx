@@ -10,7 +10,7 @@ import { useUserId } from '../../store/useStore';
 import { isPlyoSessionComplete } from '../../lib/health/plyoMarathonProgram';
 
 interface ManualTimePickerProps {
-  logger: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  logger: ReturnType<typeof useWorkoutLogger>;
 }
 
 function ManualTimePicker({ logger }: ManualTimePickerProps) {
@@ -87,7 +87,7 @@ export default function WorkoutLogger({
         <Pressable onClick={logger.handleBack} className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
           <ChevronLeft size={20} />
         </Pressable>
-        <h1 className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-primary flex-1 font-display">Zaloguj Trening</h1>
+        <h1 className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-primary flex-1 font-display">Zaloguj Trening</h1>
         {logger.timerStart ? (
           <Pressable onClick={() => logger.setTimerStart(null)} className="flex items-center gap-1.5 text-primary hover:text-primary-hover transition-colors cursor-pointer">
             <span className="text-xs font-black tabular-nums">{logger.elapsed}</span>
@@ -123,7 +123,7 @@ export default function WorkoutLogger({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Dumbbell size={12} className="text-text-muted" />
-            <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">Ćwiczenia</span>
+            <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-18em)] text-text-muted">Ćwiczenia</span>
           </div>
           {logger.exercises.map(ex => (
             <ExerciseCard key={ex.id} exercise={ex} onChange={logger.updateExercise} onRemove={() => logger.removeExercise(ex.id)} userId={userId} />
@@ -138,7 +138,7 @@ export default function WorkoutLogger({
         <div className="space-y-2">
           <label className="text-2xs font-black uppercase tracking-widest text-text-secondary">Notatki</label>
           <ControlTextarea value={logger.notes} onChange={e => logger.setNotes(e.target.value)} placeholder="Jak poszło?..."
-            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[var(--legacy-h-008)] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-focus transition-all resize-none placeholder:text-text-muted/40" />
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[var(--ds-h-100px)] outline-none focus:bg-surface-solid focus:border-primary/50 focus:shadow-focus transition-all resize-none placeholder:text-text-muted/40" />
         </div>
 
         <div className="space-y-2">
@@ -189,7 +189,7 @@ export default function WorkoutLogger({
         })()}
         <div className="max-w-md mx-auto w-full">
           <Pressable onClick={logger.save} disabled={logger.saving}
-            className="w-full bg-primary text-on-accent py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-[var(--opacity-50)] active:scale-[var(--legacy-arbitrary-001)] transition-transform hover:bg-primary-hover cursor-pointer">
+            className="w-full bg-primary text-on-accent py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-[var(--opacity-50)] active:scale-[var(--ds-arbitrary-0-98)] transition-transform hover:bg-primary-hover cursor-pointer">
             <Save size={15} />
             {logger.saving ? 'Zapisywanie...' : 'Zapisz'}
           </Pressable>

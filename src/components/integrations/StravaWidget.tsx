@@ -62,7 +62,7 @@ function RunRow({ activity }: { activity: StravaActivityItem }) {
     <Card padding="1rem">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-18em)] text-text-muted">
             {fmtDate(activity.start_date)}
           </p>
           <h3 className="mt-1 truncate text-sm font-black uppercase tracking-tight text-text-primary font-display">
@@ -157,7 +157,7 @@ export default function StravaWidget({ session }: { session: Session }) {
     <section className="space-y-3">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-warning font-display">Bieganie</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-warning font-display">Bieganie</p>
           <h2 className="mt-1 text-lg font-black uppercase tracking-tight text-text-primary font-display">Ostatnie 3 biegi</h2>
         </div>
         <Pressable

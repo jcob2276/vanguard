@@ -36,7 +36,7 @@ export default function ProjectCardExpanded({
     <div className="border-t border-border-custom/30 px-4 pb-4 pt-3 space-y-3">
 
       {/* Project metadata / edit form */}
-      <Card variant="surface" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+      <Card variant="surface" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/30" style={{ borderRadius: 'var(--ds-inline-style-14px)' }}>
         {editingProjectId === project.id ? (
           <div className="space-y-3">
             <ControlInput
@@ -162,7 +162,7 @@ export default function ProjectCardExpanded({
       )}
 
       {/* Checkpoints */}
-      <Card variant="surface" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: 'var(--legacy-inline-style-006)' }}>
+      <Card variant="surface" padding="0.75rem" className="border border-border-custom/50 bg-surface-solid/20 space-y-2" style={{ borderRadius: 'var(--ds-inline-style-14px)' }}>
         <div className="flex items-center justify-between">
           <p className="text-xs font-black uppercase tracking-widest text-text-muted">Checkpointy</p>
           {newCheckpoint?.projectId !== project.id && (
@@ -183,7 +183,7 @@ export default function ProjectCardExpanded({
               <div key={cp.id} className="flex items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1.5 hover:bg-background/40">
                 <Pressable
                   onClick={() => handlers.handleToggleCheckpoint(cp)}
-                  className={`flex h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] shrink-0 items-center justify-center rounded-full border ${
+                  className={`flex h-[var(--ds-h-18px)] w-[var(--ds-w-18px)] shrink-0 items-center justify-center rounded-full border ${
                     cp.status === 'done' ? 'border-success bg-success text-on-accent' : 'border-border-custom text-transparent'
                   }`}
                 >
@@ -251,7 +251,7 @@ export default function ProjectCardExpanded({
             onClick={() => handlers.handleToggleTask(item)}
             className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left"
           >
-            <div className="h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] shrink-0 rounded-full border-2 flex items-center justify-center transition-all border-border-custom">
+            <div className="h-[var(--ds-h-18px)] w-[var(--ds-w-18px)] shrink-0 rounded-full border-2 flex items-center justify-center transition-all border-border-custom">
               <div className="h-1.5 w-1.5 rounded-full bg-transparent" />
             </div>
             <span className="flex-1 truncate text-sm text-text-primary">{item.title}</span>
@@ -264,7 +264,7 @@ export default function ProjectCardExpanded({
             onClick={() => handlers.handleToggleTask(item)}
             className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-1.5 hover:bg-surface-solid/60 transition-colors text-left opacity-[var(--opacity-35)]"
           >
-            <div className="h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] shrink-0 rounded-full bg-success flex items-center justify-center">
+            <div className="h-[var(--ds-h-18px)] w-[var(--ds-w-18px)] shrink-0 rounded-full bg-success flex items-center justify-center">
               <Check size={10} className="text-on-accent" strokeWidth={3} />
             </div>
             <span className="flex-1 truncate text-sm line-through text-text-muted">{item.title}</span>

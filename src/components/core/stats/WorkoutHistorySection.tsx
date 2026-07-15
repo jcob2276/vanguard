@@ -31,7 +31,7 @@ export function WorkoutHistorySection({
 }) {
   return (
     <section className="space-y-3">
-      <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Siłownia</p>
+      <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">Siłownia</p>
       <h2 className="mt-0.5 font-display text-lg font-black tracking-tight text-text-primary">Historia treningów</h2>
       <div className="overflow-hidden card !p-0">
         <table className="w-full text-left">

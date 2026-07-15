@@ -17,12 +17,12 @@ export default function PlyoBlock({ session, done, onToggleSet, onSkip }: PlyoBl
   const totalSets = session.exercises.reduce((s, ex) => s + ex.sets, 0)
   const completedSets = done.reduce((s, row) => s + row.filter(Boolean).length, 0)
   return (
-    <Card variant="surface" className="border border-success/25 space-y-4" style={{ background: 'var(--legacy-color-070)' }}>
+    <Card variant="surface" className="border border-success/25 space-y-4" style={{ background: 'var(--color-theme-hex-ba13220422006)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Zap size={14} className="text-success shrink-0" />
-            <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-012)] text-success dark:text-success">
+            <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-16em)] text-success dark:text-success">
               Plajometria
             </span>
           </div>
@@ -96,7 +96,7 @@ function PlyoExerciseRow({
             type="button"
             variant="ghost"
             onClick={() => onToggle(setIdx)}
-            className={`h-9 min-w-[var(--legacy-w-080)] gap-1 rounded-xl border px-2 text-xs font-black ${
+            className={`h-9 min-w-[var(--ds-w-2-25rem)] gap-1 rounded-xl border px-2 text-xs font-black ${
               isDone
                 ? 'border-success bg-success text-on-accent shadow-sm'
                 : 'border-border-custom bg-surface-solid text-text-muted hover:border-success/40 hover:text-text-primary'

@@ -35,7 +35,7 @@ export default function WeekPlanningRecap({
   return (
     <Card variant="receipt" className="space-y-4" style={{ background: 'var(--primary-5)' }}>
       <div>
-        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-primary">
+        <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-primary">
           Ten tydzień — zoom out
         </p>
         <p className="mt-1 text-xs text-text-secondary leading-relaxed">

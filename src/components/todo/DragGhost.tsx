@@ -28,14 +28,14 @@ export default function DragGhost({ item, posRef }: DragGhostProps) {
       ref={ref}
       style={{
         position: 'fixed',
-        left: 'var(--legacy-inline-style-039)',
-        top: 'var(--legacy-inline-style-082)',
-        width: 'var(--legacy-inline-style-098)',
-        maxWidth: 'var(--legacy-inline-style-057)',
-        zIndex: 'var(--legacy-inline-style-102)',
+        left: 'var(--ds-inline-style-0)',
+        top: 'var(--ds-inline-style-0-coll-3)',
+        width: 'var(--ds-inline-style-80vw)',
+        maxWidth: 'var(--ds-inline-style-310px)',
+        zIndex: 'var(--ds-inline-style-9999)',
         pointerEvents: 'none',
         willChange: 'transform',
-        opacity: 'var(--legacy-inline-style-067)'
+        opacity: 'var(--ds-inline-style-0-93)'
       }}
       className="rounded-2xl border border-primary/30 bg-surface/95 shadow-2xl px-4 py-3 backdrop-blur-[var(--blur-xl)]"
     >

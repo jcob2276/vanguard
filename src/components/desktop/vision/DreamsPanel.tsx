@@ -58,7 +58,7 @@ export default function DreamsPanel({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">Lista Marzeń</p>
+            <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-25em)] text-text-muted">Lista Marzeń</p>
             <p className="mt-0.5 font-display text-base font-black tracking-tight text-text-primary leading-none">
               200 Marzeń
               <span className="ml-2 text-xs font-bold text-text-muted">
@@ -117,12 +117,12 @@ export default function DreamsPanel({
         {/* Top 5 Marzeń */}
         {top5Dreams.length > 0 && (
           <div className="space-y-2">
-            <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-warning flex items-center gap-1.5">
+            <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-25em)] text-warning flex items-center gap-1.5">
               <Star size={9} fill="currentColor" /> Top 5 Marzeń
             </p>
             <div className="space-y-1.5">
               {top5Dreams.map(dream => (
-                <Card key={dream.id} variant="surface" padding="0.625rem 0.875rem" className="rounded-xl flex items-center gap-2.5" style={{ border: 'var(--border-width-thin) solid var(--legacy-color-121)', background: 'var(--legacy-color-118)' }}>
+                <Card key={dream.id} variant="surface" padding="0.625rem 0.875rem" className="rounded-xl flex items-center gap-2.5" style={{ border: 'var(--border-width-thin) solid var(--color-theme-hex-ba2451581102)', background: 'var(--color-theme-hex-ba24515811004)' }}>
                   <Star size={9} className="shrink-0 text-warning" fill="currentColor" />
                   <Pressable variant="ghost" size="sm" onClick={() => openDreamModal(dream)} className="flex-1 text-left text-xs font-bold text-text-primary hover:text-primary truncate cursor-pointer">
                     {dream.title}
@@ -159,7 +159,7 @@ export default function DreamsPanel({
             {dreams.length === 0 ? 'Zacznij od zapisania pierwszego marzenia' : 'Brak marzeń w tej kategorii'}
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-1.5 max-h-[var(--legacy-h-032)] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-1.5 max-h-[var(--ds-h-480px)] overflow-y-auto pr-1">
             {filteredDreams.map(dream => (
               <Card
                 key={dream.id}
@@ -172,10 +172,10 @@ export default function DreamsPanel({
                 }`}
                 style={{
                   ...(dream.is_done
-                    ? { border: 'var(--border-width-thin) solid var(--legacy-color-096)', background: 'var(--legacy-color-092)' }
+                    ? { border: 'var(--border-width-thin) solid var(--color-theme-hex-ba16185129015)', background: 'var(--color-theme-hex-ba16185129004)' }
                     : dream.is_top5
-                    ? { border: 'var(--border-width-thin) solid var(--legacy-color-120)', background: 'var(--legacy-color-117)' }
-                    : { border: 'var(--border-width-thin) solid var(--legacy-color-089)' })
+                    ? { border: 'var(--border-width-thin) solid var(--color-theme-hex-ba24515811015)', background: 'var(--color-theme-hex-ba24515811002)' }
+                    : { border: 'var(--border-width-thin) solid var(--color-theme-hex-ba15316117503)' })
                 }}
                 onClick={() => openDreamModal(dream)}
               >

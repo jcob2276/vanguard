@@ -67,7 +67,7 @@ export default function CalendarSidebarTodos({
         />
       </div>
 
-      <div className="space-y-1.5 max-h-[var(--legacy-h-020)] overflow-y-auto pr-1">
+      <div className="space-y-1.5 max-h-[var(--ds-h-280px)] overflow-y-auto pr-1">
         {sidebarTodos.length === 0 ? (
           <p className="text-xs text-text-muted/40 italic text-center py-4">Brak aktywnych zadań</p>
         ) : (
@@ -83,7 +83,7 @@ export default function CalendarSidebarTodos({
                   e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title }));
                   e.dataTransfer.effectAllowed = 'move';
                 }}
-                className={`flex items-center gap-1.5 p-2 bg-surface-solid/5 dark:bg-on-accent/[0.015] border border-border-custom/25 rounded-xl hover:bg-primary/5 hover:border-primary/30 transition-all cursor-grab active:cursor-grabbing hover:scale-[var(--legacy-arbitrary-013)] active:scale-[var(--legacy-arbitrary-014)] select-none ${isCompleted ? 'opacity-[var(--opacity-40)]' : ''}`}
+                className={`flex items-center gap-1.5 p-2 bg-surface-solid/5 dark:bg-on-accent/[0.015] border border-border-custom/25 rounded-xl hover:bg-primary/5 hover:border-primary/30 transition-all cursor-grab active:cursor-grabbing hover:scale-[var(--ds-arbitrary-1-01)] active:scale-[var(--ds-arbitrary-0-99)] select-none ${isCompleted ? 'opacity-[var(--opacity-40)]' : ''}`}
                 title="Przeciągnij na kalendarz, aby zaplanować"
               >
                 {/* Drag Handle instead of Checkbox */}
@@ -98,7 +98,7 @@ export default function CalendarSidebarTodos({
                   {chip && (
                     <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-2xs font-bold leading-none ${PILLAR_CHIP[chip.pillar] || ''}`}>
                       {GoalIcon && <GoalIcon size={8} />}
-                      {chip.dreamTitle && <span className="truncate max-w-[var(--legacy-maxw-050)]">{chip.dreamTitle}</span>}
+                      {chip.dreamTitle && <span className="truncate max-w-[var(--ds-maxw-120px)]">{chip.dreamTitle}</span>}
                     </span>
                   )}
                 </div>

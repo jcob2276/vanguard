@@ -97,8 +97,8 @@ export default function DesktopDashboard({ session }: { session: Session }) {
     try { localStorage.setItem(STORAGE_KEYS.THEME, theme); } catch (e: unknown) { console.warn('[DesktopDashboard] Failed to save theme to localStorage:', e); }
   }, [theme]);
 
-  const grid = theme === 'dark' ? 'var(--legacy-color-014)' : 'var(--legacy-color-036)';
-  const tick = theme === 'dark' ? 'var(--color-text-muted)' : 'var(--legacy-color-025)';
+  const grid = theme === 'dark' ? 'var(--color-theme-hex-2d3748)' : 'var(--color-theme-hex-e5e7eb)';
+  const tick = theme === 'dark' ? 'var(--color-text-muted)' : 'var(--color-text-tertiary-muted)';
 
   const syncAll = useCallback(async () => {
     if (syncing || !userId) return;
@@ -201,7 +201,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
     <div className="min-h-screen bg-background text-text-primary transition-colors duration-[var(--motion-slow)]">
       <DesktopHeader now={now} syncing={syncing} pendingGrowthMustCount={pendingGrowthMustCount} theme={theme} setTheme={setTheme} syncAll={syncAll} setShowHealth={setShowHealth} setShowFundament={setShowFundament} />
 
-      <main className="px-8 py-7 max-w-[var(--legacy-maxw-052)] mx-auto">
+      <main className="px-8 py-7 max-w-[var(--ds-maxw-1600px)] mx-auto">
         <div className="flex gap-8 items-start">
           <DesktopSectionNav />
           <div className="flex-1 min-w-0 space-y-5">
@@ -216,7 +216,7 @@ export default function DesktopDashboard({ session }: { session: Session }) {
                 <Panel title="Konsekwencja treningowa — 13 tygodni"><Heatmap sessions={sessions} strava={strava} /></Panel>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
                   <FitnessScorePanel oura={oura} nutrition={nutrition} sessions={sessions} strava={strava} habits={habits} habitLogs={habitLogs} volData={volData} body={body} heightCm={heightCm} theme={theme} grid={grid} personalTargets={personalTargets} />
-                  <Suspense fallback={<Skeleton variant="card" className="h-[var(--legacy-h-031)] rounded-[var(--radius-xl)]" />}><MuscleHeatmap session={session} /></Suspense>
+                  <Suspense fallback={<Skeleton variant="card" className="h-[var(--ds-h-450px)] rounded-[var(--radius-xl)]" />}><MuscleHeatmap session={session} /></Suspense>
                 </div>
               </div>
             </section>

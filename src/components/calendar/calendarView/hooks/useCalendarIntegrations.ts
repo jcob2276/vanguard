@@ -1,12 +1,13 @@
 import { useSyncOura } from '../../../../hooks/useSyncOura';
 import { useSyncActivities } from '../../../../hooks/useSyncActivities';
+import type { useCreateCalendarEvent, useUpdateCalendarEvent } from '../../../../lib/calendarApi';
 
 interface UseCalendarIntegrationsOptions {
   userId: string | undefined;
   accessToken: string | undefined;
   selectedDay: string;
-  createEventMutation: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  updateEventMutation: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  createEventMutation: ReturnType<typeof useCreateCalendarEvent>;
+  updateEventMutation: ReturnType<typeof useUpdateCalendarEvent>;
   fetchEvents: () => Promise<void>;
   setToastMessage: (msg: string | null) => void;
 }

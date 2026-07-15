@@ -87,7 +87,7 @@ export default function CalendarTodoModal() {
             placeholder="Dlaczego nie udało się zrobić tego zadania? (opcjonalnie)"
             value={editingTodo.notes || ''}
             onChange={(e) => setEditingTodo({ ...editingTodo, notes: e.target.value })}
-            className="w-full min-h-[var(--legacy-h-036)] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-xs font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
+            className="w-full min-h-[var(--ds-h-60px)] rounded-lg border border-border-custom bg-background px-2.5 py-2 text-xs font-medium text-text-primary outline-none focus:border-primary/40 placeholder:text-text-muted/40 resize-y"
           />
           <Button
             variant="tonal"

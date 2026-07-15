@@ -12,7 +12,7 @@ interface ExerciseWellnessSetsProps {
 export default function ExerciseWellnessSets({ exercise, haptics, updateSet, removeSet }: ExerciseWellnessSetsProps) {
   return (
     <>
-      <div className="grid grid-cols-[var(--legacy-arbitrary-011)] gap-2 px-0.5">
+      <div className="grid grid-cols-[var(--ds-arbitrary-20px-1fr-1fr-56px)] gap-2 px-0.5">
         <span />
         <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           Min
@@ -34,7 +34,7 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
           }
         };
         return (
-          <div key={set.id} className="grid grid-cols-[var(--legacy-arbitrary-011)] gap-1.5 items-center rounded-xl">
+          <div key={set.id} className="grid grid-cols-[var(--ds-arbitrary-20px-1fr-1fr-56px)] gap-1.5 items-center rounded-xl">
             <span className="text-xs font-black text-text-secondary text-center">{idx + 1}</span>
             {/* Minuty */}
             <div className="flex flex-col gap-1">
@@ -90,7 +90,7 @@ export default function ExerciseWellnessSets({ exercise, haptics, updateSet, rem
             </div>
             <Pressable
               onClick={() => removeSet(set.id)}
-              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[var(--legacy-arbitrary-010)] transition-all cursor-pointer"
+              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[var(--ds-arbitrary-0-9)] transition-all cursor-pointer"
             >
               <Trash2 size={12} />
             </Pressable>

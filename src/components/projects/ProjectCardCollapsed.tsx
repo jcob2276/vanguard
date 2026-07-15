@@ -1,6 +1,6 @@
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AlertTriangle, ChevronDown, ChevronUp, Check, ArrowRight, CalendarDays } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Badge from '../ui/Badge';
 import type { ProjectCheckpoint } from '../../lib/projects/projects';
 import type { GoalKpiRow, ProjectRow, ProjectStats } from './projectUtils';
@@ -8,13 +8,35 @@ import HealthScore from './HealthScore';
 import { KpiTrendSparkline } from './KpiTrendSparkline';
 import { useProjectsContext } from './context/projectsContextStore';
 
+interface ColColor {
+  id: string;
+  dot: string;
+  bar: string;
+  text: string;
+}
+
+interface PillarMeta {
+  label: string;
+  icon: LucideIcon;
+  text: string;
+  bg: string;
+  border: string;
+  dot: string;
+  color: string;
+}
+
+interface MomentumMeta {
+  label: string;
+  color: string;
+}
+
 interface ProjectCardCollapsedProps {
   project: ProjectRow;
   s: ProjectStats;
   isExpanded: boolean;
-  col: any;
-  pm: any;
-  momentumMeta: any;
+  col: ColColor;
+  pm: PillarMeta | null;
+  momentumMeta: MomentumMeta;
   healthScore: number;
   kpis: GoalKpiRow[];
   visibleCps: ProjectCheckpoint[];
@@ -25,7 +47,7 @@ interface ProjectCardCollapsedProps {
 
 interface KpiRowsProps {
   kpis: GoalKpiRow[];
-  col: any;
+  col: ColColor;
   isExpanded: boolean;
 }
 
@@ -109,7 +131,7 @@ function KpiRows({
 
 const PILLAR_HEX_COLORS: Record<string, string> = {
   emerald: 'var(--color-success)',
-  indigo: 'var(--legacy-color-024)',
+  indigo: 'var(--color-theme-hex-6366f1)',
   amber: 'var(--color-warning)',
 };
 

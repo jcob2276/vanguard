@@ -65,7 +65,7 @@ export default function SkillRadarPanel({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[var(--legacy-arbitrary-045)] gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[var(--ds-arbitrary-1fr-1fr)] gap-6 items-start">
       <div className="flex justify-center overflow-visible">
         <svg width={CHART_SIZE} height={CHART_SIZE} className="overflow-visible">
           {[1, 2, 3, 4, 5].map((k) => {
@@ -101,8 +101,8 @@ export default function SkillRadarPanel({
           {showPrev && prevPolygon && (
             <polygon
               points={prevPolygon}
-              fill="var(--legacy-color-074)"
-              stroke="var(--legacy-color-076)"
+              fill="var(--color-theme-hex-ba148163184012)"
+              stroke="var(--color-theme-hex-ba14816318405)"
               strokeWidth="1.5"
               strokeDasharray="4,3"
             />
@@ -138,7 +138,7 @@ export default function SkillRadarPanel({
         </svg>
       </div>
 
-      <div className="space-y-3 max-h-[var(--legacy-h-023)] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[var(--ds-h-320px)] overflow-y-auto pr-1">
         {skills.map((s) => {
           const val = display[s.key] ?? 0;
           const prev = prevScores?.[s.key];

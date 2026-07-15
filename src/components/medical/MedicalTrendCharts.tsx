@@ -59,27 +59,27 @@ function MarkerTrendCard({ series }: { series: MarkerSeries }) {
       </div>
       <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--legacy-color-069)" />
-          <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--color-text-muted, var(--legacy-color-030))' }} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 9, fill: 'var(--color-text-muted, var(--legacy-color-030))' }} domain={['auto', 'auto']} width={36} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-theme-hex-ba128128128015)" />
+          <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--color-text-muted, var(--color-theme-hex-888))' }} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 9, fill: 'var(--color-text-muted, var(--color-theme-hex-888))' }} domain={['auto', 'auto']} width={36} />
           <Tooltip content={<ChartTip />} />
           {hasOptBand && (
             <ReferenceArea
               y1={opt!.optimalMin!}
               y2={opt!.optimalMax!}
-              fill="var(--legacy-color-144)"
+              fill="var(--color-theme-hex-ba3419794012)"
               strokeOpacity={0}
             />
           )}
           {hasRefBand && (
-            <ReferenceArea y1={refLow!} y2={refHigh!} fill="var(--legacy-color-073)" strokeOpacity={0} />
+            <ReferenceArea y1={refLow!} y2={refHigh!} fill="var(--color-theme-hex-ba148163184008)" strokeOpacity={0} />
           )}
           <Line
             type="monotone"
             dataKey="value"
-            stroke="var(--color-primary, var(--legacy-color-024))"
+            stroke="var(--color-primary, var(--color-theme-hex-6366f1))"
             strokeWidth={2}
-            dot={{ r: 3, fill: 'var(--color-primary, var(--legacy-color-024))' }}
+            dot={{ r: 3, fill: 'var(--color-primary, var(--color-theme-hex-6366f1))' }}
             connectNulls
           />
         </LineChart>

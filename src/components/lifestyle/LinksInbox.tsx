@@ -68,8 +68,8 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
           70%  { transform: scale(1.05); }
           100% { transform: scale(1); }
         }
-        .animate-pop-check { animation:var(--legacy-inline-css-001); }
-        .animate-pop-delete { animation:var(--legacy-inline-css-002); }
+        .animate-pop-check { animation:var(--ds-inline-css-pop-check-0-38s-cubic-bezier-36-07-19-97-both); }
+        .animate-pop-delete { animation:var(--ds-inline-css-pop-delete-0-25s-cubic-bezier-36-07-19-97-both); }
         .btn-press { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       `}</style>
 
@@ -122,7 +122,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
               className={`grid-expand-wrapper ${d.showAddForm ? 'expanded' : ''}`}
             >
               <div className="grid-expand-content border-b border-border-custom/60 bg-surface/60 backdrop-blur-[var(--blur-sm)]">
-                <div className="max-w-[var(--legacy-maxw-059)] mx-auto flex items-center gap-2 px-5 py-3.5">
+                <div className="max-w-[var(--ds-maxw-640px)] mx-auto flex items-center gap-2 px-5 py-3.5">
                   <Link2 size={14} className="shrink-0 text-text-muted" />
                   <Input
                     autoFocus
@@ -152,7 +152,7 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-[var(--legacy-maxw-059)] mx-auto px-5 py-5 pb-24 space-y-4">
+          <div className="max-w-[var(--ds-maxw-640px)] mx-auto px-5 py-5 pb-24 space-y-4">
 
             {d.sharingStatus && (
               <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary text-sm font-semibold rounded-[var(--radius-md)] animate-pulse">
@@ -163,14 +163,14 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
 
             {/* Links */}
             {d.loading ? (
-              <div className="flex min-h-[var(--legacy-h-018)] items-center justify-center">
+              <div className="flex min-h-[var(--ds-h-240px)] items-center justify-center">
                 <Spinner size="md" />
               </div>
             ) : d.filteredLinks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[var(--legacy-h-020)] text-center rounded-[var(--radius-xl)] bg-surface shadow-[var(--legacy-shadow-072)]">
+              <div className="flex flex-col items-center justify-center min-h-[var(--ds-h-280px)] text-center rounded-[var(--radius-xl)] bg-surface shadow-[var(--ds-shadow-0-1px-4px-rgba-0-0-0-0-06)]">
                 <Inbox size={28} className="text-text-muted/40 mb-3" />
                 <p className="text-base font-semibold text-text-secondary">Brak linków</p>
-                <p className="text-sm text-text-muted mt-1 max-w-[var(--legacy-maxw-055)] leading-relaxed">
+                <p className="text-sm text-text-muted mt-1 max-w-[var(--ds-maxw-200px)] leading-relaxed">
                   Wyślij link na Telegramie — pojawi się tutaj automatycznie.
                 </p>
               </div>

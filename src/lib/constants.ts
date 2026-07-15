@@ -32,6 +32,7 @@ export const STORAGE_KEYS = {
   KEEP_NOTES_LOCAL: 'vanguard_local_keep_notes',
   KEEP_NEW_DRAFT: 'vanguard_keep_new',
   SHUTDOWN_DISMISSED: 'vanguard_shutdown_dismissed',
+  GAP_PROMPT_DISMISSED_FOR: 'vanguard_gap_prompt_dismissed_for',
   CALENDAR_SIDEBAR_COLLAPSED: 'vanguard_calendar_sidebar_collapsed',
   LAST_REMINDER_DATE: 'last_reminder_date',
   ENDMYOPIA_CALIBRATION: 'endmyopia_calibration',

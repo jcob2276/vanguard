@@ -26,7 +26,7 @@ export default function MorningPlanStep1Review({ yesterdayTasks, dayWord, onActi
           <span className="text-xs text-text-muted mt-0.5">Brak zaległych zadań.</span>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[var(--legacy-h-025)] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[var(--ds-h-350px)] overflow-y-auto pr-1">
           {yesterdayTasks.map((task) => (
             <div key={task.id} className="p-3 bg-surface-2 dark:bg-on-accent/[0.01] border border-border-custom/40 rounded-xl space-y-2.5">
               <div className="flex items-start gap-2">

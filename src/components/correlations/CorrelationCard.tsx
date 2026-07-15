@@ -79,7 +79,7 @@ export default function CorrelationCard({ item, expanded = false }: Props) {
       )}
 
       {showChart && (
-        <div className={expanded ? 'h-[var(--legacy-h-012)]' : 'h-[var(--legacy-h-010)]'}>
+        <div className={expanded ? 'h-[var(--ds-h-180px)]' : 'h-[var(--ds-h-120px)]'}>
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <ScatterChart margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />

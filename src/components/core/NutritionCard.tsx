@@ -62,7 +62,7 @@ export default function NutritionCard({
     <section className="card p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">Żywienie</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted">Żywienie</p>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowEntryModal(true)}
@@ -77,7 +77,7 @@ export default function NutritionCard({
 
       {/* Main Calorie HUD */}
       <div className="flex flex-col items-center justify-center py-4 bg-surface-solid/35 border border-border-custom/50 rounded-2xl mb-4 text-center">
-        <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">Pozostało dzisiaj</span>
+        <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted">Pozostało dzisiaj</span>
         <p className={`stat-hero-number my-1.5 ${
           remainingKcalToday >= -75 ? 'text-success' : 'text-danger'
         }`}>

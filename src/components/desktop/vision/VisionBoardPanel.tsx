@@ -45,7 +45,7 @@ export default function VisionBoardPanel({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">Wizualizacja</p>
+            <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-25em)] text-text-muted">Wizualizacja</p>
             <p className="mt-0.5 font-display text-base font-black tracking-tight text-text-primary leading-none">
               Vision Board
               <span className="ml-2 text-xs font-bold text-text-muted">{visionItems.length} elementów</span>

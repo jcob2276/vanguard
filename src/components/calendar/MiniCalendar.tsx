@@ -89,14 +89,14 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
           <Pressable
             onClick={handlePrevMonth}
             aria-label="Poprzedni miesiąc"
-            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--legacy-arbitrary-018)]"
+            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--ds-arbitrary-1-05)]"
           >
             <ChevronLeft size={13} className="text-text-muted hover:text-text-primary" />
           </Pressable>
           <Pressable
             onClick={handleNextMonth}
             aria-label="Następny miesiąc"
-            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--legacy-arbitrary-018)]"
+            className="p-1 rounded-lg hover:bg-surface-2 active:scale-90 transition-all duration-[var(--motion-medium)] border border-border-custom/20 hover:scale-[var(--ds-arbitrary-1-05)]"
           >
             <ChevronRight size={13} className="text-text-muted hover:text-text-primary" />
           </Pressable>
@@ -123,11 +123,11 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
                 title={showMoon ? moon.name : undefined}
                 className={`h-6.5 w-6.5 mx-auto rounded-full flex items-center justify-center text-xs transition-all duration-[var(--motion-medium)] active:scale-90 ${
                   isSelected
-                    ? 'bg-primary text-on-accent font-black shadow-md shadow-[var(--shadow-glow-primary)] scale-[var(--legacy-arbitrary-019)] hover:scale-[var(--legacy-arbitrary-020)]'
+                    ? 'bg-primary text-on-accent font-black shadow-md shadow-[var(--shadow-glow-primary)] scale-[var(--ds-arbitrary-1-08)] hover:scale-[var(--ds-arbitrary-1-12)]'
                     : isToday
-                    ? 'bg-danger/10 text-danger font-black border border-danger/30 hover:scale-[var(--legacy-arbitrary-019)]'
+                    ? 'bg-danger/10 text-danger font-black border border-danger/30 hover:scale-[var(--ds-arbitrary-1-08)]'
                     : item.isCurrentMonth
-                    ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[var(--legacy-arbitrary-019)]'
+                    ? 'text-text-primary hover:bg-primary/10 hover:text-primary font-semibold hover:scale-[var(--ds-arbitrary-1-08)]'
                     : 'text-text-muted/30 hover:bg-primary/10 hover:text-primary/70'
                 }`}
               >
@@ -136,7 +136,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
               {/* Ikona fazy księżyca — tylko główne fazy */}
               {showMoon && (
                 <span
-                  className="text-3xs leading-none mt-[var(--legacy-arbitrary-021)] opacity-[var(--opacity-80)]"
+                  className="text-3xs leading-none mt-[var(--ds-arbitrary-1px)] opacity-[var(--opacity-80)]"
                   title={moon.name}
                 >
                   {moon.emoji}

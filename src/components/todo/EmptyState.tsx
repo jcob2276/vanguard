@@ -15,8 +15,8 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const activeClass =
     dragColor === 'orange'
-      ? 'border-warning bg-warning/5 text-warning scale-[var(--legacy-arbitrary-013)] shadow-lg shadow-warning/5'
-      : 'border-primary bg-primary/5 text-primary scale-[var(--legacy-arbitrary-013)] shadow-lg shadow-primary/5';
+      ? 'border-warning bg-warning/5 text-warning scale-[var(--ds-arbitrary-1-01)] shadow-lg shadow-warning/5'
+      : 'border-primary bg-primary/5 text-primary scale-[var(--ds-arbitrary-1-01)] shadow-lg shadow-primary/5';
 
   const inactiveClass =
     dragColor === 'orange'

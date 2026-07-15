@@ -13,7 +13,7 @@ export interface FoodRowProps {
 
 export default function FoodRow({ name, subtitle, calories, loading, onTap, onQuickAdd, quickAddIcon }: FoodRowProps) {
   return (
-    <Card className="flex items-center gap-2.5 transition-all hover:border-primary/25 hover:bg-surface-solid/50 active:scale-[var(--legacy-arbitrary-014)]" padding="0.625rem 0.5rem 0.625rem 0.875rem">
+    <Card className="flex items-center gap-2.5 transition-all hover:border-primary/25 hover:bg-surface-solid/50 active:scale-[var(--ds-arbitrary-0-99)]" padding="0.625rem 0.5rem 0.625rem 0.875rem">
       <Pressable onClick={onTap} className="flex-1 min-w-0 text-left cursor-pointer">
         <p className="text-sm font-bold text-text-primary truncate">{name}</p>
         {subtitle && <p className="text-xs text-text-muted truncate mt-0.5">{subtitle}</p>}

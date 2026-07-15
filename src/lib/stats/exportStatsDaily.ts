@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import type { Tables } from '../database.types';
 import { getDistance } from './exportStatsHelpers';
 import {
   renderOuraSection,
@@ -16,10 +16,11 @@ import type {
   PhoneTopApp,
   StravaCleanActivity,
 } from './exportStatsTypes';
+import type { ExportData } from './exportStatsFetch';
 
 interface RenderDailyParams {
   dateStr: string;
-  d: any;
+  d: ExportData;
   flags: {
     includeNutrition: boolean;
     includeJournal: boolean;
@@ -44,14 +45,14 @@ function renderDevicesAndBody({
   dayPhotos,
   dayBody,
 }: {
-  flags: any;
-  dayOura: any;
-  dayOuraEnhanced: any;
-  dayOuraDerived: any;
-  dayPhone: any;
-  dayAw: any;
-  dayPhotos: any[];
-  dayBody: any;
+  flags: RenderDailyParams['flags'];
+  dayOura: Tables<'oura_daily_summary'> | null | undefined;
+  dayOuraEnhanced: Tables<'oura_enhanced'> | undefined;
+  dayOuraDerived: Record<string, unknown> | undefined;
+  dayPhone: Tables<'phone_usage_daily'> | null | undefined;
+  dayAw: Tables<'aw_daily_summary'> | null | undefined;
+  dayPhotos: Tables<'progress_photos'>[];
+  dayBody: Tables<'body_metrics'> | null | undefined;
 }): string {
   let output = '';
   if (flags.includeOura && dayOura) {
@@ -76,7 +77,7 @@ function renderDevicesAndBody({
   }
   if (dayPhotos && dayPhotos.length > 0) {
     output += `### 📸 Zdjęcia Postępu\n`;
-    dayPhotos.forEach((p: any, idx: number) => {
+    dayPhotos.forEach((p: Tables<'progress_photos'>, idx: number) => {
       output += `![Zdjęcie ${idx + 1}](${p.image_url})\n`;
     });
     output += `\n`;
@@ -144,32 +145,32 @@ export function renderDailySummaryMarkdown({
     includeActivityWatch,
   } = flags;
 
-  const daySessions = (sessions ?? []).filter((s: any) => s.date === dateStr);
-  const dayFood = foodEntries.filter((f: any) => f.date === dateStr);
-  const dayNutrition = nutritionEntries.find((n: any) => n.date === dateStr);
-  const dayJournal = journalEntries.find((j: any) => j.date === dateStr);
+  const daySessions = (sessions ?? []).filter((s: Tables<'workout_sessions'>) => s.date === dateStr);
+  const dayFood = foodEntries.filter((f: Tables<'daily_food_entries'>) => f.date === dateStr);
+  const dayNutrition = nutritionEntries.find((n: Tables<'daily_nutrition'>) => n.date === dateStr);
+  const dayJournal = journalEntries.find((j: Tables<'daily_wins'>) => j.date === dateStr);
   const seenContent = new Set();
   const dayTelegramLogs = telegramEntries
-    .filter((t: any) => t.created_at && toWarsawDate(t.created_at) === dateStr)
-    .filter((t: any) => (t.metadata as Record<string, unknown>)?.mode === 'stream')
-    .filter((t: any) => {
+    .filter((t: ExportData['telegramLogs'][number]) => t.created_at && toWarsawDate(t.created_at) === dateStr)
+    .filter((t: ExportData['telegramLogs'][number]) => (t.metadata as Record<string, unknown>)?.mode === 'stream')
+    .filter((t: ExportData['telegramLogs'][number]) => {
       const key = (t.content || '').trim();
       if (seenContent.has(key)) return false;
       seenContent.add(key);
       return true;
     });
-  const dayBody = (bodyMetrics ?? []).find((b: any) => b.date === dateStr);
-  const dayOura = (ouraData ?? [])?.find((o: any) => o.date === dateStr);
-  const dayOuraEnhanced = (ouraEnhanced ?? []).find((o: any) => o.date === dateStr);
-  const dayOuraDerived = (ouraDerived ?? []).find((o: any) => o.day === dateStr);
-  const dayPhotos = (photos ?? [])?.filter((p: any) => p.date === dateStr);
+  const dayBody = (bodyMetrics ?? []).find((b: Tables<'body_metrics'>) => b.date === dateStr);
+  const dayOura = (ouraData ?? [])?.find((o: Tables<'oura_daily_summary'>) => o.date === dateStr);
+  const dayOuraEnhanced = (ouraEnhanced ?? []).find((o: Tables<'oura_enhanced'>) => o.date === dateStr);
+  const dayOuraDerived = (ouraDerived ?? []).find((o: ExportData['ouraDerived'][number]) => o.day === dateStr);
+  const dayPhotos = (photos ?? [])?.filter((p: Tables<'progress_photos'>) => p.date === dateStr);
   const dayStrava = ((stravaData ?? []) as StravaCleanActivity[]).filter((a) => {
     if (!a.start_date) return false;
     const date = toWarsawDate(a.start_date);
     return date === dateStr;
   });
   const dayAw = includeActivityWatch
-    ? (d.awSummary ?? []).find((a: any) => a.date === dateStr)
+    ? (d.awSummary ?? []).find((a: Tables<'aw_daily_summary'>) => a.date === dateStr)
     : null;
 
   const hasAnyData =
@@ -193,7 +194,7 @@ export function renderDailySummaryMarkdown({
 
   md += `## ${format(parseISO(dateStr), 'd MMMM yyyy (EEEE)', { locale: pl })}\n\n`;
 
-  const dayPhone = (phoneUsageData ?? []).find((p: any) => p.date === dateStr);
+  const dayPhone = (phoneUsageData ?? []).find((p: Tables<'phone_usage_daily'>) => p.date === dateStr);
   md += renderDevicesAndBody({
     flags,
     dayOura,
@@ -206,16 +207,16 @@ export function renderDailySummaryMarkdown({
   });
 
   const dayLocations = locationHistory?.filter(
-    (l: any) => l.created_at && toWarsawDate(l.created_at) === dateStr
+    (l: Tables<'location_history'>) => l.created_at && toWarsawDate(l.created_at) === dateStr
   );
   const visitedPOIs = userPOI.filter((poi) =>
     dayLocations?.some(
-      (loc: any) =>
+      (loc: Tables<'location_history'>) =>
         getDistance(loc.latitude, loc.longitude, poi.lat!, poi.lng!) < poi.radius
     )
   );
   const detectedPlaces = [
-    ...new Set(dayLocations?.filter((l: any) => l.place_name).map((l: any) => l.place_name)),
+    ...new Set(dayLocations?.filter((l: Tables<'location_history'>) => l.place_name).map((l: Tables<'location_history'>) => l.place_name)),
   ];
 
   if (visitedPOIs.length > 0 || detectedPlaces.length > 0) {
@@ -247,8 +248,8 @@ export function renderDailySummaryMarkdown({
   }
 
   if (includeNutrition) {
-    const dayFoodData = foodEntries.filter((f: any) => f.date === dateStr);
-    const dayNutritionData = nutritionEntries.find((n: any) => n.date === dateStr);
+    const dayFoodData = foodEntries.filter((f: Tables<'daily_food_entries'>) => f.date === dateStr);
+    const dayNutritionData = nutritionEntries.find((n: Tables<'daily_nutrition'>) => n.date === dateStr);
     md += renderNutritionSection({
       dayFood: dayFoodData,
       dayNutrition: dayNutritionData,
@@ -257,10 +258,10 @@ export function renderDailySummaryMarkdown({
     });
   }
 
-  const dayHabitLogs = (habitLogs ?? []).filter((l: any) => l.date === dateStr);
+  const dayHabitLogs = (habitLogs ?? []).filter((l: Tables<'habit_logs'>) => l.date === dateStr);
   md += renderJournalAndHabits({
-    dayJournal,
-    dayTelegramLogs,
+    dayJournal: dayJournal as Tables<'daily_wins'>,
+    dayTelegramLogs: dayTelegramLogs as Tables<'vanguard_stream'>[],
     dayHabitLogs,
     habits,
     includeJournal,

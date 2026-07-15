@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
   DirectionMustPin,
   DirectionUrgentTodo,
@@ -6,14 +5,63 @@ import type {
   DirectionFocus,
 } from '../../../../lib/dailyPlanProposal';
 
+interface PinRow {
+  id: string;
+  entity_type: string;
+  entity_id: string | null;
+  manual_title: string | null;
+  done: boolean;
+  slot: string;
+  project_id: string | null;
+}
+
+interface LinkRow {
+  id: string;
+  title: string | null;
+}
+
+interface TodoRow {
+  id: string;
+  title: string;
+  priority: string | null;
+  due_date: string | null;
+  section_id: string | null;
+  status: string;
+}
+
+interface ProjectRow {
+  id: string;
+  name: string;
+  goal: string | null;
+  primary_skill_id?: string | null;
+}
+
+interface KpiRow {
+  id: string;
+  project_id: string | null;
+  name: string;
+  target: number | null;
+}
+
+interface FocusData {
+  skill_id: string | null;
+  target_level: number | null;
+}
+
+interface SkillRow {
+  id: string;
+  label: string;
+  key: string;
+}
+
 function resolvePinTitle(
   pin: {
     entity_type: string;
     entity_id: string | null;
     manual_title: string | null;
   },
-  links: Map<string, { title: string | null }>,
-  todos: Map<string, { title: string }>
+  links: Map<string, LinkRow>,
+  todos: Map<string, TodoRow>
 ): string {
   if (pin.manual_title?.trim()) return pin.manual_title.trim();
   if (pin.entity_type === 'link' && pin.entity_id) {
@@ -26,9 +74,9 @@ function resolvePinTitle(
 }
 
 export function mapMustPins(
-  pins: any[],
-  linksMap: Map<string, any>,
-  todosMap: Map<string, any>
+  pins: PinRow[],
+  linksMap: Map<string, LinkRow>,
+  todosMap: Map<string, TodoRow>
 ): DirectionMustPin[] {
   return pins.map((p) => ({
     id: p.id,
@@ -40,9 +88,9 @@ export function mapMustPins(
 }
 
 export function mapUrgentTodos(
-  todos: any[],
+  todos: TodoRow[],
   sectionProject: Map<string, string | null>,
-  projectsData: any[]
+  projectsData: ProjectRow[]
 ): DirectionUrgentTodo[] {
   return todos
     .filter((t) => t.priority === 'urgent' || t.priority === 'high')
@@ -62,8 +110,8 @@ export function mapUrgentTodos(
 }
 
 export function mapActiveProjects(
-  projectsData: any[],
-  allKpis: any[],
+  projectsData: ProjectRow[],
+  allKpis: KpiRow[],
   latestKpiValues: Map<string, number | null>
 ): DirectionProjectSummary[] {
   return projectsData.map((p) => ({
@@ -83,9 +131,9 @@ export function mapActiveProjects(
 }
 
 export function mapDirectionFocus(
-  focusData: any,
-  parentSkill: any,
-  subskill: any
+  focusData: FocusData | null,
+  parentSkill: SkillRow | null | undefined,
+  subskill: SkillRow | null | undefined
 ): DirectionFocus {
   return {
     skillId: focusData?.skill_id ?? null,

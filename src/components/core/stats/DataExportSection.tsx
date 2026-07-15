@@ -46,7 +46,7 @@ export function DataExportSection({
   return (
     <>
       <div>
-        <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">
+        <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">
           Eksport
         </p>
         <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">

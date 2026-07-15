@@ -160,7 +160,7 @@ export default function TodoQuickCapture({
         </div>
 
         {/* Tags input chip */}
-        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2.5 py-0.5 max-w-[var(--legacy-maxw-051)]">
+        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2.5 py-0.5 max-w-[var(--ds-maxw-150px)]">
           <Tag size={11} className="text-text-muted/60" />
           <ControlInput
             value={form.tagsText}

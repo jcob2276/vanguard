@@ -58,7 +58,7 @@ export default function ExerciseNameInput({
           variant="surface"
           padding="0"
           className="absolute left-0 right-0 top-full mt-2 z-[var(--z-overlay)] border border-border-custom shadow-lg"
-          style={{ borderRadius: 'var(--legacy-inline-style-005)' }}
+          style={{ borderRadius: 'var(--ds-inline-style-12px)' }}
         >
           {matches.map((ex) => (
             <Button

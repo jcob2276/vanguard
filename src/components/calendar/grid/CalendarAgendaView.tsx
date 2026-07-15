@@ -63,7 +63,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
                 <div
                   key={ev.id}
                   onClick={() => handleEventClick(ev)}
-                  className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer hover:scale-[var(--legacy-arbitrary-015)] active:scale-[var(--legacy-arbitrary-016)] transition-all ${eventColor(ev).replace('bg-', 'border-').split(' ')[0]} bg-surface-solid/50`}
+                  className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer hover:scale-[var(--ds-arbitrary-1-005)] active:scale-[var(--ds-arbitrary-0-995)] transition-all ${eventColor(ev).replace('bg-', 'border-').split(' ')[0]} bg-surface-solid/50`}
                 >
                   <div className={`w-2 h-2 rounded-full shrink-0 ${eventColor(ev).split(' ')[0].replace('bg-', 'bg-')}`} />
                   <div className="min-w-0 flex-1">

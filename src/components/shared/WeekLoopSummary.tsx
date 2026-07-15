@@ -36,7 +36,7 @@ export default function WeekLoopSummary({
 
   return (
     <Card className={compact ? 'space-y-2' : 'space-y-3'} padding={compact ? '0.875rem' : '1.25rem'}>
-      <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Pętla tygodnia</p>
+      <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">Pętla tygodnia</p>
 
       {longTermBridge && (
         <p className={`text-text-secondary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>

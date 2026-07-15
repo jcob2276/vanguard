@@ -57,7 +57,7 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
 
   if (data.loading) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--legacy-arbitrary-029)]" closeOnBackdropClick={false}>
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--ds-arbitrary-60)]" closeOnBackdropClick={false}>
         <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-sm font-bold text-text-muted">Wczytywanie rytuału planowania...</span>
@@ -74,10 +74,10 @@ export default function MorningPlanModal({ onClose, targetDate }: Props) {
       padding="p-0"
       overflowY={false}
       size="lg"
-      overlayClassName="z-[var(--legacy-arbitrary-029)]"
+      overlayClassName="z-[var(--ds-arbitrary-60)]"
     >
       {/* Sheet / Dialog */}
-      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[var(--legacy-h-046)] sm:max-h-[var(--legacy-h-042)] overflow-hidden">
+      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-background border border-border-custom/60 shadow-2xl flex flex-col max-h-[var(--ds-h-85vh)] sm:max-h-[var(--ds-h-750px)] overflow-hidden">
 
         {/* Header */}
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">

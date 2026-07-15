@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import { useStore } from '../../../store/useStore';
 import { useDashboardData } from './useDashboardData';
 import { getTodayWarsaw, getWarsawHour } from '../../../lib/date';
+import { fetchLastFoodLogDate } from '../../../lib/behavior/behaviorLogClient';
 import { STORAGE_KEYS } from '../../../lib/constants';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { useNudgeData } from './useNudgeData';
@@ -81,6 +82,7 @@ export function useDashboardState(session: Session) {
   const [showMorningPlan, setShowMorningPlan]       = useState(false);
   const [morningPlanTargetDate, setMorningPlanTargetDate] = useState<string | null>(null);
   const [showShutdown, setShowShutdown]             = useState(false);
+  const [gapLastLoggedDate, setGapLastLoggedDate]   = useState<string | null>(null);
   const [showWeeklyReview, setShowWeeklyReview]     = useState(false);
   const [taskReviewDoneThisWeek, setTaskReviewDoneThisWeek] = useState(false);
   const [showSearch, setShowSearch]                 = useState(false);
@@ -258,6 +260,29 @@ export function useDashboardState(session: Session) {
     if (warsawHour >= 20) { setTimeout(() => setShowShutdown(true), 0); }
   }, [todayWin]);
 
+  // Detect a >2 day logging gap (§5.1) and prompt once per gap so it can be labeled
+  // rather than silently misread as an event (e.g. a fasting day) by correlations.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const lastDate = await fetchLastFoodLogDate(userId);
+        if (cancelled || !lastDate) return;
+        const gapDays = Math.round(
+          (new Date(getTodayWarsaw() + 'T12:00:00Z').getTime() - new Date(lastDate + 'T12:00:00Z').getTime())
+          / (24 * 60 * 60 * 1000),
+        );
+        if (gapDays <= 2) return;
+        if (localStorage.getItem(STORAGE_KEYS.GAP_PROMPT_DISMISSED_FOR) === lastDate) return;
+        setGapLastLoggedDate(lastDate);
+      } catch (e: unknown) {
+        console.warn('[useDashboardState] Failed to check logging gap:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
   // Navigation
   useWorkoutResume(userId, useCallback(() => {
     if (location.pathname !== '/trening') { navigate('/trening'); }
@@ -374,6 +399,7 @@ export function useDashboardState(session: Session) {
     showMorningPlan, setShowMorningPlan,
     morningPlanTargetDate, setMorningPlanTargetDate,
     showShutdown, setShowShutdown,
+    gapLastLoggedDate, setGapLastLoggedDate,
     showWeeklyReview, setShowWeeklyReview,
     taskReviewDoneThisWeek, setTaskReviewDoneThisWeek,
     showSearch, setShowSearch,

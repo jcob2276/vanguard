@@ -3,7 +3,7 @@ interface LinkCardData { url: string; title?: string; description?: string; favi
 export function LinkCard({ data }: { data: LinkCardData }) {
   return (
     <a href={data.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 no-underline">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[color:var(--legacy-bg-003)]">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[color:var(--ds-bg-rgba-91-108-255-0-08)]">
         {data.favicon ? <img src={data.favicon} className="w-4 h-4 rounded" alt="" /> : <ExternalLink size={13} style={{ color: 'var(--color-primary)' }} />}
       </div>
       <div className="flex-1 min-w-0">

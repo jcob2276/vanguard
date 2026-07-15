@@ -185,7 +185,7 @@ export default function TodoCard({
               className="shrink-0 mt-0.5 btn-press"
             >
               <span
-                className={`flex h-[var(--legacy-h-014)] w-[var(--legacy-w-079)] items-center justify-center text-sm leading-none transition-all ${
+                className={`flex h-[var(--ds-h-18px)] w-[var(--ds-w-18px)] items-center justify-center text-sm leading-none transition-all ${
                   isDone ? 'grayscale opacity-[var(--opacity-40)]' : ''
                 }`}
               >
@@ -323,7 +323,7 @@ export default function TodoCard({
                       {GoalIcon && <GoalIcon size={8} />}
                       <span className="uppercase">{sectionName}</span>
                       {dreamTitle && (
-                        <span className="opacity-[var(--opacity-60)] truncate max-w-[var(--legacy-maxw-063)]">· {dreamTitle}</span>
+                        <span className="opacity-[var(--opacity-60)] truncate max-w-[var(--ds-maxw-80px)]">· {dreamTitle}</span>
                       )}
                     </span>
                   );
@@ -385,7 +385,7 @@ export default function TodoCard({
           style={{
             display: 'grid',
             gridTemplateRows: expanded ? '1fr' : '0fr',
-            transition: 'var(--legacy-inline-style-087)',
+            transition: 'var(--ds-inline-style-grid-template-rows-260ms-cubic-bezier-0-4-0-0-2-1)',
             overflow: transitionCompleted ? 'visible' : 'hidden'
           }}
         >

@@ -31,7 +31,7 @@ export function DashboardFastCaptureMenu({ show, onClose, items }: Props) {
       {/* Menu overlay */}
       <div
         className="fixed left-1/2 z-[var(--z-modal)] flex -translate-x-1/2 flex-col items-center gap-3 transition-all duration-[var(--motion-slow)] pointer-events-none"
-        style={{ bottom: 'var(--legacy-inline-style-013)' }}
+        style={{ bottom: 'var(--ds-inline-style-calc-max-2rem-calc-1rem-env-safe-area-inset-bottom-5-6rem)' }}
       >
         {items.map((item, idx) => (
           <div
@@ -79,9 +79,9 @@ export function DashboardFastCaptureFAB({ active, onToggle }: FabProps) {
       onClick={onToggle}
       title={active ? 'Zamknij szybkie dodawanie' : 'Otwórz szybkie dodawanie'}
       className="fast-capture-btn"
-      style={{ bottom: 'var(--legacy-inline-style-012)' }}
+      style={{ bottom: 'var(--ds-inline-style-calc-max-2rem-calc-1rem-env-safe-area-inset-bottom-1-95rem)' }}
     >
-      <div className={`transition-transform duration-[var(--motion-slow)] ${active ? 'rotate-[var(--legacy-arbitrary-030)]' : ''}`}>
+      <div className={`transition-transform duration-[var(--motion-slow)] ${active ? 'rotate-[var(--ds-arbitrary-135deg)]' : ''}`}>
         <Plus size={18} strokeWidth={3.5} />
       </div>
     </Fab>

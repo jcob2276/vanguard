@@ -163,6 +163,12 @@ async function flushOfflineQueue(): Promise<void> {
           const res = await dynDb.from(table).delete().match((entry.args.match as Record<string, unknown>) || {});
           error = res.error;
         }
+      } else if (entry.fn.startsWith('edge:')) {
+        const [_, functionName] = entry.fn.split(':');
+        const { error: edgeErr } = await supabase.functions.invoke(functionName, {
+          body: entry.args,
+        });
+        error = edgeErr;
       } else {
         const res = await dynDb.rpc(entry.fn, entry.args);
         error = res.error;

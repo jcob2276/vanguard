@@ -74,7 +74,7 @@ export default function ProjectWeekKpis({
 
   return (
     <section className="space-y-2">
-      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--legacy-arbitrary-053)] text-text-muted">
+      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-14em)] text-text-muted">
         <TrendingUp size={12} /> Projekty tego tygodnia ({projects.length})
       </p>
       <div className="space-y-2.5">

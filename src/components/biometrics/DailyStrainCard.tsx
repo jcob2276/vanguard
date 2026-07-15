@@ -173,7 +173,7 @@ export default function DailyStrainCard({
       {/* Correlations link */}
       <Link
         to="/korelacje"
-        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[var(--legacy-arbitrary-003)] relative z-[var(--z-raised)]"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[var(--ds-arbitrary-0-985)] relative z-[var(--z-raised)]"
       >
         <BarChart2 size={11} />
         Korelacje — kawa, sen, trening

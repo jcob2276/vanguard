@@ -47,9 +47,9 @@ export default function SlotPinCard({
     focusTargetLevel != null;
 
   const borderColor = pin.done
-    ? 'var(--legacy-color-098)'
+    ? 'var(--color-theme-hex-ba16185129025)'
     : slot === 'must'
-      ? 'var(--legacy-color-113)'
+      ? 'var(--color-theme-hex-ba244639402)'
       : undefined;
 
   return (

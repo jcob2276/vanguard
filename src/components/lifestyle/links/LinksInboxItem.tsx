@@ -39,14 +39,14 @@ export function LinksInboxItem({
 
   return (
     <div
-      className={`transition-all duration-[var(--legacy-duration-006)] ease-[var(--spring)] ${
-        isDeleting ? 'opacity-[var(--opacity-0)] scale-[var(--legacy-arbitrary-050)] -translate-y-2 pointer-events-none' : 'opacity-[var(--opacity-100)] scale-100'
+      className={`transition-all duration-[var(--ds-duration-250ms)] ease-[var(--spring)] ${
+        isDeleting ? 'opacity-[var(--opacity-0)] scale-[var(--ds-arbitrary-0-93)] -translate-y-2 pointer-events-none' : 'opacity-[var(--opacity-100)] scale-100'
       }`}
     >
       {d.viewMode === 'list' ? (
         // List Mode
         <div
-          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3.5 transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/30 hover:scale-[var(--legacy-arbitrary-015)] ${
+          className={`flex items-center justify-between gap-3 border border-border-custom/50 bg-surface/50 rounded-2xl px-4 py-3.5 transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/30 hover:scale-[var(--ds-arbitrary-1-005)] ${
             link.status === 'read' ? 'opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-90)]' : ''
           }`}
         >
@@ -110,13 +110,13 @@ export function LinksInboxItem({
       ) : (
         // Card Mode
         <div
-          className={`pocket-card group transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/80 hover:scale-[var(--legacy-arbitrary-015)] ${
+          className={`pocket-card group transition-all duration-[var(--motion-medium)] hover:bg-surface-solid/80 hover:scale-[var(--ds-arbitrary-1-005)] ${
             link.status === 'read' ? 'opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-90)]' : ''
           }`}
         >
           {/* Thumbnail (YouTube) */}
           {link.thumbnail_url && (
-            <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Otwórz link w nowej karcie: ${link.title}`} className="block -mx-4 -mt-4 mb-3 rounded-t-[var(--legacy-arbitrary-051)] overflow-hidden">
+            <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Otwórz link w nowej karcie: ${link.title}`} className="block -mx-4 -mt-4 mb-3 rounded-t-[var(--ds-arbitrary-24px)] overflow-hidden">
               <img
                 src={link.thumbnail_url}
                 alt={link.title}
@@ -178,7 +178,7 @@ export function LinksInboxItem({
               rel="noopener noreferrer"
               aria-label={`Otwórz link w nowej karcie: ${link.title}`}
               onClick={() => haptic([6])}
-              className="btn-press shrink-0 rounded-full p-1.5 text-text-muted/60 hover:text-text-primary hover:bg-surface-solid/60 opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-100)] transition-all duration-[var(--motion-medium)] active:scale-[var(--legacy-arbitrary-052)]"
+              className="btn-press shrink-0 rounded-full p-1.5 text-text-muted/60 hover:text-text-primary hover:bg-surface-solid/60 opacity-[var(--opacity-60)] hover:opacity-[var(--opacity-100)] transition-all duration-[var(--motion-medium)] active:scale-[var(--ds-arbitrary-0-78)]"
             >
               <ExternalLink size={13} />
             </a>
@@ -225,7 +225,7 @@ export function LinksInboxItem({
                 type="button"
                 disabled={d.convertingLinkId === link.id}
                 onClick={() => d.handleLinkToTodo(link)}
-                className="btn-press flex flex-1 min-w-[var(--legacy-w-075)] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-[var(--opacity-50)]"
+                className="btn-press flex flex-1 min-w-[var(--ds-w-120px)] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-[var(--opacity-50)]"
                 icon={d.convertingLinkId === link.id ? <Spinner size="sm" className="h-3 w-3" /> : <ListTodo size={12} />}
               >
                 Zrób zadanie
@@ -236,7 +236,7 @@ export function LinksInboxItem({
                 type="button"
                 disabled={d.convertingLinkId === link.id}
                 onClick={() => d.handleLinkToNote(link)}
-                className="btn-press flex flex-1 min-w-[var(--legacy-w-075)] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-[var(--opacity-50)]"
+                className="btn-press flex flex-1 min-w-[var(--ds-w-120px)] items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-[var(--opacity-50)]"
                 icon={<StickyNote size={12} />}
               >
                 Do notatek

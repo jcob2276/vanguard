@@ -60,7 +60,7 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <MapPin size={12} className="text-primary shrink-0" />
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-25em)] text-text-muted">
             Gdzie co logować
           </p>
         </div>

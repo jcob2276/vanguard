@@ -32,7 +32,7 @@ export default function RecurrencePicker({
             key={r || 'none'}
             type="button"
             onClick={() => setRecurrence(r)}
-            className={`flex-1 min-w-[var(--legacy-w-092)] text-xs font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
+            className={`flex-1 min-w-[var(--ds-w-70px)] text-xs font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
           >
             {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
           </Pressable>

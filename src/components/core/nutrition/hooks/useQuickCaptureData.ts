@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { notify } from '../../../../lib/notify';
 import { getTodayWarsaw, getYesterdayWarsaw } from '../../../../lib/date';
@@ -33,6 +33,12 @@ export interface YesterdayFoodEntry {
 
 import { useSession } from '../../../../store/useStore';
 
+const DEFAULT_TOTALS = {
+  calories: 0, protein: 0,
+  targetKcal: null as number | null, targetProtein: null as number | null,
+  avgFoodQuality: null as number | null, foodQualityAnalysis: null as string | null,
+};
+
 export function useQuickCaptureData(onSaved?: () => void, refreshSignal = 0) {
   const session = useSession();
   const userId = session?.user.id;
@@ -43,17 +49,11 @@ export function useQuickCaptureData(onSaved?: () => void, refreshSignal = 0) {
   });
   const [mealType, setMealType] = useState(defaultMealType());
   const [logDate, setLogDate] = useState(() => getTodayWarsaw());
-  const [totals, setTotals] = useState({
-    calories: 0, protein: 0,
-    targetKcal: null as number | null, targetProtein: null as number | null,
-    avgFoodQuality: null as number | null, foodQualityAnalysis: null as string | null,
-  });
   const [qualityPending, setQualityPending] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<ParsedFoodItem[] | null>(null);
   const [removed, setRemoved] = useState<Set<number>>(new Set());
-  const [yesterdayEntries, setYesterdayEntries] = useState<YesterdayFoodEntry[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -63,16 +63,17 @@ export function useQuickCaptureData(onSaved?: () => void, refreshSignal = 0) {
     enabled: !!userId,
   });
 
-  useEffect(() => {
+  const totals = useMemo(() => {
     const ctx = contextQuery.data;
-    if (ctx) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
-      setTotals({
-        calories: ctx.calories, protein: ctx.protein,
-        targetKcal: ctx.targetKcal, targetProtein: ctx.targetProtein,
-        avgFoodQuality: ctx.avgFoodQuality, foodQualityAnalysis: ctx.foodQualityAnalysis,
-      });
-    }
+    if (!ctx) return DEFAULT_TOTALS;
+    return {
+      calories: ctx.calories,
+      protein: ctx.protein,
+      targetKcal: ctx.targetKcal,
+      targetProtein: ctx.targetProtein,
+      avgFoodQuality: ctx.avgFoodQuality,
+      foodQualityAnalysis: ctx.foodQualityAnalysis,
+    };
   }, [contextQuery.data]);
 
   const bumpQualityRefresh = useCallback(() => {
@@ -96,15 +97,12 @@ export function useQuickCaptureData(onSaved?: () => void, refreshSignal = 0) {
         .from('daily_food_entries')
         .select('id, name, brand, calories, protein, carbs, fat, fiber, sugar, amount, date')
         .eq('user_id', userId!).eq('date', targetDate).eq('meal_type', mealType).order('logged_at', { ascending: true });
-      return data ?? [];
+      return (data ?? []) as YesterdayFoodEntry[];
     },
     enabled: !!userId,
   });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate sync of react-query data to local state
-    if (yesterdayQuery.data) setYesterdayEntries(yesterdayQuery.data);
-  }, [yesterdayQuery.data]);
+  const yesterdayEntries = useMemo(() => yesterdayQuery.data ?? [], [yesterdayQuery.data]);
 
   useEffect(() => {
     try {
@@ -113,7 +111,7 @@ export function useQuickCaptureData(onSaved?: () => void, refreshSignal = 0) {
     } catch { /* quota */ }
   }, [text, draftKey]);
 
-  const activePreview = preview?.filter((_, i) => !removed.has(i)) ?? [];
+  const activePreview = useMemo(() => preview?.filter((_, i) => !removed.has(i)) ?? [], [preview, removed]);
 
   const handleParse = async () => {
     if (!text.trim() || parsing || !userId) return;

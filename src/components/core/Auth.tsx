@@ -57,8 +57,8 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden transition-colors duration-[var(--motion-slow)]">
       {/* Background Ambience */}
       <div className="absolute top-0 left-0 w-full h-full bg-background/50"></div>
-      <div className="absolute top-[var(--legacy-arbitrary-023)] right-[var(--legacy-arbitrary-024)] w-[var(--legacy-w-089)] h-[var(--legacy-h-034)] bg-primary/5 rounded-full blur-[var(--blur-ambient)]"></div>
-      <div className="absolute bottom-[var(--legacy-arbitrary-025)] left-[var(--legacy-arbitrary-026)] w-[var(--legacy-w-089)] h-[var(--legacy-h-034)] bg-primary/3 rounded-full blur-[var(--blur-ambient)] opacity-[var(--opacity-20)]"></div>
+      <div className="absolute top-[var(--ds-arbitrary-10)] right-[var(--ds-arbitrary-10-coll-2)] w-[var(--ds-w-50)] h-[var(--ds-h-50)] bg-primary/5 rounded-full blur-[var(--blur-ambient)]"></div>
+      <div className="absolute bottom-[var(--ds-arbitrary-10-coll-3)] left-[var(--ds-arbitrary-10-coll-4)] w-[var(--ds-w-50)] h-[var(--ds-h-50)] bg-primary/3 rounded-full blur-[var(--blur-ambient)] opacity-[var(--opacity-20)]"></div>
 
       <div className="w-full max-w-md relative z-[var(--z-raised)] animate-in fade-in zoom-in-95 duration-[var(--motion-ambient)]">
         <div className="bg-surface/55 border border-border-custom backdrop-blur-[var(--blur-2xl)] rounded-[var(--radius-xl)] p-10 shadow-lg">
@@ -71,7 +71,7 @@ export default function Auth() {
             <h1 className="text-3xl font-display font-black tracking-tight text-text-primary uppercase italic">
               Vanguard OS <span className="text-primary not-italic text-sm align-top ml-1">v{SYSTEM_VERSION}</span>
             </h1>
-            <p className="text-text-muted text-xs font-black uppercase tracking-[var(--legacy-arbitrary-027)] mt-2">Identity Verification Required</p>
+            <p className="text-text-muted text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-4em)] mt-2">Identity Verification Required</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-6">
@@ -120,7 +120,7 @@ export default function Auth() {
               type="submit"
               loading={loading}
               icon={!loading ? <Lock size={16} /> : undefined}
-              className="w-full py-5 font-black text-xs uppercase tracking-[var(--legacy-arbitrary-002)] mt-4"
+              className="w-full py-5 font-black text-xs uppercase tracking-[var(--ds-arbitrary-0-2em)] mt-4"
             >
               {mode === 'reset' ? 'Wyślij link resetu' : mode === 'signup' ? 'Utwórz konto' : 'Inicjuj Sesję'}
             </Pressable>
@@ -141,12 +141,12 @@ export default function Auth() {
           <div className="mt-10 pt-8 border-t border-border-custom text-center">
             <div className="flex items-center justify-center gap-2 text-text-muted">
               <Shield size={12} />
-              <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)]">Encrypted Connection Active</p>
+              <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)]">Encrypted Connection Active</p>
             </div>
           </div>
         </div>
 
-        <p className="text-center mt-8 text-2xs font-black text-text-muted/50 uppercase tracking-[var(--legacy-arbitrary-028)]">
+        <p className="text-center mt-8 text-2xs font-black text-text-muted/50 uppercase tracking-[var(--ds-arbitrary-0-5em)]">
           Authorized Personnel Only • Neural Link {NEURAL_LINK_VERSION}
         </p>
       </div>

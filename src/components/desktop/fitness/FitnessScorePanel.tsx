@@ -40,11 +40,11 @@ export default function FitnessScorePanel({
 
   return (
     <Panel title="Hybrydowy Profil & Fitness Score" className="h-full flex flex-col">
-      <div className="grid grid-cols-1 xl:grid-cols-[var(--legacy-arbitrary-036)] gap-6 items-center flex-1">
-        <div className="flex flex-col items-center justify-center py-4 xl:py-8 xl:min-h-[var(--legacy-h-020)] border-b xl:border-b-0 xl:border-r border-border-custom">
+      <div className="grid grid-cols-1 xl:grid-cols-[var(--ds-arbitrary-minmax-0-1fr-minmax-0-1-15fr)] gap-6 items-center flex-1">
+        <div className="flex flex-col items-center justify-center py-4 xl:py-8 xl:min-h-[var(--ds-h-280px)] border-b xl:border-b-0 xl:border-r border-border-custom">
           <div className="flex items-center gap-1.5 mb-3 text-primary">
             <Activity size={16} className="animate-pulse" />
-            <span className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-secondary">
+            <span className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-secondary">
               Hybrydowy profil
             </span>
           </div>
@@ -67,7 +67,7 @@ export default function FitnessScorePanel({
               </p>
             </div>
           </div>
-          <p className="text-xs text-text-secondary mt-5 max-w-[var(--legacy-maxw-056)] text-center leading-relaxed">
+          <p className="text-xs text-text-secondary mt-5 max-w-[var(--ds-maxw-280px)] text-center leading-relaxed">
             Capability = siła + wydolność (realna zdolność). Process = regularność + regeneracja + adaptacja + obciążenie (dyscyplina, nie zdolność) — liczone osobno, żeby jedno nie maskowało drugiego.
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function FitnessScorePanel({
       </div>
 
       <div className="mt-5 pt-5 border-t border-border-custom">
-        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted mb-3">
+        <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted mb-3">
           Skąd te oceny?
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

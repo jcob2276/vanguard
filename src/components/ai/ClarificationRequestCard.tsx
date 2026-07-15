@@ -115,7 +115,7 @@ export function ClarificationRequestCard({ request, onAnswered }: Props) {
               <Pressable
                 key={opt.id}
                 onClick={() => toggleId(opt.id)}
-                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all active:scale-[var(--legacy-arbitrary-001)] ${
+                className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all active:scale-[var(--ds-arbitrary-0-98)] ${
                   selected
                     ? 'bg-primary/10 text-primary border border-primary/30'
                     : 'bg-background border border-border-custom/20 text-text-secondary'

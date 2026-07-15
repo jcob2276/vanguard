@@ -106,7 +106,7 @@ export function InsightsDashboard() {
 
       {cards.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-034)]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <p className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-12em)]" style={{ color: 'var(--color-text-tertiary)' }}>
             Insights ({cards.length})
           </p>
           {cards.map(card => (

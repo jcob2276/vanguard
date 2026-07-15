@@ -104,7 +104,7 @@ export default function SkillTreePanel({
 
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Pod-skilli</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">Pod-skilli</p>
           <p className="text-2xs text-text-muted">Kliknij skill · skala 0–5</p>
         </div>
 

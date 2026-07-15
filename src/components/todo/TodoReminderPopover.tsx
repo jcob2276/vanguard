@@ -65,7 +65,7 @@ export default function TodoReminderPopover({
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
-      className="absolute z-[var(--z-overlay)] top-full left-0 mt-2 w-[var(--legacy-w-084)] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-3 p-4 animate-in fade-in zoom-in-95 duration-[var(--motion-medium)] origin-top-left"
+      className="absolute z-[var(--z-overlay)] top-full left-0 mt-2 w-[var(--ds-w-290px)] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-3 p-4 animate-in fade-in zoom-in-95 duration-[var(--motion-medium)] origin-top-left"
     >
       <p className="text-sm font-black text-text-primary">Przypomnienia</p>
 

@@ -54,7 +54,7 @@ function TrendBadge({ series }: { series: MarkerSeries }) {
 function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
   return (
     <div className="overflow-x-auto -mx-1">
-      <table className="w-full min-w-[var(--legacy-w-090)] text-left border-collapse">
+      <table className="w-full min-w-[var(--ds-w-520px)] text-left border-collapse">
         <thead>
           <tr className="text-2xs font-black uppercase tracking-wider text-text-muted border-b border-border-custom">
             <th className="py-2 pr-2 font-black">Marker</th>
@@ -79,8 +79,8 @@ function MarkerTable({ rows }: { rows: MarkerSeries[] }) {
                 <td className="py-2.5 px-2">
                   <ValueCell row={s.latest} />
                 </td>
-                <td className="py-2.5 px-2 text-xs text-text-muted max-w-[var(--legacy-maxw-050)]">{formatRef(s.latest)}</td>
-                <td className="py-2.5 px-2 text-xs max-w-[var(--legacy-maxw-049)]">
+                <td className="py-2.5 px-2 text-xs text-text-muted max-w-[var(--ds-maxw-120px)]">{formatRef(s.latest)}</td>
+                <td className="py-2.5 px-2 text-xs max-w-[var(--ds-maxw-100px)]">
                   {opt ? (
                     <span
                       className={
@@ -282,7 +282,7 @@ export function SectionShell({
       <div className="flex items-start gap-2">
         {icon}
         <div>
-          <h2 className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-primary">{title}</h2>
+          <h2 className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-primary">{title}</h2>
           {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
         </div>
       </div>

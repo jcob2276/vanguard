@@ -45,7 +45,7 @@ export default function NoteCard({
       className={`keep-card ${isEditing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
       style={{
         backgroundColor: c.bg,
-        borderColor: isDragOver ? 'var(--legacy-color-024)' : c.border,
+        borderColor: isDragOver ? 'var(--color-theme-hex-6366f1)' : c.border,
         opacity: isEditing ? 'var(--opacity-note-editing)' : 'var(--opacity-100)',
       }}
       onClick={() => onOpen(note.id)}
@@ -126,8 +126,8 @@ export default function NoteCard({
           ))}
         </div>
       )}
-      <div className="keep-card-footer" style={{ borderTopColor: 'var(--legacy-color-129)' }}>
-        <span className="keep-card-date" style={{ color: c.textSub, opacity: 'var(--legacy-inline-style-066)' }}>
+      <div className="keep-card-footer" style={{ borderTopColor: 'var(--color-theme-hex-ba255255255008)' }}>
+        <span className="keep-card-date" style={{ color: c.textSub, opacity: 'var(--ds-inline-style-0-6)' }}>
           {relativeDate(note.updated_at || note.created_at)}
         </span>
          <div className="keep-card-actions">

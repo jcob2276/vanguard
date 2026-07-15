@@ -80,7 +80,7 @@ export default function MorningPlanStep3TimeBox({
       {/* Today's Tasks scheduling list */}
       <div className="space-y-2">
         <span className="text-2xs font-bold text-text-muted uppercase tracking-wider block">Zaplanuj godziny dla zadań</span>
-        <div className="space-y-2 max-h-[var(--legacy-h-017)] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[var(--ds-h-220px)] overflow-y-auto pr-1">
           {[...powerList.filter(Boolean), ...todayTasks].filter((t, idx, self) => self.findIndex((x) => x?.id === t?.id) === idx).map((task) => (
             <div
               key={task!.id}
@@ -101,7 +101,7 @@ export default function MorningPlanStep3TimeBox({
                   value={times[task!.id] || ''}
                   onChange={(e) => setTimes((prev) => ({ ...prev, [task!.id]: e.target.value }))}
                   className="rounded-xl border border-border-custom/60 bg-surface-solid/50 px-2 py-1.5 text-xs font-bold text-text-primary outline-none focus:border-primary/40 cursor-pointer"
-                  style={{ width: 'var(--legacy-inline-style-099)' }}
+                  style={{ width: 'var(--ds-inline-style-85)' }}
                 />
                 <div className="flex items-center gap-1 bg-surface-solid/40 border border-border-custom/40 rounded-xl px-2 py-1">
                   <ControlInput

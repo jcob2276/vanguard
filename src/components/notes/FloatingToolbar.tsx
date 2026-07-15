@@ -68,7 +68,7 @@ export default function FloatingToolbar({
         <CheckSquare size={12} />
       </Pressable>
       {/* Divider */}
-      <div style={{ width: 'var(--legacy-inline-style-091)', height: 'var(--legacy-inline-style-034)', background: 'var(--legacy-color-131)', margin: 'var(--legacy-inline-style-051)' }} />
+      <div style={{ width: 'var(--ds-inline-style-1-coll-2)', height: 'var(--ds-inline-style-18)', background: 'var(--color-theme-hex-ba255255255012)', margin: 'var(--ds-inline-style-0-2px)' }} />
       <Pressable
         type="button"
         onMouseDown={e => { e.preventDefault(); onAction('table'); }}

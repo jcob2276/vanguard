@@ -13,7 +13,7 @@ export default function TodayEventsCard() {
       <section className="animate-fadeIn card p-4">
         <div className="flex items-center gap-2 mb-2">
           <CalendarDays size={12} className="text-text-muted" />
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted font-display">Dziś w kalendarzu</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted font-display">Dziś w kalendarzu</p>
         </div>
         <p className="text-sm text-text-muted">Brak wydarzeń — sync kalendarza w ustawieniach / Fundament.</p>
       </section>
@@ -27,7 +27,7 @@ export default function TodayEventsCard() {
     <section className="animate-fadeIn card p-4 space-y-2.5">
       <div className="flex items-center gap-2">
         <CalendarDays size={12} className="text-text-muted" />
-        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted font-display">Dziś w kalendarzu</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted font-display">Dziś w kalendarzu</p>
       </div>
       <div className="space-y-1.5">
         {events.map((e) => {

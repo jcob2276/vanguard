@@ -102,7 +102,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="space-y-6 max-w-[var(--legacy-maxw-062)] mx-auto p-5 pb-20 animate-fade-in">
+    <div className="space-y-6 max-w-[var(--ds-maxw-800px)] mx-auto p-5 pb-20 animate-fade-in">
       {/* Diagnostics / Coverage */}
       {coverage && (
         <div className="space-y-3.5">
@@ -179,7 +179,7 @@ export default function SystemHealth({ userId }: { userId: string }) {
                 </span>
                 <span className="text-2xs text-text-muted">Chronologicznie</span>
               </div>
-              <div className="h-[var(--legacy-h-016)] w-full text-xs">
+              <div className="h-[var(--ds-h-200px)] w-full text-xs">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart data={healthQuery.data.calibrationHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border-custom dark:stroke-on-accent/[0.04]" />

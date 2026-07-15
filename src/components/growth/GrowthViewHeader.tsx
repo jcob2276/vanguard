@@ -13,7 +13,7 @@ interface GrowthViewHeaderProps {
 export default function GrowthViewHeader({ weekStart, onShiftWeek, readOnly, onEditScores }: GrowthViewHeaderProps) {
   return (
     <header className="sticky top-0 z-[var(--z-sticky)] w-full border-b border-border-custom bg-background/95 backdrop-blur-[var(--blur-md)]">
-      <div className="w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
+      <div className="w-full max-w-[var(--ds-maxw-1600px)] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
         <Link
           to="/"
           aria-label="Wróć do widoku głównego"

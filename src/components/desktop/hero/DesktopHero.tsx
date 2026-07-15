@@ -54,10 +54,10 @@ export default function DesktopHero({
 
   const status = strain?.daily_status || 'unknown';
   const cfg = {
-    green: { bg: 'var(--legacy-color-093)', border: '1px solid var(--legacy-color-098)', dot: 'bg-success', pulse: 'bg-success', tag: 'ZIELONY' },
-    yellow: { bg: 'var(--legacy-color-119)', border: '1px solid var(--legacy-color-122)', dot: 'bg-warning', pulse: 'bg-warning', tag: 'ŻÓŁTY' },
-    red: { bg: 'var(--legacy-color-110)', border: '1px solid var(--legacy-color-114)', dot: 'bg-danger', pulse: 'bg-danger', tag: 'CZERWONY' },
-  }[status] || { bg: 'var(--legacy-color-141)', border: 'var(--border-desktop-hero-muted)', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
+    green: { bg: 'var(--color-theme-hex-ba16185129005)', border: '1px solid var(--color-theme-hex-ba16185129025)', dot: 'bg-success', pulse: 'bg-success', tag: 'ZIELONY' },
+    yellow: { bg: 'var(--color-theme-hex-ba24515811005)', border: '1px solid var(--color-theme-hex-ba24515811025)', dot: 'bg-warning', pulse: 'bg-warning', tag: 'ŻÓŁTY' },
+    red: { bg: 'var(--color-theme-hex-ba2446394005)', border: '1px solid var(--color-theme-hex-ba2446394025)', dot: 'bg-danger', pulse: 'bg-danger', tag: 'CZERWONY' },
+  }[status] || { bg: 'var(--color-theme-hex-ba26264606)', border: 'var(--border-desktop-hero-muted)', dot: 'bg-text-muted', pulse: 'bg-text-muted', tag: '—' };
 
   const msg = strain ? cockpitDecision(status, strain.main_limiter, strain.strain_score, strain.fueling_provisional) : 'Obserwatorium — pełny obraz z SQL';
   const limiter = strain?.main_limiter && strain.main_limiter !== 'recovery_ok' ? LIMITER_PL[strain.main_limiter] : null;
@@ -72,7 +72,7 @@ export default function DesktopHero({
 
   return (
     <section id="sprint" className="scroll-mt-28">
-      <Card variant="surface" padding="0" className="overflow-hidden" style={{ borderRadius: 'var(--legacy-inline-style-009)', background: cfg.bg, border: cfg.border }}>
+      <Card variant="surface" padding="0" className="overflow-hidden" style={{ borderRadius: 'var(--ds-inline-style-24px)', background: cfg.bg, border: cfg.border }}>
         <div className="px-8 py-5 flex items-center justify-between gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5 mb-2">
@@ -80,7 +80,7 @@ export default function DesktopHero({
               <div className={`absolute w-3 h-3 rounded-full ${cfg.pulse} opacity-[var(--opacity-40)] animate-ping`} />
               <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
             </div>
-            <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-044)] text-text-muted">{cfg.tag}</span>
+            <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-3em)] text-text-muted">{cfg.tag}</span>
           </div>
           <p className="font-display text-2xl font-black leading-tight text-text-primary">{msg}</p>
           {limiter && (
@@ -108,7 +108,7 @@ export default function DesktopHero({
 
       <div className="px-8 py-4 border-t border-primary/10 bg-primary/[0.02]">
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-044)] text-text-muted">
+          <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-3em)] text-text-muted">
             Sprint scorecard
           </span>
           <span className="text-text-muted/40">·</span>
@@ -116,7 +116,7 @@ export default function DesktopHero({
             {sprint.sprintStart} → {sprint.sprintEnd}
           </span>
           <span className="text-text-muted/40 hidden sm:inline">·</span>
-          <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-044)] text-text-muted hidden sm:inline">
+          <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-3em)] text-text-muted hidden sm:inline">
             PY{sprint.personalYear}
           </span>
           <span className="text-text-muted/40 hidden sm:inline">→</span>

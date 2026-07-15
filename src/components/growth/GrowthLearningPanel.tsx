@@ -122,7 +122,7 @@ export default function GrowthLearningPanel({
         )}
       </Card>
 
-      <Card variant="surface" padding="1rem" className="flex-1 flex flex-col min-h-[var(--legacy-h-016)]">
+      <Card variant="surface" padding="1rem" className="flex-1 flex flex-col min-h-[var(--ds-h-200px)]">
         <p className="text-2xs font-black uppercase tracking-wider text-text-muted mb-2">
           Nauczyłem się w tym tygodniu
         </p>
@@ -131,7 +131,7 @@ export default function GrowthLearningPanel({
             Puste — zamknij MUST, przeczytaj link, zapisz notatkę #rozwoj albo podnieś ocenę skilli.
           </p>
         ) : (
-          <ul className="space-y-1.5 overflow-y-auto max-h-[var(--legacy-h-020)] pr-1">
+          <ul className="space-y-1.5 overflow-y-auto max-h-[var(--ds-h-280px)] pr-1">
             {weekItems.map((item) => {
               const Icon = KIND_ICON[item.kind];
               return (

@@ -52,8 +52,8 @@ export const renderTimeGutter = ({
             className="absolute right-0 flex items-center justify-end"
             style={{
               top: i * PX_PER_HOUR,
-              transform: 'var(--legacy-inline-style-084)',
-              height: 'var(--legacy-inline-style-035)',
+              transform: 'var(--ds-inline-style-translatey-50)',
+              height: 'var(--ds-inline-style-20)',
               width: gutterWidth,
             }}
           >
@@ -185,7 +185,7 @@ export const renderDayColumn = ({
                 style={{ top: sunriseTop }}
                 title={`Wschód: ${formatTimeWarsaw(sun.sunrise)}`}
               >
-                <div className="w-full h-[var(--legacy-h-015)] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
+                <div className="w-full h-[var(--ds-h-1px)] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
                 <span className="absolute right-1 text-3xs font-bold text-warning/70 select-none">🌅 {formatTimeWarsaw(sun.sunrise)}</span>
               </div>
             )}
@@ -195,7 +195,7 @@ export const renderDayColumn = ({
                 style={{ top: sunsetTop }}
                 title={`Zachód: ${formatTimeWarsaw(sun.sunset)}`}
               >
-                <div className="w-full h-[var(--legacy-h-015)] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
+                <div className="w-full h-[var(--ds-h-1px)] bg-gradient-to-r from-warning/0 via-warning/50 to-warning/0" />
                 <span className="absolute right-1 text-3xs font-bold text-warning/70 select-none">🌇 {formatTimeWarsaw(sun.sunset)}</span>
               </div>
             )}
@@ -204,8 +204,8 @@ export const renderDayColumn = ({
       })()}
       {nowLine !== null && nowLine >= 0 && (
         <div className="absolute left-0 right-0 flex items-center pointer-events-none z-[var(--z-popover)]" style={{ top: nowLine }}>
-          <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-md shadow-danger/50 animate-pulse -ml-[var(--legacy-arbitrary-017)]" />
-          <div className="flex-1 h-[var(--legacy-h-007)] bg-danger" />
+          <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-md shadow-danger/50 animate-pulse -ml-[var(--ds-arbitrary-5px)]" />
+          <div className="flex-1 h-[var(--ds-h-1-5px)] bg-danger" />
         </div>
       )}
     </div>
@@ -224,7 +224,7 @@ export const renderAllDayTodos = ({
 }: CalendarGridAllDayTodosProps) => {
   if (!untimedByDay.some((list) => list.length > 0)) return null;
   return (
-    <div className="flex border-b border-border-custom/20 bg-surface-solid/10" style={{ paddingLeft: 'var(--legacy-inline-style-081)' }}>
+    <div className="flex border-b border-border-custom/20 bg-surface-solid/10" style={{ paddingLeft: 'var(--ds-inline-style-44)' }}>
       {days.map((day, idx) => (
         <div key={day} className="flex-1 min-w-0 p-1 space-y-1 border-l border-border-custom/10 first:border-l-0">
           {untimedByDay[idx].map((todo) => {

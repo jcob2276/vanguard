@@ -108,8 +108,8 @@ export const renderTodoBlock = ({
         setEditingTodo(todo);
         setEditingTodoTitle(todo.title);
       }}
-      className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[var(--legacy-arbitrary-013)] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-[var(--motion-medium)] z-[var(--z-raised)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
-      style={{ top, height, left: 'var(--legacy-inline-style-041)', width: 'var(--legacy-inline-style-094)' }}
+      className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[var(--ds-arbitrary-1-01)] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-[var(--motion-medium)] z-[var(--z-raised)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
+      style={{ top, height, left: 'var(--ds-inline-style-75)', width: 'var(--ds-inline-style-24)' }}
     >
       <div className="flex items-start gap-0.5">
         <Pressable

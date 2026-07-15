@@ -70,10 +70,10 @@ export default function HexagonPanel({
         )}
       </div>
 
-      <div className="grid grid-cols-[var(--legacy-arbitrary-041)] gap-8 items-center p-2">
+      <div className="grid grid-cols-[var(--ds-arbitrary-1fr-380px)] gap-8 items-center p-2">
         <div className="flex justify-center items-center">
           {loading ? (
-            <div className="h-[var(--legacy-h-022)] w-[var(--legacy-w-085)] animate-pulse rounded-full bg-surface border border-border-custom" />
+            <div className="h-[var(--ds-h-300px)] w-[var(--ds-w-300px)] animate-pulse rounded-full bg-surface border border-border-custom" />
           ) : (
             <HexagonChart scores={chartScores} theme={theme} grid={grid} />
           )}

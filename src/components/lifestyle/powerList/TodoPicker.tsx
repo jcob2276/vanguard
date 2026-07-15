@@ -31,7 +31,7 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
           className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/40"
         />
       </div>
-      <div className="max-h-[var(--legacy-h-013)] overflow-y-auto p-1.5 space-y-0.5">
+      <div className="max-h-[var(--ds-h-188px)] overflow-y-auto p-1.5 space-y-0.5">
         {filtered.length === 0 ? (
           <p className="py-4 text-center text-xs font-medium text-text-muted">Brak otwartych zadań</p>
         ) : (
@@ -42,7 +42,7 @@ export default function TodoPicker({ items, onSelect, onClose }: TodoPickerProps
                 onSelect(item);
                 onClose();
               }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-solid active:scale-[var(--legacy-arbitrary-001)]"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-surface-solid active:scale-[var(--ds-arbitrary-0-98)]"
             >
               {item.category ? (
                 <Badge variant="tag" className="shrink-0">

@@ -127,7 +127,7 @@ export default function TodoScanTextModal({ userId, sectionId, onClose, onCreate
         </>
       ) : (
         <>
-          <div className="max-h-[var(--legacy-h-023)] overflow-y-auto space-y-1.5">
+          <div className="max-h-[var(--ds-h-320px)] overflow-y-auto space-y-1.5">
             {tasks.map((t, idx) => (
               <Pressable
                 key={idx}

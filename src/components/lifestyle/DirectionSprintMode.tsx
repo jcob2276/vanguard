@@ -32,7 +32,7 @@ function Textarea({
       placeholder={placeholder}
       rows={rows}
       className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm
-        text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-041)] focus:outline-none
+        text-text-primary placeholder-text-muted resize-y min-h-[var(--ds-h-72px)] focus:outline-none
         focus:border-primary/50 transition-colors"
     />
   );
@@ -74,7 +74,7 @@ export default function DirectionSprintMode({
   return (
     <div className="space-y-6 pb-6 border-b border-border-custom mb-6">
       <div className="rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3">
-        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-warning">Zamknięcie sprintu</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-warning">Zamknięcie sprintu</p>
         <p className="mt-1 text-sm font-semibold text-text-primary">
           {sprintFacts.sprintLabel} · tydzień 12/12
         </p>

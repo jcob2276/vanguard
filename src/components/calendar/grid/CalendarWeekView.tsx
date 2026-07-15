@@ -112,7 +112,7 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           <ChevronRight size={18} className="text-text-muted" />
         </Pressable>
       </div>
-      <div className="flex border-b border-border-custom/40" style={{ paddingLeft: 'var(--legacy-inline-style-081)' }}>
+      <div className="flex border-b border-border-custom/40" style={{ paddingLeft: 'var(--ds-inline-style-44)' }}>
         {weekDays.map((day) => {
           const isToday = day === today;
           const dayForecast = weather?.daily?.[day];

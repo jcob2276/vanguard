@@ -49,7 +49,7 @@ function SphereRow({ s }: { s: SphereScore }) {
     <div className="py-2 border-b border-border-custom/20 last:border-0 rounded-lg px-1.5 -mx-1.5 hover:bg-surface-solid/40 transition-all duration-[var(--motion-medium)]">
       <div className="flex items-center gap-2">
         <span className="w-20 shrink-0 text-xs font-black uppercase tracking-wider text-text-secondary">{s.label}</span>
-        <div className="flex-1 h-[var(--legacy-h-033)] rounded-full bg-surface-solid overflow-hidden">
+        <div className="flex-1 h-[var(--ds-h-4px)] rounded-full bg-surface-solid overflow-hidden">
           <div className={`h-full rounded-full transition-all duration-[var(--motion-deliberate)] ${barTone(s.score)}`} style={{ width: `${s.score ?? 0}%` }} />
         </div>
         <span className={`w-8 text-right text-sm font-black tabular-nums ${scoreTone(s.score)}`}>
@@ -57,7 +57,7 @@ function SphereRow({ s }: { s: SphereScore }) {
         </span>
         <span className="w-7 text-right"><Delta cur={s.score} prev={s.prev} /></span>
       </div>
-      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 pl-[var(--legacy-arbitrary-038)]">
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 pl-[var(--ds-arbitrary-88px)]">
         {s.subs.map(sub => (
           <span key={sub.label} className="text-2xs text-text-muted/60">
             {sub.label}: <span className={`font-bold ${scoreTone(sub.score)}`}>{sub.value}</span>
@@ -74,7 +74,7 @@ export default function ScoreboardPanel({ userId }: { userId: string | undefined
   if (loading || !data) {
     return (
       <Panel title="Scoreboard tygodnia">
-        <Skeleton variant="card" className="h-[var(--legacy-h-017)] rounded-xl" />
+        <Skeleton variant="card" className="h-[var(--ds-h-220px)] rounded-xl" />
       </Panel>
     );
   }
@@ -92,14 +92,14 @@ export default function ScoreboardPanel({ userId }: { userId: string | undefined
                 key={f}
                 points={Array.from({ length: AXES }, (_, i) => polar(i, R * f).map(n => n.toFixed(1)).join(',')).join(' ')}
                 fill="none"
-                stroke="var(--color-border-custom, var(--legacy-color-018))"
+                stroke="var(--color-border-custom, var(--color-theme-hex-33333322))"
                 strokeWidth={0.7}
                 opacity={0.5}
               />
             ))}
             {Array.from({ length: AXES }, (_, i) => {
               const [x, y] = polar(i, R);
-              return <line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="var(--color-border-custom, var(--legacy-color-018))" strokeWidth={0.7} opacity={0.4} />;
+              return <line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="var(--color-border-custom, var(--color-theme-hex-33333322))" strokeWidth={0.7} opacity={0.4} />;
             })}
             {/* poprzedni tydzień — duch */}
             <polygon points={polygonPoints(spheres.map(s => s.prev))} fill="none" stroke="currentColor" strokeDasharray="3 3" strokeWidth={1} className="text-text-muted/40" />
@@ -108,16 +108,16 @@ export default function ScoreboardPanel({ userId }: { userId: string | undefined
             {spheres.map((s, i) => {
               const [x, y] = polar(i, R + 14);
               return (
-                <text key={s.key} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-current text-text-muted" style={{ fontSize: 'var(--legacy-inline-style-022)', fontWeight: 'var(--legacy-inline-style-027)', letterSpacing: 'var(--legacy-inline-style-045)', textTransform: 'uppercase' }}>
+                <text key={s.key} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-current text-text-muted" style={{ fontSize: 'var(--ds-inline-style-8-coll-2)', fontWeight: 'var(--ds-inline-style-800)', letterSpacing: 'var(--ds-inline-style-0-08em)', textTransform: 'uppercase' }}>
                   {s.label}
                 </text>
               );
             })}
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingBottom: 'var(--legacy-inline-style-080)' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingBottom: 'var(--ds-inline-style-8-coll-4)' }}>
             <span className={`text-3xl font-black leading-none tabular-nums ${scoreTone(lifeScore)}`}>{lifeScore ?? '—'}</span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted/60">Life Score</span>
+              <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted/60">Life Score</span>
               <Delta cur={lifeScore} prev={lifeScorePrev} />
             </div>
           </div>

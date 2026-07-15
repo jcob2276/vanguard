@@ -105,7 +105,7 @@ export default function WeeklyReviewPredictions() {
             Brak prognoz własnych do rozstrzygnięcia w tym tygodniu.
           </div>
         ) : (
-          <div className="space-y-2 max-h-[var(--legacy-h-012)] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[var(--ds-h-180px)] overflow-y-auto pr-1">
             {pendingCustom.map((pred: Prediction) => (
               <div
                 key={pred.id}

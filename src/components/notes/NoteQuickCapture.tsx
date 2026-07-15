@@ -99,13 +99,13 @@ export default function NoteQuickCapture({ onSave, busy, allTags }: NoteQuickCap
               value={content}
               onChange={setContent}
               placeholder="Utwórz notatkę…"
-              className="min-h-[var(--legacy-h-036)]"
+              className="min-h-[var(--ds-h-60px)]"
               style={{ color: c.textSub }}
             />
           </div>
 
           <div className="flex items-center gap-2 mb-3">
-            <Tag size={10} style={{ opacity: 'var(--legacy-inline-style-064)' }} />
+            <Tag size={10} style={{ opacity: 'var(--ds-inline-style-0-4)' }} />
             <ControlInput
               value={tagsText}
               onChange={e => setTagsText(e.target.value)}

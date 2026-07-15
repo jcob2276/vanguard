@@ -87,7 +87,7 @@ export default function NutritionChart({
                   <div
                     className={`w-3.5 rounded-t-md transition-all duration-[var(--motion-long)] cursor-pointer ${
                       isToday
-                        ? 'bg-gradient-to-t from-warning to-warning opacity-[var(--opacity-100)] shadow-[var(--legacy-shadow-070)]'
+                        ? 'bg-gradient-to-t from-warning to-warning opacity-[var(--opacity-100)] shadow-[var(--ds-shadow-0-0-8px-rgba-245-158-11-0-25)]'
                         : d.calories >= kcalTarget
                           ? 'bg-success/60 dark:bg-success/70 hover:opacity-[var(--opacity-100)] opacity-[var(--opacity-70)]'
                           : 'bg-text-secondary/40 hover:opacity-[var(--opacity-85)] opacity-[var(--opacity-55)]'

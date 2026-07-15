@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, invokeEdge } from './supabase';
 import { warsawDayBoundsISO } from './date';
+import { isOfflineError, queueOfflineWrite } from './offlineQueue';
+import type { Database } from './database.types';
+
+type VanguardCalendarRow = Database['public']['Tables']['vanguard_calendar']['Row'];
 
 export interface CalendarEvent {
   id?: string;
@@ -54,11 +58,43 @@ export function useCreateCalendarEvent() {
       accessToken?: string;
       event: Omit<CalendarEvent, 'id'>;
     }) => {
-      return invokeEdge('calendar-write', {
-        body: { userId, action: 'create', event },
-      });
+      try {
+        const res = await invokeEdge('calendar-write', {
+          body: { userId, action: 'create', event },
+        });
+        return res as { success: boolean; eventId: string };
+      } catch (err: unknown) {
+        if (!isOfflineError(err)) throw err;
+        const tempId = `offline-${crypto.randomUUID()}`;
+        await queueOfflineWrite(
+          'edge:calendar-write',
+          { userId, action: 'create', event: { ...event, id: tempId } },
+          `Utworzenie wydarzenia: ${event.summary}`
+        );
+        return { success: true, eventId: tempId };
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      if (data && data.eventId) {
+        const localEvent: VanguardCalendarRow = {
+          id: data.eventId,
+          event_id: data.eventId,
+          user_id: variables.userId,
+          summary: variables.event.summary,
+          start_time: variables.event.start,
+          end_time: variables.event.end,
+          category: variables.event.category ?? 'vanguard',
+          created_at: new Date().toISOString(),
+        };
+        queryClient.setQueriesData<VanguardCalendarRow[]>(
+          { queryKey: ['calendar', 'events'] },
+          (prev) => {
+            if (!prev) return [localEvent];
+            if (prev.some(e => e.event_id === localEvent.event_id || e.id === localEvent.id)) return prev;
+            return [...prev, localEvent].sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+          }
+        );
+      }
       queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     },
   });
@@ -75,11 +111,41 @@ export function useUpdateCalendarEvent() {
       accessToken?: string;
       event: CalendarEvent & { id: string };
     }) => {
-      return invokeEdge('calendar-write', {
-        body: { userId, action: 'update', event },
-      });
+      try {
+        const res = await invokeEdge('calendar-write', {
+          body: { userId, action: 'update', event },
+        });
+        return res as { success: boolean; eventId: string };
+      } catch (err: unknown) {
+        if (!isOfflineError(err)) throw err;
+        await queueOfflineWrite(
+          'edge:calendar-write',
+          { userId, action: 'update', event },
+          `Aktualizacja wydarzenia: ${event.summary}`
+        );
+        return { success: true, eventId: event.id };
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueriesData<VanguardCalendarRow[]>(
+        { queryKey: ['calendar', 'events'] },
+        (prev) => {
+          if (!prev) return [];
+          return prev.map(e => {
+            const isMatch = e.event_id === variables.event.id || e.id === variables.event.id;
+            if (isMatch) {
+              return {
+                ...e,
+                summary: variables.event.summary,
+                start_time: variables.event.start,
+                end_time: variables.event.end,
+                category: variables.event.category ?? e.category,
+              };
+            }
+            return e;
+          }).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        }
+      );
       queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     },
   });
@@ -98,16 +164,47 @@ export function useDeleteCalendarEvent() {
       eventId: string;
       deleteScope?: 'this' | 'all';
     }) => {
-      return invokeEdge('calendar-write', {
-        body: {
-          userId,
-          action: 'delete',
-          deleteScope,
-          event: { id: eventId, summary: '', start: '', end: '' },
-        },
-      });
+      try {
+        const res = await invokeEdge('calendar-write', {
+          body: {
+            userId,
+            action: 'delete',
+            deleteScope,
+            event: { id: eventId, summary: '', start: '', end: '' },
+          },
+        });
+        return res as { success: boolean };
+      } catch (err: unknown) {
+        if (!isOfflineError(err)) throw err;
+        await queueOfflineWrite(
+          'edge:calendar-write',
+          {
+            userId,
+            action: 'delete',
+            deleteScope,
+            event: { id: eventId, summary: '', start: '', end: '' },
+          },
+          'Usunięcie wydarzenia'
+        );
+        return { success: true };
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueriesData<VanguardCalendarRow[]>(
+        { queryKey: ['calendar', 'events'] },
+        (prev) => {
+          if (!prev) return [];
+          const baseId = variables.eventId;
+          return prev.filter(e => {
+            const evId = e.event_id || e.id;
+            if (variables.deleteScope === 'all') {
+              const seriesId = evId.split('_')[0];
+              return seriesId !== baseId;
+            }
+            return evId !== baseId;
+          });
+        }
+      );
       queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     },
   });

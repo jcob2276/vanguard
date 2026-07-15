@@ -12,8 +12,8 @@ export default function StabilityRing({ progress, size = 64 }: StabilityRingProp
   const color = progress === 1 ? 'var(--color-success)' : progress > 0.5 ? 'var(--color-warning)' : 'var(--color-info)';
 
   return (
-    <svg width={size} height={size} style={{ transform: 'var(--legacy-inline-style-083)' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--legacy-color-130)" strokeWidth={4} />
+    <svg width={size} height={size} style={{ transform: 'var(--ds-inline-style-rotate-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-theme-hex-ba25525525501)" strokeWidth={4} />
       <circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none"
@@ -21,7 +21,7 @@ export default function StabilityRing({ progress, size = 64 }: StabilityRingProp
         strokeWidth={4}
         strokeDasharray={`${dash} ${circ}`}
         strokeLinecap="round"
-        style={{ transition: 'var(--legacy-inline-style-088)' }}
+        style={{ transition: 'var(--ds-inline-style-stroke-dasharray-0-1s-linear-stroke-0-3s)' }}
       />
     </svg>
   );

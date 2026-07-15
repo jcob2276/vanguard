@@ -5,6 +5,7 @@ import type { RecentEntry } from './nutrition/hooks/useFoodEntryData';
 
 const MorningPlanModal = lazy(() => import('./MorningPlanModal'));
 const DailyShutdownModal = lazy(() => import('./DailyShutdownModal'));
+const LoggingGapPromptModal = lazy(() => import('./LoggingGapPromptModal'));
 const WeeklyReviewModal = lazy(() => import('../todo/WeeklyReviewModal'));
 const FoodEntryModal = lazy(() => import('./nutrition/FoodEntryModal'));
 const ActionCenterSheet = lazy(() => import('../shared/ActionCenterSheet').then(m => ({ default: m.ActionCenterSheet })));
@@ -16,6 +17,9 @@ interface DashboardModalsProps {
   setMorningPlanTargetDate: (val: string | null) => void;
   showShutdown: boolean;
   setShowShutdown: (val: boolean) => void;
+  userId?: string;
+  gapLastLoggedDate: string | null;
+  setGapLastLoggedDate: (val: string | null) => void;
   showWeeklyReview: boolean;
   setShowWeeklyReview: (val: boolean) => void;
   setTaskReviewDoneThisWeek: (val: boolean) => void;
@@ -37,6 +41,9 @@ export function DashboardModals({
   setMorningPlanTargetDate,
   showShutdown,
   setShowShutdown,
+  userId,
+  gapLastLoggedDate,
+  setGapLastLoggedDate,
   showWeeklyReview,
   setShowWeeklyReview,
   setTaskReviewDoneThisWeek,
@@ -79,6 +86,19 @@ export function DashboardModals({
             setShowShutdown(false);
             setMorningPlanTargetDate(tomorrowStr);
             setShowMorningPlan(true);
+          }}
+        />
+      )}
+
+      {gapLastLoggedDate && userId && (
+        <LoggingGapPromptModal
+          userId={userId}
+          lastLoggedDate={gapLastLoggedDate}
+          onClose={() => {
+            try { localStorage.setItem(STORAGE_KEYS.GAP_PROMPT_DISMISSED_FOR, gapLastLoggedDate); } catch (e: unknown) {
+              console.warn('[DashboardModals] Failed to save gap prompt dismissed date to localStorage:', e);
+            }
+            setGapLastLoggedDate(null);
           }}
         />
       )}

@@ -32,19 +32,19 @@ const POSTERIOR: Record<string, Muscle[]> = {
 };
 
 export const HEAT_SCALE = [
-  'var(--legacy-lib-color-006)',
-  'var(--legacy-lib-color-004)',
-  'var(--legacy-lib-color-002)',
-  'var(--legacy-lib-color-001)',
-  'var(--legacy-lib-color-007)',
-  'var(--legacy-lib-color-008)',
-  'var(--legacy-lib-color-009)',
-  'var(--legacy-lib-color-012)',
-  'var(--legacy-lib-color-010)',
-  'var(--legacy-lib-color-015)',
+  'var(--color-theme-hex-164e63)',
+  'var(--color-theme-hex-0e7490)',
+  'var(--color-theme-hex-0891b2)',
+  'var(--color-theme-hex-06b6d4)',
+  'var(--color-theme-hex-22d3ee-coll-2)',
+  'var(--color-theme-hex-2dd4bf-coll-2)',
+  'var(--color-theme-hex-34d399)',
+  'var(--color-theme-hex-4ade80-coll-2)',
+  'var(--color-theme-hex-38bdf8)',
+  'var(--color-theme-hex-7dd3fc)',
 ] as const;
 
-export const BODY_BASE = 'var(--legacy-lib-color-026)';
+export const BODY_BASE = 'var(--color-theme-hex-ba148163184022)';
 
 function tagToRbMuscles(tag: string, view: 'anterior' | 'posterior'): Muscle[] {
   const map = view === 'anterior' ? ANTERIOR : POSTERIOR;

@@ -46,7 +46,7 @@ export default function GrowthCockpit({
     <Card variant="surface" padding="1.25rem" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">Tydzień · podsumowanie</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted">Tydzień · podsumowanie</p>
           {intention ? (
             <p className="text-sm font-bold text-text-primary mt-1 leading-snug line-clamp-2">{intention}</p>
           ) : (

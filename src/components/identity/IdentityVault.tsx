@@ -53,7 +53,7 @@ function Section({ title, icon: Icon, value, onChange, placeholder, description,
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-sm font-bold text-text-primary min-h-[var(--legacy-h-010)] focus:border-primary/50 focus:shadow-focus outline-none transition-all placeholder:text-text-muted/40"
+        className="w-full bg-surface-solid border border-border-custom rounded-2xl p-4 text-sm font-bold text-text-primary min-h-[var(--ds-h-120px)] focus:border-primary/50 focus:shadow-focus outline-none transition-all placeholder:text-text-muted/40"
       />
     </Card>
   );
@@ -147,7 +147,7 @@ export default function IdentityVault() {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <Shield size={16} className="text-primary animate-pulse" />
-            <span className="text-xs font-black text-primary uppercase tracking-[var(--legacy-arbitrary-044)]">Identity Vault v3.1</span>
+            <span className="text-xs font-black text-primary uppercase tracking-[var(--ds-arbitrary-0-3em)]">Identity Vault v3.1</span>
           </div>
           <h1 className="text-3xl font-display font-black text-text-primary tracking-tight uppercase">Pełny Profil Bliźniaka</h1>
           <p className="text-text-secondary text-xs mt-1 font-semibold leading-relaxed">Wpisz tu wszystko, co Wyrocznia powinna o Tobie wiedzieć.</p>
@@ -156,7 +156,7 @@ export default function IdentityVault() {
         <Pressable
           onClick={handleSave}
           disabled={loading}
-          className={`px-8 py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[var(--legacy-arbitrary-013)] active:scale-[var(--legacy-arbitrary-014)] transition-all shadow-md disabled:opacity-[var(--opacity-50)] font-display cursor-pointer ${
+          className={`px-8 py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:scale-[var(--ds-arbitrary-1-01)] active:scale-[var(--ds-arbitrary-0-99)] transition-all shadow-md disabled:opacity-[var(--opacity-50)] font-display cursor-pointer ${
             saveStatus === 'success'
               ? 'bg-success text-on-accent shadow-success/20'
               : 'bg-primary text-on-accent hover:bg-primary-hover shadow-primary/20'

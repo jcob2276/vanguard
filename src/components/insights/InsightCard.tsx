@@ -79,7 +79,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
         // floating radial buttons, so a raw fixed overlay is intentional here.
         <div
           className="fixed inset-0 z-[var(--z-overlay)] flex items-end justify-center pb-12"
-          style={{ background: 'var(--legacy-color-055)' }}
+          style={{ background: 'var(--color-theme-hex-ba00006)' }}
           onClick={() => setOverlayOpen(false)}
         >
           <div className="flex gap-5 items-center" onClick={e => e.stopPropagation()}>
@@ -113,7 +113,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
             <Button
               variant="ghost"
               onClick={() => setOverlayOpen(false)}
-              icon={<X size={16} color="var(--legacy-color-002)" />}
+              icon={<X size={16} color="var(--color-theme-hex-0a0a0a)" />}
               className="w-10 h-10 min-w-0 p-0 rounded-full hover:bg-transparent"
               style={{ background: 'var(--color-on-accent)' }}
             />

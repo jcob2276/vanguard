@@ -14,7 +14,7 @@ function SectionTitle({ icon: Icon, title, detail, action }: { icon: LucideIcon;
   return (
     <header className="flex items-end justify-between gap-4">
       <div>
-        <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">
+        <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted">
           <Icon size={12} /> {title}
         </p>
         {detail && <p className="mt-1 text-xs font-semibold leading-relaxed text-text-secondary">{detail}</p>}
@@ -252,7 +252,7 @@ export default function Direction({
               onOpenActionCenter={onOpenActionCenter}
               onStartWeeklyReview={() => setForceWeeklyReview(true)}
             />
-            <Card padding="0" style={{ background: 'var(--legacy-color-063)' }}>
+            <Card padding="0" style={{ background: 'var(--color-theme-hex-ba11152503)' }}>
               <p className="px-4 py-3 text-xs font-black uppercase tracking-widest text-text-muted">
                 Radar szczegóły
               </p>

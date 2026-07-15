@@ -133,7 +133,7 @@ export default function Photos() {
           <h3 className="text-base font-black uppercase tracking-tight text-text-primary font-display">
             Wizualny Protokół
           </h3>
-          <p className="text-xs font-medium leading-relaxed text-text-secondary max-w-[var(--legacy-maxw-056)] mx-auto">
+          <p className="text-xs font-medium leading-relaxed text-text-secondary max-w-[var(--ds-maxw-280px)] mx-auto">
             Brak zdjęć postępu w bazie. Zrób i dodaj pierwsze zdjęcie, aby zacząć śledzić transformację sylwetki.
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function Photos() {
       <Card padding="0">
         <div className="flex items-start justify-between px-5 pt-5 pb-4">
           <div>
-            <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Postęp sylwetki</p>
+            <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">Postęp sylwetki</p>
             <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">Transformacja</h2>
           </div>
           <label className="cursor-pointer flex h-11 w-11 items-center justify-center rounded-2xl border border-border-custom bg-surface text-text-secondary transition-all hover:bg-primary hover:border-primary hover:text-on-accent shadow-sm">
@@ -178,7 +178,7 @@ export default function Photos() {
         </div>
 
         {/* Comparison */}
-        <div className="relative aspect-[var(--legacy-arbitrary-046)] bg-surface-solid border-t border-border-custom overflow-hidden">
+        <div className="relative aspect-[var(--ds-arbitrary-4-5)] bg-surface-solid border-t border-border-custom overflow-hidden">
           <div className="absolute inset-0 flex">
             {/* Baza (Left) */}
             <div className="relative flex-1 border-r border-border-custom overflow-hidden">
@@ -219,7 +219,7 @@ export default function Photos() {
           {/* Dni Progresu Badge */}
           {daysDiff > 0 && (
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-primary text-on-accent px-5 py-1.5 rounded-full shadow-lg shadow-primary/25">
-              <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] whitespace-nowrap">+{daysDiff} dni postępu</p>
+              <p className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] whitespace-nowrap">+{daysDiff} dni postępu</p>
             </div>
           )}
         </div>
@@ -228,7 +228,7 @@ export default function Photos() {
       {/* Oś czasu */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">Oś czasu</p>
+          <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">Oś czasu</p>
           <p className="text-2xs font-bold text-text-muted uppercase tracking-wider">Dotknij by zestawić</p>
         </div>
 
@@ -241,7 +241,7 @@ export default function Photos() {
               <div key={photo.id} className="snap-start shrink-0 space-y-2">
                 <Pressable
                   onClick={() => handleSelect(photo.id)}
-                  className={`relative w-[var(--legacy-w-095)] aspect-[var(--legacy-arbitrary-047)] rounded-2xl overflow-hidden border-2 transition-all duration-[var(--motion-slow)] cursor-pointer ${isBase ? 'border-primary scale-[var(--legacy-arbitrary-048)] shadow-md shadow-primary/20' : isTarget ? 'border-primary/50 scale-[var(--legacy-arbitrary-048)] shadow-sm' : 'border-border-custom opacity-[var(--opacity-50)] hover:opacity-[var(--opacity-80)]'}`}
+                  className={`relative w-[var(--ds-w-88px)] aspect-[var(--ds-arbitrary-3-4)] rounded-2xl overflow-hidden border-2 transition-all duration-[var(--motion-slow)] cursor-pointer ${isBase ? 'border-primary scale-[var(--ds-arbitrary-1-04)] shadow-md shadow-primary/20' : isTarget ? 'border-primary/50 scale-[var(--ds-arbitrary-1-04)] shadow-sm' : 'border-border-custom opacity-[var(--opacity-50)] hover:opacity-[var(--opacity-80)]'}`}
                 >
                   <img src={photo.thumbnail_url || photo.image_url} alt={`Zdjęcie sylwetki z ${format(parseISO(photo.date!), 'dd.MM.yyyy')}`} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
                   {(isBase || isTarget) && (
@@ -256,7 +256,7 @@ export default function Photos() {
                   <span className={`text-2xs font-bold ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
                     {format(parseISO(photo.date!), 'dd.MM')}
                   </span>
-                  <Pressable onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} variant="ghost" icon={<Trash2 size={11} />} className="text-text-muted hover:text-danger p-1 rounded-lg hover:bg-danger/5 min-w-[var(--legacy-w-086)] min-h-[var(--legacy-h-024)]" />
+                  <Pressable onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} variant="ghost" icon={<Trash2 size={11} />} className="text-text-muted hover:text-danger p-1 rounded-lg hover:bg-danger/5 min-w-[var(--ds-w-32px)] min-h-[var(--ds-h-32px)]" />
                 </div>
               </div>
             );

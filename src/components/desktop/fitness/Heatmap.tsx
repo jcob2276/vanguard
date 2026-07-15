@@ -113,12 +113,12 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
   return (
     <div>
       <div className="flex gap-1.5 items-start">
-        <div className="flex flex-col gap-[var(--legacy-arbitrary-037)] pt-7 mr-1">
+        <div className="flex flex-col gap-[var(--ds-arbitrary-5px-coll-2)] pt-7 mr-1">
           {DAYS.map(d => <div key={d} className="text-2xs text-text-muted w-4 h-3.5 flex items-center">{d}</div>)}
         </div>
         <div className="flex gap-1 flex-1 overflow-hidden">
           {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[var(--legacy-arbitrary-037)] flex-1">
+            <div key={wi} className="flex flex-col gap-[var(--ds-arbitrary-5px-coll-2)] flex-1">
               <div className="text-2xs text-text-muted h-6 flex items-end pb-0.5">
                 {wi % 3 === 0 ? format(parseISO(week[0].date), 'dd.MM') : ''}
               </div>
@@ -147,10 +147,10 @@ export default function Heatmap({ sessions, strava = [] }: HeatmapProps) {
             position: 'fixed',
             left: Math.min(tooltip.rect.right + 10, window.innerWidth - 190),
             top: Math.max(8, tooltip.rect.top - 36),
-            zIndex: 'var(--legacy-inline-style-102)',
+            zIndex: 'var(--ds-inline-style-9999)',
             pointerEvents: 'none',
           }}
-          className="rounded-[var(--radius-md)] border border-border-custom bg-surface shadow-xl px-3.5 py-2.5 min-w-[var(--legacy-w-078)]"
+          className="rounded-[var(--radius-md)] border border-border-custom bg-surface shadow-xl px-3.5 py-2.5 min-w-[var(--ds-w-160px)]"
         >
           <p className="text-2xs font-black text-text-muted mb-1">{tooltip.day.date}</p>
           {tooltip.kmRun > 0 && (

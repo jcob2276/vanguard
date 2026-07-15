@@ -23,7 +23,7 @@ import { useUserId } from '../../store/useStore';
 function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail?: string | null }) {
   return (
     <header className="space-y-1">
-      <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted">
+      <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted">
         <Icon size={12} /> {title}
       </p>
       {detail && <p className="text-xs font-semibold leading-relaxed text-text-secondary">{detail}</p>}
@@ -34,7 +34,7 @@ function SectionHeader({ icon: Icon, title, detail }: { icon: LucideIcon; title:
 function TextAreaBlock({ label, value, onChange, placeholder, danger = false, rows = 4 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; danger?: boolean; rows?: number }) {
   return (
     <label className="block space-y-2">
-      <span className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">{label}</span>
+      <span className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-18em)] text-text-muted">{label}</span>
       <ControlTextarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -42,7 +42,7 @@ function TextAreaBlock({ label, value, onChange, placeholder, danger = false, ro
         rows={rows}
         className={`w-full resize-none rounded-2xl border bg-surface p-4 text-sm font-bold leading-relaxed text-text-primary outline-none transition-colors placeholder:text-text-muted/40 ${
           danger
-            ? 'border-dayB/30 focus:border-dayB/60 focus:bg-surface-solid focus:shadow-[var(--legacy-shadow-067)]'
+            ? 'border-dayB/30 focus:border-dayB/60 focus:bg-surface-solid focus:shadow-[var(--ds-shadow-0-0-0-3px-rgba-244-63-94-0-1)]'
             : 'border-border-custom focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus'
         }`}
       />
@@ -132,7 +132,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           />
           <div className="min-w-0">
             <h1 className="truncate text-lg font-black uppercase tracking-tight text-text-primary font-display">Identity Fundament</h1>
-            <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-primary">Core context</p>
+            <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-primary">Core context</p>
           </div>
         </header>
 
@@ -140,7 +140,7 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
           <section className="card bg-gradient-to-br from-primary/[0.04] to-danger/[0.02] border-border-custom p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-032)] text-primary">Fundament</p>
+                <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-24em)] text-primary">Fundament</p>
                 <h2 className="mt-2 font-display text-2xl font-black uppercase leading-none tracking-tight text-text-primary">
                   Prawda systemu
                 </h2>
@@ -209,8 +209,8 @@ export default function Fundament({ onBack, onSyncCalendar, isSyncing }: { onBac
                     <Calendar size={18} />
                   </div>
                   <div>
-                    <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-005)] text-text-muted">Calendar</p>
-                    <p className="text-sm font-black uppercase tracking-[var(--legacy-arbitrary-033)] text-text-primary mt-0.5">Synchronizuj kalendarz</p>
+                    <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-18em)] text-text-muted">Calendar</p>
+                    <p className="text-sm font-black uppercase tracking-[var(--ds-arbitrary-0-08em)] text-text-primary mt-0.5">Synchronizuj kalendarz</p>
                   </div>
                 </div>
                 <RefreshCw size={15} className={`text-primary ${isSyncing ? 'animate-spin' : ''}`} />

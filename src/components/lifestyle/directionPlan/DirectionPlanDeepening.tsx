@@ -40,7 +40,7 @@ export default function DirectionPlanDeepening({ phase2, phase2Loading, deepenin
                 onChange={(e) => setDeepeningAnswers({ ...deepeningAnswers, [String(i)]: e.target.value })}
                 placeholder="Twoja odpowiedź…"
                 rows={2}
-                className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-038)] focus:outline-none focus:border-primary/50 transition-colors"
+                className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--ds-h-64px)] focus:outline-none focus:border-primary/50 transition-colors"
               />
             </div>
           ))}

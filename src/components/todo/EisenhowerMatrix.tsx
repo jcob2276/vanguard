@@ -96,13 +96,13 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
 
   return (
     <div className="p-4 pb-24">
-      <div className="grid grid-cols-2 gap-3 max-w-[var(--legacy-maxw-060)] mx-auto">
+      <div className="grid grid-cols-2 gap-3 max-w-[var(--ds-maxw-700px)] mx-auto">
         {QUADRANTS.map((q) => {
           const qItems = open.filter((i) => quadrantOf(i) === q.key);
           return (
             <div
               key={q.key}
-              className={`rounded-2xl border p-3 min-h-[var(--legacy-h-012)] transition-all duration-[var(--motion-medium)] ${q.color} ${dragOverQ === q.key ? 'scale-[var(--legacy-arbitrary-013)] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
+              className={`rounded-2xl border p-3 min-h-[var(--ds-h-180px)] transition-all duration-[var(--motion-medium)] ${q.color} ${dragOverQ === q.key ? 'scale-[var(--ds-arbitrary-1-01)] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragOverQ(q.key);

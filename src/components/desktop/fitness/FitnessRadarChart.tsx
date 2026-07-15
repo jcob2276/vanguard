@@ -24,7 +24,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
 
   return (
     <div className="flex justify-center items-center py-2">
-      <svg width="100%" height={320} viewBox="0 0 380 320" className="overflow-visible max-w-[var(--legacy-maxw-058)]">
+      <svg width="100%" height={320} viewBox="0 0 380 320" className="overflow-visible max-w-[var(--ds-maxw-380px)]">
         <defs>
           <filter id="radar-glow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -79,8 +79,8 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               return `${cx + r * val * Math.cos(angle)},${cy + r * val * Math.sin(angle)}`;
             })
             .join(' ')}
-          fill="var(--legacy-color-099)"
-          stroke="var(--legacy-color-048)"
+          fill="var(--color-theme-hex-ba16323053008)"
+          stroke="var(--color-theme-hex-b16323053)"
           strokeWidth="2"
           filter="url(#radar-glow)"
         />
@@ -96,7 +96,7 @@ export default function FitnessRadarChart({ profile, theme, grid }: FitnessRadar
               cx={cx + r * val * Math.cos(angle)}
               cy={cy + r * val * Math.sin(angle)}
               r="4"
-              fill="var(--legacy-color-048)"
+              fill="var(--color-theme-hex-b16323053)"
               stroke={theme === 'dark' ? 'var(--scrim)' : 'white'}
               strokeWidth="1.5"
             />

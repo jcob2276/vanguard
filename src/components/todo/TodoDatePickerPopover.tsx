@@ -119,7 +119,7 @@ export default function TodoDatePickerPopover({
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
-      className="absolute z-[var(--z-overlay)] top-full left-0 mt-2 w-[var(--legacy-w-083)] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-2.5 p-3 animate-in fade-in zoom-in-95 duration-[var(--motion-medium)] origin-top-left"
+      className="absolute z-[var(--z-overlay)] top-full left-0 mt-2 w-[var(--ds-w-280px)] rounded-2xl border border-border-custom bg-surface-solid shadow-2xl flex flex-col gap-2.5 p-3 animate-in fade-in zoom-in-95 duration-[var(--motion-medium)] origin-top-left"
     >
       <ControlInput
         autoFocus

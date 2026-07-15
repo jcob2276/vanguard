@@ -26,7 +26,7 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
 
   if (d.loading) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--legacy-arbitrary-029)]" closeOnBackdropClick={false}>
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="xs" overlayClassName="z-[var(--ds-arbitrary-60)]" closeOnBackdropClick={false}>
         <div className="flex flex-col items-center gap-3">
           <Spinner size="md" />
           <span className="text-sm font-bold text-text-muted">Wczytywanie rytuału wieczornego...</span>
@@ -37,7 +37,7 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
 
   if (!d.todayWin) {
     return (
-      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="sm" overlayClassName="z-[var(--legacy-arbitrary-029)]">
+      <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-6" size="sm" overlayClassName="z-[var(--ds-arbitrary-60)]">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center mx-auto text-xl font-bold">!</div>
           <h2 className="text-base font-black text-text-primary">Brak planu na dziś</h2>
@@ -49,8 +49,8 @@ export default function DailyShutdownModal({ onClose, onSaved, onPlanTomorrow }:
   }
 
   return (
-    <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-0" overflowY={false} size="lg" overlayClassName="z-[var(--legacy-arbitrary-029)]">
-      <div className="relative w-full flex flex-col max-h-[var(--legacy-h-046)] sm:max-h-[var(--legacy-h-039)] overflow-hidden">
+    <Modal isOpen={true} onClose={onClose} showCloseButton={false} padding="p-0" overflowY={false} size="lg" overlayClassName="z-[var(--ds-arbitrary-60)]">
+      <div className="relative w-full flex flex-col max-h-[var(--ds-h-85vh)] sm:max-h-[var(--ds-h-680px)] overflow-hidden">
         <div className="p-4 border-b border-border-custom/20 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-base font-black text-text-primary uppercase tracking-wider">Domknięcie Dnia</h2>

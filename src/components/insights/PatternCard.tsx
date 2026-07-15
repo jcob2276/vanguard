@@ -59,8 +59,8 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
 
   const statusColor =
     pattern.status === 'user_confirmed' ? 'var(--color-success)' :
-    pattern.status === 'user_rejected' ? 'var(--legacy-color-025)' :
-    pattern.confidence >= 0.75 ? 'var(--color-warning)' : 'var(--legacy-color-024)';
+    pattern.status === 'user_rejected' ? 'var(--color-text-tertiary-muted)' :
+    pattern.confidence >= 0.75 ? 'var(--color-warning)' : 'var(--color-theme-hex-6366f1)';
 
   return (
     <Card
@@ -69,7 +69,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
       className="space-y-3"
       style={{
         background: 'var(--color-surface, white)',
-        borderRadius: 'var(--legacy-inline-style-007)',
+        borderRadius: 'var(--ds-inline-style-18px)',
         opacity: pattern.status === 'user_rejected' ? 'var(--opacity-pattern-rejected)' : 'var(--opacity-100)',
       }}
     >
@@ -78,7 +78,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
         <div className="flex items-center gap-2">
           <span className="text-lg">{emoji}</span>
           <div>
-            <p className="text-sm font-[var(--legacy-arbitrary-022)] leading-tight" style={{ color: 'var(--color-text-primary, var(--legacy-color-002))' }}>
+            <p className="text-sm font-[var(--ds-arbitrary-800)] leading-tight" style={{ color: 'var(--color-text-primary, var(--color-theme-hex-0a0a0a))' }}>
               {pattern.title ?? pattern.pattern_type}
             </p>
             <p className="text-xs font-medium mt-0.5" style={{ color: statusColor }}>
@@ -88,7 +88,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
           </div>
         </div>
         <span
-          className="text-2xs font-[var(--legacy-arbitrary-022)] uppercase tracking-wider px-2 py-0.5 rounded-full"
+          className="text-2xs font-[var(--ds-arbitrary-800)] uppercase tracking-wider px-2 py-0.5 rounded-full"
           style={{ background: `color-mix(in srgb, ${statusColor} 10%, transparent)`, color: statusColor }}
         >
           {pattern.status === 'user_confirmed' ? 'potwierdzone' :
@@ -98,7 +98,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
       </div>
 
       {/* Evidence text */}
-      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary, var(--legacy-color-025))' }}>
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary, var(--color-text-tertiary-muted))' }}>
         {pattern.evidence_text}
       </p>
 
@@ -114,8 +114,8 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             onClick={() => handleFeedback('confirmed')}
             disabled={!!loading}
             variant="ghost"
-            className="flex-1 gap-1.5 rounded-xl py-2 px-0 text-xs font-[var(--legacy-arbitrary-049)] active:scale-95"
-            style={{ background: 'var(--legacy-color-095)', color: 'var(--color-success)', border: 'var(--border-width-thin) solid var(--legacy-color-097)' }}
+            className="flex-1 gap-1.5 rounded-xl py-2 px-0 text-xs font-[var(--ds-arbitrary-700)] active:scale-95"
+            style={{ background: 'var(--color-theme-hex-ba16185129008)', color: 'var(--color-success)', border: 'var(--border-width-thin) solid var(--color-theme-hex-ba1618512902)' }}
           >
             {loading === 'confirmed' ? <Spinner size="sm" className="h-3 w-3" /> : <CheckCircle2 size={11} />}
             To ma sens
@@ -124,7 +124,7 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             onClick={() => handleFeedback('observe')}
             disabled={!!loading}
             variant="ghost"
-            className="flex-1 gap-1.5 rounded-xl py-2 px-0 text-xs font-[var(--legacy-arbitrary-049)] active:scale-95"
+            className="flex-1 gap-1.5 rounded-xl py-2 px-0 text-xs font-[var(--ds-arbitrary-700)] active:scale-95"
             style={{ background: 'var(--primary-8)', color: 'var(--color-primary)', border: 'var(--border-width-thin) solid var(--primary-20)' }}
           >
             {loading === 'observe' ? <Spinner size="sm" className="h-3 w-3" /> : <Eye size={11} />}
@@ -134,8 +134,8 @@ export function PatternCard({ pattern, onFeedback }: PatternCardProps) {
             onClick={() => handleFeedback('rejected')}
             disabled={!!loading}
             variant="ghost"
-            className="flex-1 gap-1.5 rounded-xl py-2 px-0 text-xs font-[var(--legacy-arbitrary-049)] active:scale-95"
-            style={{ background: 'var(--legacy-color-061)', color: 'var(--text-secondary)', border: 'var(--border-width-thin) solid var(--legacy-color-062)' }}
+            className="flex-1 gap-1.5 rounded-xl py-2 px-0 text-xs font-[var(--ds-arbitrary-700)] active:scale-95"
+            style={{ background: 'var(--color-theme-hex-ba107114128008)', color: 'var(--text-secondary)', border: 'var(--border-width-thin) solid var(--color-theme-hex-ba10711412802)' }}
           >
             {loading === 'rejected' ? <Spinner size="sm" className="h-3 w-3" /> : <XCircle size={11} />}
             To nie moje

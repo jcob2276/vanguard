@@ -74,8 +74,8 @@ export default function ContextMenu({
   return (
     <div
       ref={ref}
-      style={{ position: 'fixed', left, top, zIndex: 'var(--legacy-inline-style-101)', minWidth: 'var(--legacy-inline-style-061)' }}
-      className="max-h-[var(--legacy-h-028)] w-60 overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 p-1.5 shadow-2xl backdrop-blur-[var(--blur-xl)] flex flex-col gap-0.5 text-sm text-text-secondary select-none"
+      style={{ position: 'fixed', left, top, zIndex: 'var(--ds-inline-style-10000)', minWidth: 'var(--ds-inline-style-230)' }}
+      className="max-h-[var(--ds-h-420px)] w-60 overflow-y-auto rounded-2xl border border-border-custom bg-surface/95 p-1.5 shadow-2xl backdrop-blur-[var(--blur-xl)] flex flex-col gap-0.5 text-sm text-text-secondary select-none"
     >
       {/* 1. Edytuj */}
       <Pressable
@@ -194,7 +194,7 @@ export default function ContextMenu({
         </Pressable>
 
         {/* Submenu for sections picker */}
-        <div className="absolute left-full top-0 ml-1 hidden group-hover/submenu:flex flex-col bg-surface border border-border-custom rounded-2xl p-1 shadow-2xl min-w-[var(--legacy-w-078)] max-h-[var(--legacy-h-016)] overflow-y-auto">
+        <div className="absolute left-full top-0 ml-1 hidden group-hover/submenu:flex flex-col bg-surface border border-border-custom rounded-2xl p-1 shadow-2xl min-w-[var(--ds-w-160px)] max-h-[var(--ds-h-200px)] overflow-y-auto">
           <Pressable
             onClick={() => {
               onMoveSection(null);

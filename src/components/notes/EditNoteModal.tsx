@@ -197,7 +197,7 @@ export default function EditNoteModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Main note column */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 'var(--legacy-inline-style-058)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 'var(--ds-inline-style-0-coll-2)' }}>
           <nav className="keep-ios-nav" style={{ borderBottomColor: c.border }}>
             <Pressable type="button" className="keep-ios-back" onClick={handleSave}>
               <ChevronLeft size={22} strokeWidth={2.5} />
@@ -210,11 +210,11 @@ export default function EditNoteModal({
                 title="Asystent AI"
                 onClick={() => setShowAI(v => !v)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-030)',
-                  padding: 'var(--legacy-inline-style-077)', borderRadius: 'var(--legacy-inline-style-011)', fontSize: 'var(--legacy-inline-style-018)', fontWeight: 'var(--legacy-inline-style-026)',
+                  display: 'flex', alignItems: 'center', gap: 'var(--ds-inline-style-4)',
+                  padding: 'var(--ds-inline-style-5px-10px)', borderRadius: 'var(--ds-inline-style-8)', fontSize: 'var(--ds-inline-style-11)', fontWeight: 'var(--ds-inline-style-700)',
                   background: showAI ? 'var(--primary)' : 'var(--primary-12)',
                   color: showAI ? 'white' : 'var(--primary)',
-                  border: 'none', cursor: 'pointer', transition: 'var(--legacy-inline-style-086)',
+                  border: 'none', cursor: 'pointer', transition: 'var(--ds-inline-style-all-0-2s)',
                 }}
               >
                 <Sparkles size={13} />
@@ -266,7 +266,7 @@ export default function EditNoteModal({
             <ControlInput autoFocus value={title} onChange={e => setTitle(e.target.value)}
               placeholder="Tytul" className="keep-ios-title-input" style={{ color: c.text }} />
             <div className="keep-ios-meta-row" style={{ borderBottomColor: c.border }}>
-              <Tag size={10} style={{ opacity: 'var(--legacy-inline-style-063)', flexShrink: 0 }} />
+              <Tag size={10} style={{ opacity: 'var(--ds-inline-style-0-35)', flexShrink: 0 }} />
               <ControlInput value={tagsInput} onChange={e => setTagsInput(e.target.value)}
                 placeholder="Tagi..." className="keep-ios-tags-input" style={{ color: c.textSub }} />
             </div>
@@ -339,59 +339,59 @@ export default function EditNoteModal({
           <div className="keep-ai-companion" style={{ borderColor: c.border }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--legacy-inline-style-074)', borderBottom: `var(--border-width-thin) solid ${c.border}`,
-              background: 'linear-gradient(135deg, var(--primary-5) 0%, var(--legacy-color-100) 100%)',
+              padding: 'var(--ds-inline-style-14px-16px)', borderBottom: `var(--border-width-thin) solid ${c.border}`,
+              background: 'linear-gradient(135deg, var(--primary-5) 0%, var(--color-theme-hex-ba16885247004) 100%)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-032)' }}>
-                <div style={{ width: 'var(--legacy-inline-style-095)', height: 'var(--legacy-inline-style-036)', borderRadius: 'var(--legacy-inline-style-011)', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ds-inline-style-8-coll-3)' }}>
+                <div style={{ width: 'var(--ds-inline-style-28-coll-3)', height: 'var(--ds-inline-style-28)', borderRadius: 'var(--ds-inline-style-8)', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Bot size={14} color="white" />
                 </div>
                 <div>
-                  <div style={{ fontSize: 'var(--legacy-inline-style-019)', fontWeight: 'var(--legacy-inline-style-027)', color: 'var(--text-primary)', letterSpacing: 'var(--legacy-inline-style-042)' }}>AI Companion</div>
-                  <div style={{ fontSize: 'var(--legacy-inline-style-023)', color: 'var(--text-muted)', fontWeight: 'var(--legacy-inline-style-024)' }}>Asystent notatek</div>
+                  <div style={{ fontSize: 'var(--ds-inline-style-12)', fontWeight: 'var(--ds-inline-style-800)', color: 'var(--text-primary)', letterSpacing: 'var(--ds-inline-style-0-02em)' }}>AI Companion</div>
+                  <div style={{ fontSize: 'var(--ds-inline-style-9)', color: 'var(--text-muted)', fontWeight: 'var(--ds-inline-style-500)' }}>Asystent notatek</div>
                 </div>
               </div>
-              <Pressable type="button" onClick={() => setShowAI(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 'var(--legacy-inline-style-076)' }}>
+              <Pressable type="button" onClick={() => setShowAI(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 'var(--ds-inline-style-4-coll-2)' }}>
                 <X size={14} />
               </Pressable>
             </div>
 
-            <div style={{ padding: 'var(--legacy-inline-style-072)', display: 'flex', flexDirection: 'column', gap: 'var(--legacy-inline-style-032)' }}>
+            <div style={{ padding: 'var(--ds-inline-style-12px-coll-2)', display: 'flex', flexDirection: 'column', gap: 'var(--ds-inline-style-8-coll-3)' }}>
               {[
                 { key: 'summary', label: 'Stworz podsumowanie', sub: 'TL;DR notatki jednym kliknieciem', Icon: BrainCircuit, color: 'var(--primary)', bg: 'var(--primary-12)', action: aiSummarize },
-                { key: 'tasks', label: 'Wyciagnij zadania', sub: 'Automatycznie tworzy zadania w Todo', Icon: ListTodo, color: 'var(--color-success)', bg: 'var(--legacy-color-144)', action: aiExtractTasks },
-                { key: 'connect', label: 'Polacz tematy', sub: 'Sugestie powiazanych notatek', Icon: Cpu, color: 'var(--legacy-color-033)', bg: 'var(--legacy-color-101)', action: aiConnectTopics },
+                { key: 'tasks', label: 'Wyciagnij zadania', sub: 'Automatycznie tworzy zadania w Todo', Icon: ListTodo, color: 'var(--color-success)', bg: 'var(--color-theme-hex-ba3419794012)', action: aiExtractTasks },
+                { key: 'connect', label: 'Polacz tematy', sub: 'Sugestie powiazanych notatek', Icon: Cpu, color: 'var(--color-theme-hex-a855f7)', bg: 'var(--color-theme-hex-ba16885247012)', action: aiConnectTopics },
               ].map(btn => (
                 <Pressable key={btn.key} type="button" disabled={!!aiLoading} onClick={btn.action}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 'var(--legacy-inline-style-029)', padding: 'var(--legacy-inline-style-073)',
-                    borderRadius: 'var(--legacy-inline-style-004)', border: 'var(--border-width-thin) solid var(--border)',
+                    display: 'flex', alignItems: 'flex-start', gap: 'var(--ds-inline-style-10-coll-3)', padding: 'var(--ds-inline-style-12px-14px)',
+                    borderRadius: 'var(--ds-inline-style-10)', border: 'var(--border-width-thin) solid var(--border)',
                     background: aiLoading === btn.key ? btn.bg.replace('0.12', '0.20') : 'transparent',
-                    cursor: aiLoading ? 'wait' : 'pointer', transition: 'var(--legacy-inline-style-086)', textAlign: 'left', width: 'var(--legacy-inline-style-092)',
+                    cursor: aiLoading ? 'wait' : 'pointer', transition: 'var(--ds-inline-style-all-0-2s)', textAlign: 'left', width: 'var(--ds-inline-style-100)',
                   }}>
-                  <div style={{ width: 'var(--legacy-inline-style-096)', height: 'var(--legacy-inline-style-037)', borderRadius: 'var(--legacy-inline-style-011)', background: btn.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 'var(--ds-inline-style-30-coll-2)', height: 'var(--ds-inline-style-30)', borderRadius: 'var(--ds-inline-style-8)', background: btn.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {aiLoading === btn.key
-                      ? <Loader2 size={14} style={{ animation: 'var(--legacy-inline-style-002)' }} color={btn.color} />
+                      ? <Loader2 size={14} style={{ animation: 'var(--ds-inline-style-spin-1s-linear-infinite)' }} color={btn.color} />
                       : <btn.Icon size={14} color={btn.color} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 'var(--legacy-inline-style-018)', fontWeight: 'var(--legacy-inline-style-026)', color: 'var(--text-primary)' }}>{btn.label}</div>
-                    <div style={{ fontSize: 'var(--legacy-inline-style-023)', color: 'var(--text-muted)', marginTop: 'var(--legacy-inline-style-053)', lineHeight: 'var(--legacy-inline-style-048)' }}>{btn.sub}</div>
+                    <div style={{ fontSize: 'var(--ds-inline-style-11)', fontWeight: 'var(--ds-inline-style-700)', color: 'var(--text-primary)' }}>{btn.label}</div>
+                    <div style={{ fontSize: 'var(--ds-inline-style-9)', color: 'var(--text-muted)', marginTop: 'var(--ds-inline-style-2)', lineHeight: 'var(--ds-inline-style-1-4)' }}>{btn.sub}</div>
                   </div>
                 </Pressable>
               ))}
             </div>
 
             {aiResult && (
-              <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--legacy-inline-style-068)' }}>
-                <div style={{ borderRadius: 'var(--legacy-inline-style-004)', border: 'var(--border-width-thin) solid var(--border)', overflow: 'hidden', background: 'var(--legacy-color-072)' }}>
-                  <div style={{ padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-023)', fontWeight: 'var(--legacy-inline-style-028)', textTransform: 'uppercase', letterSpacing: 'var(--legacy-inline-style-044)', color: 'var(--text-muted)', borderBottom: 'var(--border-width-thin) solid var(--border)', display: 'flex', alignItems: 'center', gap: 'var(--legacy-inline-style-031)' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--ds-inline-style-0-12px-16px)' }}>
+                <div style={{ borderRadius: 'var(--ds-inline-style-10)', border: 'var(--border-width-thin) solid var(--border)', overflow: 'hidden', background: 'var(--color-theme-hex-ba148163184004)' }}>
+                  <div style={{ padding: 'var(--ds-inline-style-8px-12px)', fontSize: 'var(--ds-inline-style-9)', fontWeight: 'var(--ds-inline-style-900)', textTransform: 'uppercase', letterSpacing: 'var(--ds-inline-style-0-06em)', color: 'var(--text-muted)', borderBottom: 'var(--border-width-thin) solid var(--border)', display: 'flex', alignItems: 'center', gap: 'var(--ds-inline-style-6)' }}>
                     <Sparkles size={9} />
                     {aiResult.type === 'summary' && 'Podsumowanie'}
                     {aiResult.type === 'tasks' && 'Wyciagniete zadania'}
                     {aiResult.type === 'connect' && 'Sugestie polaczen'}
                   </div>
-                  <div style={{ padding: 'var(--legacy-inline-style-072)', fontSize: 'var(--legacy-inline-style-018)', color: 'var(--text-primary)', lineHeight: 'var(--legacy-inline-style-050)', whiteSpace: 'pre-wrap' }}>
+                  <div style={{ padding: 'var(--ds-inline-style-12px-coll-2)', fontSize: 'var(--ds-inline-style-11)', color: 'var(--text-primary)', lineHeight: 'var(--ds-inline-style-1-6)', whiteSpace: 'pre-wrap' }}>
                     {aiResult.text}
                   </div>
                   {aiResult.type === 'summary' && (
@@ -402,7 +402,7 @@ export default function EditNoteModal({
                         setAiResult(null);
                         notify('Podsumowanie dodane na gore notatki!', 'success');
                       }}
-                      style={{ width: 'var(--legacy-inline-style-092)', padding: 'var(--legacy-inline-style-079)', fontSize: 'var(--legacy-inline-style-017)', fontWeight: 'var(--legacy-inline-style-026)', borderTop: 'var(--border-width-thin) solid var(--border)', background: 'var(--primary-5)', color: 'var(--primary)', cursor: 'pointer', border: 'none', borderRadius: 'var(--legacy-inline-style-003)', transition: 'var(--legacy-inline-style-085)' }}>
+                      style={{ width: 'var(--ds-inline-style-100)', padding: 'var(--ds-inline-style-8px-12px)', fontSize: 'var(--ds-inline-style-10-coll-2)', fontWeight: 'var(--ds-inline-style-700)', borderTop: 'var(--border-width-thin) solid var(--border)', background: 'var(--primary-5)', color: 'var(--primary)', cursor: 'pointer', border: 'none', borderRadius: 'var(--ds-inline-style-0-0-10px-10px)', transition: 'var(--ds-inline-style-all-0-15s)' }}>
                       Wstaw na gore notatki
                     </Pressable>
                   )}
@@ -411,9 +411,9 @@ export default function EditNoteModal({
             )}
 
             {!aiResult && !aiLoading && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--legacy-inline-style-075)', gap: 'var(--legacy-inline-style-029)' }}>
-                <Bot size={32} style={{ opacity: 'var(--legacy-inline-style-062)' }} />
-                <p style={{ fontSize: 'var(--legacy-inline-style-017)', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 'var(--legacy-inline-style-049)', fontWeight: 'var(--legacy-inline-style-024)', opacity: 'var(--legacy-inline-style-066)' }}>Wybierz akcje AI powyzej, aby przeanalizowac te notatke</p>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--ds-inline-style-20-coll-2)', gap: 'var(--ds-inline-style-10-coll-3)' }}>
+                <Bot size={32} style={{ opacity: 'var(--ds-inline-style-0-25)' }} />
+                <p style={{ fontSize: 'var(--ds-inline-style-10-coll-2)', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 'var(--ds-inline-style-1-5)', fontWeight: 'var(--ds-inline-style-500)', opacity: 'var(--ds-inline-style-0-6)' }}>Wybierz akcje AI powyzej, aby przeanalizowac te notatke</p>
               </div>
             )}
           </div>

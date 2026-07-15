@@ -47,7 +47,7 @@ export default function DailySnapshotCard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain size={13} className="text-primary" />
-          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">
+          <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted">
             Plan dnia{isYesterday ? ' (wczoraj)' : ''}
           </p>
         </div>

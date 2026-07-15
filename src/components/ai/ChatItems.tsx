@@ -49,11 +49,11 @@ export function shouldShowTimeDivider(prev: ChatItem, current: ChatItem): boolea
 export function TimeDivider({ date }: { date: Date }) {
   return (
     <div className="flex items-center gap-2 my-2">
-      <div className="flex-1 h-px" style={{ background: 'var(--legacy-color-087)' }} />
+      <div className="flex-1 h-px" style={{ background: 'var(--color-theme-hex-ba153161175015)' }} />
       <span className="text-xs font-medium px-2" style={{ color: 'var(--color-text-tertiary)' }}>
         {formatTimestamp(date)}
       </span>
-      <div className="flex-1 h-px" style={{ background: 'var(--legacy-color-087)' }} />
+      <div className="flex-1 h-px" style={{ background: 'var(--color-theme-hex-ba153161175015)' }} />
     </div>
   );
 }
@@ -64,8 +64,8 @@ export function ThinkingItem({ item }: { item: Extract<ChatItem, { type: 'thinki
     <div className="flex justify-start">
       <Pressable
         onClick={() => setExpanded(v => !v)}
-        className="max-w-[var(--legacy-maxw-065)] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
-        style={{ borderColor: 'var(--legacy-color-088)', background: 'var(--legacy-color-083)' }}
+        className="max-w-[var(--ds-maxw-90)] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
+        style={{ borderColor: 'var(--color-theme-hex-ba15316117502)', background: 'var(--color-theme-hex-ba153161175005)' }}
       >
         <div className="flex items-center gap-1.5">
           <Brain size={11} style={{ color: 'var(--color-text-tertiary)' }} />
@@ -90,8 +90,8 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
     <div className="flex justify-start">
       <Pressable
         onClick={() => setExpanded(v => !v)}
-        className="max-w-[var(--legacy-maxw-065)] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
-        style={{ borderColor: item.isError ? 'var(--legacy-color-113)' : 'var(--legacy-color-151)', background: item.isError ? 'var(--legacy-color-109)' : 'var(--legacy-color-147)' }}
+        className="max-w-[var(--ds-maxw-90)] rounded-2xl rounded-bl-sm border px-3 py-2 text-left transition-all"
+        style={{ borderColor: item.isError ? 'var(--color-theme-hex-ba244639402)' : 'var(--color-theme-hex-ba91108255015)', background: item.isError ? 'var(--color-theme-hex-ba2446394004)' : 'var(--color-theme-hex-ba91108255004)' }}
       >
         <div className="flex items-center gap-1.5">
           <Terminal size={11} style={{ color: item.isError ? 'var(--color-danger)' : 'var(--color-primary)' }} />
@@ -106,12 +106,12 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
         {expanded && (
           <div className="mt-1.5 space-y-1">
             {item.args && (
-              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: 'var(--legacy-color-049)', color: 'var(--text-muted)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: 'var(--color-theme-hex-ba000004)', color: 'var(--text-muted)' }}>
                 {item.args}
               </pre>
             )}
             {item.result && (
-              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: item.isError ? 'var(--legacy-color-111)' : 'var(--legacy-color-094)', color: item.isError ? 'var(--color-danger)' : 'var(--color-success)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 overflow-x-auto" style={{ background: item.isError ? 'var(--color-theme-hex-ba2446394006)' : 'var(--color-theme-hex-ba16185129006)', color: item.isError ? 'var(--color-danger)' : 'var(--color-success)' }}>
                 {item.result}
               </pre>
             )}
@@ -125,7 +125,7 @@ export function ToolCallItem({ item }: { item: Extract<ChatItem, { type: 'tool' 
 export function AiMessageItem({ text, reasoning, templateId, cardData }: { text: string; reasoning?: string; templateId?: string; cardData?: unknown }) {
   return (
     <div className="flex flex-col items-start gap-2 w-full">
-      <div className="max-w-[var(--legacy-maxw-064)] flex flex-col gap-2">
+      <div className="max-w-[var(--ds-maxw-85)] flex flex-col gap-2">
         {reasoning && (
           <div
             className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs leading-relaxed border italic"
@@ -166,7 +166,7 @@ function AiCardRenderer({ templateId, cardData }: { templateId: string; cardData
 export function UserMessageItem({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[var(--legacy-maxw-064)] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-sm leading-relaxed bg-primary text-on-accent">
+      <div className="max-w-[var(--ds-maxw-85)] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-sm leading-relaxed bg-primary text-on-accent">
         {text}
       </div>
     </div>
@@ -176,8 +176,8 @@ export function UserMessageItem({ text }: { text: string }) {
 export function ErrorItem({ text }: { text: string }) {
   return (
     <div className="flex justify-start">
-      <div className="flex items-start gap-2 max-w-[var(--legacy-maxw-064)] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm leading-relaxed border"
-        style={{ borderColor: 'var(--legacy-color-115)', background: 'var(--legacy-color-109)', color: 'var(--color-danger)' }}>
+      <div className="flex items-start gap-2 max-w-[var(--ds-maxw-85)] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm leading-relaxed border"
+        style={{ borderColor: 'var(--color-theme-hex-ba244639403)', background: 'var(--color-theme-hex-ba2446394004)', color: 'var(--color-danger)' }}>
         <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
         {text}
       </div>
@@ -191,7 +191,7 @@ export function SystemReminderItem({ text }: { text: string }) {
     <div className="flex justify-center my-2">
       <div
         className="flex items-center gap-1.5 rounded-full px-3 py-1"
-        style={{ background: 'var(--legacy-color-148)', border: 'var(--border-width-thin) solid var(--legacy-color-151)' }}
+        style={{ background: 'var(--color-theme-hex-ba91108255007)', border: 'var(--border-width-thin) solid var(--color-theme-hex-ba91108255015)' }}
       >
         <span className="text-2xs">💡</span>
         <p className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>{text}</p>

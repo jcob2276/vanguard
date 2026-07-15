@@ -114,7 +114,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                 style={{ top: nowTop }}
               >
                 <div className="w-2 h-2 rounded-full bg-danger -ml-1 shrink-0" />
-                <div className="flex-1 h-[var(--legacy-h-007)] bg-danger/70" />
+                <div className="flex-1 h-[var(--ds-h-1-5px)] bg-danger/70" />
               </div>
             )}
 
@@ -131,7 +131,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                 <Pressable
                   key={item.id}
                   onClick={() => onExpand(item.id)}
-                  className={`absolute left-1.5 right-2 rounded-xl border px-2 py-1.5 text-left cursor-pointer hover:brightness-110 active:scale-[var(--legacy-arbitrary-014)] transition-all ${color.block}`}
+                  className={`absolute left-1.5 right-2 rounded-xl border px-2 py-1.5 text-left cursor-pointer hover:brightness-110 active:scale-[var(--ds-arbitrary-0-99)] transition-all ${color.block}`}
                   style={{ top, height }}
                 >
                   <div className="flex items-start gap-1.5 h-full overflow-hidden">
@@ -148,7 +148,7 @@ export default function TimelineView({ items, sectionGoalMap, onToggle, onExpand
                     </div>
                     <Pressable
                       onClick={(e) => { e.stopPropagation(); onToggle(item); }}
-                      className="shrink-0 mt-0.5 w-4 h-4 rounded-full border-[length:var(--legacy-border-005)] border-current opacity-[var(--opacity-30)] hover:opacity-[var(--opacity-80)] hover:bg-success hover:border-success transition-all"
+                      className="shrink-0 mt-0.5 w-4 h-4 rounded-full border-[length:var(--ds-border-1-5px)] border-current opacity-[var(--opacity-30)] hover:opacity-[var(--opacity-80)] hover:bg-success hover:border-success transition-all"
                     />
                   </div>
                 </Pressable>

@@ -1,12 +1,15 @@
 import { useEffect } from 'react';
+import type { CalRow } from '../../calendarHelpers';
+import type { CalendarTodo } from '../../hooks/useCalendarTodos';
+import type { QuickCreateState } from '../../hooks/useCalendarData';
 
 interface UseCalendarEffectsOptions {
-  quickCreate: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setQuickCreate: (v: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
-  editingTodo: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setEditingTodo: (v: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
-  selectedEvent: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setSelectedEvent: (v: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  quickCreate: QuickCreateState | null;
+  setQuickCreate: (v: QuickCreateState | null) => void;
+  editingTodo: CalendarTodo | null;
+  setEditingTodo: (v: CalendarTodo | null) => void;
+  selectedEvent: CalRow | null;
+  setSelectedEvent: (v: CalRow | null) => void;
   showBudgetConfig: boolean;
   setShowBudgetConfig: (v: boolean) => void;
   setCalView: (v: 'dzien' | 'tydzien' | 'agenda') => void;

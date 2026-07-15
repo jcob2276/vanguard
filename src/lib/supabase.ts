@@ -14,8 +14,7 @@ export const supabase = createClient<Database>(supabaseUrl || 'https://placehold
  * to get compile-time response checking. Unregistered names return
  * `Record<string, unknown>` — add the name to the registry instead of using `<any>`.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EdgeBody = string | Record<string, any> | File | Blob | ArrayBuffer | FormData | ReadableStream<Uint8Array> | undefined;
+type EdgeBody = string | Record<string, unknown> | File | Blob | ArrayBuffer | FormData | ReadableStream<Uint8Array> | undefined;
 
 export async function invokeEdge<K extends keyof EdgeFunctionResponses>(
   functionName: K,

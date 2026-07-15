@@ -6,7 +6,7 @@ import { Card } from '../ui/Card';
 
 function scoreBar(val: number) {
   return (
-    <div className="flex items-center gap-2 min-w-[var(--legacy-w-093)]">
+    <div className="flex items-center gap-2 min-w-[var(--ds-w-72px)]">
       <div className="flex-1 h-1.5 rounded-full bg-border-custom overflow-hidden">
         <div className="h-full bg-primary/70 rounded-full" style={{ width: `${(val / 5) * 100}%` }} />
       </div>
@@ -71,7 +71,7 @@ export default function GrowthSkillsList({
         )}
       </div>
 
-      <ul className="space-y-1.5 flex-1 overflow-y-auto max-h-[var(--legacy-h-035)] pr-1">
+      <ul className="space-y-1.5 flex-1 overflow-y-auto max-h-[var(--ds-h-520px)] pr-1">
         {rows.map((row) => {
           const open = expanded.has(row.parent.id);
           const hasSubs = row.subskills.length > 0;
@@ -96,7 +96,7 @@ export default function GrowthSkillsList({
                     <ChevronRight size={14} className="text-text-muted shrink-0" />
                   )
                 ) : (
-                  <span className="w-[var(--legacy-w-076)] shrink-0" />
+                  <span className="w-[var(--ds-w-14px)] shrink-0" />
                 )}
                 <span className="flex-1 min-w-0">
                   <span className="flex items-center gap-1.5">

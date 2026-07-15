@@ -97,7 +97,7 @@ export function BodyMetricsSection({
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
         <div>
-          <p className="text-2xs font-bold uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted font-display">
+          <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">
             Pomiary ciała
           </p>
           <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">

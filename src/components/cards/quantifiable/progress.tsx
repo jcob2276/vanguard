@@ -9,7 +9,7 @@ export function ProgressCard({ data }: { data: ProgressData }) {
         <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{data.label}</p>
         <span className="text-sm font-bold" style={{ color }}>{data.value}{data.unit ? ` ${data.unit}` : ''}</span>
       </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--legacy-color-087)' }}>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-theme-hex-ba153161175015)' }}>
         <div className="h-full rounded-full transition-all duration-[var(--motion-deliberate)]" style={{ width: `${pct}%`, background: color }} />
       </div>
       <p className="text-xs text-right" style={{ color: 'var(--color-text-tertiary)' }}>{Math.round(pct)}% z {max}{data.unit ? ` ${data.unit}` : ''}</p>

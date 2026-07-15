@@ -144,7 +144,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
   };
 
   return (
-    <Card padding="1rem" className="space-y-4" style={{ background: 'var(--legacy-color-102)' }}>
+    <Card padding="1rem" className="space-y-4" style={{ background: 'var(--color-theme-hex-ba17243902)' }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-wider text-text-primary">Architektura Tygodnia</p>
@@ -158,7 +158,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
           >
             <ChevronLeft size={14} />
           </Pressable>
-          <span className="text-xs font-bold text-text-secondary min-w-[var(--legacy-w-094)] text-center">
+          <span className="text-xs font-bold text-text-secondary min-w-[var(--ds-w-80px)] text-center">
             {formatWeekRange(weekStart)}{isCurrentWeek(weekStart) ? ' • dziś' : ''}
           </span>
           <Pressable
@@ -173,7 +173,7 @@ export default function WeeklyBalanceHexagon({ userId }: { userId: string }) {
 
       <div className="flex justify-center">
         {loading ? (
-          <div className="h-[var(--legacy-h-020)] w-[var(--legacy-w-083)] animate-pulse rounded-full bg-surface border border-border-custom" />
+          <div className="h-[var(--ds-h-280px)] w-[var(--ds-w-280px)] animate-pulse rounded-full bg-surface border border-border-custom" />
         ) : (
           <svg width={SIZE} height={SIZE} className="overflow-visible">
             {[0.25, 0.5, 0.75, 1].map((k) => (

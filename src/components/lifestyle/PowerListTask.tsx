@@ -44,7 +44,7 @@ export default function PowerListTask({
   return (
     <Pressable
       onClick={() => toggleTask(index)}
-      className={`group flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-xl)] border p-4 transition-all duration-[var(--motion-medium)] active:scale-[var(--legacy-arbitrary-001)] ${
+      className={`group flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-xl)] border p-4 transition-all duration-[var(--motion-medium)] active:scale-[var(--ds-arbitrary-0-98)] ${
         done
           ? 'border-border-custom bg-surface/30 opacity-[var(--opacity-60)] shadow-none'
           : 'border-border-custom bg-surface shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-surface-solid hover:shadow-md'
@@ -54,7 +54,7 @@ export default function PowerListTask({
         <div
           className={`flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full border transition-all duration-[var(--motion-slow)] ${
             done
-              ? 'border-dayC bg-dayC text-on-accent shadow-[var(--legacy-shadow-073)] scale-100'
+              ? 'border-dayC bg-dayC text-on-accent shadow-[var(--ds-shadow-0-2px-8px-rgba-16-185-129-0-3)] scale-100'
               : 'border-border-custom bg-surface-solid text-transparent scale-95 group-hover:border-primary/40 group-active:scale-90'
           }`}
         >

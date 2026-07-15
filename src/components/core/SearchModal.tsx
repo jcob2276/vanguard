@@ -109,8 +109,8 @@ export default function SearchModal({ onClose }: Props) {
       padding="p-0"
       overflowY={false}
       size="2xl"
-      overlayClassName="items-start pt-[var(--legacy-arbitrary-035)]"
-      className="bg-surface-2 border border-border-custom rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[var(--legacy-h-043)] animate-scaleUp"
+      overlayClassName="items-start pt-[var(--ds-arbitrary-10vh)]"
+      className="bg-surface-2 border border-border-custom rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[var(--ds-h-75vh)] animate-scaleUp"
     >
       {/* Search Input Bar */}
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border-custom bg-surface-2/40">

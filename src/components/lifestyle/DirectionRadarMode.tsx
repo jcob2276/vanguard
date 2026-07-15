@@ -95,7 +95,7 @@ export default function DirectionRadarMode({
 
       {/* 3. Lekcja z poprzedniego tygodnia */}
       {prevWeekReview?.bottleneck && (
-        <Card padding="1rem" className="flex gap-3 items-start animate-in fade-in-50 duration-[var(--motion-slow)]" style={{ background: 'var(--legacy-color-119)' }}>
+        <Card padding="1rem" className="flex gap-3 items-start animate-in fade-in-50 duration-[var(--motion-slow)]" style={{ background: 'var(--color-theme-hex-ba24515811005)' }}>
           <span className="text-lg leading-none">💡</span>
           <div>
             <p className="text-2xs font-black uppercase tracking-widest text-warning mb-0.5 font-display">Lekcja na ten tydzień</p>
@@ -106,7 +106,7 @@ export default function DirectionRadarMode({
 
       {/* 3. Weekly Board — na górze */}
       <div>
-        <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-031)] text-text-muted font-display mb-3">Plan tygodnia</p>
+        <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted font-display mb-3">Plan tygodnia</p>
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
         {DAYS_PL.map((dayLabel, i) => {
           const dayDate = addDays(planWeekStart, i);
@@ -125,7 +125,7 @@ export default function DirectionRadarMode({
               <div
                 key={i}
                 ref={isToday ? todayCardRef : undefined}
-                className={`min-w-[var(--legacy-w-077)] max-w-[var(--legacy-maxw-054)] shrink-0 flex flex-col rounded-[var(--radius-xl)] border p-4 snap-align-start transition-all ${
+                className={`min-w-[var(--ds-w-150px)] max-w-[var(--ds-maxw-170px)] shrink-0 flex flex-col rounded-[var(--radius-xl)] border p-4 snap-align-start transition-all ${
                   isToday ? 'border-primary/45 bg-surface-solid shadow-sm' : 'border-border-custom bg-surface/20 opacity-[var(--opacity-60)]'
                 }`}
               >
@@ -148,7 +148,7 @@ export default function DirectionRadarMode({
             <div
               key={i}
               ref={isToday ? todayCardRef : undefined}
-              className={`min-w-[var(--legacy-w-082)] max-w-[var(--legacy-maxw-056)] shrink-0 flex flex-col rounded-[var(--radius-xl)] border bg-surface p-4 shadow-sm transition-all duration-[var(--motion-slow)] snap-align-start ${
+              className={`min-w-[var(--ds-w-260px)] max-w-[var(--ds-maxw-280px)] shrink-0 flex flex-col rounded-[var(--radius-xl)] border bg-surface p-4 shadow-sm transition-all duration-[var(--motion-slow)] snap-align-start ${
                 isToday ? 'border-primary/50 shadow-md shadow-primary/5 bg-surface-solid' : 'border-border-custom'
               }`}
             >
@@ -208,7 +208,7 @@ export default function DirectionRadarMode({
                           <div
                             key={slotIdx}
                             onClick={() => isInteractive && togglePowerListTask(dayWin!, slotIdx)}
-                            className={`flex items-center gap-2 text-xs font-medium transition-all duration-[var(--motion-medium)] ${isInteractive ? 'cursor-pointer active:scale-[var(--legacy-arbitrary-001)]' : ''}`}
+                            className={`flex items-center gap-2 text-xs font-medium transition-all duration-[var(--motion-medium)] ${isInteractive ? 'cursor-pointer active:scale-[var(--ds-arbitrary-0-98)]' : ''}`}
                           >
                             <div className={`h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-all duration-[var(--motion-slow)] ${
                               done ? 'border-success bg-success text-on-accent' : 'border-border-custom bg-surface'

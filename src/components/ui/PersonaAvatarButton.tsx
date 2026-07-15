@@ -44,7 +44,7 @@ export function PersonaAvatarButton({
       onPointerUp={clearTimer}
       onPointerLeave={clearTimer}
       className={`relative flex-shrink-0 rounded-full cursor-pointer transition-transform active:scale-90 ${className}`}
-      style={{ width: 'var(--legacy-inline-style-097)', height: 'var(--legacy-inline-style-038)' }}
+      style={{ width: 'var(--ds-inline-style-36-coll-2)', height: 'var(--ds-inline-style-36)' }}
       aria-label="Profil"
     >
       <CharacterAvatar seed={userId} size={36} />
@@ -58,12 +58,12 @@ export function PersonaAvatarButton({
         <div
           className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-on-accent font-bold"
           style={{
-            minWidth: 'var(--legacy-inline-style-059)',
-            height: 'var(--legacy-inline-style-033)',
-            fontSize: 'var(--legacy-inline-style-023)',
+            minWidth: 'var(--ds-inline-style-16-coll-2)',
+            height: 'var(--ds-inline-style-16)',
+            fontSize: 'var(--ds-inline-style-9)',
             background: 'var(--color-danger)',
             border: 'var(--border-avatar-badge)',
-            padding: 'var(--legacy-inline-style-069)',
+            padding: 'var(--ds-inline-style-0-3px)',
           }}
         >
           {unreadCount > 9 ? '9+' : unreadCount}

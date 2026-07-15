@@ -3,7 +3,7 @@ interface PlaceCardData { name: string; address?: string; notes?: string; }
 export function PlaceCard({ data }: { data: PlaceCardData }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[color:var(--legacy-bg-001)]">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[color:var(--ds-bg-rgba-16-185-129-0-1)]">
         <MapPin size={13} style={{ color: 'var(--color-success)' }} />
       </div>
       <div>

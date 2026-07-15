@@ -51,7 +51,7 @@ export default function DreamEditModal({
       showCloseButton={false}
     >
         <div className="space-y-1.5">
-          <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Marzenie</label>
+          <label className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">Marzenie</label>
           <ControlInput
             value={editDreamTitle}
             onChange={e => setEditDreamTitle(e.target.value)}
@@ -61,7 +61,7 @@ export default function DreamEditModal({
 
         <div className="flex gap-3">
           <div className="space-y-1.5 flex-1">
-            <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Kategoria</label>
+            <label className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">Kategoria</label>
             <ControlSelect
               value={editDreamCat}
               onChange={e => setEditDreamCat(e.target.value)}
@@ -73,7 +73,7 @@ export default function DreamEditModal({
             </ControlSelect>
           </div>
           <div className="space-y-1.5">
-            <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">Cel życiowy</label>
+            <label className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">Cel życiowy</label>
             <div className="flex gap-1.5">
               {([['cialo', 'Ciało', 'border-success/40 bg-success/10 text-success'], ['duch', 'Duch', 'border-primary/40 bg-primary/10 text-primary'], ['konto', 'Konto', 'border-warning/40 bg-warning/10 text-warning']] as [string, string, string][]).map(([val, label, active]) => (
                 <Pressable key={val} onClick={() => setEditDreamLifeGoal(editDreamLifeGoal === val ? null : val)}
@@ -86,7 +86,7 @@ export default function DreamEditModal({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-muted">
+          <label className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">
             Wizja — jak się czujesz gdy to osiągasz?
           </label>
           <ControlTextarea

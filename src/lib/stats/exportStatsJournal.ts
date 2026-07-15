@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Tables } from '../database.types';
 import { toWarsawTime } from './exportStatsHelpers';
 
 interface RenderJournalParams {
-  dayJournal: any;
-  dayTelegramLogs: any[];
-  dayHabitLogs: any[];
-  habits: any[];
+  dayJournal: Tables<'daily_wins'>;
+  dayTelegramLogs: Tables<'vanguard_stream'>[];
+  dayHabitLogs: Tables<'habit_logs'>[];
+  habits: Tables<'habits'>[];
   includeJournal: boolean;
   includeHabits: boolean;
 }

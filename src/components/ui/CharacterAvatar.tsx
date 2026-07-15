@@ -13,7 +13,7 @@ export function CharacterAvatar({ seed, size = 36, className = '' }: CharacterAv
       width={size}
       height={size}
       className={className}
-      style={{ borderRadius: 'var(--legacy-inline-style-010)', display: 'block', objectFit: 'cover' }}
+      style={{ borderRadius: 'var(--ds-inline-style-50)', display: 'block', objectFit: 'cover' }}
       draggable={false}
     />
   );

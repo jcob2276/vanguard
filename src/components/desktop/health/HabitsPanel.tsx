@@ -39,7 +39,7 @@ export default function HabitsPanel({
     <Card padding="1rem 1.25rem" className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-039)] text-text-muted">Nawyki</p>
+          <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-25em)] text-text-muted">Nawyki</p>
           <p className="text-2xs text-text-muted/70 mt-0.5">Kanoniczny log → habit_logs (Lenie = ten sam mechanizm co /lenie)</p>
         </div>
         <Pressable onClick={() => setIsAddingHabit(p => !p)} variant="tonal" size="sm" icon={<Plus size={12} />} className="uppercase tracking-widest">
@@ -52,7 +52,7 @@ export default function HabitsPanel({
             <p className="text-2xs font-black uppercase tracking-widest text-text-primary">Nowy sygnał</p>
             <Pressable onClick={() => setIsAddingHabit(false)} variant="ghost" size="sm" className="!p-1 text-text-muted"><X size={12} /></Pressable>
           </div>
-          <div className="grid grid-cols-[var(--legacy-arbitrary-042)] gap-2">
+          <div className="grid grid-cols-[var(--ds-arbitrary-44px-1fr)] gap-2">
             <ControlInput value={newHabit.icon} onChange={e => setNewHabit(p => ({ ...p, icon: e.target.value }))} className="rounded-lg border border-border-custom bg-surface p-2 text-center text-sm font-black text-text-primary outline-none focus:border-primary/50" placeholder="✅" />
             <ControlInput value={newHabit.name} onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addHabit()} className="rounded-lg border border-border-custom bg-surface px-3 py-2 text-xs font-bold text-text-primary outline-none placeholder:text-text-muted/40 focus:border-primary/50" placeholder="Nazwa" />
           </div>

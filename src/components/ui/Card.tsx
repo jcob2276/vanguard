@@ -38,7 +38,7 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
   immersive: {
     className: `${BASE}`,
     style: {
-      background: 'var(--legacy-color-002)',
+      background: 'var(--color-theme-hex-0a0a0a)',
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-float)',
     },
@@ -56,14 +56,14 @@ const VARIANTS: Record<CardVariant, { style: CSSProperties; className: string }>
     className: `${BASE} bg-bg-secondary`,
     style: {
       borderRadius: 'var(--radius-lg)',
-      border: '1px solid var(--legacy-color-088)',
+      border: '1px solid var(--color-theme-hex-ba15316117502)',
     },
   },
   outline: {
     className: `${BASE} bg-transparent`,
     style: {
       borderRadius: 'var(--radius-lg)',
-      border: '1px solid var(--legacy-color-089)',
+      border: '1px solid var(--color-theme-hex-ba15316117503)',
     },
   },
   notice: {
@@ -90,7 +90,7 @@ export function Card({ variant = 'surface', children, className = '', style, onC
   const v = VARIANTS[variant];
   return (
     <Tag
-      className={`${v.className} ${onClick ? 'cursor-pointer active:scale-[var(--legacy-arbitrary-001)]' : ''} ${className}`}
+      className={`${v.className} ${onClick ? 'cursor-pointer active:scale-[var(--ds-arbitrary-0-98)]' : ''} ${className}`}
       style={{ padding: padding ?? 'var(--space-4)', ...v.style, ...style }}
       onClick={onClick}
     >

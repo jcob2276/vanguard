@@ -14,7 +14,7 @@ function Divider({ title }: { title: string }) {
 function Textarea({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
     <ControlTextarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-      className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-044)] focus:outline-none focus:border-primary/50 transition-colors" />
+      className="w-full bg-surface border border-border-custom rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted resize-y min-h-[var(--ds-h-80px)] focus:outline-none focus:border-primary/50 transition-colors" />
   );
 }
 

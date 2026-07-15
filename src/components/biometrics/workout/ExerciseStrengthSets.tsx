@@ -13,7 +13,7 @@ interface ExerciseStrengthSetsProps {
 export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM, updateSet, removeSet }: ExerciseStrengthSetsProps) {
   return (
     <>
-      <div className="grid grid-cols-[var(--legacy-arbitrary-008)] gap-2 px-0.5">
+      <div className="grid grid-cols-[var(--ds-arbitrary-28px-1fr-1fr-1fr-60px)] gap-2 px-0.5">
         <span />
         <span className="text-2xs font-black uppercase tracking-widest text-text-muted text-center">
           KG
@@ -46,7 +46,7 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
         };
 
         return (
-          <div key={set.id} className="grid grid-cols-[var(--legacy-arbitrary-009)] gap-1.5 items-center rounded-xl">
+          <div key={set.id} className="grid grid-cols-[var(--ds-arbitrary-20px-1fr-1fr-1fr-60px)] gap-1.5 items-center rounded-xl">
             <Pressable
               onClick={() => { haptics.light(); updateSet(set.id, 'msp', !set.msp); }}
               title="Oznacz jako MSP (kluczowy set)"
@@ -148,7 +148,7 @@ export default function ExerciseStrengthSets({ exercise, haptics, allTimeBest1RM
 
             <Pressable
               onClick={() => removeSet(set.id)}
-              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[var(--legacy-arbitrary-010)] transition-all cursor-pointer"
+              className="flex items-center justify-center text-text-muted/60 hover:text-danger active:scale-[var(--ds-arbitrary-0-9)] transition-all cursor-pointer"
             >
               <Trash2 size={12} />
             </Pressable>

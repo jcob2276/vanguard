@@ -20,7 +20,7 @@ export function TrendChart({ data }: { data: TrendChartData }) {
   }
 
   return (
-    <div className="h-[var(--legacy-h-011)] w-full">
+    <div className="h-[var(--ds-h-140px)] w-full">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data.points} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <defs>

@@ -35,7 +35,7 @@ export default function HealthScore({ score, size = 44, showLabel = false }: Hea
           height={size}
           viewBox={`0 0 ${size} ${size}`}
           className="absolute inset-0 -rotate-90"
-          style={{ transform: 'var(--legacy-inline-style-083)' }}
+          style={{ transform: 'var(--ds-inline-style-rotate-90deg)' }}
         >
           {/* Track */}
           <circle
@@ -58,7 +58,7 @@ export default function HealthScore({ score, size = 44, showLabel = false }: Hea
             strokeLinecap="round"
             strokeDasharray={`${dash} ${gap}`}
             style={{
-              transition: 'var(--legacy-inline-style-089)',
+              transition: 'var(--ds-inline-style-stroke-dasharray-0-8s-cubic-bezier-0-4-0-0-2-1)',
             }}
           />
         </svg>

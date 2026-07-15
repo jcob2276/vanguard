@@ -2,12 +2,14 @@ import { useCallback } from 'react';
 import { updateTodoItem, deleteTodoItem } from '../../../../lib/todo/todo';
 import { getWarsawOffset, addDays } from '../../calendarHelpers';
 import { buildRecurrenceRule } from '../calendarViewHelpers';
+import type { useCalendarData } from '../../hooks/useCalendarData';
+import type { useCalendarTodos } from '../../hooks/useCalendarTodos';
 
 interface UseCalendarActionsOptions {
   userId: string | undefined;
   accessToken: string | undefined;
-  calData: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  calTodos: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  calData: ReturnType<typeof useCalendarData>;
+  calTodos: ReturnType<typeof useCalendarTodos>;
   onResyncCalendar?: () => Promise<void> | void;
 }
 

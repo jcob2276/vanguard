@@ -24,12 +24,12 @@ export function DashboardNavBar({
   tabOrder,
 }: DashboardNavBarProps) {
   return (
-    <nav className="fixed left-1/2 z-[var(--z-modal)] flex w-[var(--legacy-w-096)] max-w-[var(--legacy-maxw-057)] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/75 p-1.5 shadow-[var(--shadow-nav)] glass-structural" style={{ bottom: 'var(--legacy-inline-style-014)' }}>
+    <nav className="fixed left-1/2 z-[var(--z-modal)] flex w-[var(--ds-w-90)] max-w-[var(--ds-maxw-360px)] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/75 p-1.5 shadow-[var(--shadow-nav)] glass-structural" style={{ bottom: 'var(--ds-inline-style-max-2rem-calc-1rem-env-safe-area-inset-bottom)' }}>
       {/* Sliding background indicator pill */}
       <div
         className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-[var(--motion-slow)]"
         style={{
-          width: 'var(--legacy-inline-style-100)',
+          width: 'var(--ds-inline-style-calc-20-3px)',
           left: (() => {
             const idx = tabOrder.indexOf(view);
             const slotIndex = idx < 2 ? idx : idx + 1;

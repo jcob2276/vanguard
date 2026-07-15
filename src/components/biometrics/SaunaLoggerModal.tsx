@@ -74,7 +74,7 @@ export default function SaunaLoggerModal({
         />
         <div className="flex items-center gap-2 flex-1">
           <Flame size={16} className="text-warning" />
-          <h1 className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-002)] text-text-primary font-display">Sauna</h1>
+          <h1 className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-primary font-display">Sauna</h1>
         </div>
       </header>
 
@@ -123,14 +123,14 @@ export default function SaunaLoggerModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="np. po treningu nóg, sucha sauna, zimny prysznic po"
-            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[var(--legacy-h-047)] outline-none focus:border-primary/50 resize-none placeholder:text-text-muted/40"
+            className="w-full bg-surface-solid border border-border-custom rounded-2xl px-4 py-3 text-sm text-text-primary min-h-[var(--ds-h-90px)] outline-none focus:border-primary/50 resize-none placeholder:text-text-muted/40"
           />
         </div>
 
         <SaunaRpePicker sessionRpe={sessionRpe} setSessionRpe={setSessionRpe} />
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[var(--z-modal)] border-t border-border-custom bg-background/90 backdrop-blur-[var(--blur-md)] p-4 pb-[var(--legacy-arbitrary-007)]">
+      <div className="fixed bottom-0 left-0 right-0 z-[var(--z-modal)] border-t border-border-custom bg-background/90 backdrop-blur-[var(--blur-md)] p-4 pb-[var(--ds-arbitrary-calc-1rem-env-safe-area-inset-bottom)]">
         <div className="mx-auto max-w-md">
           <Button
             variant="ghost"

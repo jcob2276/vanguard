@@ -46,7 +46,7 @@ export default function GrowthView({ session }: { session: Session }) {
         onEditScores={() => startEditScores(currentScores)}
       />
 
-      <div className="flex-1 w-full max-w-[var(--legacy-maxw-052)] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-6">
+      <div className="flex-1 w-full max-w-[var(--ds-maxw-1600px)] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-6">
         <GrowthViewMainContent
           loading={loading}
           userId={userId}

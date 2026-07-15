@@ -89,7 +89,7 @@ export function ActionCenterSheet({
       overflowY={true}
       size="lg"
       overlayClassName="p-0 items-end justify-center sm:p-4"
-      className="bg-surface-solid border border-border-custom rounded-t-[var(--legacy-arbitrary-051)] sm:rounded-b-[var(--legacy-arbitrary-054)] max-h-[var(--legacy-h-045)]"
+      className="bg-surface-solid border border-border-custom rounded-t-[var(--ds-arbitrary-24px)] sm:rounded-b-[var(--ds-arbitrary-24px-coll-2)] max-h-[var(--ds-h-80vh)]"
     >
       <div className="flex items-center justify-between mb-4">
         <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-text-muted">

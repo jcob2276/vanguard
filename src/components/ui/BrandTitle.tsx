@@ -5,7 +5,7 @@ export function BrandTitle({ className = '' }: BrandTitleProps) {
   const body = word.slice(0, -1);
   const last = word.slice(-1);
   return (
-    <span className={className} style={{ letterSpacing: 'var(--legacy-inline-style-046)', fontWeight: 'var(--legacy-inline-style-028)', textTransform: 'uppercase' }}>
+    <span className={className} style={{ letterSpacing: 'var(--ds-inline-style-0-25em)', fontWeight: 'var(--ds-inline-style-900)', textTransform: 'uppercase' }}>
       {body}
       <span style={{ color: 'var(--color-primary)' }}>{last}</span>
     </span>

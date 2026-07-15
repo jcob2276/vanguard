@@ -2,8 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { shiftDateStr } from './date';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DailySnapshot = any; // dynamic planning_summary JSON blob (mode, one_clear_move, top3, tension_action, ...)
+interface DailySnapshot {
+  mode?: string;
+  one_clear_move?: string;
+  top3?: string[];
+  tension_action?: { action?: string };
+  day_score?: number | null;
+  date?: string;
+  [key: string]: unknown;
+}
 
 export interface DailySnapshotData {
   snap: DailySnapshot | null;

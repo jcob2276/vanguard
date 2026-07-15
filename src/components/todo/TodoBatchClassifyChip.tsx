@@ -12,7 +12,7 @@ export default function TodoBatchClassifyChip() {
     <Pressable
       onClick={batchClassify}
       disabled={batchClassifying}
-      className="relative overflow-hidden w-full flex items-center justify-between rounded-2xl bg-gradient-to-r from-primary/10 via-primary/10 to-primary/10 border border-primary/20 px-4 py-3 text-left transition-all hover:scale-[var(--legacy-arbitrary-013)] hover:border-primary/30 hover:shadow-[0_0_20px_var(--primary-15)] active:scale-[var(--legacy-arbitrary-014)] disabled:opacity-[var(--opacity-50)] cursor-pointer group animate-[var(--legacy-arbitrary-055)] shadow-[0_0_12px_var(--primary-5)]"
+      className="relative overflow-hidden w-full flex items-center justify-between rounded-2xl bg-gradient-to-r from-primary/10 via-primary/10 to-primary/10 border border-primary/20 px-4 py-3 text-left transition-all hover:scale-[var(--ds-arbitrary-1-01)] hover:border-primary/30 hover:shadow-[0_0_20px_var(--primary-15)] active:scale-[var(--ds-arbitrary-0-99)] disabled:opacity-[var(--opacity-50)] cursor-pointer group animate-[var(--ds-arbitrary-pulse-4s-infinite)] shadow-[0_0_12px_var(--primary-5)]"
     >
       <div className="flex items-center gap-2.5">
         <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">

@@ -38,7 +38,7 @@ export default function CorrelationsPage() {
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16">
         {/* Epistemic guardrail */}
-        <Card variant="accent" padding="0.75rem 1rem" className="flex gap-3" style={{ borderRadius: 'var(--legacy-inline-style-007)' }}>
+        <Card variant="accent" padding="0.75rem 1rem" className="flex gap-3" style={{ borderRadius: 'var(--ds-inline-style-18px)' }}>
           <Info size={16} className="text-primary shrink-0 mt-0.5" />
           <p className="text-xs text-text-secondary leading-relaxed">
             To warstwa pomiarowa: system skanuje wszystkie metryki z logów (≥5 dni danych) i pokazuje pary,
@@ -57,7 +57,7 @@ export default function CorrelationsPage() {
 
         {highlights.length > 0 && (
           <section className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">
+            <p className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted">
               Najsilniejsze obserwacje (p&lt;0.05, N≥10)
             </p>
             <div className="space-y-3">
@@ -100,7 +100,7 @@ export default function CorrelationsPage() {
 
         {/* Correlation grid */}
         <section className="space-y-3">
-          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">
+          <p className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted">
             {filter === 'all' ? 'Odkryte pary' : CATEGORY_LABELS[filter]} ({filteredWithoutSleepStages.length})
           </p>
           {filteredWithoutSleepStages.length === 0 ? (
@@ -121,7 +121,7 @@ export default function CorrelationsPage() {
         {/* Behavior effects */}
         <section className="space-y-3 pt-4 border-t border-border-custom">
           <div>
-            <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted">
+            <p className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted">
               Zachowania vs recovery (behavior_log)
             </p>
             <p className="text-xs text-text-muted mt-1">

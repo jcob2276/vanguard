@@ -53,10 +53,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
       padding="0"
       className={`overflow-hidden hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] ${
         healthLevel === 'critical' && project.status === 'active'
-          ? 'border-danger/30 shadow-[var(--legacy-shadow-066)]'
+          ? 'border-danger/30 shadow-[var(--ds-shadow-0-0-0-1px-rgba-239-68-68-0-12)]'
           : 'border-border-custom'
       }`}
-      style={{ borderRadius: 'var(--legacy-inline-style-008)' }}
+      style={{ borderRadius: 'var(--ds-inline-style-22px)' }}
     >
       {/* Color accent strip */}
       <div className={`h-0.5 w-full ${col.bar} opacity-[var(--opacity-70)]`} />

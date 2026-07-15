@@ -51,7 +51,7 @@ function YesterdayRecap({
         placeholder="Napisz szczerze…"
         rows={3}
         className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
-          text-text-primary placeholder-text-muted resize-y min-h-[var(--legacy-h-038)]
+          text-text-primary placeholder-text-muted resize-y min-h-[var(--ds-h-64px)]
           focus:outline-none focus:border-primary/50 transition-colors"
       />
     </Card>
@@ -245,7 +245,7 @@ export default function PowerListSetup({
       <Pressable
         onClick={startNewDay}
         disabled={submitting || !allFilled || (yesterdayNoteRequired && !yesterdayNote.trim())}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-on-accent shadow-lg shadow-[var(--shadow-glow-primary)] transition-all hover:bg-primary-hover active:scale-[var(--legacy-arbitrary-001)] disabled:opacity-[var(--opacity-50)] disabled:cursor-not-allowed"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-on-accent shadow-lg shadow-[var(--shadow-glow-primary)] transition-all hover:bg-primary-hover active:scale-[var(--ds-arbitrary-0-98)] disabled:opacity-[var(--opacity-50)] disabled:cursor-not-allowed"
       >
         <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
       </Pressable>

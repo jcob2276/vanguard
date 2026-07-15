@@ -95,7 +95,7 @@ export default function MorningPlanStep2PowerList({
       {/* Selection list */}
       <div className="space-y-2">
         <span className="text-2xs font-bold text-text-muted uppercase tracking-wider block">Dostępne zadania na {dayWord} i Inbox</span>
-        <div className="space-y-1.5 max-h-[var(--legacy-h-017)] overflow-y-auto pr-1">
+        <div className="space-y-1.5 max-h-[var(--ds-h-220px)] overflow-y-auto pr-1">
           {[...todayTasks, ...inboxTasks].length === 0 ? (
             <p className="text-xs text-text-muted italic py-4 text-center">Brak wolnych zadań</p>
           ) : (

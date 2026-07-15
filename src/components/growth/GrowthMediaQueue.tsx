@@ -36,7 +36,7 @@ export default function GrowthMediaQueue({ links }: { links: GrowthLinkRow[] }) 
       {links.length === 0 ? (
         <p className="text-sm text-text-muted">Brak w kolejce — wrzuć linki w Keep.</p>
       ) : (
-        <div className="space-y-4 overflow-y-auto max-h-[var(--legacy-h-035)] pr-1 flex-1">
+        <div className="space-y-4 overflow-y-auto max-h-[var(--ds-h-520px)] pr-1 flex-1">
           {videos.length > 0 && (
             <div>
               <p className="text-2xs font-black uppercase text-text-muted mb-1.5">Filmy / wideo</p>

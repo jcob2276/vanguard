@@ -23,7 +23,7 @@ import { CalendarTodo } from './useCalendarTodos';
 import { useCalendarWeather } from './useCalendarWeather';
 import { useCalendarEventDrag } from './useCalendarEventDrag';
 
-interface QuickCreateState {
+export interface QuickCreateState {
   date: string;
   startMin: number;
 }

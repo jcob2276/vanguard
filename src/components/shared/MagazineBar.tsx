@@ -54,7 +54,7 @@ export function MagazineBar({ view }: { view: ScheduleViewData }) {
 
       {view.timeline.length > 0 && (
         <div className="space-y-4">
-          <p className="text-xs font-black uppercase tracking-[var(--legacy-arbitrary-053)] text-text-muted">Tydzień</p>
+          <p className="text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-14em)] text-text-muted">Tydzień</p>
           {view.timeline.map((day) => (
             <div key={day.dayDate}>
               <p className="text-xs font-bold uppercase tracking-wide text-text-muted mb-2">{day.dayLabel}</p>

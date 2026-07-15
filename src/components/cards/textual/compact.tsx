@@ -12,7 +12,7 @@ export function CompactCard({ data }: { data: CompactCardData }) {
       {data.badge && (
         <span
           className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
-          style={{ background: data.badgeColor ? `color-mix(in srgb, ${data.badgeColor} 10%, transparent)` : 'var(--legacy-color-150)', color: data.badgeColor ?? 'var(--color-primary)' }}
+          style={{ background: data.badgeColor ? `color-mix(in srgb, ${data.badgeColor} 10%, transparent)` : 'var(--color-theme-hex-ba9110825501)', color: data.badgeColor ?? 'var(--color-primary)' }}
         >
           {data.badge}
         </span>
