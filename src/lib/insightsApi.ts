@@ -141,25 +141,3 @@ export async function deleteInsightCard(id: string): Promise<void> {
     throw new Error(error.message);
   }
 }
-
-export interface DoneTask {
-  completed_at: string | null;
-  duration_minutes: number | null;
-  priority: string | null;
-}
-
-export async function fetchRecentDoneTasks(userId: string, sinceISO: string): Promise<DoneTask[]> {
-  const { data, error } = await supabase
-    .from('todo_items')
-    .select('completed_at, duration_minutes, priority')
-    .eq('user_id', userId)
-    .eq('status', 'done')
-    .gte('completed_at', sinceISO);
-
-  if (error) {
-    console.error('[insightsApi] fetchRecentDoneTasks failed:', error.message);
-    throw new Error(error.message);
-  }
-
-  return (data as DoneTask[]) || [];
-}

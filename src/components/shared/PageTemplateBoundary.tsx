@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export type PageTemplateKind = 'list' | 'grid' | 'dashboard' | 'timeline';
 
-export interface PageTemplateBoundaryProps {
+interface PageTemplateBoundaryProps {
   kind: PageTemplateKind;
   children: ReactNode;
 }
@@ -42,7 +42,7 @@ const spring = { type: 'spring' as const, bounce: 0, duration: 0.35 };
 /** Route-level design contract. The wrapper is a real element (not display:contents)
  * so framer-motion can animate transform/opacity. Children inherit the selected
  * template's density and geometry tokens via CSS custom properties. */
-export function PageTemplateBoundary({ kind, children }: PageTemplateBoundaryProps) {
+function PageTemplateBoundary({ kind, children }: PageTemplateBoundaryProps) {
   const v = kindVariants[kind];
 
   return (

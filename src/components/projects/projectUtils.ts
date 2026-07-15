@@ -16,14 +16,6 @@ export const COLORS = [
 
 export const colorOf = (id: string) => COLORS.find(c => c.id === id) ?? COLORS[0];
 
-export const GOAL_QUESTIONS = [
-  { key: 'goal',           q: 'Jaki jest Twój cel?',               hint: 'Konkretny wynik + data. Np. "50k PLN na koncie do 01.10.2026"' },
-  { key: 'why',            q: 'Po co Ci to?',                      hint: 'Dlaczego to ważne? Co się zmieni kiedy osiągniesz?' },
-  { key: 'milestones',     q: 'Co musi się stać po drodze?',       hint: 'Wymień 3–4 etapy które musisz przejść' },
-  { key: 'blockers',       q: 'Dlaczego może się nie udać?',       hint: 'Jakie są ryzyka? Co już próbowałeś i nie wyszło?' },
-  { key: 'weekly_actions', q: 'Co robisz co tydzień żeby to osiągnąć?', hint: 'Konkretne powtarzalne działania — to będą Twoje KPI' },
-] as const;
-
 export const STATUS_NEXT: Record<string, string> = { active: 'paused', paused: 'done', done: 'active' };
 export const STATUS_LABEL: Record<string, string> = { active: 'Aktywny', paused: 'Pauza', done: 'Ukończony' };
 
@@ -97,7 +89,7 @@ export const HEALTH_COLORS: Record<HealthLevel, {
   great:    { ring: 'var(--color-success)', fill: 'text-success', text: 'text-success dark:text-success', bg: 'bg-success/10', label: 'Świetnie' },
   ok:       { ring: 'var(--color-info)', fill: 'text-info',    text: 'text-info dark:text-info',       bg: 'bg-info/10',    label: 'OK'       },
   'at-risk':{ ring: 'var(--color-warning)', fill: 'text-warning',   text: 'text-warning dark:text-warning',     bg: 'bg-warning/10',   label: 'Ryzyko'   },
-  critical: { ring: 'var(--legacy-color-037)', fill: 'text-danger',    text: 'text-danger dark:text-danger',       bg: 'bg-danger/10',    label: 'Krytyczny'},
+  critical: { ring: 'var(--color-theme-hex-ef4444)', fill: 'text-danger',    text: 'text-danger dark:text-danger',       bg: 'bg-danger/10',    label: 'Krytyczny'},
 };
 
 export type Momentum = 'accelerating' | 'steady' | 'slipping' | 'stalled';

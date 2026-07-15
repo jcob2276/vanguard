@@ -26,7 +26,7 @@ export const ALLOWED_FRICTION_TYPES = [
   'adaptive_move',
   'other'
 ] as const;
-export type FrictionType = typeof ALLOWED_FRICTION_TYPES[number];
+type FrictionType = typeof ALLOWED_FRICTION_TYPES[number];
 
 // Musi zgadzać się z CHECK constraintami vanguard_wiki_pages (page_type / status) —
 // wartości pochodzą z LLM, więc każdy zapis musi przejść przez clamp na te listy.
@@ -34,26 +34,9 @@ export const ALLOWED_WIKI_PAGE_TYPES = [
   'identity', 'behavior_pattern', 'person', 'project', 'training', 'health',
   'decision', 'friction_loop', 'concept', 'source_summary', 'operating_model', 'goal',
 ] as const;
-export type WikiPageType = typeof ALLOWED_WIKI_PAGE_TYPES[number];
+type WikiPageType = typeof ALLOWED_WIKI_PAGE_TYPES[number];
 
 export const ALLOWED_WIKI_STATUSES = [
   'hypothesis', 'active', 'needs_review', 'user_confirmed', 'user_rejected', 'archived',
 ] as const;
-export type WikiStatus = typeof ALLOWED_WIKI_STATUSES[number];
-
-// Centralized color mapping for UI
-export const FRICTION_COLOR: Record<FrictionType, string> = {
-  sleep_disruption: '#f59e0b',
-  avoidance: '#f43f5e',
-  procrastination: '#fb923c',
-  habit_break: '#a78bfa',
-  training_drop: '#60a5fa',
-  social_hesitation: '#34d399',
-  communication_drift: '#94a3b8',
-  emotional_spike: '#f472b6',
-  self_control_break: '#ef4444',
-  positive_micro_action: '#10b981',
-  recovery_anchor: '#38bdf8',
-  adaptive_move: '#2dd4bf',
-  other: '#9ca3af',
-};
+type WikiStatus = typeof ALLOWED_WIKI_STATUSES[number];

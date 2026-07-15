@@ -20,7 +20,7 @@ export interface StravaActivityRow {
   best_efforts: unknown;
 }
 
-export interface ProjectRow {
+interface ProjectRow {
   id: string;
   name: string;
   status: string;
@@ -30,7 +30,7 @@ export interface ProjectRow {
   sense_status?: string | null;
 }
 
-export interface MoveRow {
+interface MoveRow {
   id: string;
   title: string;
   status: string;
@@ -55,11 +55,11 @@ export interface SprintGoalRow {
   goal_text: string | null;
 }
 
-export interface WinRow {
+interface WinRow {
   [key: string]: unknown;
 }
 
-export interface MarathonRow {
+interface MarathonRow {
   name: string;
   date: string;
   target_time: string | null;
@@ -68,7 +68,7 @@ export interface MarathonRow {
 
 export type HabitRow = Tables<'habits'>;
 export type HabitLogRow = Tables<'habit_logs'>;
-export type BodyMetricRow = { date: string | null; weight: number | null; waist: number | null; neck: number | null; hips: number | null; body_fat: number | null };
+type BodyMetricRow = { date: string | null; weight: number | null; waist: number | null; neck: number | null; hips: number | null; body_fat: number | null };
 
 interface DesktopDashboardData {
   loading: boolean;
@@ -99,7 +99,7 @@ interface DesktopDashboardData {
 
 import { desktopKeys } from '../../../lib/queryKeys';
 
-export type DesktopQueryResult = Omit<DesktopDashboardData, 'loading' | 'refresh'>;
+type DesktopQueryResult = Omit<DesktopDashboardData, 'loading' | 'refresh'>;
 
 export function useDesktopData(userId: string | undefined): DesktopDashboardData {
   const queryClient = useQueryClient();

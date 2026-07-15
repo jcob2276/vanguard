@@ -9,7 +9,6 @@ import type {
   DailyWinRow,
   DailyWinUpdate,
   DailyWinInsert,
-  LifeGoalDeclarations,
 } from './goalSpine.types';
 import { invalidateGoalSpineCache } from './goalSpine.queries';
 import { currentWeekStart } from './goalSpine.queries';
@@ -17,19 +16,6 @@ import type { Json } from '../database.types';
 
 export * from './goalSpineSprint.mutations';
 export * from './goalSpineKpi.mutations';
-
-/** Canonical write path for the one-row-per-user yearly BHAG declarations (life_goals). */
-export async function saveLifeGoalDeclarations(
-  userId: string,
-  fields: LifeGoalDeclarations,
-): Promise<void> {
-  const { error } = await supabase.from('life_goals').upsert(
-    { user_id: userId, ...fields },
-    { onConflict: 'user_id' },
-  );
-  if (error) throw new Error(error.message);
-  invalidateGoalSpineCache(userId);
-}
 
 export async function saveWeeklyReviewReflection(
   userId: string,

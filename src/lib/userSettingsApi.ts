@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 import type { Tables, TablesInsert } from './database.types';
 
-export type UserSettings = Tables<'user_settings'>;
 export type NutritionProfile = Tables<'nutrition_profile'>;
 
 export async function fetchNutritionProfile(userId: string): Promise<NutritionProfile | null> {

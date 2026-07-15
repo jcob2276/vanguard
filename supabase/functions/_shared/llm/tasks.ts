@@ -1,6 +1,4 @@
-export type DeepSeekModel = 'deepseek-v4-flash' | 'deepseek-chat' | 'deepseek-reasoner';
-
-export type TaskConfig =
+type TaskConfig =
   | {
       readonly model: 'deepseek-chat';
       readonly temperature?: number | null;

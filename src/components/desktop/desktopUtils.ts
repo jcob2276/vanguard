@@ -10,7 +10,6 @@ export type {
   WorkoutSessionSummary,
   StravaActivitySummary,
   NutritionDayRow,
-  NarrativeInsight,
   IntelCard,
 } from './desktopDataTypes';
 

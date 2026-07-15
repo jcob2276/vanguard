@@ -5,7 +5,7 @@ import Input from '../ui/Input';
 import PageToolbar from './PageToolbar';
 import Tabs from '../ui/Tabs';
 
-export interface WorkspaceHeaderTab { key: string; label: string; icon?: ReactNode }
+interface WorkspaceHeaderTab { key: string; label: string; icon?: ReactNode }
 
 interface WorkspaceHeaderProps {
   title: string;
@@ -55,7 +55,7 @@ interface WorkspaceSearchProps {
   className?: string;
 }
 
-export function WorkspaceSearch({ value, onChange, placeholder, inputRef, className = '' }: WorkspaceSearchProps) {
+function WorkspaceSearch({ value, onChange, placeholder, inputRef, className = '' }: WorkspaceSearchProps) {
   return (
     <div className={`relative mx-auto w-full max-w-[var(--content-narrow)] ${className}`}>
       <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/60" />

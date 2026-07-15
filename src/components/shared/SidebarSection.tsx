@@ -2,7 +2,7 @@ import { Pressable } from '../ui/ControlPrimitives';
 import { useState, type ReactNode } from 'react';
 import { ChevronDown, Plus } from 'lucide-react';
 
-export interface SidebarSectionItem {
+interface SidebarSectionItem {
   id: string;
   label: ReactNode;
   icon?: ReactNode;

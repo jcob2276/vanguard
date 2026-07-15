@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Button from './Button';
 import Modal from './Modal';
 
-export interface DialogProps {
+interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
@@ -12,7 +12,7 @@ export interface DialogProps {
   secondaryAction?: { label: string; onClick?: () => void };
 }
 
-export function Dialog({ open, onOpenChange, title, description, children, primaryAction, secondaryAction }: DialogProps) {
+function Dialog({ open, onOpenChange, title, description, children, primaryAction, secondaryAction }: DialogProps) {
   return (
     <Modal isOpen={open} onClose={() => onOpenChange(false)} title={title} size="sm">
       {description && <p className="mt-[var(--space-2)] text-sm leading-relaxed text-text-secondary">{description}</p>}

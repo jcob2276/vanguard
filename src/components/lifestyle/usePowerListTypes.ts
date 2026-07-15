@@ -28,14 +28,6 @@ export const EMPTY_SLOT: TaskSlot = {
   timeSlot: 'morning',
 };
 
-export const TIME_SLOT_LABELS = {
-  morning: '🌅 Rano',
-  noon: '☀️ Południe',
-  afternoon: '🌆 Popołudnie',
-  evening: '🌙 Wieczór',
-};
-
-
 export function powerListDraftKey(userId: string, date: string) {
   return `vanguard_powerlist_draft_${userId}_${date}`;
 }

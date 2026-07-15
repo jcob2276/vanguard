@@ -5,37 +5,34 @@
  * friction types change (the _shared version is authoritative for DB/edge functions).
  */
 
-export const ALLOWED_FRICTION_TYPES = [
-  'sleep_disruption',
-  'avoidance',
-  'procrastination',
-  'habit_break',
-  'training_drop',
-  'social_hesitation',
-  'communication_drift',
-  'emotional_spike',
-  'self_control_break',
-  'positive_micro_action',
-  'recovery_anchor',
-  'adaptive_move',
-  'other',
-] as const;
-
-export type FrictionType = typeof ALLOWED_FRICTION_TYPES[number];
+export type FrictionType =
+  | 'sleep_disruption'
+  | 'avoidance'
+  | 'procrastination'
+  | 'habit_break'
+  | 'training_drop'
+  | 'social_hesitation'
+  | 'communication_drift'
+  | 'emotional_spike'
+  | 'self_control_break'
+  | 'positive_micro_action'
+  | 'recovery_anchor'
+  | 'adaptive_move'
+  | 'other';
 
 /** Centralized color mapping for friction type UI badges and charts. */
 export const FRICTION_COLOR: Record<FrictionType, string> = {
-  sleep_disruption: 'var(--legacy-lib-color-023)',
-  avoidance: 'var(--legacy-lib-color-021)',
-  procrastination: 'var(--legacy-lib-color-025)',
-  habit_break: 'var(--legacy-lib-color-019)',
-  training_drop: 'var(--legacy-lib-color-014)',
-  social_hesitation: 'var(--legacy-lib-color-009)',
-  communication_drift: 'var(--legacy-lib-color-016)',
-  emotional_spike: 'var(--legacy-lib-color-022)',
-  self_control_break: 'var(--legacy-lib-color-020)',
-  positive_micro_action: 'var(--legacy-lib-color-005)',
-  recovery_anchor: 'var(--legacy-lib-color-010)',
-  adaptive_move: 'var(--legacy-lib-color-008)',
-  other: 'var(--legacy-lib-color-018)',
+  sleep_disruption: 'var(--color-warning-amber)',
+  avoidance: 'var(--color-danger-red)',
+  procrastination: 'var(--color-theme-hex-fb923c-coll-2)',
+  habit_break: 'var(--color-theme-hex-a78bfa-coll-2)',
+  training_drop: 'var(--color-theme-hex-60a5fa-coll-2)',
+  social_hesitation: 'var(--color-theme-hex-34d399)',
+  communication_drift: 'var(--color-theme-hex-94a3b8-coll-2)',
+  emotional_spike: 'var(--color-theme-hex-f472b6-coll-2)',
+  self_control_break: 'var(--color-theme-hex-ef4444-coll-2)',
+  positive_micro_action: 'var(--color-success-green)',
+  recovery_anchor: 'var(--color-theme-hex-38bdf8)',
+  adaptive_move: 'var(--color-theme-hex-2dd4bf-coll-2)',
+  other: 'var(--color-theme-hex-9ca3af)',
 };

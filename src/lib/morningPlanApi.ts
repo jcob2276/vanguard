@@ -3,7 +3,7 @@ import { shiftDateStr } from './date';
 import { getWeekStartWarsaw, shiftWeekStart } from './growth/growth';
 import type { Tables, TablesInsert } from './database.types';
 
-export interface MorningPlanTodo {
+interface MorningPlanTodo {
   id: string;
   title: string;
   priority: string;

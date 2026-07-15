@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Card } from '../ui/Card';
 
-export interface DataCardProps {
+interface DataCardProps {
   label: ReactNode;
   value: ReactNode;
   detail?: ReactNode;
@@ -9,7 +9,7 @@ export interface DataCardProps {
   className?: string;
 }
 
-export function DataCard({ label, value, detail, icon, className = '' }: DataCardProps) {
+function DataCard({ label, value, detail, icon, className = '' }: DataCardProps) {
   return (
     <Card className={`grid gap-[var(--space-3)] ${className}`} padding="var(--space-5)">
       <div className="flex items-center justify-between gap-[var(--space-3)] text-xs font-semibold text-text-muted"><span>{label}</span>{icon}</div>

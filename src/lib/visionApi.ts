@@ -43,14 +43,3 @@ export async function fetchMeasurements(): Promise<Measurement[]> {
 
   return (data || []) as Measurement[];
 }
-
-export async function insertMeasurement(measurement: TablesInsert<'endmyopia_measurements'>): Promise<void> {
-  const { error } = await supabase
-    .from('endmyopia_measurements')
-    .insert(measurement);
-
-  if (error) {
-    console.error('[visionApi] insertMeasurement failed:', error.message);
-    throw new Error(error.message);
-  }
-}

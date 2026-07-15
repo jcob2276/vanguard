@@ -123,12 +123,6 @@ export const actionCenterKeys = {
   data: (userId: string) => [...actionCenterKeys.all, 'data', userId] as const,
 };
 
-// ── BIOMEDICAL CONTEXT KEYS ──
-export const medicalContextKeys = {
-  all: ['medicalContext'] as const,
-  cabinet: (userId: string) => [...medicalContextKeys.all, 'cabinet', userId] as const,
-};
-
 // ── FOOD ENTRY LISTS KEYS ──
 export const foodEntryListsKeys = {
   all: ['food-entry-lists'] as const,
@@ -138,194 +132,22 @@ export const foodEntryListsKeys = {
   targets: (userId: string) => [...foodEntryListsKeys.all, 'targets', userId] as const,
 };
 
-// ── SUPPLEMENTS KEYS ──
-export const supplementsKeys = {
-  all: ['supplements'] as const,
-  list: (userId: string) => [...supplementsKeys.all, 'list', userId] as const,
-};
-
-// ── HEXAGON SCORES KEYS ──
-export const hexagonScoresKeys = {
-  all: ['hexagonScores'] as const,
-  list: (userId: string, weekStart: string) =>
-    [...hexagonScoresKeys.all, 'list', userId, weekStart] as const,
-};
-
-// ── KPI TREND KEYS ──
-export const kpiTrendKeys = {
-  all: ['kpiTrend'] as const,
-  sparkline: (userId: string, kpiId: string, limit: number) =>
-    [...kpiTrendKeys.all, 'sparkline', userId, kpiId, limit] as const,
-};
-
-// ── LIFE SCOREBOARD KEYS ──
-export const lifeScoreboardKeys = {
-  all: ['lifeScoreboard'] as const,
-  range: (userId: string, start: string, end: string) =>
-    [...lifeScoreboardKeys.all, 'range', userId, start, end] as const,
-};
-
-// ── DREAMS KEYS ──
-export const dreamsKeys = {
-  all: ['dreams'] as const,
-  list: (userId: string) => [...dreamsKeys.all, 'list', userId] as const,
-};
-
-// ── VISION ITEMS KEYS ──
-export const visionItemsKeys = {
-  all: ['visionItems'] as const,
-  list: (userId: string) => [...visionItemsKeys.all, 'list', userId] as const,
-};
-
-// ── SPRINT REVIEW KEYS ──
-export const sprintReviewKeys = {
-  all: ['sprintReview'] as const,
-  bySprint: (userId: string, personalYear: number, sprintNumber: number) =>
-    [...sprintReviewKeys.all, 'bySprint', userId, personalYear, sprintNumber] as const,
-};
-
-// ── FOOD SEARCH KEYS ──
-export const foodSearchKeys = {
-  all: ['foodSearch'] as const,
-  recent: (userId: string) => [...foodSearchKeys.all, 'recent', userId] as const,
-};
-
-// ── HABITS KEYS ──
-export const habitsKeys = {
-  all: ['habits'] as const,
-  list: (userId: string) => [...habitsKeys.all, 'list', userId] as const,
-};
-
-// ── CORRELATIONS KEYS ──
-export const correlationsKeys = {
-  all: ['correlations'] as const,
-  forUser: (userId: string) => [...correlationsKeys.all, 'forUser', userId] as const,
-};
-
-// ── DAILY SNAPSHOT KEYS ──
-export const dailySnapshotKeys = {
-  all: ['dailySnapshot'] as const,
-  list: (userId: string, limit: number) =>
-    [...dailySnapshotKeys.all, 'list', userId, limit] as const,
-};
-
-// ── INLINE LOOSE KEY LITERALS ──
-export const brainHealthKeys = {
-  all: ['brain-health'] as const,
-  forUser: (userId: string) => [...brainHealthKeys.all, userId] as const,
-};
-
-export const calendarTodosKeys = {
-  inbox: (userId: string) => ['calendar-todos-inbox', userId] as const,
-  scheduled: (userId: string, rangeStart: string, rangeEnd: string) => ['calendar-todos-scheduled', userId, rangeStart, rangeEnd] as const,
-};
-
-export const goalLineageKeys = {
-  forUser: (userId: string) => ['goal-lineage', userId] as const,
-};
-
-export const calendarWeatherKeys = {
-  range: (rangeStart: string, rangeEnd: string) => ['calendar-weather', rangeStart, rangeEnd] as const,
-};
-
-export const timeBudgetsKeys = {
-  forUser: (userId: string) => ['time-budgets', userId] as const,
-};
-
-export const todayCalendarEventsKeys = {
-  forUser: (userId: string, today: string) => ['today-calendar-events', userId, today] as const,
-};
-
-export const latestTaskReviewDateKeys = {
-  forUser: (userId: string) => ['latest-task-review-date', userId] as const,
-};
-
-export const morningPlanKeys = {
-  data: (userId: string, planningDate: string, isPlanningTomorrow: boolean) => ['morning-plan-data', userId, planningDate, isPlanningTomorrow] as const,
-};
-
-export const nutritionDayContextKeys = {
-  forUser: (userId: string, today: string, refreshSignal: number) => ['nutrition-day-context', userId, today, refreshSignal] as const,
-};
-
-export const foodEntrySearchKeys = {
-  search: (userId: string, debouncedQuery: string) => ['food-entry-search', userId, debouncedQuery] as const,
-};
-
-export const nutritionContextKeys = {
-  forUser: (userId: string, logDate: string, refreshSignal: number) => ['nutrition-context', userId, logDate, refreshSignal] as const,
-};
-
-export const yesterdayEntriesKeys = {
-  byType: (userId: string, mealType: string) => ['yesterday-entries', userId, mealType] as const,
-};
-
-export const nutritionDataKeys = {
-  forUser: (userId: string, weeklyCalories: number) => ['nutrition-data', userId, weeklyCalories] as const,
-};
-
-export const behaviorLogsKeys = {
-  forUser: (userId: string) => ['behavior-logs', userId] as const,
-};
-
-export const generalViewDataKeys = {
-  forUser: (userId: string, hasOura: boolean) => ['general-view-data', userId, hasOura] as const,
-};
-
-export const systemHealthKeys = {
-  forUser: (userId: string) => ['system-health', userId] as const,
-};
-
-export const spineGuidanceKeys = {
-  forUser: (userId: string) => ['spine-guidance', userId] as const,
-};
-
-export const userFundamentKeys = {
-  forUser: (userId: string) => ['user-fundament', userId] as const,
-};
-
-export const progressPhotosKeys = {
-  forUser: (userId: string) => ['progress-photos', userId] as const,
-};
-
-export const systemProposalsKeys = {
-  forUser: (userId: string) => ['system-proposals', userId] as const,
-};
-
-export const weeklyBalanceHexagonKeys = {
-  forUser: (userId: string, weekStart: string) => ['weekly-balance-hexagon', userId, weekStart] as const,
-};
-
-export const directionContextKeys = {
-  forUser: (userId: string, weekStart: string) => ['direction-context', userId, weekStart] as const,
-};
-
-export const powerlistKeys = {
-  projectMetadata: (userId: string, todoIds: string[], directProjectIds: string[]) => ['powerlist-project-metadata', userId, ...todoIds, ...directProjectIds] as const,
-  yesterdayWin: (userId: string) => ['powerlist-yesterday-win', userId] as const,
-  openTodos: (userId: string, today: string) => ['powerlist-open-todos', userId, today] as const,
-};
-
-export const prescriptionsKeys = {
-  forUser: (userId: string) => ['prescriptions', userId] as const,
-};
-
-export const medicalDataKeys = {
-  forUser: (userId: string) => ['medical-data', userId] as const,
-};
-
-export const lifeGoalsKeys = {
-  forUser: (userId: string) => ['life-goals', userId] as const,
-};
-
-export const todoPushSubscriptionKeys = {
-  forUser: (userId: string) => ['todo-push-subscription', userId] as const,
-};
-
 // ── USER SETTINGS KEYS ──
 export const userSettingsKeys = {
   all: ['user-settings'] as const,
   detail: (userId: string) => [...userSettingsKeys.all, userId] as const,
+};
+
+// ── SHUTDOWN KEYS ──
+export const shutdownKeys = {
+  all: ['shutdown'] as const,
+  data: (userId: string, date: string) => [...shutdownKeys.all, 'data', userId, date] as const,
+};
+
+// ── USER STATS KEYS ──
+export const userStatsKeys = {
+  all: ['userStats'] as const,
+  snapshot: (userId: string) => [...userStatsKeys.all, 'snapshot', userId] as const,
 };
 
 // ── ORACLE CHAT KEYS ──

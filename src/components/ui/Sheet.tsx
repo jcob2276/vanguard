@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import IconButton from './IconButton';
 
-export interface SheetProps {
+interface SheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
@@ -10,7 +10,7 @@ export interface SheetProps {
   side?: 'left' | 'right' | 'bottom';
 }
 
-export function Sheet({ open, onOpenChange, title, children, side = 'right' }: SheetProps) {
+function Sheet({ open, onOpenChange, title, children, side = 'right' }: SheetProps) {
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onOpenChange(false); };
@@ -20,7 +20,7 @@ export function Sheet({ open, onOpenChange, title, children, side = 'right' }: S
 
   if (!open) return null;
   const placement = side === 'bottom'
-    ? 'inset-x-0 bottom-0 max-h-[var(--legacy-arbitrary-059)] rounded-t-[var(--radius-xl)]'
+    ? 'inset-x-0 bottom-0 max-h-[var(--ds-arbitrary-85svh)] rounded-t-[var(--radius-xl)]'
     : `${side === 'left' ? 'left-0' : 'right-0'} inset-y-0 w-full max-w-md`;
 
   return (

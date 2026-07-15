@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export interface SectionProps {
+interface SectionProps {
   title?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
@@ -8,7 +8,7 @@ export interface SectionProps {
   className?: string;
 }
 
-export function Section({ title, description, actions, children, className = '' }: SectionProps) {
+function Section({ title, description, actions, children, className = '' }: SectionProps) {
   return (
     <section className={`grid gap-[var(--space-4)] ${className}`}>
       {(title || description || actions) && (

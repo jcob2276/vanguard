@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export interface PageToolbarProps {
+interface PageToolbarProps {
   title: ReactNode;
   description?: ReactNode;
   leading?: ReactNode;
@@ -9,7 +9,7 @@ export interface PageToolbarProps {
   navigation?: ReactNode;
 }
 
-export function PageToolbar({ title, description, leading, center, actions, navigation }: PageToolbarProps) {
+function PageToolbar({ title, description, leading, center, actions, navigation }: PageToolbarProps) {
   return (
     <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-custom/40 bg-background/75 glass-elevated">
       <div className="flex min-h-[var(--toolbar-height)] items-center gap-[var(--space-3)] px-[var(--space-4)] md:px-[var(--space-6)]">

@@ -9,21 +9,23 @@
     "supabase/functions/**/*.ts"
   ],
   "ignore": [
-    "supabase/functions/_shared/**/*.test.ts",
+    "supabase/functions/**/*.test.ts",
     "src/sw.ts",
     "src/lib/database.types.ts",
     "supabase/functions/_shared/database.types.ts",
     "supabase/functions/_shared/repos/**",
     "src/lib/foodSearchApi.ts"
   ],
-  "ignoreExports": {
-    "src/components/lifestyle/links/useLinksInboxData.ts": ["linksKeys"],
-    "src/components/projects/useProjectsData.ts": ["projectsKeys"],
-    "src/components/core/nutrition/hooks/useFoodEntryLists.ts": ["foodEntryListsKeys"],
-    "src/components/lifestyle/direction/hooks/useDirection.ts": ["directionKeys"],
-    "src/components/growth/hooks/useGrowthData.ts": ["GrowthWeekNote", "GrowthCheckpoint"],
-    "src/lib/systemApi.ts": ["AuditEvent", "DataCoverage", "PredictionCalibrationItem", "PredictionCalibrationSummary"],
-    "src/components/core/useNutritionData.ts": ["DailyNutritionRow"]
+  "ignoreIssues": {
+    "src/components/lifestyle/links/useLinksInboxData.ts": ["exports"],
+    "src/components/projects/useProjectsData.ts": ["exports"],
+    "src/components/core/nutrition/hooks/useFoodEntryLists.ts": ["exports"],
+    "src/components/lifestyle/direction/hooks/useDirection.ts": ["exports"],
+    "src/components/growth/hooks/useGrowthData.ts": ["exports", "types"],
+    "src/lib/systemApi.ts": ["exports", "types"],
+    "src/components/core/useNutritionData.ts": ["exports", "types"],
+    "supabase/functions/_shared/foodParseCore.ts": ["exports"],
+    "supabase/functions/_shared/foodParse/matching.ts": ["exports"]
   },
   "ignoreDependencies": [
     "npm"

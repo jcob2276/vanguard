@@ -6,7 +6,7 @@ import { syncCalendar } from './syncApi';
 import { parseWorldState } from './db-json-guards';
 import type { Tables } from './database.types';
 
-export type TodayWinRow = Tables<'daily_wins'> & { daily_win_tasks?: Tables<'daily_win_tasks'>[] };
+type TodayWinRow = Tables<'daily_wins'> & { daily_win_tasks?: Tables<'daily_win_tasks'>[] };
 
 // Mirror of the WorldState interface from supabase/functions/_shared/worldState.ts
 export type WorldState = {
@@ -30,7 +30,7 @@ import { dashboardKeys } from './queryKeys';
 /**
  * Fetch dashboard data: checks cached world state first, falls back to live queries and vanguard core state determination.
  */
-export async function fetchDashboardData(userId: string): Promise<DashboardData> {
+async function fetchDashboardData(userId: string): Promise<DashboardData> {
   const today = getTodayWarsaw();
   const dayOfWeek = new Date(today + 'T12:00:00Z').getUTCDay();
   const daysToMonday = (dayOfWeek + 6) % 7;

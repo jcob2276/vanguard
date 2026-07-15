@@ -18,8 +18,8 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export const DEFAULT_PROTEIN_FLOOR_G = 150;
-export const DEFAULT_SLEEP_TARGET_H = 8.0;
+const DEFAULT_PROTEIN_FLOOR_G = 150;
+const DEFAULT_SLEEP_TARGET_H = 8.0;
 
 export interface PersonalTargets {
   /** Minimum daily protein (g). From nutrition_targets.protein_floor_g (latest).

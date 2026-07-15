@@ -14,7 +14,7 @@ export type WeekReviewRow = Pick<
 
 export type WeeklyReviewRow = Tables<'weekly_reviews'>;
 
-export type LifeGoalDeclarations = Pick<
+type LifeGoalDeclarations = Pick<
   Tables<'life_goals'>,
   | 'goal_cialo'
   | 'goal_duch'

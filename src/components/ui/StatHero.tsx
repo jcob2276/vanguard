@@ -46,7 +46,7 @@ export function StatHero({
 
   return (
     <div className={`text-center ${className}`}>
-      <p className="text-2xs font-black uppercase tracking-[var(--legacy-arbitrary-004)] text-text-muted mb-1 flex items-center justify-center gap-1">
+      <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted mb-1 flex items-center justify-center gap-1">
         {Icon && <Icon size={10} className={color} />}
         {label}
       </p>
@@ -57,5 +57,3 @@ export function StatHero({
     </div>
   );
 }
-
-export default StatHero;

@@ -12,7 +12,7 @@
 
 // ── Per-function response types ──────────────────────────────────────
 
-export interface AnalyzeFoodQualitySingle {
+interface AnalyzeFoodQualitySingle {
   success?: boolean; mode: 'single'; date?: string; items_scored?: number;
   day_quality_score?: number; day_quality_analysis?: string;
   items: Array<{ name: string; food_quality_score: number; quality_reason: string }>;
@@ -21,7 +21,7 @@ export interface AnalyzeFoodQualitySingle {
   swap_suggestions?: Array<{ from: string; to: string; reason: string }>;
 }
 
-export interface AnalyzeFoodQualityRange {
+interface AnalyzeFoodQualityRange {
   success?: boolean; mode: 'range'; dateFrom?: string; dateTo?: string;
   days: Array<{ date?: string; score?: number; summary?: string; incomplete?: boolean; fasting?: boolean }>;
   avg_score?: number; pattern_analysis?: string; top_issues?: string[]; strengths?: string[];
@@ -29,7 +29,7 @@ export interface AnalyzeFoodQualityRange {
   trend_note?: string; chronic_gaps?: string[]; best_day?: string; worst_day?: string; training_nutrition_note?: string;
 }
 
-export interface AnalyzeFoodQualityError {
+interface AnalyzeFoodQualityError {
   success?: boolean;
   error?: string;
 }
@@ -64,15 +64,15 @@ export interface AnalyzeTrainingLoadResponse {
   [key: string]: unknown;
 }
 
-export interface RecapReflectionResponse { ok: true; mode: 'reflection'; id: string; manual: boolean; voice_count_24h: number; stream_count_24h: number; events_count: number; }
-export interface RecapWeeklySynthesisResponse { success: true; week: string; }
-export interface RecapWeeklyRecapPhase1 { phase1: { narrative: string; longterm_motif: string | null; question: string; }; }
+interface RecapReflectionResponse { ok: true; mode: 'reflection'; id: string; manual: boolean; voice_count_24h: number; stream_count_24h: number; events_count: number; }
+interface RecapWeeklySynthesisResponse { success: true; week: string; }
+interface RecapWeeklyRecapPhase1 { phase1: { narrative: string; longterm_motif: string | null; question: string; }; }
 export interface RecapWeeklyRecapPhase2 { phase2: { narrative_check: string; deepening_questions: string[]; block5_material: { cialo: string; duch: string; konto: string; }; }; }
 
-export type RecapWeeklyRecapResponse = RecapWeeklyRecapPhase1 | RecapWeeklyRecapPhase2;
+type RecapWeeklyRecapResponse = RecapWeeklyRecapPhase1 | RecapWeeklyRecapPhase2;
 export type RecapResponse = RecapReflectionResponse | RecapWeeklySynthesisResponse | RecapWeeklyRecapResponse;
 
-export interface AutoClassifyStreamResponse {
+interface AutoClassifyStreamResponse {
   success: boolean;
   classification: {
     importance_score: number; category: string; tags: string[]; temporality: string;
@@ -84,19 +84,19 @@ export interface AutoClassifyStreamResponse {
   friction_type: string | null; extraction_quality: number | null;
 }
 
-export interface AutoClassifyTodoClassifyResponse { ok: boolean; ai_bucket: string; ai_classified_at: string; due_date?: string; priority?: string; }
-export interface AutoClassifyTodoExtractResponse { tasks: Array<{ title: string; due_date: string | null; priority: string | null; }>; }
+interface AutoClassifyTodoClassifyResponse { ok: boolean; ai_bucket: string; ai_classified_at: string; due_date?: string; priority?: string; }
+interface AutoClassifyTodoExtractResponse { tasks: Array<{ title: string; due_date: string | null; priority: string | null; }>; }
 
-export type AutoClassifyResponse = AutoClassifyStreamResponse | AutoClassifyTodoClassifyResponse | AutoClassifyTodoExtractResponse;
+type AutoClassifyResponse = AutoClassifyStreamResponse | AutoClassifyTodoClassifyResponse | AutoClassifyTodoExtractResponse;
 
-export interface CalendarWriteResponse { success: boolean; eventId?: string; error?: string; }
+interface CalendarWriteResponse { success: boolean; eventId?: string; error?: string; }
 
 export interface KeepTriageResponse {
   suggestions: Array<{ id: string; action: 'keep' | 'archive' | 'todo'; category: string; takeaways: string[]; reasoning: string; }>;
   totalStale: number;
 }
 
-export interface ParseFoodNLResponse {
+interface ParseFoodNLResponse {
   items: Array<{
     name: string; grams: number; calories: number; protein: number; carbs: number; fat: number;
     fiber?: number; sugar?: number; barcode?: string | null; brand?: string | null;
@@ -105,19 +105,19 @@ export interface ParseFoodNLResponse {
   }>;
 }
 
-export interface CaptureVaultResponse { success: true; chunks: number; triads: number; message: string; }
-export interface CaptureLinkResponse { ok: true; type: 'link'; data: Record<string, unknown>; }
-export interface CaptureStreamResponse { ok: true; type: 'stream'; data: Record<string, unknown>; }
+interface CaptureVaultResponse { success: true; chunks: number; triads: number; message: string; }
+interface CaptureLinkResponse { ok: true; type: 'link'; data: Record<string, unknown>; }
+interface CaptureStreamResponse { ok: true; type: 'stream'; data: Record<string, unknown>; }
 
-export type CaptureResponse = CaptureVaultResponse | CaptureLinkResponse | CaptureStreamResponse;
+type CaptureResponse = CaptureVaultResponse | CaptureLinkResponse | CaptureStreamResponse;
 
-export interface NightlyResponse {
+interface NightlyResponse {
   success: boolean; run_id: string;
   freshness: { oura_fresh: boolean; nutrition_fresh: boolean; warnings: string[]; };
   [key: string]: unknown;
 }
 
-export interface NutritionCoachResponse {
+interface NutritionCoachResponse {
   success: boolean; date: string;
   signals: {
     today: { target_kcal: number; deficit_kcal: number; protein_floor_g: number; remaining_kcal: number; remaining_protein: number; intake_so_far?: number; };
@@ -133,13 +133,13 @@ export interface NutritionCoachResponse {
   verdictError: string | null; notified: boolean; persistError: string | null;
 }
 
-export interface SyncOuraResponse { success: true; total_upserted: number; batches: number; warnings?: string[]; }
-export interface SyncStravaResponse { ok: true; synced: number; primary: number; oura_duplicates: number; paired: number; rate_limited: boolean; }
-export interface SyncCalendarResponse { success: true; calendarCount?: number; }
+interface SyncOuraResponse { success: true; total_upserted: number; batches: number; warnings?: string[]; }
+interface SyncStravaResponse { ok: true; synced: number; primary: number; oura_duplicates: number; paired: number; rate_limited: boolean; }
+interface SyncCalendarResponse { success: true; calendarCount?: number; }
 
-export type SyncResponse = SyncOuraResponse | SyncStravaResponse | SyncCalendarResponse;
+type SyncResponse = SyncOuraResponse | SyncStravaResponse | SyncCalendarResponse;
 
-export interface LookupFoodResponse {
+interface LookupFoodResponse {
   results: Array<{
     barcode: string | null; name: string; brand: string | null;
     calories: number | null; protein: number | null; carbs: number | null; fat: number | null;

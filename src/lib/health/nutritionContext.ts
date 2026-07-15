@@ -254,24 +254,3 @@ function num(v: unknown): number | null {
   return n > 0 ? n : null;
 }
 
-function foodLogClosedKey(userId: string, date: string): string {
-  return `vanguard_food_closed_${userId}_${date}`;
-}
-
-export function isFoodLogClosed(userId: string, date: string): boolean {
-  try {
-    return localStorage.getItem(foodLogClosedKey(userId, date)) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function setFoodLogClosed(userId: string, date: string, closed: boolean): void {
-  try {
-    const key = foodLogClosedKey(userId, date);
-    if (closed) localStorage.setItem(key, '1');
-    else localStorage.removeItem(key);
-  } catch {
-    /* ignore */
-  }
-}

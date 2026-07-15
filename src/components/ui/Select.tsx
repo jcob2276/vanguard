@@ -1,13 +1,13 @@
 import { forwardRef, type SelectHTMLAttributes } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   options: SelectOption[];
   label?: string;
   error?: string;
@@ -16,7 +16,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
 
 const HEIGHTS = { sm: 'h-[var(--control-sm)]', md: 'h-[var(--control-md)]', lg: 'h-[var(--control-lg)]' } as const;
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ options, label, error, controlSize = 'md', className = '', id, ...props }, ref) => {
     const selectId = id ?? props.name;
     return (
