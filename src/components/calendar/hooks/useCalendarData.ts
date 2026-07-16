@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../../lib/supabase';
 import { useUserSettings } from '../../../hooks/useUserSettings';
 import {
   useCalendarEvents,
@@ -145,6 +146,30 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
       queryKey: calendarKeys.events(userId || '', visibleRange.rangeStart, visibleRange.rangeEnd),
     });
   }, [queryClient, userId, visibleRange]);
+
+  // Real-time updates subscription to keep calendar in sync instantly with database triggers/background sync
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('calendar-realtime-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vanguard_calendar',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          void fetchEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId, fetchEvents]);
 
   const formatTimeOfISO = (iso: string) => {
     const parts = iso.split('T')[1]?.split(':');

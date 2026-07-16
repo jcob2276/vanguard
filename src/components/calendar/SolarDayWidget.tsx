@@ -40,7 +40,7 @@ export default function SolarDayWidget({ dateStr }: Props) {
           <div className="text-xs font-bold text-text-muted tabular-nums">
             {dayLenH}h {dayLenM}m
           </div>
-          <div className="text-2xs text-text-muted/60 uppercase tracking-wider">światła</div>
+          <div className="text-2xs text-text-muted uppercase tracking-wider">światła</div>
         </div>
 
         <div className="flex items-center gap-1.5">

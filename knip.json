@@ -13,8 +13,7 @@
     "src/sw.ts",
     "src/lib/database.types.ts",
     "supabase/functions/_shared/database.types.ts",
-    "supabase/functions/_shared/repos/**",
-    "src/lib/foodSearchApi.ts"
+    "supabase/functions/_shared/repos/**"
   ],
   "ignoreIssues": {
     "src/components/lifestyle/links/useLinksInboxData.ts": ["exports"],

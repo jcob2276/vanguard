@@ -39,6 +39,7 @@ export function useTodoCardSwipe({
   const prevSwipeRef = useRef(0);
   const [completing, setCompleting] = useState(false);
   const [completingOut, setCompletingOut] = useState(false);
+  const [isSwiping, setIsSwiping] = useState(false);
 
   const handleComplete = useCallback(() => {
     if (isDone) {
@@ -74,7 +75,18 @@ export function useTodoCardSwipe({
     const dx = e.targetTouches[0].clientX - touchStartX;
     const dy = Math.abs(e.targetTouches[0].clientY - touchStartY);
     if (dy > 12) return;
-    const newOffset = Math.max(-130, Math.min(130, dx));
+    setIsSwiping(true);
+
+    // Apply rubber-banding (elastic resistance) beyond 80px
+    const rubberBand = (distance: number, limit: number = 80, resistance: number = 0.3): number => {
+      const sign = Math.sign(distance);
+      const absDist = Math.abs(distance);
+      if (absDist <= limit) return distance;
+      return sign * (limit + (absDist - limit) * resistance);
+    };
+
+    const bandedOffset = rubberBand(dx);
+    const newOffset = Math.max(-140, Math.min(140, bandedOffset));
     prevSwipeRef.current = newOffset;
     setSwipeOffset(newOffset);
     setSwipeDir(dx > 40 ? 'right' : dx < -40 ? 'left' : null);
@@ -83,6 +95,7 @@ export function useTodoCardSwipe({
   const onTouchEnd = useCallback(() => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     prevSwipeRef.current = 0;
+    setIsSwiping(false);
     if (!isDragging) {
       if (swipeOffset > 100) {
         setSwipeOffset(500);
@@ -167,7 +180,7 @@ export function useTodoCardSwipe({
   }, [isEditing, expanded, onDragStart, item, onEditStart, onToggleExpand]);
 
   return {
-    touchStartX, touchStartY, swipeOffset, swipeDir, completing, completingOut,
+    touchStartX, touchStartY, swipeOffset, swipeDir, completing, completingOut, isSwiping,
     onTouchStart, onTouchMove, onTouchEnd,
     onGripTouchStart, onGripTouchEnd, onGripTouchMove, onGripMouseDown,
     handleContentMouseDown, handleComplete,

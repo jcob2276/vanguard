@@ -1,7 +1,9 @@
 import { useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '../lib/notify';
 import { NETWORK_TIMEOUT_MS } from '../lib/constants';
 import { invokeEdge } from '../lib/supabase';
+import { calendarKeys, biometricsKeys } from '../lib/queryKeys';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 const GOOGLE_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
@@ -33,6 +35,8 @@ export function useSyncActions({
   onRefresh: () => void;
   setSyncing: (v: boolean) => void;
 }) {
+  const queryClient = useQueryClient();
+
   const callFn = useCallback(async (fn: string, body: Record<string, unknown> = {}) => {
     await invokeEdge(fn, {
       method: 'POST',
@@ -41,18 +45,68 @@ export function useSyncActions({
     });
   }, []);
 
-  const syncCalendar = useCallback(async () => {
-    setSyncing(true);
+  const syncCalendarSilent = useCallback(async () => {
     try {
-      await callFn('sync?service=calendar', { userId });
+      await Promise.all([
+        callFn('sync?service=calendar', { userId }),
+        callFn('sync?service=oura', { userId }),
+        callFn('sync?service=strava', { userId }),
+      ]);
+      if (userId) {
+        await queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+        await queryClient.invalidateQueries({ queryKey: biometricsKeys.all });
+      }
       onRefresh();
     } catch (err: unknown) {
+      console.warn('[Auto Sync Error]', err);
+    }
+  }, [callFn, userId, onRefresh, queryClient]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const LAST_SYNC_KEY = 'vanguard_last_unified_sync_time';
+    const now = Date.now();
+    let lastSync = 0;
+    try {
+      const val = localStorage.getItem(LAST_SYNC_KEY);
+      lastSync = val ? parseInt(val, 10) : 0;
+    } catch (e) { /* ignore */ }
+
+    // Throttle to 10 minutes (600,000 ms)
+    if (now - lastSync > 10 * 60 * 1000) {
+      try {
+        localStorage.setItem(LAST_SYNC_KEY, String(now));
+      } catch (e) { /* ignore */ }
+      void syncCalendarSilent();
+    }
+  }, [userId, syncCalendarSilent]);
+
+  const syncCalendar = useCallback(async () => {
+    setSyncing(true);
+    notify('Pobieram dane: Google Calendar, Oura i Strava… 🔄', 'info');
+    try {
+      await Promise.all([
+        callFn('sync?service=calendar', { userId }),
+        callFn('sync?service=oura', { userId }),
+        callFn('sync?service=strava', { userId }),
+      ]);
+      const LAST_SYNC_KEY = 'vanguard_last_unified_sync_time';
+      try {
+        localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+      } catch (e) { /* ignore */ }
+      if (userId) {
+        await queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+        await queryClient.invalidateQueries({ queryKey: biometricsKeys.all });
+      }
+      onRefresh();
+      notify('Synchronizacja zakończona pomyślnie! 🛌🏃🗓️', 'success');
+    } catch (err: unknown) {
       console.error('[Action Error]', err);
-      notify(err instanceof Error ? err.message : 'Wystąpił błąd', 'error');
+      notify(err instanceof Error ? err.message : 'Wystąpił błąd podczas synchronizacji', 'error');
     } finally {
       setSyncing(false);
     }
-  }, [callFn, userId, onRefresh, setSyncing]);
+  }, [callFn, userId, onRefresh, setSyncing, queryClient]);
 
   const handleGoogleCallback = useCallback(async (code: string) => {
     setSyncing(true);

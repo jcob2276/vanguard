@@ -1,6 +1,12 @@
+/**
+ * RichEditor — świadomy wyjątek od limitu 300 linii (FRONTEND_GUIDE.md §13.8).
+ * Gęsta logika kursora/selekcji (Range, document.execCommand, visualViewport)
+ * wymaga utrzymania stanu w jednym miejscu — rozbicie grozi subtelnymi bugami
+ * z kursorem (skaczący kursor, utrata selekcji przy zmianie narzędzia).
+ */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
-import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter } from 'lucide-react';
+import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter, Heading2, List, ListOrdered, Indent, Outdent, Undo, Redo, Link2, Eraser } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
 import { notify } from '../../lib/notify';
 import { SLASH_COMMANDS } from './richEditorCommands';
@@ -24,7 +30,17 @@ export default function RichEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [toolbarRange, setToolbarRange] = useState<Range | null>(null);
-  const [activeState, setActiveState] = useState({ bold: false, italic: false, h1: false, list: false, underline: false, strikethrough: false, blockquote: false });
+  const [activeState, setActiveState] = useState({
+    bold: false,
+    italic: false,
+    h1: false,
+    h2: false,
+    list: false,
+    numList: false,
+    underline: false,
+    strikethrough: false,
+    blockquote: false
+  });
   const staticBarRef = useRef<HTMLDivElement>(null);
   // Saved selection before toolbar action steals focus
   const savedSelectionRef = useRef<{ range: Range } | null>(null);
@@ -230,7 +246,9 @@ export default function RichEditor({
         bold: document.queryCommandState('bold'),
         italic: document.queryCommandState('italic'),
         h1: document.queryCommandValue('formatBlock') === 'h1',
-        list: false,
+        h2: document.queryCommandValue('formatBlock') === 'h2',
+        list: document.queryCommandState('insertUnorderedList'),
+        numList: document.queryCommandState('insertOrderedList'),
         underline: document.queryCommandState('underline'),
         strikethrough: document.queryCommandState('strikeThrough'),
         blockquote: document.queryCommandValue('formatBlock') === 'blockquote',
@@ -305,6 +323,55 @@ export default function RichEditor({
       restoreSelection();
       const isH1 = document.queryCommandValue('formatBlock') === 'h1';
       document.execCommand('formatBlock', false, isH1 ? '<p>' : '<h1>');
+      handleInput();
+      handleSelection();
+    } else if (action === 'h2') {
+      restoreSelection();
+      const isH2 = document.queryCommandValue('formatBlock') === 'h2';
+      document.execCommand('formatBlock', false, isH2 ? '<p>' : '<h2>');
+      handleInput();
+      handleSelection();
+    } else if (action === 'bullet') {
+      restoreSelection();
+      document.execCommand('insertUnorderedList', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'number') {
+      restoreSelection();
+      document.execCommand('insertOrderedList', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'indent') {
+      restoreSelection();
+      document.execCommand('indent', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'outdent') {
+      restoreSelection();
+      document.execCommand('outdent', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'undo') {
+      restoreSelection();
+      document.execCommand('undo', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'redo') {
+      restoreSelection();
+      document.execCommand('redo', false);
+      handleInput();
+      handleSelection();
+    } else if (action === 'link') {
+      restoreSelection();
+      const url = window.prompt('Wpisz adres URL odnośnika:');
+      if (url !== null) {
+        document.execCommand('createLink', false, url);
+        handleInput();
+      }
+      handleSelection();
+    } else if (action === 'clear') {
+      restoreSelection();
+      document.execCommand('removeFormat', false);
       handleInput();
       handleSelection();
     } else if (action === 'todo') {
@@ -785,9 +852,17 @@ export default function RichEditor({
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('h1'); }}
             className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`}
-            title="Nagłówek"
+            title="Nagłówek H1"
           >
             <span style={{ fontWeight: 'var(--ds-inline-style-800)', fontSize: 'var(--ds-inline-style-11)', letterSpacing: 'var(--ds-inline-style-0-02em)', lineHeight: 'var(--ds-inline-style-1)' }}>H1</span>
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('h2'); }}
+            className={`keep-static-btn ${activeState.h2 ? 'active' : ''}`}
+            title="Nagłówek H2"
+          >
+            <Heading2 size={18} strokeWidth={2} />
           </Pressable>
           <Pressable
             type="button"
@@ -797,6 +872,22 @@ export default function RichEditor({
           >
             <Quote size={18} strokeWidth={2} />
           </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('highlight'); }}
+            className="keep-static-btn"
+            title="Zakreślacz"
+          >
+            <Highlighter size={18} strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('clear'); }}
+            className="keep-static-btn"
+            title="Wyczyść formatowanie"
+          >
+            <Eraser size={18} strokeWidth={2} />
+          </Pressable>
 
           <div className="keep-static-sep" />
 
@@ -805,9 +896,25 @@ export default function RichEditor({
             type="button"
             onMouseDown={e => { e.preventDefault(); handleAction('todo'); }}
             className="keep-static-btn"
-            title="Lista zadań"
+            title="Lista zadań (Checklista)"
           >
             <CheckSquare size={20} strokeWidth={1.5} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('bullet'); }}
+            className={`keep-static-btn ${activeState.list ? 'active' : ''}`}
+            title="Lista punktowana"
+          >
+            <List size={20} strokeWidth={1.5} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('number'); }}
+            className={`keep-static-btn ${activeState.numList ? 'active' : ''}`}
+            title="Lista numerowana"
+          >
+            <ListOrdered size={20} strokeWidth={1.5} />
           </Pressable>
           <Pressable
             type="button"
@@ -820,14 +927,46 @@ export default function RichEditor({
 
           <div className="keep-static-sep" />
 
-          {/* Media & highlight group */}
+          {/* Actions & Media group */}
           <Pressable
             type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('highlight'); }}
+            onMouseDown={e => { e.preventDefault(); handleAction('outdent'); }}
             className="keep-static-btn"
-            title="Zaznacz tekst"
+            title="Zmniejsz wcięcie"
           >
-            <Highlighter size={18} strokeWidth={2} />
+            <Outdent size={20} strokeWidth={1.5} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('indent'); }}
+            className="keep-static-btn"
+            title="Zwiększ wcięcie"
+          >
+            <Indent size={20} strokeWidth={1.5} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('undo'); }}
+            className="keep-static-btn"
+            title="Cofnij"
+          >
+            <Undo size={18} strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('redo'); }}
+            className="keep-static-btn"
+            title="Ponów"
+          >
+            <Redo size={18} strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            type="button"
+            onMouseDown={e => { e.preventDefault(); handleAction('link'); }}
+            className="keep-static-btn"
+            title="Dodaj link"
+          >
+            <Link2 size={18} strokeWidth={2} />
           </Pressable>
           <Pressable
             type="button"

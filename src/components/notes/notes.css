@@ -931,18 +931,18 @@
 }
 
 .keep-rich-editor .keep-todo-checkbox, .keep-card-content .keep-todo-checkbox {
-  width: var(--ds-local-css-15px);
-  height: 15px;
-  border-radius: var(--radius-sm);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%; /* iOS Notes circular style */
   border: 1.5px solid var(--primary);
   background: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: var(--ds-local-css-3-5px);
+  margin-top: 3.5px;
   cursor: pointer;
-  flex-shrink: var(--ds-local-css-0);
-  transition: var(--ds-css-transition-background-color-0-2s-cubic-bezier-0-4-0-0-2-1-border-color-0-2s-cubic-bezier-0-4-0-0-2-1);
+  flex-shrink: 0;
+  transition: background-color 0.2s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .keep-rich-editor .keep-todo-checkbox.checked, .keep-card-content .keep-todo-checkbox.checked {
@@ -1022,13 +1022,18 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0;
-  margin-top: var(--ds-local-css-12px);
-  padding: 0 4px;
-  height: var(--ds-local-css-50px);
-  background: var(--color-theme-hex-ba118118128010);
-  border-radius: var(--radius-md);
-  border: none;
+  gap: 4px;
+  margin: 16px auto 0 auto;
+  padding: 0 8px;
+  height: 48px;
+  width: max-content;
+  max-width: 100%;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 24px; /* capsule */
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   flex-wrap: nowrap;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1039,49 +1044,64 @@
 
 /* Dark mode: slightly more visible */
 .dark .keep-static-bar {
-  background: var(--color-theme-hex-ba255255255007);
+  background: rgba(28, 28, 30, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .keep-static-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  height: var(--ds-local-css-44px);
-  border-radius: var(--radius-sm);
+  min-width: 40px;
+  height: 38px;
+  border-radius: 19px; /* rounded to match capsule */
   border: none;
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  transition: var(--ds-css-transition-background-0-12s-transform-0-08s);
+  transition: background-color 0.16s cubic-bezier(0.23, 1, 0.32, 1), transform 0.1s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.16s ease;
   flex-shrink: 0;
-  opacity: var(--ds-local-css-0-75);
+  opacity: 0.7;
   -webkit-tap-highlight-color: transparent;
 }
 
 .keep-static-btn:hover {
-  background: var(--color-theme-hex-ba118118128014);
+  background: rgba(0, 0, 0, 0.04);
   opacity: 1;
 }
 
+.dark .keep-static-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .keep-static-btn:active {
-  transform: var(--ds-local-css-scale-0-9);
-  background: var(--color-theme-hex-ba11811812802);
-  opacity: var(--ds-local-css-1);
+  transform: scale(0.93); /* responsive tap feedback */
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+}
+
+.dark .keep-static-btn:active {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .keep-static-btn.active {
   background: var(--primary);
   color: white;
-  opacity: var(--ds-local-css-1);
+  opacity: 1;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
 .keep-static-sep {
-  width: var(--ds-local-css-1px);
-  height: 26px;
-  background: var(--color-theme-hex-ba118118128025);
-  margin: 0 4px;
-  flex-shrink: var(--ds-local-css-0);
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.dark .keep-static-sep {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ── iOS Notes FAB ───────────────────────────────────────────── */
@@ -1609,3 +1629,69 @@
   height: 100%;
   overflow: hidden;
 }
+
+/* Split View Layout (iOS Notes / Evernote style) */
+.keep-split-container {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.keep-split-list-pane {
+  width: 320px;
+  border-right: 1px solid var(--border-custom);
+  overflow-y: auto;
+  height: 100%;
+  padding: 8px;
+  flex-shrink: 0;
+  background-color: var(--background);
+}
+
+.keep-split-list-pane::-webkit-scrollbar {
+  width: 4px;
+}
+
+.keep-split-list-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.keep-split-list-pane::-webkit-scrollbar-thumb {
+  background: var(--border-custom);
+  border-radius: 4px;
+}
+
+.keep-split-list-pane::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.keep-split-editor-pane {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--background);
+}
+
+.keep-inline-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .keep-split-list-pane {
+    width: 100%;
+    border-right: none;
+  }
+  .keep-split-editor-pane {
+    width: 100%;
+    padding: 8px;
+  }
+}
+

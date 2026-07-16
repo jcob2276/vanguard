@@ -7,7 +7,6 @@ import TodoSidebar, { type TodoNavDest } from './TodoSidebar';
 import TodoScanTextModal from './TodoScanTextModal';
 import EisenhowerMatrix from './EisenhowerMatrix';
 import KanbanView from './KanbanView';
-import TimelineView from './TimelineView';
 import TodayEventsPanel from './TodayEventsPanel';
 import { useTodoData, type TodoItemRow } from './useTodoData';
 
@@ -24,7 +23,7 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
   const todoData = useTodoContext();
   const {
     userId, loading,
-    setExpandedId, toggleExpand,
+    setExpandedId,
     activeFilterSection, setActiveFilterSection,
     quickCaptureRef,
     draggingItem, dragPosRef,
@@ -107,18 +106,6 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
               sections={todoData.sections}
               setItems={(fn) => todoData.setItems((prev) => fn(prev) as TodoItemRow[])}
               today={today}
-            />
-          </main>
-        )}
-
-        {todoView === 'timeline' && (
-          <main className="flex-1 overflow-hidden">
-            <TimelineView
-              items={todoData.todayItems}
-              sectionGoalMap={todoData.sectionGoalMap}
-              today={today}
-              onToggle={(item) => todoData.handleComplete(item as TodoItemRow)}
-              onExpand={(id) => toggleExpand(id)}
             />
           </main>
         )}

@@ -158,7 +158,7 @@ export default function TodoCard({
           e.preventDefault();
           onShowContextMenu(item, e.clientX, e.clientY);
         }}
-        style={{ transform: `translateX(${swipe.swipeOffset}px)` }}
+        style={{ transform: `translateX(${swipe.swipeOffset}px)`, transition: swipe.isSwiping ? 'none' : undefined }}
         onClick={e => e.stopPropagation()}
         className={`relative border-b border-border-custom/15 pr-2 py-4 pl-1 transition-all duration-[var(--motion-medium)] ease-[var(--ease-out)] group-hover:bg-text-primary/[0.015] ${leftBorder}`}
       >

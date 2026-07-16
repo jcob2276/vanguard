@@ -65,6 +65,50 @@ Edge function gotchas:
 - Telegram webhook timeout: 30s — long voice processing must be synchronous
 - vanguard-telegram is a thin router with handlers; change surgically, one flow at a time
 - Do NOT store deploy version numbers in rules/docs — they go stale weekly
+
+Code Quality (FIRST before new features):
+- Code quality, structure, logic, cleanliness, and zero dead code MUST be prioritized over adding new features/components.
+- New frontend UI files MUST remain strictly under 300 lines (max-lines: 300). Proactively split layout containers from subcomponents (Wzorzec A).
+
+Frontend Pre-Commit Checklist (run BEFORE finishing any frontend work):
+Every item below comes from a real bug found in this repo. "It probably works" is not a check.
+
+1. HELPER DUPLICATION — grep before you write:
+   Before writing any helper function (formatDate, getPlainText, stripHtml, etc.) in a component,
+   run: grep -r "function <name>" src/components/notes/ src/lib/
+   If it already exists anywhere → import it, do NOT rewrite it.
+   Canonical helpers for notes: keepUtils.ts. Canonical helpers for dates: lib/date.ts.
+
+2. NO RAW SUPABASE IN COMPONENTS — always use the lib layer:
+   BANNED in src/components/**:
+     supabase.from(...)           → use functions from src/lib/*Api.ts or src/lib/<domain>/*.ts
+     supabase.functions.invoke()  → use invokeEdge() from src/lib/supabase.ts
+   HOW TO CHECK: grep -r "supabase\.from\|supabase\.functions" src/components/
+   Expected result: zero matches (or only files on the whitelist in eslint.config.js).
+
+3. NO NATIVE BROWSER DIALOGS — use the lib wrappers:
+   BANNED: window.confirm(), window.alert()
+   USE INSTEAD:
+     confirmDialog('message')  from src/lib/notify.ts  → for destructive actions
+     notify('message', 'error') from src/lib/notify.ts → for errors/toasts
+   HOW TO CHECK: grep -r "window\.confirm\|window\.alert" src/components/
+
+4. SINGLE RESPONSIBILITY — one file, one job:
+   A file mixes responsibilities if it BOTH fetches/mutates data AND renders JSX.
+   If a file has useQuery/supabase calls AND returns JSX → split into Container + View.
+   Files >300 lines without a documented eslint-disable comment are a hard violation.
+   Exception: files with dense cursor/selection/DOM logic (e.g. rich text editors) —
+   document the exception with /* eslint-disable max-lines */ + comment explaining why.
+
+5. VERIFY IMPORTS MATCH REALITY — do not trust that an import exists:
+   After moving or creating a helper, verify the import path resolves:
+   Run npm run typecheck:ui. Zero errors = green. Any error = fix before finishing.
+   Do NOT assume "the code looks right" without running typecheck.
+
+6. CHECK FOR DEAD CODE after every split/refactor:
+   After extracting a component, grep for the old function/class name.
+   If nothing imports it → delete it. Dead code is the #1 source of confusion.
+   HOW TO CHECK: grep -r "<OldComponentName>" src/
 ```
 
 ## Where to read next

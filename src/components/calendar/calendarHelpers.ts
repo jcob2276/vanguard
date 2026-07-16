@@ -186,18 +186,18 @@ export function eventColor(ev: CalRow) {
   const summaryLower = ev.summary?.toLowerCase() || '';
   const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
   if (isFocusTime) {
-    return 'bg-primary/12 dark:bg-primary/18 text-primary border border-primary/25 font-bold';
+    return 'bg-primary/22 dark:bg-primary/25 text-primary-hover dark:text-primary-hover border border-primary/50 font-bold';
   }
 
   // 1. Explicit database category
   if (ev.category && CATEGORY_COLORS[ev.category.toLowerCase()]) {
     const tonalCategoryColors: Record<string, string> = {
-      praca: 'bg-info/12 dark:bg-info/15 text-text-primary border border-info/25 font-bold',
-      cialo_trening: 'bg-success/12 dark:bg-success/15 text-text-primary border border-success/25 font-bold',
-      duch_refleksja: 'bg-info/12 dark:bg-info/15 text-text-primary border border-info/25 font-bold',
-      finanse: 'bg-warning/14 dark:bg-warning/15 text-text-primary border border-warning/30 font-bold',
-      relacje_rodzina: 'bg-primary/12 dark:bg-primary/15 text-text-primary border border-primary/25 font-bold',
-      odpoczynek_regeneracja: 'bg-danger/12 dark:bg-danger/15 text-text-primary border border-danger/25 font-bold',
+      praca: 'bg-info/22 dark:bg-info/25 text-info-hover dark:text-info-hover border border-info/50 font-bold',
+      cialo_trening: 'bg-success/22 dark:bg-success/25 text-success-hover dark:text-success-hover border border-success/50 font-bold',
+      duch_refleksja: 'bg-info/22 dark:bg-info/25 text-info-hover dark:text-info-hover border border-info/50 font-bold',
+      finanse: 'bg-warning/22 dark:bg-warning/25 text-warning-hover dark:text-warning-hover border border-warning/50 font-bold',
+      relacje_rodzina: 'bg-primary/22 dark:bg-primary/25 text-primary-hover dark:text-primary-hover border border-primary/50 font-bold',
+      odpoczynek_regeneracja: 'bg-danger/22 dark:bg-danger/25 text-danger-hover dark:text-danger-hover border border-danger/50 font-bold',
     };
     return tonalCategoryColors[ev.category.toLowerCase()] || CATEGORY_COLORS[ev.category.toLowerCase()];
   }
@@ -221,7 +221,7 @@ export function eventColor(ev: CalRow) {
     }
   }
 
-  return 'bg-primary/12 dark:bg-primary/18 text-primary font-bold border border-primary/25';
+  return 'bg-primary/22 dark:bg-primary/25 text-primary-hover dark:text-primary-hover font-bold border border-primary/50';
 }
 
 export function layoutDayEvents(dayEvents: CalRow[]) {

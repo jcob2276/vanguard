@@ -5,7 +5,7 @@ interface UseKeepPageEffectsProps {
   search: string;
   activeTag: string | null;
   sidebarTab: 'notes' | 'archive';
-  viewMode: 'grid' | 'list';
+  viewMode: 'grid' | 'list' | 'split';
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   setVisibleCount: (fn: (prev: number) => number) => void;

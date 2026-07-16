@@ -11,7 +11,7 @@ interface Props {
 }
 
 const REASONS: { key: LoggingGapReason; label: string; icon: string }[] = [
-  { key: 'ok', label: 'OK, po prostu nie logowałem', icon: '👍' },
+  { key: 'ok', label: 'OK, po prostu nie logowałem jedzenia', icon: '👍' },
   { key: 'chory', label: 'Choroba / infekcja', icon: '🤒' },
   { key: 'podroz', label: 'Podróż / zmiana strefy', icon: '✈️' },
 ];
@@ -30,11 +30,11 @@ export default function LoggingGapPromptModal({ userId, lastLoggedDate, onClose 
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} padding="p-5" size="sm" title="Przerwa w logowaniu">
+    <Modal isOpen={true} onClose={onClose} padding="p-5" size="sm" title="Przerwa w logowaniu diety">
       <div className="space-y-3">
         <p className="text-sm text-text-muted">
-          Od kilku dni nie ma wpisów. Zanim system policzy to jako "brak danych", zaznacz co się działo —
-          korelacje wykluczą ten okres z analizy.
+          Od kilku dni (ostatni raz: <strong>{lastLoggedDate}</strong>) nie ma żadnych wpisów w Twoim dzienniku posiłków.
+          Zanim system zinterpretuje to jako głodówkę/post, zaznacz co się działo:
         </p>
         <div className="flex flex-col gap-2">
           {REASONS.map((r) => (

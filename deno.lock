@@ -4110,7 +4110,6 @@
         "npm:postcss@^8.5.12",
         "npm:react-body-highlighter@^2.0.5",
         "npm:react-dom@^19.2.5",
-        "npm:react-is@^19.2.7",
         "npm:react-router-dom@^7.17.0",
         "npm:react@^19.2.5",
         "npm:recharts@^3.8.1",

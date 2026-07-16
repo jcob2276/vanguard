@@ -112,13 +112,13 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           <ChevronRight size={18} className="text-text-muted" />
         </Pressable>
       </div>
-      <div className="flex border-b border-border-custom/40" style={{ paddingLeft: 'var(--ds-inline-style-44)' }}>
+      <div className="flex border-b border-border-custom/70" style={{ paddingLeft: 'var(--ds-inline-style-44)' }}>
         {weekDays.map((day) => {
           const isToday = day === today;
           const dayForecast = weather?.daily?.[day];
           return (
             <div key={day} className="flex-1 text-center py-1.5 flex flex-col items-center justify-center relative group">
-              <p className={`text-xs font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-muted/80'}`}>
+              <p className={`text-xs font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-secondary'}`}>
                 {formatWeekdayShort(day)}
               </p>
               {dayForecast && (
@@ -157,13 +157,13 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
         setToastMessage,
       })}
       <div ref={gridRef} className="flex-1 overflow-y-auto">
-        <div className="flex" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
+        <div className="flex pt-3" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
           {renderTimeGutter({ dayKey: undefined, weather: undefined })}
           {weekDays.map((day) => (
             <div
               key={day}
               data-day-col={day}
-              className={`flex-1 relative border-l border-border-custom/30 ${day === today ? 'bg-primary/[0.02]' : ''}`}
+              className={`flex-1 relative border-l border-border-custom/50 ${day === today ? 'bg-primary/[0.03]' : ''}`}
             >
               {renderDayColumn({
                 day,

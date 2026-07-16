@@ -10,6 +10,11 @@ export function relativeDate(iso: string): string {
   return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 }
 
+/** Strips HTML tags — shared by NoteRow, InlineEditor, EditNoteModal for snippet/AI text. */
+export function getPlainText(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export function sanitizeHtml(html: string): string {
   const FORBIDDEN = new Set(['script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'style', 'base']);
   const URL_ATTRS = new Set(['href', 'src', 'srcset', 'formaction', 'srcdoc', 'xlink:href']);

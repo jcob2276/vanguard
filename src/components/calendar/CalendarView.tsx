@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
 import { useCalendarData } from './hooks/useCalendarData';
@@ -7,7 +7,7 @@ import { useCalendarTodos } from './hooks/useCalendarTodos';
 import { CalendarGrid } from './CalendarGrid';
 import { CalendarEventModal } from './CalendarEventModal';
 
-import { todayStr } from './calendarHelpers';
+import { todayStr, addDays, weekMon } from './calendarHelpers';
 
 import { CalendarContext, CalendarContextType } from './context/CalendarContext';
 import CalendarSidebar from './components/CalendarSidebar';
@@ -91,6 +91,51 @@ export default function CalendarView({
     toastMessage: calData.toastMessage,
     setToastMessage: calData.setToastMessage,
   });
+
+  // Global keyboard navigation listener for left/right arrow keys
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip navigation if typing in an input element or editable area
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (calData.calView === 'dzien') {
+          const prev = addDays(calData.selectedDay, -1);
+          calData.setSelectedDay(prev);
+          calData.setWeekStart(weekMon(prev));
+        } else if (calData.calView === 'tydzien') {
+          const prev = addDays(calData.weekStart, -7);
+          calData.setSelectedDay(prev);
+          calData.setWeekStart(prev);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (calData.calView === 'dzien') {
+          const next = addDays(calData.selectedDay, 1);
+          calData.setSelectedDay(next);
+          calData.setWeekStart(weekMon(next));
+        } else if (calData.calView === 'tydzien') {
+          const next = addDays(calData.weekStart, 7);
+          calData.setSelectedDay(next);
+          calData.setWeekStart(next);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [calData.calView, calData.selectedDay, calData.weekStart, calData.setSelectedDay, calData.setWeekStart]);
 
   const contextValue: CalendarContextType = {
     userId,

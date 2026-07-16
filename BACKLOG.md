@@ -76,7 +76,7 @@ Część II §4.1–§4.9, w tej kolejności:
 
 Część II §5.1–§5.6 (braki danych, coverage metryk, korekty LLM, cykliczność, pogoda, confoundery) i §6.1–§6.2 (maraton jako obiekt, raport dla trenera Igora):
 - `dream_id` auto-sugestia albo wycięcie.
-- Cmentarz martwych tabel (schemat `graveyard`, po row-count) + regeneracja `database.types.ts`.
+- [x] Cmentarz martwych tabel (schemat `graveyard`, po row-count) + regeneracja `database.types.ts`.
 - Jeden przełyk capture (Telegram/share/skróty/voice = aliasy jednej rury).
 - Telemetria `view_events`.
 - keep-triage → LinksInbox auto-tagowanie.
@@ -85,6 +85,41 @@ Część II §5.1–§5.6 (braki danych, coverage metryk, korekty LLM, cykliczno
 - Sprzątanie repo (`.mimocode`, `screeny/`, `PRPs/`, `examples/`, skrypty jednorazowe).
 
 **Budżet/kolejka powiadomień:** co najmniej 8 funkcji woła Telegram API bezpośrednio, bez wspólnej bramki. Tabela `outbound_messages(priority, dedupe_key, send_after)` + jeden worker wysyłający — każda funkcja proponuje, nie wysyła bezpośrednio.
+
+## Frontend Code Debt — wyniki audytu 2026-07-16
+
+> Dane z rzeczywistego audytu. Rób przy dotyku pliku (zasada skauta), nie jednorazowym sweepem.
+
+### Pliki >300 linii bez dokumentowanego wyjątku (priorytet: split przy najbliższym dotknięciu)
+
+| Plik | Linie | Co z tym zrobić |
+|---|---|---|
+| `lifestyle/hooks/usePowerListActions.ts` | 437 | Hook — podziel na useActions + useMutations |
+| `todo/TodoCard.tsx` | 426 | Miesza dane + JSX → Container + View |
+| `notes/EditNoteModal.tsx` | 419 | Duży, ale gęsty — przy następnej dużej zmianie split |
+| `core/hooks/useDashboardState.ts` | 416 | God hook — podziel domenowo |
+| `medical/EndMyopiaCalculator.tsx` | 413 | Samodzielny kalkulator, można split na logikę + widok |
+| `growth/hooks/useGrowthData.ts` | 402 | Hook mieszający fetch z transformacją |
+| `projects/ProjectCardExpanded.tsx` | 363 | Miesza dane + JSX → split |
+| `biometrics/hooks/useWorkoutLogger.ts` | 349 | God hook — podziel domenowo |
+| `core/nutrition/hooks/useFoodEntryActions.ts` | 341 | Hook akcji — OK, ale sprawdź przy dotyku |
+| `desktop/fitness/fitnessScoreUtils.ts` | 328 | Util — OK do zostania jeśli czysta logika |
+
+**Reguła:** pliki hooks >300 linii ZAWSZE wymagają uzasadnienia lub podziału. Pliki *.tsx >300 linii ZAWSZE wymagają podziału na Container + View LUB dokumentowanego `/* eslint-disable max-lines */` z wyjaśnieniem.
+
+### Inline date formattery (toLocaleDateString) poza kanonicznymi wrapperami
+
+Znalezione w audycie pliki z inline `toLocaleDateString('pl-PL', ...)` — przy dotyku zastąp odpowiednim helperem z `lib/date.ts` lub modułowego utils:
+
+- `ai/ChatItems.tsx` (L35, L39)
+- `desktop/fitness/MarathonPanel.tsx` (L51)
+- `integrations/StravaWidget.tsx` (L45)
+- `notes/EditNoteModal.tsx` (L91) — do naprawienia przy następnym refaktorze
+- `notes/InlineEditor.tsx` (L150) — do naprawienia przy następnym refaktorze
+
+Kanoniczne helpery: `keepUtils.relativeDate` (notatki), `todoUtils` (todo), `calendarHelpers` (kalendarz), `lib/date.ts` (wszystko inne).
+
+---
 
 ## Ciągłe / bez końca (zasada skauta — nie osobna sesja per punkt)
 
@@ -306,14 +341,14 @@ Zero interfejsu dla trenera. Igor programuje trening na ślepo/ustnie, podczas g
 
 ## 🟠 Priorytet 2 — write-orphany (dobuduj zapis albo usuń martwy odczyt)
 
-- [ ] `endmyopia_daily_logs` — czyta `VisionJournal.tsx`, zero writera.
+- [x] `endmyopia_daily_logs` — czyta `VisionJournal.tsx`, zero writera.
 - [ ] `user_fundament` — `IdentityVault.handleSave()` woła `ingest-vault-log`, niepotwierdzone czy zapisuje tabelę.
 - [ ] `nutrition_profile` — 8 miejsc czyta, zero insert/update/upsert.
 - [ ] `location_history` — czyta `exportStats.ts`, zero writera.
 - [ ] `medical_documents`, `medical_lab_results` — tylko jednorazowy seed, brak ścieżki dodania nowych wyników.
 - [ ] `training_plan_workouts` — brak ścieżki edycji planu.
 - [ ] `user_portions` — RLS gotowe pod zapis LLM, zero insert/update wywołania.
-- [ ] `morning_briefs` — całkowicie martwa.
+- [x] `morning_briefs` — całkowicie martwa.
 - [ ] `vanguard_entity_aliases` — martwa, porzucony resolwer encji (patrz Część II §4.6 — sprawdź przed budową nowej tabeli encji).
 
 ## 🟡 Priorytet 3 — ominięte kanoniczne helpery

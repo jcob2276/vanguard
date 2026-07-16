@@ -62,13 +62,13 @@ export const renderTimeGutter = ({
                 className="flex items-center gap-0.5 mr-1"
                 title={`${WMO_WEATHER_DESC[hw.weatherCode]}${hw.precipProb > 0 ? ` · opady ${hw.precipProb}%` : ''}`}
               >
-                {getWMOWeatherIcon(hw.weatherCode, 9, absoluteHour < 6 || absoluteHour >= 20)}
-                <span className={`text-2xs font-black leading-none tabular-nums ${hw.precipProb >= 50 ? 'text-info' : 'text-text-muted/70'}`}>
+                {getWMOWeatherIcon(hw.weatherCode, 12, absoluteHour < 6 || absoluteHour >= 20)}
+                <span className={`text-2xs font-bold leading-none tabular-nums ${hw.precipProb >= 50 ? 'text-info-hover' : 'text-text-primary'}`}>
                   {hw.temp}°
                 </span>
               </div>
             )}
-            <span className="text-xs font-black text-text-secondary/80 text-right pr-2">
+            <span className="text-xs font-black text-text-primary text-right pr-2">
               {String(absoluteHour).padStart(2, '0')}:00
             </span>
           </div>
@@ -146,7 +146,7 @@ export const renderDayColumn = ({
       {Array.from({ length: HOURS }, (_, i) => (
         <div
           key={i}
-          className="absolute left-0 right-0 border-b border-border-custom/10 pointer-events-none"
+          className="absolute left-0 right-0 border-b border-border-custom/35 pointer-events-none"
           style={{ top: i * PX_PER_HOUR, height: PX_PER_HOUR }}
         />
       ))}
@@ -223,8 +223,19 @@ export const renderAllDayTodos = ({
   setToastMessage,
 }: CalendarGridAllDayTodosProps) => {
   if (!untimedByDay.some((list) => list.length > 0)) return null;
+
+  const today = getTodayWarsaw();
+  const tomorrow = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return formatWarsawDate(d);
+  })();
+  const isDayView = days.length === 1;
+  const showHourlyWeather = isDayView && (days[0] === today || days[0] === tomorrow);
+  const gutterWidth = showHourlyWeather ? 72 : 44;
+
   return (
-    <div className="flex border-b border-border-custom/20 bg-surface-solid/10" style={{ paddingLeft: 'var(--ds-inline-style-44)' }}>
+    <div className="flex border-b border-border-custom/40 bg-surface-solid/10" style={{ paddingLeft: gutterWidth }}>
       {days.map((day, idx) => (
         <div key={day} className="flex-1 min-w-0 p-1 space-y-1 border-l border-border-custom/10 first:border-l-0">
           {untimedByDay[idx].map((todo) => {

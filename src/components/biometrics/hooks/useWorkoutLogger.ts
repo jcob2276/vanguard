@@ -22,6 +22,8 @@ import {
   type WorkoutLoggerInitial,
 } from '../../../lib/health/workoutLogging';
 import { useUserId } from '../../../store/useStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { calendarKeys, biometricsKeys } from '../../../lib/queryKeys';
 import {
   advancePlyoProgram,
   clearPlyoCheckoff,
@@ -44,6 +46,7 @@ export function useWorkoutLogger({
   onBack,
 }: UseWorkoutLoggerOptions) {
   const userId = useUserId();
+  const queryClient = useQueryClient();
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState<WorkoutExercise[]>([newExercise()]);
   const [activities, setActivities] = useState<WorkoutActivity[]>([]);
@@ -284,6 +287,10 @@ export function useWorkoutLogger({
       });
       if (plyoComplete) {
         advancePlyoProgram(userId);
+      }
+      if (userId) {
+        void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+        void queryClient.invalidateQueries({ queryKey: biometricsKeys.all });
       }
       finalizeWorkoutSession();
       haptics.success();

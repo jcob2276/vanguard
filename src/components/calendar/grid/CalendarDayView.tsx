@@ -126,7 +126,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
         setToastMessage,
       })}
       <div ref={gridRef} className="flex-1 overflow-y-auto">
-        <div className="flex" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
+        <div className="flex pt-3" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
           {renderTimeGutter({ dayKey: selectedDay, weather })}
           <div className="flex-1 relative">
             {renderDayColumn({

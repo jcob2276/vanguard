@@ -10,7 +10,7 @@ const LEGACY_FILES = [
   'src/components/core/nutrition/FoodQuickCapture.tsx',
   'src/components/desktop/fitness/fitnessScoreUtils.ts',
   'src/components/medical/EndMyopiaCalculator.tsx',
-  'src/components/notes/EditNoteModal.tsx',
+  // EditNoteModal.tsx cleaned 2026-07-16 — raw supabase replaced with invokeEdge/createTodoItem
   'src/components/notes/RichEditor.tsx',
   'src/components/todo/TodoCard.tsx',
   'src/components/todo/useTodoCardSwipe.ts',
@@ -138,6 +138,8 @@ const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
 ]
 
 const NO_BUTTON_GUARD_EXCEPTIONS = [
+  // Color picker swatches — raw <button> is correct for small circular interactive widgets
+  'src/components/notes/InlineEditor.tsx',
 ]
 
 const NO_COLOR_GUARD_EXCEPTIONS = [
@@ -294,6 +296,9 @@ export default defineConfig([
         selector: "CallExpression[callee.object.object.name='supabase'][callee.object.property.name='storage'][callee.property.name='from']",
         message: 'No direct supabase.storage.from() in components — wrap it in a *Api.ts data-access module. See docs/FRONTEND_GUIDE.md.',
       }, {
+        selector: "CallExpression[callee.object.object.name='supabase'][callee.object.property.name='functions'][callee.property.name='invoke']",
+        message: 'No direct supabase.functions.invoke() in components — use invokeEdge() from lib/supabase.ts. See docs/FRONTEND_GUIDE.md.',
+      }, {
         selector: "CallExpression[callee.property.name='toLocaleDateString'][arguments.0.value='pl-PL']",
         message: "No inline toLocaleDateString('pl-PL', ...) — use lib/date.ts (getTodayWarsaw/formatWarsawDate) or the module's canonical *Helpers.ts formatter. See docs/FRONTEND_GUIDE.md.",
       }, {
@@ -377,14 +382,18 @@ export default defineConfig([
     },
   },
   {
-    // window.alert() ban — separate rule name (no-restricted-globals) from the block above,
-    // so its own exception list doesn't cross-exempt the supabase.from/date-format rule.
+    // window.alert() and window.confirm() ban — use lib/notify wrappers instead.
+    // Separate rule name (no-restricted-globals) so its exception list doesn't
+    // cross-exempt the supabase.from/date-format rule above.
     files: ['src/components/**/*.{ts,tsx}'],
     ignores: [...LEGACY_FILES, ...LEGACY_REFACTORED_FILES, 'src/components/**/hooks/**'],
     rules: {
       'no-restricted-globals': ['error', {
         name: 'alert',
         message: "Use notify(message, 'error') from lib/notify instead of alert(). See docs/FRONTEND_GUIDE.md.",
+      }, {
+        name: 'confirm',
+        message: "Use confirmDialog(message) from lib/notify instead of confirm(). See docs/FRONTEND_GUIDE.md.",
       }],
     },
   },

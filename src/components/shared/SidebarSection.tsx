@@ -61,7 +61,7 @@ export default function SidebarSection({
         collapsible ? (
           <Pressable
             onClick={() => setOpen((v) => !v)}
-            className="flex w-full items-center gap-1 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60 hover:text-text-primary transition-colors"
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors font-display"
           >
             <ChevronDown size={11} className={`transition-transform ${open ? '' : '-rotate-90'}`} />
             {label}
@@ -69,7 +69,7 @@ export default function SidebarSection({
               <span
                 role="button"
                 onClick={(e) => { e.stopPropagation(); onAdd(); }}
-                className="ml-auto p-0.5 text-text-muted/40 hover:text-primary transition-colors"
+                className="ml-auto p-0.5 text-text-muted/60 hover:text-primary transition-colors"
                 title={addTitle}
               >
                 <Plus size={12} />
@@ -77,7 +77,7 @@ export default function SidebarSection({
             )}
           </Pressable>
         ) : (
-          <div className="flex items-center justify-between px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60">
+          <div className="flex items-center justify-between px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted font-display">
             <span>{label}</span>
             {onAdd && (
               <Pressable
@@ -102,14 +102,14 @@ export default function SidebarSection({
                 <>
                   <Pressable
                     onClick={item.onClick}
-                    className={`flex w-full min-w-0 items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-sm font-medium transition-colors ${
+                    className={`flex w-full min-w-0 items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-sm font-medium font-display transition-colors ${
                       item.active ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary'
                     }`}
                   >
                     {item.colorDot && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.colorDot }} />}
-                    {item.icon && <span className={item.active ? 'text-primary' : 'text-text-muted/60'}>{item.icon}</span>}
+                    {item.icon && <span className={item.active ? 'text-primary' : 'text-text-muted/90'}>{item.icon}</span>}
                     <span className="flex-1 min-w-0 truncate">{item.label}</span>
-                    {!!item.count && <span className="text-xs font-semibold text-text-muted/50 tabular-nums">{item.count}</span>}
+                    {!!item.count && <span className="text-xs font-semibold text-text-muted/80 tabular-nums">{item.count}</span>}
                   </Pressable>
                   {item.actions && (
                     <div className="absolute right-1 hidden items-center gap-0.5 group-hover/sec:flex bg-surface/20">

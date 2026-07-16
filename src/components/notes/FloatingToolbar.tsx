@@ -9,7 +9,17 @@ export default function FloatingToolbar({
 }: {
   range: Range;
   onAction: (action: string) => void;
-  activeState: { bold: boolean; italic: boolean; h1: boolean; list: boolean; underline: boolean; strikethrough: boolean; blockquote: boolean };
+  activeState: {
+    bold: boolean;
+    italic: boolean;
+    h1: boolean;
+    h2: boolean;
+    list: boolean;
+    numList: boolean;
+    underline: boolean;
+    strikethrough: boolean;
+    blockquote: boolean;
+  };
 }) {
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);

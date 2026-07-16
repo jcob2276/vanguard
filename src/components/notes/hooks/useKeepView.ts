@@ -33,7 +33,28 @@ export function useKeepView({
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<'notes' | 'archive'>('notes');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'split'>(() => {
+    try {
+      const saved = localStorage.getItem('vanguard_keep_view_mode');
+      if (saved === 'grid' || saved === 'list' || saved === 'split') return saved;
+    } catch {
+      // storage unavailable
+    }
+    return 'grid';
+  });
+
+  const setViewModeWithPersist = useCallback((val: 'grid' | 'list' | 'split' | ((prev: 'grid' | 'list' | 'split') => 'grid' | 'list' | 'split')) => {
+    setViewMode((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      try {
+        localStorage.setItem('vanguard_keep_view_mode', next);
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  }, []);
   const [columns, setColumns] = useState(3);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
@@ -144,7 +165,7 @@ export function useKeepView({
     search, setSearch,
     activeTag, setActiveTag,
     sidebarTab, setSidebarTab,
-    viewMode, setViewMode,
+    viewMode, setViewMode: setViewModeWithPersist,
     editingId, setEditingId,
     visibleCount, setVisibleCount,
     goTo, goBack,

@@ -31,6 +31,7 @@ import {
 import { buildSqlTool } from "./sqlTool.ts";
 import { OracleResponseSchema, extractAnswer } from "./responseExtract.ts";
 import { handleStreamingResponse } from "./streamHandler.ts";
+import { handleNoteSummary, handleExtractTasks } from "../handlers/noteOps.ts";
 
 const MAX_SQL_TOOL_ITERATIONS = 3;
 
@@ -46,6 +47,8 @@ export interface OracleRequestBody {
   override_date?: string;
   stream?: boolean;
   resolved_claims?: string;
+  content?: string;
+  title?: string;
 }
 
 /**
@@ -65,7 +68,11 @@ export async function runOracleQuery(
   const {
     history, current_query, mode = "chat", thinking = false,
     agent_run_mode = "auto", user_conf, override_date, stream, resolved_claims,
+    content: noteContent, title: noteTitle,
   } = body;
+
+  if (mode === "note_summary") return await handleNoteSummary(user_id, noteTitle, noteContent);
+  if (mode === "extract_tasks") return await handleExtractTasks(user_id, noteTitle, noteContent);
 
   const now = override_date ? new Date(`${override_date}T12:00:00Z`) : new Date();
   const localTimeString = override_date

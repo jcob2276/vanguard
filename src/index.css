@@ -497,26 +497,26 @@
   --ds-inline-css-99999: 99999;
   --on-accent: #ffffff;
   --scrim: #000000;
-  --background: #FAF7F3;
+  --background: #EFECE6;
   --primary: #BC5B39;
   --primary-hover: #A54A2B;
   --surface: #FFFFFF;
   --surface-solid: #FFFFFF;
-  --border: #E8DFD5;
-  --text-primary: #1C1917;
-  --text-secondary: #6B5D52;
-  --text-muted: #A69488;
+  --border: #C0B4A4;
+  --text-primary: #12100E;
+  --text-secondary: #3A312B;
+  --text-muted: #66574C;
   --bg-gradient-a: color-mix(in srgb, var(--primary) 2%, transparent);
   --bg-gradient-b: rgba(245, 158, 11, 0.015);
   --bg-gradient-c: rgba(16, 185, 129, 0.01);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
-  --shadow-nav: 0 12px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.02);
+  --shadow-card: 0 2px 4px rgba(18, 16, 14, 0.08), 0 1px 2px rgba(18, 16, 14, 0.04);
+  --shadow-card-hover: 0 8px 16px rgba(18, 16, 14, 0.12), 0 2px 6px rgba(18, 16, 14, 0.06);
+  --shadow-nav: 0 12px 30px rgba(18, 16, 14, 0.1), 0 2px 8px rgba(18, 16, 14, 0.05);
   --input-bg: var(--surface);
-  --nav-bg: color-mix(in srgb, var(--surface) 75%, transparent);
+  --nav-bg: color-mix(in srgb, var(--surface) 85%, transparent);
   --btn-outline-bg: var(--surface);
-  --btn-secondary-bg: color-mix(in srgb, var(--background) 40%, var(--surface));
-  --btn-secondary-hover: color-mix(in srgb, var(--background) 70%, var(--surface));
+  --btn-secondary-bg: color-mix(in srgb, var(--background) 50%, var(--surface));
+  --btn-secondary-hover: color-mix(in srgb, var(--background) 80%, var(--surface));
 
   /* Theme variables */
   --bg-primary: var(--background);
@@ -574,10 +574,10 @@
   --color-accent-purple: #a855f7;
 
   --surface-1: var(--surface);
-  --surface-2: #f1f5fb;
-  --surface-3: #e8eef8;
-  --surface-tonal: #eaf2ff;
-  --surface-tonal-strong: #d7e7ff;
+  --surface-2: #EDE4D9;
+  --surface-3: #E2D5C7;
+  --surface-tonal: #E8F0FF;
+  --surface-tonal-strong: #D0E1FF;
 
   /* Priority checkbox colors (Todo) */
   --color-priority-urgent: #de4c4a;
@@ -642,8 +642,8 @@
   --glass-bg-2: color-mix(in srgb, var(--surface) 75%, transparent);
   --glass-bg-3: color-mix(in srgb, var(--surface) 65%, transparent);
   --glass-border-1: var(--border);
-  --glass-border-2: color-mix(in srgb, var(--border) 60%, transparent);
-  --glass-border-3: color-mix(in srgb, var(--border) 40%, transparent);
+  --glass-border-2: color-mix(in srgb, var(--border) 80%, transparent);
+  --glass-border-3: color-mix(in srgb, var(--border) 60%, transparent);
 
   --opacity-0: 0;
   --opacity-20: 0.2;
@@ -1435,81 +1435,81 @@
    ═══════════════════════════════════════════════════════════ */
 :root {
   /* Note colors - Light mode (modern muted pastels) */
-  --keep-bg-default: var(--surface-solid);
+  --keep-bg-default: #ffffff;
   --keep-border-default: var(--border);
   --keep-text-default: var(--text-primary);
   --keep-text-sub-default: var(--text-secondary);
-  --keep-tag-bg-default: rgba(15, 23, 42, 0.05);
+  --keep-tag-bg-default: rgba(18, 16, 14, 0.06);
   --keep-tag-text-default: var(--text-muted);
-  --keep-card-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --keep-card-shadow-hover: 0 6px 16px rgba(18, 16, 14, 0.08);
 
   --keep-bg-red: #fee2e2;
   --keep-border-red: #fca5a5;
-  --keep-text-red: #1c1c1e;
-  --keep-text-sub-red: #6b7280;
-  --keep-tag-bg-red: rgba(239, 68, 68, 0.1);
-  --keep-tag-text-red: #b91c1c;
+  --keep-text-red: #2d1818;
+  --keep-text-sub-red: #582f2d;
+  --keep-tag-bg-red: rgba(239, 68, 68, 0.12);
+  --keep-tag-text-red: #991b1b;
 
   --keep-bg-orange: #ffedd5;
   --keep-border-orange: #fdba74;
-  --keep-text-orange: #1c1c1e;
-  --keep-text-sub-orange: #6b7280;
-  --keep-tag-bg-orange: rgba(249, 115, 22, 0.1);
-  --keep-tag-text-orange: #c2410c;
+  --keep-text-orange: #2d1e10;
+  --keep-text-sub-orange: #663d14;
+  --keep-tag-bg-orange: rgba(249, 115, 22, 0.12);
+  --keep-tag-text-orange: #a23f15;
 
   --keep-bg-yellow: #fef9c3;
   --keep-border-yellow: #fde047;
-  --keep-text-yellow: #1c1c1e;
-  --keep-text-sub-yellow: #6b7280;
-  --keep-tag-bg-yellow: rgba(234, 179, 8, 0.12);
-  --keep-tag-text-yellow: #854d0e;
+  --keep-text-yellow: #2d260c;
+  --keep-text-sub-yellow: #61460b;
+  --keep-tag-bg-yellow: rgba(234, 179, 8, 0.14);
+  --keep-tag-text-yellow: #713f12;
 
   --keep-bg-green: #dcfce7;
   --keep-border-green: #86efac;
-  --keep-text-green: #1c1c1e;
-  --keep-text-sub-green: #6b7280;
-  --keep-tag-bg-green: rgba(34, 197, 94, 0.1);
-  --keep-tag-text-green: #15803d;
+  --keep-text-green: #0f2d1a;
+  --keep-text-sub-green: #275238;
+  --keep-tag-bg-green: rgba(34, 197, 94, 0.12);
+  --keep-tag-text-green: #166534;
 
   --keep-bg-teal: #ccfbf1;
   --keep-border-teal: #5eead4;
-  --keep-text-teal: #1c1c1e;
-  --keep-text-sub-teal: #6b7280;
-  --keep-tag-bg-teal: rgba(20, 184, 166, 0.1);
-  --keep-tag-text-teal: #0f766e;
+  --keep-text-teal: #0c2d28;
+  --keep-text-sub-teal: #1f544c;
+  --keep-tag-bg-teal: rgba(20, 184, 166, 0.12);
+  --keep-tag-text-teal: #115e59;
 
   --keep-bg-blue: #dbeafe;
   --keep-border-blue: #93c5fd;
-  --keep-text-blue: #1c1c1e;
-  --keep-text-sub-blue: #6b7280;
-  --keep-tag-bg-blue: rgba(59, 130, 246, 0.1);
-  --keep-tag-text-blue: #1d4ed8;
+  --keep-text-blue: #0f203d;
+  --keep-text-sub-blue: #233e6b;
+  --keep-tag-bg-blue: rgba(59, 130, 246, 0.12);
+  --keep-tag-text-blue: #1e40af;
 
   --keep-bg-indigo: #e0e7ff;
   --keep-border-indigo: #a5b4fc;
-  --keep-text-indigo: #1c1c1e;
-  --keep-text-sub-indigo: #6b7280;
-  --keep-tag-bg-indigo: rgba(99, 102, 241, 0.1);
-  --keep-tag-text-indigo: #4338ca;
+  --keep-text-indigo: #16183d;
+  --keep-text-sub-indigo: #2c2f6d;
+  --keep-tag-bg-indigo: rgba(99, 102, 241, 0.12);
+  --keep-tag-text-indigo: #3730a3;
 
   --keep-bg-purple: #f3e8ff;
   --keep-border-purple: #d8b4fe;
-  --keep-text-purple: #1c1c1e;
-  --keep-text-sub-purple: #6b7280;
-  --keep-tag-bg-purple: rgba(168, 85, 247, 0.1);
-  --keep-tag-text-purple: #7e22ce;
+  --keep-text-purple: #24143a;
+  --keep-text-sub-purple: #4c2966;
+  --keep-tag-bg-purple: rgba(168, 85, 247, 0.12);
+  --keep-tag-text-purple: #6b21a8;
 
   --keep-bg-pink: #fce7f3;
   --keep-border-pink: #f9a8d4;
-  --keep-text-pink: #1c1c1e;
-  --keep-text-sub-pink: #6b7280;
-  --keep-tag-bg-pink: rgba(236, 72, 153, 0.1);
-  --keep-tag-text-pink: #be185d;
+  --keep-text-pink: #341123;
+  --keep-text-sub-pink: #5a2745;
+  --keep-tag-bg-pink: rgba(236, 72, 153, 0.12);
+  --keep-tag-text-pink: #9d174d;
 }
 
 .dark {
   /* Google Keep dynamic note colors - Dark mode */
-  --keep-bg-default: var(--surface-solid);
+  --keep-bg-default: #1e1e1e;
   --keep-border-default: var(--border);
   --keep-text-default: var(--text-primary);
   --keep-text-sub-default: var(--text-secondary);

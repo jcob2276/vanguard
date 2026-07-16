@@ -95,6 +95,7 @@ export async function runOuraSync(req: Request): Promise<unknown> {
             sleep_efficiency: isLongestEpisode ? item.efficiency : prev.sleep_efficiency,
             latency_minutes: isLongestEpisode ? (item.latency != null ? Math.round(item.latency / 60) : null) : prev.latency_minutes,
             bedtime_timestamp: isLongestEpisode ? item.bedtime_start : prev.bedtime_timestamp,
+            bedtime_end_timestamp: isLongestEpisode ? item.bedtime_end : prev.bedtime_end_timestamp,
             _longestSleepDuration: isLongestEpisode ? item.total_sleep_duration : prev._longestSleepDuration,
             hrv_avg: prev.hrv_avg ?? item.average_hrv,
             rhr_avg: prev.rhr_avg ?? item.average_heart_rate,
@@ -132,6 +133,7 @@ export async function runOuraSync(req: Request): Promise<unknown> {
             active_calories: s.active_calories ?? null,
             total_calories: s.total_calories ?? null,
             bedtime_timestamp: s.bedtime_timestamp ?? null,
+            bedtime_end_timestamp: s.bedtime_end_timestamp ?? null,
             is_disciplined: isDisciplined
           }
         })

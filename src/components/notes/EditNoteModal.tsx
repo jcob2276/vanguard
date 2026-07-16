@@ -2,10 +2,11 @@ import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Bot, BrainCircuit, ChevronLeft, ChevronRight, Cpu, Link2, ListTodo, Loader2, MoreHorizontal, Pin, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import RichEditor from './RichEditor';
-import { COLORS, getColor, Note } from './keepUtils';
-import { supabase } from '../../lib/supabase';
+import { COLORS, getColor, Note, getPlainText } from './keepUtils';
+import { invokeEdge } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
 import { useUserId } from '../../store/useStore';
+import { createTodoItem } from '../../lib/todo/todo';
 export default function EditNoteModal({
   note,
   onClose,
@@ -116,18 +117,18 @@ export default function EditNoteModal({
       (note.title && n.content.includes(`[[${note.title}]]`));
   });
 
-  const getPlainText = () => content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const getPlainTextLocal = () => getPlainText(content);
 
   const aiSummarize = async () => {
     setAiLoading('summary');
     setAiResult(null);
     try {
-      const plain = getPlainText();
+      const plain = getPlainTextLocal();
       if (plain.length < 20) { notify('Notatka jest za krótka do podsumowania.', 'error'); setAiLoading(null); return; }
-      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
+      const data = await invokeEdge('vanguard-oracle', {
         body: { mode: 'note_summary', content: plain, title: title.trim() }
-      });
-      if (error) throw error;
+      }) as { summary?: string; response?: string; content?: string };
       const summary = data?.summary || data?.response || data?.content || 'Brak odpowiedzi.';
       setAiResult({ type: 'summary', text: summary });
     } catch (e: unknown) {
@@ -140,12 +141,11 @@ export default function EditNoteModal({
     setAiLoading('tasks');
     setAiResult(null);
     try {
-      const plain = getPlainText();
+      const plain = getPlainTextLocal();
       if (plain.length < 20) { notify('Notatka jest za krótka.', 'error'); setAiLoading(null); return; }
-      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
+      const data = await invokeEdge('vanguard-oracle', {
         body: { mode: 'extract_tasks', content: plain, title: title.trim() }
-      });
-      if (error) throw error;
+      }) as { tasks?: string[] };
       const tasks: string[] = data?.tasks || [];
       if (tasks.length === 0) {
         setAiResult({ type: 'tasks', text: 'Nie znaleziono zadań w tej notatce.' });
@@ -153,13 +153,9 @@ export default function EditNoteModal({
         return;
       }
       if (!userId) throw new Error('Brak zalogowanego użytkownika');
-      const inserts = tasks.map((t: string) => ({
-        user_id: userId,
-        title: t.trim(),
-        status: 'open',
-      }));
-      const { error: insertErr } = await supabase.from('todo_items').insert(inserts);
-      if (insertErr) throw insertErr;
+      for (const t of tasks) {
+        await createTodoItem(userId, { title: t.trim() });
+      }
       notify(`Dodano ${tasks.length} zadan do listy!`, 'success');
       setAiResult({ type: 'tasks', text: `Dodano ${tasks.length} zadan:\n- ${tasks.join('\n- ')}` });
     } catch (e: unknown) {
@@ -172,12 +168,11 @@ export default function EditNoteModal({
     setAiLoading('connect');
     setAiResult(null);
     try {
-      const plain = getPlainText();
+      const plain = getPlainTextLocal();
       const otherTitles = allNotes.filter(n => n.id !== note.id && n.title).map(n => n.title).slice(0, 30);
-      const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
+      const data = await invokeEdge('vanguard-oracle', {
         body: { mode: 'connect_notes', content: plain, title: title.trim(), other_titles: otherTitles }
-      });
-      if (error) throw error;
+      }) as { suggestions?: string; response?: string };
       const suggestions = data?.suggestions || data?.response || 'Brak sugestii.';
       setAiResult({ type: 'connect', text: suggestions });
     } catch (e: unknown) {

@@ -5,6 +5,7 @@ import EditNoteModal from './EditNoteModal';
 import KeepHeader from './KeepHeader';
 import KeepSidebar from './KeepSidebar';
 import KeepNotesList from './KeepNotesList';
+import SplitNotesView from './SplitNotesView';
 import { useUserId } from '../../store/useStore';
 import { useNotesData } from './hooks/useNotesData';
 import { useKeepView } from './hooks/useKeepView';
@@ -50,9 +51,9 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
           notes={notes}
           allTags={allTags}
           sidebarTab={sidebarTab}
-          setSidebarTab={setSidebarTab}
+          setSidebarTab={(tab) => { setSidebarTab(tab); setEditingId(null); }}
           activeTag={activeTag}
-          setActiveTag={setActiveTag}
+          setActiveTag={(fn) => { setActiveTag(fn); setEditingId(null); }}
           setSearch={setSearch}
           goTo={goTo}
           onPromptCreateTag={handlePromptCreateTag}
@@ -64,29 +65,47 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
           search={search}
           setSearch={setSearch}
           viewMode={viewMode}
-          setViewMode={setViewMode}
-          sidebarTab={sidebarTab}
-          onTabChange={(key) => { setSidebarTab(key); setActiveTag(() => null); }}
+          setViewMode={(mode) => { setViewMode(mode); setEditingId(null); }}
         />
-        <KeepNotesList
-          error={error}
-          onClearError={() => setError(null)}
-          sidebarTab={sidebarTab}
-          onCreate={handleCreate}
-          busy={busy}
-          allTags={allTags}
-          loading={loading}
-          filtered={filtered}
-          search={search}
-          activeTag={activeTag}
-          pinned={pinned}
-          others={others}
-          visibleOthers={visibleOthers}
-          visibleCount={visibleCount}
-          setVisibleCount={setVisibleCount}
-          viewMode={viewMode}
-          sharedGridProps={sharedGridProps}
-        />
+        {viewMode === 'split' ? (
+          <SplitNotesView
+            notes={notes}
+            filtered={filtered}
+            pinned={pinned}
+            others={others}
+            activeNoteId={editingId}
+            onSelectNote={setEditingId}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onTogglePin={handleTogglePin}
+            busy={busy}
+            allTags={allTags}
+            onCreate={handleCreate}
+            search={search}
+            activeTag={activeTag}
+            onExportChecklists={handleExportChecklists}
+          />
+        ) : (
+          <KeepNotesList
+            error={error}
+            onClearError={() => setError(null)}
+            sidebarTab={sidebarTab}
+            onCreate={handleCreate}
+            busy={busy}
+            allTags={allTags}
+            loading={loading}
+            filtered={filtered}
+            search={search}
+            activeTag={activeTag}
+            pinned={pinned}
+            others={others}
+            visibleOthers={visibleOthers}
+            visibleCount={visibleCount}
+            setVisibleCount={setVisibleCount}
+            viewMode={viewMode}
+            sharedGridProps={sharedGridProps}
+          />
+        )}
       </div>
 
       {/* iOS Notes-style FAB */}
@@ -99,7 +118,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
       </Fab>
 
       {/* Page-level Edit Modal */}
-      {editingId && (
+      {editingId && viewMode !== 'split' && (
         (() => {
           const noteToEdit = notes.find(n => n.id === editingId);
           return noteToEdit ? (

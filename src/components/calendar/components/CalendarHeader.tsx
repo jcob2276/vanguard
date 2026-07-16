@@ -29,7 +29,7 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
             size="sm"
             icon={<RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />}
           >
-            {isSyncing ? 'Synchronizuję…' : 'GCal'}
+            {isSyncing ? 'Synchronizuję…' : 'Sync'}
           </Pressable>
         }
         tabs={{ items: CALENDAR_TABS, active: calView, onChange: (key) => setCalView(key as typeof calView) }}

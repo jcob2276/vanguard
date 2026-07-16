@@ -41,14 +41,14 @@ export default function WorkspaceNavigation({
             onClick={() => onNavigate?.(id)}
             aria-current={isActive ? 'page' : undefined}
             className={horizontal
-              ? `min-h-14 flex-1 flex-col gap-0.5 rounded-none px-1 py-2 text-xs ${isActive ? 'text-primary' : 'text-text-muted'}`
-              : `w-full justify-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium ${
+              ? `min-h-14 flex-1 flex-col gap-0.5 rounded-none px-1 py-2 text-xs ${isActive ? 'text-primary' : 'text-text-secondary'}`
+              : `w-full justify-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm font-semibold ${
                   isActive
                     ? 'nav-pill-active text-primary'
                     : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
                 }`
             }
-            icon={<Icon size={horizontal ? 20 : 14} className={isActive ? 'text-primary' : 'text-text-muted/60'} />}
+            icon={<Icon size={horizontal ? 20 : 14} className={isActive ? 'text-primary' : 'text-text-muted/95'} />}
           >
             {label}
           </Pressable>

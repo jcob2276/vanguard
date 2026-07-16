@@ -10,9 +10,6 @@ import Sheet from '../ui/Sheet';
 import DataCard from '../shared/DataCard';
 import SectionBlock from '../shared/Section';
 import ContentContainer from '../shared/ContentContainer';
-import PageShell from '../shared/PageShell';
-import PageToolbar from '../shared/PageToolbar';
-import { DashboardPageTemplate, GridPageTemplate, ListPageTemplate, TimelinePageTemplate } from '../shared/PageTemplates';
 
 export function ControlPrimitivesGallery() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -44,13 +41,6 @@ export function LayoutPrimitivesGallery() {
     <section className="space-y-4">
       <h2 className="flex items-center gap-2 text-base font-black text-text-primary"><Layers size={16} />Layout primitives</h2>
       <ContentContainer width="narrow" className="!p-0"><SectionBlock title="Section" description="Kanoniczna hierarchia sekcji">{sample}</SectionBlock></ContentContainer>
-      <div className="hidden" aria-hidden="true">
-        <PageToolbar title="Toolbar" />
-        <PageShell><ListPageTemplate>{sample}</ListPageTemplate></PageShell>
-        <GridPageTemplate>{sample}</GridPageTemplate>
-        <DashboardPageTemplate>{sample}</DashboardPageTemplate>
-        <TimelinePageTemplate>{sample}</TimelinePageTemplate>
-      </div>
     </section>
   );
 }
