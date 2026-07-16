@@ -3,11 +3,12 @@
  * Gęsta logika kursora/selekcji (Range, document.execCommand, visualViewport)
  * wymaga utrzymania stanu w jednym miejscu — rozbicie grozi subtelnymi bugami
  * z kursorem (skaczący kursor, utrata selekcji przy zmianie narzędzia).
+ * StaticBar wyekstrahowany do RichEditorStaticBar.tsx.
  */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
-import { Underline, Strikethrough, Quote, CheckSquare, Table2, Image, Highlighter, Heading2, List, ListOrdered, Indent, Outdent, Undo, Redo, Link2, Eraser } from 'lucide-react';
 import FloatingToolbar from './FloatingToolbar';
+import RichEditorStaticBar from './RichEditorStaticBar';
 import { notify } from '../../lib/notify';
 import { SLASH_COMMANDS } from './richEditorCommands';
 export default function RichEditor({
@@ -41,7 +42,6 @@ export default function RichEditor({
     strikethrough: false,
     blockquote: false
   });
-  const staticBarRef = useRef<HTMLDivElement>(null);
   // Saved selection before toolbar action steals focus
   const savedSelectionRef = useRef<{ range: Range } | null>(null);
 
@@ -66,30 +66,6 @@ export default function RichEditor({
     }
   }, [value]);
 
-  // Pin formatting bar above keyboard on mobile (iOS visualViewport API)
-  useEffect(() => {
-    if (!showStaticBar) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const reposition = () => {
-      const bar = staticBarRef.current;
-      if (!bar) return;
-      const keyboardH = window.innerHeight - (vv.offsetTop + vv.height);
-      if (keyboardH > 50) {
-        bar.style.cssText = `position:fixed;bottom:${keyboardH}px;left:var(--ds-inline-css-0-coll-2);right:var(--ds-inline-css-0-coll-5);z-index:var(--ds-inline-css-99999);margin:var(--ds-inline-css-0-coll-3);border-radius:var(--ds-inline-css-0);width:var(--ds-inline-css-100);padding:var(--ds-inline-css-0-12px);`;
-        bar.classList.add('kb-open');
-      } else {
-        bar.style.cssText = '';
-        bar.classList.remove('kb-open');
-      }
-    };
-    vv.addEventListener('resize', reposition);
-    vv.addEventListener('scroll', reposition);
-    return () => {
-      vv.removeEventListener('resize', reposition);
-      vv.removeEventListener('scroll', reposition);
-    };
-  }, [showStaticBar]);
 
   const handleInput = () => {
     if (editorRef.current) {
@@ -812,172 +788,12 @@ export default function RichEditor({
           activeState={activeState}
         />
       )}
-      {/* Static always-visible formatting bar — Apple Notes style */}
-      {showStaticBar && (
-        <div className="keep-static-bar" ref={staticBarRef}>
-          {/* Text style group — iOS Notes Aa order */}
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('bold'); }}
-            className={`keep-static-btn ${activeState.bold ? 'active' : ''}`}
-            title="Pogrubienie"
-          >
-            <span style={{ fontWeight: 'var(--ds-inline-style-800)', fontSize: 'var(--ds-inline-style-15)', fontFamily: 'var(--ds-inline-style-georgia-serif)', lineHeight: 'var(--ds-inline-style-1)' }}>B</span>
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('italic'); }}
-            className={`keep-static-btn ${activeState.italic ? 'active' : ''}`}
-            title="Kursywa"
-          >
-            <span style={{ fontStyle: 'italic', fontWeight: 'var(--ds-inline-style-600)', fontSize: 'var(--ds-inline-style-15)', fontFamily: 'var(--ds-inline-style-georgia-serif)', lineHeight: 'var(--ds-inline-style-1)' }}>I</span>
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('underline'); }}
-            className={`keep-static-btn ${activeState.underline ? 'active' : ''}`}
-            title="Podkreślenie"
-          >
-            <Underline size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('strikethrough'); }}
-            className={`keep-static-btn ${activeState.strikethrough ? 'active' : ''}`}
-            title="Przekreślenie"
-          >
-            <Strikethrough size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('h1'); }}
-            className={`keep-static-btn ${activeState.h1 ? 'active' : ''}`}
-            title="Nagłówek H1"
-          >
-            <span style={{ fontWeight: 'var(--ds-inline-style-800)', fontSize: 'var(--ds-inline-style-11)', letterSpacing: 'var(--ds-inline-style-0-02em)', lineHeight: 'var(--ds-inline-style-1)' }}>H1</span>
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('h2'); }}
-            className={`keep-static-btn ${activeState.h2 ? 'active' : ''}`}
-            title="Nagłówek H2"
-          >
-            <Heading2 size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('blockquote'); }}
-            className={`keep-static-btn ${activeState.blockquote ? 'active' : ''}`}
-            title="Cytat"
-          >
-            <Quote size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('highlight'); }}
-            className="keep-static-btn"
-            title="Zakreślacz"
-          >
-            <Highlighter size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('clear'); }}
-            className="keep-static-btn"
-            title="Wyczyść formatowanie"
-          >
-            <Eraser size={18} strokeWidth={2} />
-          </Pressable>
-
-          <div className="keep-static-sep" />
-
-          {/* Block elements group */}
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('todo'); }}
-            className="keep-static-btn"
-            title="Lista zadań (Checklista)"
-          >
-            <CheckSquare size={20} strokeWidth={1.5} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('bullet'); }}
-            className={`keep-static-btn ${activeState.list ? 'active' : ''}`}
-            title="Lista punktowana"
-          >
-            <List size={20} strokeWidth={1.5} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('number'); }}
-            className={`keep-static-btn ${activeState.numList ? 'active' : ''}`}
-            title="Lista numerowana"
-          >
-            <ListOrdered size={20} strokeWidth={1.5} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('table'); }}
-            className="keep-static-btn"
-            title="Tabela"
-          >
-            <Table2 size={20} strokeWidth={1.5} />
-          </Pressable>
-
-          <div className="keep-static-sep" />
-
-          {/* Actions & Media group */}
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('outdent'); }}
-            className="keep-static-btn"
-            title="Zmniejsz wcięcie"
-          >
-            <Outdent size={20} strokeWidth={1.5} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('indent'); }}
-            className="keep-static-btn"
-            title="Zwiększ wcięcie"
-          >
-            <Indent size={20} strokeWidth={1.5} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('undo'); }}
-            className="keep-static-btn"
-            title="Cofnij"
-          >
-            <Undo size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('redo'); }}
-            className="keep-static-btn"
-            title="Ponów"
-          >
-            <Redo size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('link'); }}
-            className="keep-static-btn"
-            title="Dodaj link"
-          >
-            <Link2 size={18} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            type="button"
-            onMouseDown={e => { e.preventDefault(); handleAction('image'); }}
-            className="keep-static-btn"
-            title="Dodaj zdjęcie"
-          >
-            <Image size={20} strokeWidth={1.5} />
-          </Pressable>
-        </div>
-      )}
+      {/* Static always-visible formatting bar — extracted to RichEditorStaticBar */}
+      <RichEditorStaticBar
+        activeState={activeState}
+        showStaticBar={showStaticBar}
+        onAction={handleAction}
+      />
 
     </div>
   );
