@@ -1,219 +1,154 @@
 /**
  * @function vanguard-push-reminder
  * @trigger pg_cron co minutę
- * @role Przypomnienia: wysyła powiadomienia web push i Telegram o zaległych todo i zaplanowanych suplementach.
+ * @role Niezawodne, serwerowe przypomnienia Web Push działające przy zamkniętej aplikacji.
  * @reads todo_items, supplements, push_subscriptions
- * @writes todo_items, supplements
- * @calls api.telegram.org (bezpośrednio)
- * @consumer Powiadomienia push w przeglądarce i Telegramie użytkownika
+ * @writes todo_items, supplements, push_subscriptions
+ * @consumer Service Worker aplikacji Vanguard
  * @status active
  */
 import { serveJson } from "../_shared/http.ts";
-// @ts-ignore npm import
 import webpush from "npm:web-push@3.6.7";
-import { sendMessageParsed } from "../_shared/telegram.ts";
 import { getWarsawDateString } from "../_shared/time.ts";
 
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
 
+interface PushSubscriptionRow {
+  user_id: string;
+  endpoint: string;
+  keys_p256dh: string;
+  keys_auth: string;
+}
+
+interface PushPayload {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+}
+
 Deno.serve(serveJson(async (_req, ctx) => {
   const supabase = ctx.supabase;
+  const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY");
+  const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY");
 
-  const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY");
-  const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY");
-  const TG_TOKEN      = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const TG_CHAT_ID    = Deno.env.get("TELEGRAM_CHAT_ID");
-
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    throw new Error("VAPID keys not configured");
-  }
-  webpush.setVapidDetails(CONTACT_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+  if (!vapidPublic || !vapidPrivate) throw new Error("VAPID keys not configured");
+  webpush.setVapidDetails(CONTACT_EMAIL, vapidPublic, vapidPrivate);
 
   const now = new Date();
   const nowIso = now.toISOString();
-
-  // Get current Warsaw date and time for supplement schedules
   const warsawDate = getWarsawDateString(now);
-  const warsawTime = new Intl.DateTimeFormat("en-US", {
+  const warsawParts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Warsaw",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false
-  }).format(now); // e.g. "08:15"
+    hour12: false,
+  }).formatToParts(now);
+  const warsawHour = Number(warsawParts.find((part) => part.type === "hour")?.value ?? 0);
+  const warsawMinute = Number(warsawParts.find((part) => part.type === "minute")?.value ?? 0);
+  const warsawMinutes = warsawHour * 60 + warsawMinute;
 
-  // ----------------------------------------------------
-  // Part 1: Todo Item Reminders
-  // ----------------------------------------------------
-  const { data: dueTodos, error: todoErr } = await supabase
-    .from("todo_items")
-    .select("id, user_id, title, reminder_at")
-    .lte("reminder_at", nowIso)
-    .eq("reminder_sent", false)
-    .neq("status", "done")
-    .limit(50);
+  const [{ data: subscriptions, error: subsError }, { data: dueTodos, error: todoError },
+    { data: supplements, error: supplementError }] = await Promise.all([
+    supabase.from("push_subscriptions").select("user_id, endpoint, keys_p256dh, keys_auth"),
+    supabase.from("todo_items")
+      .select("id, user_id, title")
+      .lte("reminder_at", nowIso)
+      .eq("reminder_sent", false)
+      .neq("status", "done")
+      .limit(50),
+    supabase.from("supplements")
+      .select("id, user_id, name, emoji, reminder_time, start_date, end_date, reminder_sent_date")
+      .eq("active", true)
+      .not("reminder_time", "is", null),
+  ]);
 
-  if (todoErr) {
-    console.error("[push-reminder] fetch todos error:", todoErr);
+  if (subsError) throw new Error(`Push subscriptions fetch failed: ${subsError.message}`);
+  if (todoError) throw new Error(`Todo reminders fetch failed: ${todoError.message}`);
+  if (supplementError) throw new Error(`Supplement reminders fetch failed: ${supplementError.message}`);
+
+  const subsByUser = new Map<string, PushSubscriptionRow[]>();
+  for (const sub of subscriptions ?? []) {
+    const list = subsByUser.get(sub.user_id) ?? [];
+    list.push(sub);
+    subsByUser.set(sub.user_id, list);
   }
 
-  // ----------------------------------------------------
-  // Part 2: Supplement Reminders
-  // ----------------------------------------------------
-  const { data: activeSuplements, error: suplErr } = await supabase
-    .from("supplements")
-    .select("id, user_id, name, emoji, slug, reminder_time, start_date, end_date, reminder_sent_date")
-    .eq("active", true)
-    .not("reminder_time", "is", null);
+  const sendToUser = async (userId: string, payload: PushPayload) => {
+    const userSubs = subsByUser.get(userId) ?? [];
+    if (userSubs.length === 0) return { delivered: false, error: "no_active_subscription" };
 
-  if (suplErr) {
-    console.error("[push-reminder] fetch supplements error:", suplErr);
-  }
+    let delivered = false;
+    const errors: string[] = [];
+    const staleEndpoints: string[] = [];
 
-  const dueSupplements = (activeSuplements || []).filter(supl => {
-    // Check cycle dates
-    if (supl.start_date && supl.start_date > warsawDate) return false;
-    if (supl.end_date && supl.end_date < warsawDate) return false;
+    await Promise.all(userSubs.map(async (sub) => {
+      try {
+        await webpush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
+        }, JSON.stringify(payload), { TTL: 60 * 60 * 24 });
+        delivered = true;
+      } catch (error: unknown) {
+        const pushError = error as { statusCode?: number; message?: string };
+        if (pushError.statusCode === 404 || pushError.statusCode === 410) {
+          staleEndpoints.push(sub.endpoint);
+        }
+        errors.push(pushError.message ?? `push_${pushError.statusCode ?? "unknown"}`);
+      }
+    }));
 
-    // Check if already sent today
-    if (supl.reminder_sent_date === warsawDate) return false;
+    if (staleEndpoints.length > 0) {
+      const { error } = await supabase.from("push_subscriptions")
+        .delete().eq("user_id", userId).in("endpoint", staleEndpoints);
+      if (error) console.error("[push-reminder] stale subscription cleanup failed", error);
+    }
 
-    // Check time: supl.reminder_time is HH:MM:SS or HH:MM
-    const parts = supl.reminder_time.split(":");
-    if (parts.length < 2) return false;
-    const suplHour = parseInt(parts[0], 10);
-    const suplMin = parseInt(parts[1], 10);
-
-    const nowParts = warsawTime.split(":");
-    const nowHour = parseInt(nowParts[0], 10);
-    const nowMin = parseInt(nowParts[1], 10);
-
-    const suplMinutes = suplHour * 60 + suplMin;
-    const nowMinutes = nowHour * 60 + nowMin;
-
-    return nowMinutes >= suplMinutes;
-  });
-
-  const dueTodosCount = dueTodos?.length || 0;
-  const dueSupsCount = dueSupplements.length;
-
-  if (dueTodosCount === 0 && dueSupsCount === 0) {
-    return { sent_todos: 0, sent_supplements: 0 };
-  }
-
-  // Gather unique user IDs involved in notifications
-  const userIds = [
-    ...new Set([
-      ...(dueTodos || []).map(item => item.user_id),
-      ...dueSupplements.map(supl => supl.user_id)
-    ])
-  ];
-
-  // Fetch push subscriptions for all involved users
-  const { data: allSubs, error: subsErr } = await supabase
-    .from("push_subscriptions")
-    .select("user_id, endpoint, keys_p256dh, keys_auth")
-    .in("user_id", userIds);
-
-  if (subsErr) {
-    console.error("[push-reminder] push subscriptions fetch error:", subsErr);
-  }
-
-  const subsByUser = new Map<string, any[]>();
-  for (const sub of allSubs || []) {
-    if (!subsByUser.has(sub.user_id)) subsByUser.set(sub.user_id, []);
-    subsByUser.get(sub.user_id)!.push(sub);
-  }
+    return { delivered, error: errors.join("; ") || null };
+  };
 
   let sentTodos = 0;
-  let sentSups = 0;
-
-  // Process due todos
-  for (const item of dueTodos || []) {
-    const subs = subsByUser.get(item.user_id);
-    if (!subs || subs.length === 0) {
-      console.warn(`[push-reminder] no push subscriptions for user ${item.user_id}, skipping todo ${item.id}`);
-      continue;
-    }
-
-    const payload = JSON.stringify({
+  for (const item of dueTodos ?? []) {
+    const result = await sendToUser(item.user_id, {
       title: "⏰ Przypomnienie",
       body: item.title,
-      url: "/",
+      url: "/todo",
+      tag: `todo-${item.id}`,
     });
+    if (!result.delivered) continue;
 
-    const deliveryResults = await Promise.allSettled(
-      subs.map(sub =>
-        webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
-          payload,
-        )
-      )
-    );
-
-    const anyDelivered = deliveryResults.some(r => r.status === "fulfilled");
-    if (!anyDelivered) {
-      console.warn(`[push-reminder] all sends failed for todo ${item.id}`);
-      continue;
-    }
-    sentTodos++;
-
-    const { error: markErr } = await supabase
-      .from("todo_items")
-      .update({ reminder_sent: true })
-      .eq("id", item.id);
-    if (markErr) console.error("[push-reminder] mark todo sent failed:", item.id, markErr.message);
+    const { error } = await supabase.from("todo_items")
+      .update({ reminder_sent: true }).eq("id", item.id);
+    if (error) console.error("[push-reminder] todo mark sent failed", item.id, error);
+    else sentTodos++;
   }
 
-  // Process due supplements
-  for (const supl of dueSupplements) {
-    const subs = subsByUser.get(supl.user_id) || [];
-    
-    // Web Push
-    if (subs.length > 0) {
-      const payload = JSON.stringify({
-        title: "💊 Przypomnienie o suplemencie",
-        body: `Czas na: ${supl.emoji || "💊"} ${supl.name}`,
-        url: "/dashboard",
-      });
+  const dueSupplements = (supplements ?? []).filter((supplement) => {
+    if (supplement.start_date && supplement.start_date > warsawDate) return false;
+    if (supplement.end_date && supplement.end_date < warsawDate) return false;
+    if (supplement.reminder_sent_date === warsawDate || !supplement.reminder_time) return false;
+    const [hour, minute] = supplement.reminder_time.split(":").map(Number);
+    return warsawMinutes >= hour * 60 + minute;
+  });
 
-      await Promise.allSettled(
-        subs.map(sub =>
-          webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
-            payload,
-          )
-        )
-      );
-    }
+  let sentSupplements = 0;
+  for (const supplement of dueSupplements) {
+    const result = await sendToUser(supplement.user_id, {
+      title: "💊 Przypomnienie o suplemencie",
+      body: `Czas na: ${supplement.emoji || "💊"} ${supplement.name}`,
+      url: "/",
+      tag: `supplement-${supplement.id}-${warsawDate}`,
+    });
+    if (!result.delivered) continue;
 
-    // Telegram Push
-    if (TG_TOKEN && TG_CHAT_ID) {
-      const text = `💊 <b>Przypomnienie o suplemencie</b>\n\nCzas na: <b>${supl.emoji || "💊"} ${supl.name}</b>`;
-      const replyMarkup = {
-        inline_keyboard: [
-          [
-            {
-              text: "✅ Zaloguj wzięcie",
-              callback_data: `supl_s_${supl.slug}`,
-            }
-          ]
-        ]
-      };
-      await sendMessageParsed(TG_TOKEN, parseInt(TG_CHAT_ID, 10), text, {
-        parseMode: "HTML",
-        replyMarkup,
-      });
-    }
-
-    sentSups++;
-
-    const { error: markErr } = await supabase
-      .from("supplements")
-      .update({ reminder_sent_date: warsawDate })
-      .eq("id", supl.id);
-
-    if (markErr) console.error("[push-reminder] mark supplement sent failed:", supl.id, markErr.message);
+    const { error } = await supabase.from("supplements")
+      .update({ reminder_sent_date: warsawDate }).eq("id", supplement.id);
+    if (error) console.error("[push-reminder] supplement mark sent failed", supplement.id, error);
+    else sentSupplements++;
   }
 
-  return { sent_todos: sentTodos, sent_supplements: sentSups };
-}, { auth: 'service' }));
+  return {
+    sent_todos: sentTodos,
+    sent_supplements: sentSupplements,
+  };
+}, { auth: "service" }));

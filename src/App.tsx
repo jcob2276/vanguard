@@ -5,7 +5,6 @@ import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import Auth from './components/core/Auth';
 import Dashboard from './components/core/Dashboard';
-import { useNotifications } from './hooks/useNotifications';
 import { ErrorBoundary } from './components/core/ErrorBoundary';
 import { ToastHost } from './components/ui/ToastHost';
 import SettingsView from './components/settings/SettingsView';
@@ -37,7 +36,6 @@ function AppRoutes() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
-  useNotifications();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

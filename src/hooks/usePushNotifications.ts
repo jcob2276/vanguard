@@ -22,7 +22,21 @@ export function usePushNotifications(userId: string) {
 
   const isSubscribed = async (): Promise<boolean> => {
     const sub = await getSubscription();
-    return !!sub;
+    if (!sub || Notification.permission !== 'granted' || !userId) return false;
+
+    const json = sub.toJSON();
+    const { error } = await supabase.from('push_subscriptions').upsert({
+      user_id: userId,
+      endpoint: json.endpoint ?? sub.endpoint,
+      keys_p256dh: json.keys?.p256dh ?? '',
+      keys_auth: json.keys?.auth ?? '',
+    }, { onConflict: 'user_id,endpoint' });
+
+    if (error) {
+      console.error('[push] subscription sync failed:', error);
+      return false;
+    }
+    return true;
   };
 
   const subscribe = async (): Promise<boolean> => {
@@ -34,18 +48,20 @@ export function usePushNotifications(userId: string) {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') return false;
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as BufferSource,
-      });
+      const sub = await reg.pushManager.getSubscription() ?? await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as BufferSource,
+        });
 
       const json = sub.toJSON();
-      await supabase.from('push_subscriptions').upsert({
+      const { error } = await supabase.from('push_subscriptions').upsert({
         user_id: userId,
         endpoint: json.endpoint ?? '',
         keys_p256dh: json.keys?.p256dh ?? '',
         keys_auth: json.keys?.auth ?? '',
       }, { onConflict: 'user_id,endpoint' });
+
+      if (error) throw error;
 
       return true;
     } catch (err: unknown) {
@@ -57,9 +73,10 @@ export function usePushNotifications(userId: string) {
   const unsubscribe = async (): Promise<void> => {
     const sub = await getSubscription();
     if (!sub) return;
-    await sub.unsubscribe();
-    await supabase.from('push_subscriptions')
+    const { error } = await supabase.from('push_subscriptions')
       .delete().eq('user_id', userId).eq('endpoint', sub.endpoint);
+    if (error) throw error;
+    await sub.unsubscribe();
   };
 
   return { isSupported, subscribe, unsubscribe, isSubscribed };
