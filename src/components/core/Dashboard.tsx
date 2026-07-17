@@ -102,7 +102,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const navItems = [
     { id: 'dzis', icon: Sun, label: 'Dziś' },
     { id: 'tydzien', icon: Calendar, label: 'Tydzień' },
-    { id: 'projekty', icon: FolderKanban, label: 'Projekty' },
+    { id: 'projekty', icon: FolderKanban, label: 'Kierunek' },
     { id: 'historia', icon: Clock, label: 'Historia' },
   ];
 
