@@ -1,19 +1,15 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import { Link } from 'react-router-dom';
 import { formatDashboardDate } from '../../lib/date';
-import Badge from '../ui/Badge';
 import {
   Moon,
   Sun,
-  CheckSquare,
-  Calendar,
-  StickyNote,
-  Bookmark,
   LayoutDashboard,
   Search,
 } from 'lucide-react';
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
+import WorkspaceToolsLauncher from '../shared/WorkspaceToolsLauncher';
 
 interface DashboardHeaderProps {
   userId: string | undefined;
@@ -83,55 +79,7 @@ export function DashboardHeader({
         </Pressable>
         {!showLock && (
           <>
-            <Pressable
-              onClick={() => onShortcutClick('todo')}
-              className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-[var(--motion-slow)] active:scale-95 cursor-pointer flex items-center justify-center ${
-                view === 'todo'
-                  ? 'bg-primary border-primary text-on-accent shadow-[var(--shadow-glow-primary)] scale-105'
-                  : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-              }`}
-              title="Zadania"
-            >
-              <CheckSquare size={15} />
-            </Pressable>
-            <Pressable
-              onClick={() => onShortcutClick('kalendarz')}
-              className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-[var(--motion-slow)] active:scale-95 cursor-pointer flex items-center justify-center ${
-                view === 'kalendarz'
-                  ? 'bg-primary border-primary text-on-accent shadow-[var(--shadow-glow-primary)] scale-105'
-                  : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-              }`}
-              title="Kalendarz"
-            >
-              <Calendar size={15} />
-            </Pressable>
-            <Pressable
-              onClick={() => onShortcutClick('keep')}
-              className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-[var(--motion-slow)] active:scale-95 cursor-pointer flex items-center justify-center ${
-                view === 'keep'
-                  ? 'bg-primary border-primary text-on-accent shadow-[var(--shadow-glow-primary)] scale-105'
-                  : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-              }`}
-              title="Notatki"
-            >
-              <StickyNote size={15} />
-              {staleNoteCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 shadow-sm ring-1 ring-background">
-                  <Badge count={staleNoteCount} color="var(--color-warning)" />
-                </span>
-              )}
-            </Pressable>
-            <Pressable
-              onClick={() => onShortcutClick('links')}
-              className={`shrink-0 relative rounded-full border p-2.5 transition-all duration-[var(--motion-slow)] active:scale-95 cursor-pointer flex items-center justify-center ${
-                view === 'links'
-                  ? 'bg-primary border-primary text-on-accent shadow-[var(--shadow-glow-primary)] scale-105'
-                  : 'bg-surface-solid/5 border-border-custom text-text-muted hover:text-text-primary hover:bg-surface-solid/15'
-              }`}
-              title="Zapisane linki"
-            >
-              <Bookmark size={15} />
-            </Pressable>
+            <WorkspaceToolsLauncher active={view} onNavigate={onShortcutClick} placement="header" badgeCount={staleNoteCount} />
 
             <Pressable
               onClick={onSearchClick}

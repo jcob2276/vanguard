@@ -1,5 +1,6 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import { BookOpen, Calendar, FolderKanban, ListTodo, StickyNote } from 'lucide-react';
+import WorkspaceToolsLauncher from './WorkspaceToolsLauncher';
 
 export type WorkspaceDestination = 'keep' | 'todo' | 'kalendarz' | 'links' | 'projekty';
 
@@ -25,14 +26,21 @@ export default function WorkspaceNavigation({
   className = '',
 }: WorkspaceNavigationProps) {
   const horizontal = orientation === 'horizontal';
-  const visibleItems = horizontal ? ITEMS.filter(({ id }) => id !== 'projekty') : ITEMS;
+
+  if (horizontal) {
+    return (
+      <nav aria-label="Narzędzia" className={`flex w-full ${className}`}>
+        <WorkspaceToolsLauncher active={active} onNavigate={destination => onNavigate?.(destination as WorkspaceDestination)} />
+      </nav>
+    );
+  }
 
   return (
     <nav
       aria-label="Workspace"
       className={`${horizontal ? 'flex w-full' : 'flex flex-col gap-0.5'} ${className}`}
     >
-      {visibleItems.map(({ id, label, icon: Icon }) => {
+      {ITEMS.map(({ id, label, icon: Icon }) => {
         const isActive = active === id;
         return (
           <Pressable
