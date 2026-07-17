@@ -136,6 +136,9 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
         active="keep"
         orientation="horizontal"
         onNavigate={goTo}
+        primaryAction={{ label: 'Notatka', onClick: () => {
+          void handleNewNote().then((id) => setEditingId(id));
+        } }}
         className="keep-mobile-navigation md:hidden fixed bottom-0 inset-x-0 z-[var(--z-overlay)] border-t border-border-custom bg-background/95 backdrop-blur-[var(--blur-xl)]"
       />
     </div>
