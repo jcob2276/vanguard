@@ -29,7 +29,7 @@ export default function WorkspaceNavigation({
 
   if (horizontal) {
     return (
-      <nav aria-label="Narzędzia" className={`flex w-full ${className}`}>
+      <nav aria-label="Narzędzia" className={`workspace-tools-nav flex ${className}`}>
         <WorkspaceToolsLauncher active={active} onNavigate={destination => onNavigate?.(destination as WorkspaceDestination)} />
       </nav>
     );
