@@ -1,6 +1,12 @@
+/**
+ * @component TodoCard
+ * @role Prezentacyjna powłoka karty (collapsed row, attachments) — logikę dostarcza TodoCardConnected.
+ * @composes TodoCardExpandedPanel (renderowany gdy expanded=true)
+ * @usedBy TodoCardConnected (jedyny konsument)
+ */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import React, { useState, useEffect } from 'react';
-import { Check, Repeat2, Link2, Pencil, X, GripVertical, Clock, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { Check, Repeat2, Link2, Pencil, GripVertical, Clock, Tag, Calendar, MessageSquare, MoreHorizontal } from 'lucide-react';
 import {
   GOAL_ICON,
   splitEmoji,
@@ -83,11 +89,8 @@ export default function TodoCard({
   const { attachments, uploadingFile, fileInputRef, handleFileUpload, handleDeleteAttachment } = useTodoCardAttachments(expanded, item.id, item.user_id);
 
   const swipe = useTodoCardSwipe({
-    isDragging,
     isDone: item.status === 'done',
     onToggle,
-    onDrop,
-    onShowContextMenu,
     item,
     onDragStart,
     expanded,
@@ -133,38 +136,19 @@ export default function TodoCard({
           : { transition: 'opacity 0.15s' }
       }
     >
-      {/* Swipe hint overlays */}
-      <div
-        className={`absolute inset-0 flex items-center justify-start pl-3 text-success pointer-events-none transition-opacity duration-[var(--motion-medium)] ${
-          swipe.swipeDir === 'right' ? 'opacity-[var(--opacity-100)]' : 'opacity-[var(--opacity-0)]'
-        }`}
-      >
-        <Check size={15} strokeWidth={3} />
-      </div>
-      <div
-        className={`absolute inset-0 flex items-center justify-end pr-3 text-danger pointer-events-none transition-opacity duration-[var(--motion-medium)] ${
-          swipe.swipeDir === 'left' ? 'opacity-[var(--opacity-100)]' : 'opacity-[var(--opacity-0)]'
-        }`}
-      >
-        <X size={15} />
-      </div>
-
       {/* Row */}
       <div
-        onTouchStart={swipe.onTouchStart}
-        onTouchMove={swipe.onTouchMove}
-        onTouchEnd={swipe.onTouchEnd}
         onContextMenu={e => {
           e.preventDefault();
           onShowContextMenu(item, e.clientX, e.clientY);
         }}
-        style={{ transform: `translateX(${swipe.swipeOffset}px)`, transition: swipe.isSwiping ? 'none' : undefined }}
         onClick={e => e.stopPropagation()}
         className={`relative border-b border-border-custom/15 pr-2 py-4 pl-1 transition-all duration-[var(--motion-medium)] ease-[var(--ease-out)] group-hover:bg-text-primary/[0.015] ${leftBorder}`}
       >
         <div className="flex items-start gap-3">
           {/* Drag grip */}
           <div
+            data-no-view-swipe
             onTouchStart={swipe.onGripTouchStart}
             onTouchEnd={swipe.onGripTouchEnd}
             onTouchMove={swipe.onGripTouchMove}

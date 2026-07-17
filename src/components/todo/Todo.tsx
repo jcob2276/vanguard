@@ -18,6 +18,7 @@ import TodoHeader, { type TodoViewMode } from './TodoHeader';
 import TodoSearchBar from './TodoSearchBar';
 import TodoListView from './TodoListView';
 import WorkspaceNavigation from '../shared/WorkspaceNavigation';
+import { useTodoViewSwipe } from './hooks/useTodoViewSwipe';
 
 function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?: (dest: string) => void }) {
   const todoData = useTodoContext();
@@ -35,6 +36,7 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [navDest, setNavDest] = useState<TodoNavDest>('overview');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const viewSwipe = useTodoViewSwipe(todoView, setTodoView);
 
   const {
     activeAddSectionId, scanTextOpen, setScanTextOpen,
@@ -81,7 +83,11 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
         onNavigateTo={onNavigateTo}
       />
 
-      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+      <div
+        className="flex flex-1 flex-col min-w-0 overflow-hidden"
+        onTouchStart={viewSwipe.onTouchStart}
+        onTouchEnd={viewSwipe.onTouchEnd}
+      >
         <TodoHeader
           onBack={onBack}
           todoView={todoView}
