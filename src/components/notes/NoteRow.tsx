@@ -1,22 +1,52 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import { Pin } from 'lucide-react';
+import { useRef } from 'react';
 import { Note, getColor, relativeDate, getPlainText } from './keepUtils';
 
 interface NoteRowProps {
   note: Note;
   isActive: boolean;
   onClick: () => void;
+  onLongPress: () => void;
 }
 
-export default function NoteRow({ note, isActive, onClick }: NoteRowProps) {
+export default function NoteRow({ note, isActive, onClick, onLongPress }: NoteRowProps) {
+  const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
   const plainText = getPlainText(note.content);
   const snippet = plainText ? plainText.slice(0, 110) : 'Brak dodatkowej treści';
   const dateStr = relativeDate(note.updated_at || note.created_at);
   const color = getColor(note.color);
+  const cancelLongPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+
+  const startLongPress = () => {
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true;
+      navigator.vibrate?.(10);
+      onLongPress();
+    }, 500);
+  };
 
   return (
     <Pressable
-      onClick={onClick}
+      onClick={() => {
+        if (!longPressed.current) onClick();
+        longPressed.current = false;
+      }}
+      onPointerDown={startLongPress}
+      onPointerUp={cancelLongPress}
+      onPointerCancel={cancelLongPress}
+      onPointerLeave={cancelLongPress}
+      onPointerMove={cancelLongPress}
+      onContextMenu={event => {
+        event.preventDefault();
+        cancelLongPress();
+        onLongPress();
+      }}
       className={`note-list-row relative flex w-full select-none flex-col gap-1 px-4 py-3.5 text-left ${
         isActive ? 'bg-primary/10 text-text-primary' : 'bg-transparent text-text-primary'
       }`}

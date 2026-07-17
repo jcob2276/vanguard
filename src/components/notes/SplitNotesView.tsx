@@ -27,6 +27,7 @@ export default function SplitNotesView({
   busy, allTags, onExportChecklists
 }: SplitNotesViewProps) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [actionNote, setActionNote] = useState<Note | null>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -61,6 +62,7 @@ export default function SplitNotesView({
                           note={n}
                           isActive={activeNoteId === n.id}
                           onClick={() => onSelectNote(n.id)}
+                          onLongPress={() => setActionNote(n)}
                         />
                         {idx < pinned.length - 1 && (
                           <div className="border-b border-border-custom/10 ml-4 mr-2" />
@@ -84,6 +86,7 @@ export default function SplitNotesView({
                           note={n}
                           isActive={activeNoteId === n.id}
                           onClick={() => onSelectNote(n.id)}
+                          onLongPress={() => setActionNote(n)}
                         />
                         {idx < others.length - 1 && (
                           <div className="border-b border-border-custom/10 ml-4 mr-2" />
@@ -122,6 +125,21 @@ export default function SplitNotesView({
             </div>
           )}
         </div>
+      )}
+      {actionNote && (
+        <NoteQuickActions
+          note={actionNote}
+          onClose={() => setActionNote(null)}
+          onTogglePin={() => { onTogglePin(actionNote); setActionNote(null); }}
+          onArchive={() => {
+            onUpdate(actionNote.id, { is_archived: true });
+            setActionNote(null);
+          }}
+          onDelete={async () => {
+            if (await confirmDialog('Czy usunąć tę notatkę?')) onDelete(actionNote.id);
+            setActionNote(null);
+          }}
+        />
       )}
     </div>
   );
