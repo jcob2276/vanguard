@@ -1684,6 +1684,16 @@
   overflow: hidden;
 }
 
+.note-list-row {
+  transition: background-color 120ms ease-out, transform 100ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.note-list-row:active {
+  background: color-mix(in srgb, var(--primary) 9%, transparent);
+  transform: scale(0.995);
+}
+
 @media (max-width: 767px) {
   .keep-mobile-note-open .keep-browser-header,
   .keep-mobile-note-open .keep-create-fab,

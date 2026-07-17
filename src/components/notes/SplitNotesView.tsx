@@ -47,14 +47,14 @@ export default function SplitNotesView({
               <p className="text-xs mt-1">Zmień filtry lub utwórz nową notatkę.</p>
             </div>
           ) : (
-            <div className="pb-20 md:pb-4 px-1 py-2 space-y-4">
+            <div className="space-y-6 px-3 pb-20 pt-5 md:px-1 md:py-2 md:pb-4">
               {/* Pinned section in iOS Grouped List Style */}
               {pinned.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-4xs font-black uppercase tracking-widest text-text-muted px-2 py-0.5 flex items-center gap-1">
-                    <Pin size={8} fill="currentColor" className="text-[var(--color-warning)]" /> Przypięte
+                  <div className="flex items-center gap-1.5 px-1 pb-1 text-xs font-semibold text-text-secondary">
+                    <Pin size={11} fill="currentColor" className="text-[var(--color-warning)]" /> Przypięte
                   </div>
-                  <div className="bg-surface-1 border border-border-custom/30 rounded-2xl overflow-hidden shadow-2xs">
+                  <div className="overflow-hidden rounded-2xl bg-surface-1 shadow-2xs ring-1 ring-black/[0.04]">
                     {pinned.map((n, idx) => (
                       <div key={n.id}>
                         <NoteRow
@@ -74,10 +74,10 @@ export default function SplitNotesView({
               {/* Others section in iOS Grouped List Style */}
               {others.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-4xs font-black uppercase tracking-widest text-text-muted px-2 py-0.5">
+                  <div className="px-1 pb-1 text-xs font-semibold text-text-secondary">
                     Notatki
                   </div>
-                  <div className="bg-surface-1 border border-border-custom/30 rounded-2xl overflow-hidden shadow-2xs">
+                  <div className="overflow-hidden rounded-2xl bg-surface-1 shadow-2xs ring-1 ring-black/[0.04]">
                     {others.map((n, idx) => (
                       <div key={n.id}>
                         <NoteRow
