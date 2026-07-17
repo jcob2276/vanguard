@@ -1,6 +1,12 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { clientsClaim } from 'workbox-core';
 
 declare const self: ServiceWorkerGlobalScope;
+
+// Activate a freshly deployed app immediately instead of leaving the installed
+// PWA on the previous precache until Android happens to terminate every client.
+self.skipWaiting();
+clientsClaim();
 
 // Clean up old caches
 cleanupOutdatedCaches();
