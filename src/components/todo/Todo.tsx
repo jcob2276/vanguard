@@ -40,6 +40,7 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
 
   const {
     activeAddSectionId, scanTextOpen, setScanTextOpen,
+    openQuickAdd,
     renderInlineQuickCapture, renderAddTodoButton,
   } = useTodoQuickAdd();
 
@@ -133,6 +134,12 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
         active="todo"
         orientation="horizontal"
         onNavigate={onNavigateTo}
+        primaryAction={{ label: 'Zadanie', onClick: () => {
+          setTodoView('lista');
+          setNavDest('overview');
+          setActiveFilterSection(null);
+          openQuickAdd('today');
+        } }}
         className="md:hidden fixed bottom-0 inset-x-0 z-[var(--z-overlay)] border-t border-border-custom bg-background/95 backdrop-blur-[var(--blur-xl)]"
       />
 

@@ -12,6 +12,19 @@
   box-shadow: 0 10px 32px rgb(38 32 27 / 14%), 0 2px 8px rgb(38 32 27 / 8%);
   backdrop-filter: blur(20px) saturate(135%);
   -webkit-backdrop-filter: blur(20px) saturate(135%);
+  gap: 2px;
+}
+
+.workspace-primary-action {
+  color: var(--on-accent);
+  background: var(--primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 28%, transparent);
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.workspace-primary-action:active {
+  transform: scale(0.97);
+  filter: brightness(0.94);
 }
 
 .workspace-tools-trigger {
@@ -81,6 +94,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .workspace-primary-action,
   .workspace-tools-trigger,
   .workspace-tools-layer,
   .workspace-tools-sheet { animation: none; }

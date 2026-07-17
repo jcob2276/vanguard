@@ -12,6 +12,22 @@ export function useTodoQuickAdd() {
   const [activeAddSectionId, setActiveAddSectionId] = useState<string | null>(null);
   const [scanTextOpen, setScanTextOpen] = useState(false);
 
+  const openQuickAdd = (sectionId: string) => {
+    setActiveAddSectionId(sectionId);
+    setIsExpanded(true);
+    const defaultDate = sectionId === 'today' ? today : '';
+    const defaultSec = sectionId === 'today' || sectionId === 'inbox' ? '' : sectionId;
+    setForm({
+      title: '', notes: '', priority: 'normal', tagsText: '',
+      due_date: defaultDate, recurrence: '', section_id: defaultSec,
+      scheduled_time: '', reminder_at: '',
+    });
+    window.setTimeout(() => {
+      quickCaptureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      quickCaptureRef.current?.querySelector<HTMLInputElement>('input')?.focus();
+    }, 50);
+  };
+
   // Auto-open quick capture when navigated with ?new=1 (PWA shortcut / Telegram)
   const autoNewTaskHandled = useRef(false);
   useEffect(() => {
@@ -61,17 +77,7 @@ export function useTodoQuickAdd() {
     if (activeAddSectionId === sectionId) return null;
     return (
       <Pressable
-        onClick={() => {
-          setActiveAddSectionId(sectionId);
-          setIsExpanded(true);
-          const defaultDate = sectionId === 'today' ? today : '';
-          const defaultSec = sectionId === 'today' || sectionId === 'inbox' ? '' : sectionId;
-          setForm({
-            title: '', notes: '', priority: 'normal', tagsText: '',
-            due_date: defaultDate, recurrence: '', section_id: defaultSec,
-            scheduled_time: '', reminder_at: '',
-          });
-        }}
+        onClick={() => openQuickAdd(sectionId)}
         className="flex w-full items-center gap-2 px-3 py-2 text-sm font-semibold text-text-secondary hover:text-primary transition-colors cursor-pointer group mt-2"
       >
         <span className="text-lg text-primary group-hover:text-primary-hover font-bold">+</span>
@@ -83,6 +89,7 @@ export function useTodoQuickAdd() {
   return {
     activeAddSectionId, setActiveAddSectionId,
     scanTextOpen, setScanTextOpen,
+    openQuickAdd,
     renderInlineQuickCapture, renderAddTodoButton,
   };
 }

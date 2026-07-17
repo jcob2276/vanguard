@@ -17,6 +17,7 @@ interface WorkspaceNavigationProps {
   onNavigate?: (destination: WorkspaceDestination) => void;
   orientation?: 'vertical' | 'horizontal';
   className?: string;
+  primaryAction?: { label: string; onClick: () => void };
 }
 
 export default function WorkspaceNavigation({
@@ -24,12 +25,23 @@ export default function WorkspaceNavigation({
   onNavigate,
   orientation = 'vertical',
   className = '',
+  primaryAction,
 }: WorkspaceNavigationProps) {
   const horizontal = orientation === 'horizontal';
 
   if (horizontal) {
     return (
       <nav aria-label="Narzędzia" className={`workspace-tools-nav flex ${className}`}>
+        {primaryAction && (
+          <Pressable
+            onClick={primaryAction.onClick}
+            className="workspace-primary-action min-h-12 rounded-full px-5 text-sm font-bold"
+            aria-label={primaryAction.label}
+          >
+            <span className="text-lg leading-none">+</span>
+            {primaryAction.label}
+          </Pressable>
+        )}
         <WorkspaceToolsLauncher active={active} onNavigate={destination => onNavigate?.(destination as WorkspaceDestination)} />
       </nav>
     );
