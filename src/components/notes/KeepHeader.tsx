@@ -1,20 +1,22 @@
+/**
+ * @component KeepHeader
+ * @role Pasek góry: search + przełącznik trybu widoku (grid/list/split).
+ * @usedBy Keep
+ */
 import { Grid3X3, LayoutList, Columns } from 'lucide-react';
 import { WorkspaceHeader } from '../shared/WorkspaceHeader';
 
 interface KeepHeaderProps {
   onBack: () => void;
-  search: string;
-  setSearch: (value: string) => void;
   viewMode: 'grid' | 'list' | 'split';
   setViewMode: (value: 'grid' | 'list' | 'split') => void;
 }
 
-export default function KeepHeader({ onBack, search, setSearch, viewMode, setViewMode }: KeepHeaderProps) {
+export default function KeepHeader({ onBack, viewMode, setViewMode }: KeepHeaderProps) {
   return (
     <WorkspaceHeader
       title="Notatki"
       onBack={onBack}
-      search={{ value: search, onChange: setSearch, placeholder: 'Szukaj notatek…' }}
       tabs={{
         items: [
           { key: 'grid', label: 'Siatka', icon: <Grid3X3 size={14} /> },

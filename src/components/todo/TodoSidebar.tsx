@@ -1,6 +1,6 @@
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useState } from 'react';
-import { Plus, Search, Inbox, CalendarDays, CalendarClock, ChevronDown, Pencil, Trash2, Bell, PanelLeft } from 'lucide-react';
+import { Plus, Inbox, CalendarDays, CalendarClock, ChevronDown, Pencil, Trash2, Bell, PanelLeft } from 'lucide-react';
 import WorkspaceNavigation from '../shared/WorkspaceNavigation';
 import type { WorkspaceDestination } from '../shared/WorkspaceNavigation';
 import WorkspaceSidebar from '../shared/WorkspaceSidebar';
@@ -21,7 +21,6 @@ export interface TodoSidebarProps {
   onRenameSection: (id: string, name: string) => void;
   onDeleteSection: (id: string) => void;
   onQuickAdd: () => void;
-  onFocusSearch: () => void;
   onNavigateTo?: (dest: WorkspaceDestination) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -42,7 +41,6 @@ export default function TodoSidebar({
   onRenameSection,
   onDeleteSection,
   onQuickAdd: _onQuickAdd,
-  onFocusSearch,
   onNavigateTo,
 }: TodoSidebarProps) {
   const [adding, setAdding] = useState(false);
@@ -99,14 +97,6 @@ export default function TodoSidebar({
         />
       </div>
 
-
-      <Pressable
-        onClick={onFocusSearch}
-        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface-solid/50 hover:text-text-primary transition-colors"
-      >
-        <Search size={14} className="text-text-muted/60" />
-        Szukaj
-      </Pressable>
 
       <SidebarSection
         bordered

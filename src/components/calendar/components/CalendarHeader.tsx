@@ -13,14 +13,13 @@ interface CalendarHeaderProps {
 }
 
 export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
-  const { calData: { calView, setCalView, searchQuery, setSearchQuery }, isSyncing, onSyncCalendar } = useCalendar();
+  const { calData: { calView, setCalView }, isSyncing, onSyncCalendar } = useCalendar();
 
   return (
     <>
       <WorkspaceHeader
         title="Kalendarz"
         onBack={onBack}
-        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: 'Szukaj w kalendarzu…' }}
         actions={
           <Pressable
             onClick={onSyncCalendar}

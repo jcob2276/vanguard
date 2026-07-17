@@ -1,3 +1,10 @@
+/**
+ * @component Keep
+ * @role Główna strona notatek — spina search/view-mode, listę i modal edycji.
+ * @composes KeepHeader, KeepSidebar, KeepNotesList (grid/list) lub SplitNotesView (split), EditNoteModal
+ * @folders hooks/ = useNotesData (dane+mutacje) i useKeepView (stan widoku, wraps useKeepPageEffects)
+ * @usedBy Dashboard (lazy import)
+ */
 import EditNoteModal from './EditNoteModal';
 import KeepHeader from './KeepHeader';
 import KeepSidebar from './KeepSidebar';
@@ -59,8 +66,6 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="keep-browser-header"><KeepHeader
           onBack={goBack}
-          search={search}
-          setSearch={setSearch}
           viewMode={viewMode}
           setViewMode={(mode) => { setViewMode(mode); setEditingId(null); }}
         /></div>

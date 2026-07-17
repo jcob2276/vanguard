@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import DataStateNotice from '../core/DataStateNotice';
 import { createTodoSection, renameTodoSection, archiveTodoSection } from '../../lib/todo/todo';
@@ -35,7 +35,6 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
   const [todoView, setTodoView] = useState<TodoViewMode>('lista');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [navDest, setNavDest] = useState<TodoNavDest>('overview');
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const viewSwipe = useTodoViewSwipe(todoView, setTodoView);
 
   const {
@@ -77,10 +76,6 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
           quickCaptureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setTimeout(() => quickCaptureRef.current?.querySelector('input')?.focus(), 50);
         }}
-        onFocusSearch={() => {
-          searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          searchInputRef.current?.focus();
-        }}
         onNavigateTo={onNavigateTo}
       />
 
@@ -95,7 +90,6 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
           setTodoView={setTodoView}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
-          searchInputRef={searchInputRef}
         />
 
         <TodoSearchBar />

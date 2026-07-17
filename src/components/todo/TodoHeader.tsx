@@ -1,5 +1,4 @@
 import { Pressable } from '../ui/ControlPrimitives';
-import type { RefObject } from 'react';
 import { Bell, Kanban, LayoutGrid, ListTodo, PanelLeft } from 'lucide-react';
 import { WorkspaceHeader } from '../shared/WorkspaceHeader';
 import { useTodoContext } from './context/TodoContext';
@@ -18,11 +17,10 @@ interface TodoHeaderProps {
   setTodoView: (value: TodoViewMode) => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (value: boolean) => void;
-  searchInputRef: RefObject<HTMLInputElement | null>;
 }
 
-export default function TodoHeader({ onBack, todoView, setTodoView, sidebarCollapsed, setSidebarCollapsed, searchInputRef }: TodoHeaderProps) {
-  const { push, pushSubscribed, setPushSubscribed, searchQuery, setSearchQuery, setActiveSmartListId } = useTodoContext();
+export default function TodoHeader({ onBack, todoView, setTodoView, sidebarCollapsed, setSidebarCollapsed }: TodoHeaderProps) {
+  const { push, pushSubscribed, setPushSubscribed } = useTodoContext();
 
   return (
     <>
@@ -34,12 +32,6 @@ export default function TodoHeader({ onBack, todoView, setTodoView, sidebarColla
             <PanelLeft size={16} />
           </Pressable>
         )}
-        search={{
-          value: searchQuery,
-          onChange: (value) => { setSearchQuery(value); if (value) setActiveSmartListId(null); },
-          placeholder: 'Szukaj zadań…',
-          inputRef: searchInputRef,
-        }}
         actions={
           <>
             {push.isSupported && pushSubscribed === false && (

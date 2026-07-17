@@ -8,6 +8,12 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
+/**
+ * @component LinksInbox
+ * @role Share-target PWA — zapisywanie i triage linków z przeglądarki.
+ * @composes LinksTriagePanel, links/LinksInboxItem
+ * @folders links/ = useLinksInboxData, LinksInboxItem
+ */
 import Spinner from '../ui/Spinner';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useLinksInboxData } from './links/useLinksInboxData';
@@ -102,7 +108,6 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
           title="Pocket"
           subtitle={d.unreadCount > 0 ? `${d.unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
           onBack={onBack}
-          search={{ value: d.search, onChange: d.setSearch, placeholder: 'Szukaj w Pocket…' }}
           actions={
             <>
               <Pressable variant="ghost" size="sm" onClick={() => d.setViewMode(v => v === 'card' ? 'list' : 'card')} aria-label={d.viewMode === 'card' ? 'Widok listy' : 'Widok kart'}>
