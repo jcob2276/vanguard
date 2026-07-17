@@ -5,6 +5,11 @@ import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../../lib
 import { notify, confirmDialog } from '../../../lib/notify';
 import { useKeepPageEffects } from './useKeepPageEffects';
 
+type KeepViewMode = 'grid' | 'list' | 'split';
+
+const isMobileNotesView = () => window.matchMedia('(max-width: 767px)').matches;
+const keepViewStorageKey = () => `vanguard_keep_view_mode_${isMobileNotesView() ? 'mobile' : 'desktop'}`;
+
 interface UseKeepViewProps {
   userId: string;
   notes: Note[];
@@ -34,21 +39,21 @@ export function useKeepView({
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<'notes' | 'archive'>('notes');
   
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'split'>(() => {
+  const [viewMode, setViewMode] = useState<KeepViewMode>(() => {
     try {
-      const saved = localStorage.getItem('vanguard_keep_view_mode');
+      const saved = localStorage.getItem(keepViewStorageKey());
       if (saved === 'grid' || saved === 'list' || saved === 'split') return saved;
     } catch {
       // storage unavailable
     }
-    return 'grid';
+    return isMobileNotesView() ? 'split' : 'grid';
   });
 
-  const setViewModeWithPersist = useCallback((val: 'grid' | 'list' | 'split' | ((prev: 'grid' | 'list' | 'split') => 'grid' | 'list' | 'split')) => {
+  const setViewModeWithPersist = useCallback((val: KeepViewMode | ((prev: KeepViewMode) => KeepViewMode)) => {
     setViewMode((prev) => {
       const next = typeof val === 'function' ? val(prev) : val;
       try {
-        localStorage.setItem('vanguard_keep_view_mode', next);
+        localStorage.setItem(keepViewStorageKey(), next);
       } catch {
         // ignore storage errors
       }
