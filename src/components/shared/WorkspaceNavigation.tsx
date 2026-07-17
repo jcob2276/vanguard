@@ -25,13 +25,14 @@ export default function WorkspaceNavigation({
   className = '',
 }: WorkspaceNavigationProps) {
   const horizontal = orientation === 'horizontal';
+  const visibleItems = horizontal ? ITEMS.filter(({ id }) => id !== 'projekty') : ITEMS;
 
   return (
     <nav
       aria-label="Workspace"
       className={`${horizontal ? 'flex w-full' : 'flex flex-col gap-0.5'} ${className}`}
     >
-      {ITEMS.map(({ id, label, icon: Icon }) => {
+      {visibleItems.map(({ id, label, icon: Icon }) => {
         const isActive = active === id;
         return (
           <Pressable
