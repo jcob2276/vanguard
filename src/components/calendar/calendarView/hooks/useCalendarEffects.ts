@@ -63,14 +63,6 @@ export function useCalendarEffects({
         )
       ) {
         setCalView('tydzien');
-      } else if (
-        e.key.toLowerCase() === 'a' &&
-        !(
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement
-        )
-      ) {
-        setCalView('agenda');
       }
     };
     window.addEventListener('keydown', handleKeyDown);

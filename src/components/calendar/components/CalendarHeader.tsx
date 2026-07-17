@@ -6,7 +6,6 @@ import { WorkspaceHeader } from '../../shared/WorkspaceHeader';
 const CALENDAR_TABS = [
   { key: 'dzien', label: 'Dzień' },
   { key: 'tydzien', label: 'Tydzień' },
-  { key: 'agenda', label: 'Agenda' },
 ];
 
 interface CalendarHeaderProps {

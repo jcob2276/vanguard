@@ -1,10 +1,19 @@
-.calendar-week-day {
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 140ms ease-out, transform 100ms ease-out;
+.calendar-week-canvas {
+  width: 100%;
+  min-width: 100%;
 }
 
-.calendar-week-day:active {
-  transform: scale(0.96);
+.calendar-week-column {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.calendar-week-top-scroll {
+  scrollbar-width: none;
+}
+
+.calendar-week-top-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 @media (max-width: 767px) {
@@ -30,39 +39,26 @@
   }
 
   .calendar-week-strip {
-    padding: 6px 8px 9px;
-    gap: 2px;
+    padding-top: 6px;
+    padding-bottom: 9px;
     background: var(--background);
   }
 
-  .calendar-week-day {
-    min-width: 0;
-    border-radius: 18px;
+  .calendar-week-canvas {
+    width: 884px;
+    min-width: 884px;
   }
 
-  .calendar-week-day.is-selected {
-    background: color-mix(in srgb, var(--primary) 9%, transparent);
+  .calendar-week-column {
+    min-width: 120px;
+    flex-basis: 120px;
   }
 
-  .calendar-week-day.is-selected::after {
-    content: '';
-    position: absolute;
-    right: 28%;
-    bottom: 2px;
-    left: 28%;
-    height: 2px;
-    border-radius: 999px;
-    background: var(--primary);
-  }
-
-  .calendar-mobile-day-grid {
+  .calendar-week-grid {
     padding-bottom: 64px;
     scroll-behavior: smooth;
     overscroll-behavior-y: contain;
-  }
-
-  .calendar-mobile-day-grid > .flex {
-    padding-right: 8px;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -75,9 +71,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .calendar-week-day,
-  .calendar-mobile-day-grid {
-    transition: none;
+  .calendar-week-grid {
     scroll-behavior: auto;
   }
 }
