@@ -289,7 +289,14 @@ export function useDashboardState(session: Session) {
   }, [location.pathname, navigate]));
 
   const navigateTo = useCallback((newView: string) => {
-    if (newView === view) return;
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    };
+
+    if (newView === view) {
+      scrollToTop();
+      return;
+    }
     haptics.light();
     const fromIdx = TAB_ORDER.indexOf(view);
     const toIdx   = TAB_ORDER.indexOf(newView);
@@ -297,9 +304,13 @@ export function useDashboardState(session: Session) {
     const path = '/' + newView;
     if (supportsVT) {
       (document as unknown as { startViewTransition: (cb: () => void) => void })
-        .startViewTransition(() => { flushSync(() => navigate(path)); });
+        .startViewTransition(() => {
+          flushSync(() => navigate(path));
+          scrollToTop();
+        });
     } else {
       navigate(path);
+      scrollToTop();
     }
   }, [view, haptics, navigate]);
 
