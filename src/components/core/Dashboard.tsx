@@ -1,8 +1,18 @@
+/**
+ * @component Dashboard
+ * @role Root mobilnego SPA — 4 zakładki (Dziś/Tydzień/Projekty/Historia) + fast capture + nav + modale.
+ * @composes DashboardDzisTab, DashboardTydzienTab, DashboardProjektyTab, DashboardHistoriaTab (lazy)
+ * @folders context/ = DashboardContext | hooks/ = useDashboardState (wraps useDashboardData,
+ *          useDashboardSwipeNav, useNudgeData, useStatsData) | morningPlan/, nutrition/, shutdown/, stats/ =
+ *          rozbite pod-domeny konkretnych modali/kart (patrz ich pliki-huby: MorningPlanModal, NutritionCard,
+ *          DailyShutdownModal, Stats)
+ * @usedBy App.tsx (trasa "/")
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Sun, Calendar, FolderKanban, Clock } from 'lucide-react';
+import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardNavBar } from './DashboardNavBar';
@@ -127,6 +137,13 @@ export default function Dashboard({ session }: { session: Session }) {
     { label: 'Zmierz Wzrok', emoji: '👁️', color: 'var(--color-theme-hex-14b8a6)', action: () => s.navigate('/optics') },
   ];
 
+  const workspaceTools = [
+    { label: 'Notatki', icon: StickyNote, action: () => s.navigate('/keep') },
+    { label: 'Zadania', icon: ListTodo, action: () => s.navigate('/todo') },
+    { label: 'Kalendarz', icon: Calendar, action: () => s.navigate('/kalendarz') },
+    { label: 'Pocket', icon: BookOpen, action: () => s.navigate('/links') },
+  ];
+
   return (
     <DashboardContext.Provider value={s}>
       <div className="min-h-screen bg-background text-text-primary selection:bg-primary/10 font-sans transition-colors duration-[var(--motion-slow)]">
@@ -202,7 +219,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
         {!showLock && (
           <>
-            <DashboardFastCaptureMenu show={s.showFastCapture} onClose={() => s.setShowFastCapture(false)} items={fastCaptureItems} />
+            <DashboardFastCaptureMenu show={s.showFastCapture} onClose={() => s.setShowFastCapture(false)} items={fastCaptureItems} tools={workspaceTools} />
             <DashboardNavBar view={s.view} navigateTo={s.navigateTo} urgentTodoCount={s.urgentTodoCount} navItems={navItems} tabOrder={TAB_ORDER} />
             <DashboardFastCaptureFAB active={s.showFastCapture} onToggle={() => s.setShowFastCapture(v => !v)} />
           </>

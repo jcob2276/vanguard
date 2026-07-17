@@ -79,7 +79,9 @@ export function DashboardHeader({
         </Pressable>
         {!showLock && (
           <>
-            <WorkspaceToolsLauncher active={view} onNavigate={onShortcutClick} placement="header" badgeCount={staleNoteCount} />
+            <div className="hidden sm:block">
+              <WorkspaceToolsLauncher active={view} onNavigate={onShortcutClick} placement="header" badgeCount={staleNoteCount} />
+            </div>
 
             <Pressable
               onClick={onSearchClick}
