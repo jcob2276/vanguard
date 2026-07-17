@@ -11,19 +11,25 @@ export function useDashboardSwipeNav({
   navigateTo,
   tabOrder,
 }: UseDashboardSwipeNavProps) {
-  const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
+  const swipeStart = useRef<{ x: number; y: number; t: number; blocksNavigation: boolean } | null>(null);
 
   const handleMainTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     if (!touch) return;
-    swipeStart.current = { x: touch.clientX, y: touch.clientY, t: Date.now() };
+    const target = e.target as HTMLElement;
+    swipeStart.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      t: Date.now(),
+      blocksNavigation: Boolean(target.closest('[data-no-swipe-nav]')),
+    };
   }, []);
 
   const handleMainTouchEnd = useCallback((e: React.TouchEvent) => {
     const start = swipeStart.current;
     swipeStart.current = null;
     if (!start) return;
-    if ((e.target as HTMLElement)?.closest?.('[data-no-swipe-nav]')) return;
+    if (start.blocksNavigation) return;
 
     const touch = e.changedTouches[0];
     if (!touch) return;

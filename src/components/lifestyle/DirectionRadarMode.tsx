@@ -107,7 +107,10 @@ export default function DirectionRadarMode({
       {/* 3. Weekly Board — na górze */}
       <div>
         <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-22em)] text-text-muted font-display mb-3">Plan tygodnia</p>
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x">
+        <div
+          data-no-swipe-nav
+          className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border-custom scrollbar-track-transparent snap-x"
+        >
         {DAYS_PL.map((dayLabel, i) => {
           const dayDate = addDays(planWeekStart, i);
           const dayKey = formatWarsawDate(dayDate);
