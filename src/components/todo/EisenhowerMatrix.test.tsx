@@ -1,8 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import EisenhowerMatrix from './EisenhowerMatrix';
 
-// Mock updateTodoItem — we don't want real Supabase calls in tests
 vi.mock('../../lib/todo/todo', () => ({
   updateTodoItem: vi.fn().mockResolvedValue(undefined),
 }));
@@ -54,24 +53,13 @@ describe('EisenhowerMatrix', () => {
     expect(screen.getByText('Eliminuj')).toBeInTheDocument();
   });
 
-  it('clicking a quick-move button calls setItems with updated priority/importance', () => {
-    // Start item in Q1 (urgent + important), move it to Q2 (not urgent + important)
-    const item = makeItem({ id: '1', title: 'Move me', priority: 'urgent', is_important: true });
-    const setItems = vi.fn();
+  it('shows the task title without cryptic quick-move controls', () => {
+    const item = makeItem({ id: '1', title: 'Pełna nazwa zadania', priority: 'urgent' });
 
-    render(<EisenhowerMatrix items={[item]} setItems={setItems} />);
+    render(<EisenhowerMatrix items={[item]} setItems={vi.fn()} />);
 
-    // "Zaplanuj" starts with Z — find the quick-move button targeting Q2
-    // Buttons are: title="Przenieś do: Zaplanuj", "Przenieś do: Deleguj", "Przenieś do: Eliminuj"
-    const moveToSchedule = screen.getByTitle('Przenieś do: Zaplanuj');
-    fireEvent.click(moveToSchedule);
-
-    expect(setItems).toHaveBeenCalledOnce();
-    // setItems is called with a function — call it to see the resulting array
-    const updaterFn = setItems.mock.calls[0][0];
-    const result = updaterFn([item]);
-    expect(result[0].priority).toBe('high');
-    expect(result[0].is_important).toBe(true);
+    expect(screen.getByText('Pełna nazwa zadania')).toBeInTheDocument();
+    expect(screen.queryByTitle(/Przenieś do:/)).not.toBeInTheDocument();
   });
 
   it('shows item count badge when quadrant has items', () => {
@@ -81,14 +69,12 @@ describe('EisenhowerMatrix', () => {
     ];
     render(<EisenhowerMatrix items={items} setItems={vi.fn()} />);
 
-    // Q1 should show badge "2"
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
-  it('shows "Przeciągnij tu zadanie" placeholder in empty quadrants', () => {
+  it('shows an empty-state label in empty quadrants', () => {
     render(<EisenhowerMatrix items={[]} setItems={vi.fn()} />);
 
-    const placeholders = screen.getAllByText('Przeciągnij tu zadanie');
-    expect(placeholders).toHaveLength(4);
+    expect(screen.getAllByText('Brak zadań')).toHaveLength(4);
   });
 });

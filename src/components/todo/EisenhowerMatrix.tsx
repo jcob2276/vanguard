@@ -1,4 +1,3 @@
-import { Pressable } from '../ui/ControlPrimitives';
 import { useState } from 'react';
 import { updateTodoItem } from '../../lib/todo/todo';
 import type { TodoItemUpdate } from '../../lib/todo/todo';
@@ -96,13 +95,13 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
 
   return (
     <div className="p-4 pb-24">
-      <div className="grid grid-cols-2 gap-3 max-w-[var(--ds-maxw-700px)] mx-auto">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 max-w-[var(--ds-maxw-700px)] mx-auto">
         {QUADRANTS.map((q) => {
           const qItems = open.filter((i) => quadrantOf(i) === q.key);
           return (
             <div
               key={q.key}
-              className={`rounded-2xl border p-3 min-h-[var(--ds-h-180px)] transition-all duration-[var(--motion-medium)] ${q.color} ${dragOverQ === q.key ? 'scale-[var(--ds-arbitrary-1-01)] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
+              className={`rounded-2xl border p-3 sm:min-h-[var(--ds-h-180px)] transition-all duration-[var(--motion-medium)] ${q.color} ${dragOverQ === q.key ? 'scale-[var(--ds-arbitrary-1-01)] border-primary/50 shadow-md ring-2 ring-primary/10' : ''}`}
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragOverQ(q.key);
@@ -136,11 +135,11 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                     key={item.id}
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
-                    className="group flex items-start gap-2 rounded-xl bg-background/60 border border-border-custom/40 px-3 py-2 cursor-grab active:cursor-grabbing hover:border-border-custom transition-all"
+                    className="group flex items-start gap-2 rounded-xl bg-background/60 border border-border-custom/40 px-3 py-2.5 sm:cursor-grab sm:active:cursor-grabbing hover:border-border-custom transition-colors"
                   >
                     <span className={`mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full ${q.dot}`} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">{item.title}</p>
+                      <p className="text-sm font-semibold text-text-primary leading-snug sm:text-xs sm:line-clamp-2">{item.title}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {item.due_date && (
                           <span className="text-2xs text-text-muted">{item.due_date}</span>
@@ -154,24 +153,11 @@ export default function EisenhowerMatrix({ items, setItems }: Props) {
                         )}
                       </div>
                     </div>
-                    {/* Quick move buttons */}
-                    <div className="flex md:hidden md:group-hover:flex flex-row md:flex-col gap-1 items-center justify-center shrink-0 ml-1">
-                      {QUADRANTS.filter((qq) => qq.key !== q.key).map((qq) => (
-                        <Pressable
-                          key={qq.key}
-                          onClick={(e) => { e.stopPropagation(); moveToQuadrant(item, qq); }}
-                          className={`text-xs w-5 h-5 flex items-center justify-center rounded-full font-black shadow-sm active:scale-90 transition-transform ${qq.badge}`}
-                          title={`Przenieś do: ${qq.label}`}
-                        >
-                          {qq.label.charAt(0)}
-                        </Pressable>
-                      ))}
-                    </div>
                   </div>
                 ))}
 
                 {qItems.length === 0 && (
-                  <p className="text-xs text-text-muted/50 text-center py-4">Przeciągnij tu zadanie</p>
+                  <p className="text-xs text-text-muted/50 text-center py-4">Brak zadań</p>
                 )}
               </div>
             </div>
