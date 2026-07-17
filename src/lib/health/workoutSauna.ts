@@ -1,8 +1,26 @@
-import { getTodayWarsaw } from '../date'
+import { formatWarsawDate, TIMEZONE } from '../date'
 import { newExercise, newSet, type WorkoutExercise } from './workout'
 import { saveWorkoutSession } from './workoutLogging'
 
 const WELLNESS_NAMES = ['sauna', 'lodowata', 'zimny prysznic', 'stretching', 'foam rolling']
+
+function formatWarsawTime(date: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
+export function completedSaunaWindow(minutes: number, endedAt = new Date()) {
+  const startedAt = new Date(endedAt.getTime() - minutes * 60_000)
+  return {
+    workoutDate: formatWarsawDate(startedAt),
+    startTimeManual: formatWarsawTime(startedAt),
+    endTimeManual: formatWarsawTime(endedAt),
+  }
+}
 
 export function isWellnessOnlySession(session: {
   workout_day?: string | null
@@ -84,16 +102,18 @@ export async function saveSaunaSession(
     ],
   }
 
+  const window = completedSaunaWindow(opts.minutes)
+
   await saveWorkoutSession(userId, {
     workoutName: 'Sauna',
     exercises: [exercise],
     activities: [],
     notes: opts.notes.trim(),
     sessionRpe: opts.sessionRpe,
-    workoutDate: opts.workoutDate ?? getTodayWarsaw(),
+    workoutDate: opts.workoutDate ?? window.workoutDate,
     timerStart: null,
-    manualTime: false,
-    startTimeManual: '',
-    endTimeManual: '',
+    manualTime: true,
+    startTimeManual: window.startTimeManual,
+    endTimeManual: window.endTimeManual,
   })
 }
