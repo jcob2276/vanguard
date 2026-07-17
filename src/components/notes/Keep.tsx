@@ -46,7 +46,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
   if (!userId) return null;
 
   return (
-    <div className="keep-root">
+    <div className={`keep-root ${viewMode === 'split' && editingId ? 'keep-mobile-note-open' : ''}`}>
       <KeepSidebar
           notes={notes}
           allTags={allTags}
@@ -60,13 +60,13 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
           onConfirmDeleteTag={handleConfirmDeleteTag}
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <KeepHeader
+        <div className="keep-browser-header"><KeepHeader
           onBack={goBack}
           search={search}
           setSearch={setSearch}
           viewMode={viewMode}
           setViewMode={(mode) => { setViewMode(mode); setEditingId(null); }}
-        />
+        /></div>
         {viewMode === 'split' ? (
           <SplitNotesView
             notes={notes}
@@ -113,6 +113,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
         onClick={handleNewNote}
         disabled={busy}
         title="Nowa notatka"
+        className="keep-create-fab"
       >
         {busy ? <Spinner size="sm" className="h-5 w-5 !border-on-accent/30 !border-t-white" /> : <Plus size={24} strokeWidth={2} />}
       </Fab>
@@ -143,7 +144,7 @@ export default function Keep({ onBack, onNavigateTo }: { onBack?: () => void; on
         active="keep"
         orientation="horizontal"
         onNavigate={goTo}
-        className="md:hidden fixed bottom-0 inset-x-0 z-[var(--z-overlay)] border-t border-border-custom bg-background/95 backdrop-blur-[var(--blur-xl)]"
+        className="keep-mobile-navigation md:hidden fixed bottom-0 inset-x-0 z-[var(--z-overlay)] border-t border-border-custom bg-background/95 backdrop-blur-[var(--blur-xl)]"
       />
     </div>
   );

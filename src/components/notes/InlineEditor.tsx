@@ -152,26 +152,27 @@ export default function InlineEditor({
 
   return (
     <div 
-      className="keep-inline-editor flex flex-col h-full overflow-hidden transition-all duration-300"
+      className="keep-inline-editor flex flex-col h-full overflow-hidden"
       style={{ backgroundColor: c.bg, color: c.text }}
     >
-      <div className="flex items-center justify-between border-b border-border-custom/10 px-4 py-3 bg-background/5">
+      <div className="keep-inline-header flex items-center justify-between border-b border-border-custom/10 px-4 py-3 bg-background/5">
         <div className="flex items-center gap-2">
           {isMobile && (
-            <Pressable variant="ghost" size="sm" onClick={() => { flushSave(note.id); onClose(); }} className="text-inherit hover:bg-black/5">
-              <ChevronLeft size={16} />
+            <Pressable variant="ghost" size="sm" onClick={() => { flushSave(note.id); onClose(); }} className="keep-note-back text-inherit hover:bg-black/5">
+              <ChevronLeft size={22} />
+              <span>Notatki</span>
             </Pressable>
           )}
-          <span className="text-4xs uppercase tracking-widest opacity-60 font-black">Notatka</span>
+          {!isMobile && <span className="text-4xs uppercase tracking-widest opacity-60 font-black">Notatka</span>}
         </div>
         <div className="flex items-center gap-1.5">
           <Pressable variant="ghost" size="sm" onClick={() => onTogglePin(note)} className={`${note.is_pinned ? 'text-[var(--color-warning)]' : 'text-inherit'} hover:bg-black/5`}>
             <Pin size={15} fill={note.is_pinned ? 'currentColor' : 'none'} />
           </Pressable>
-          <Pressable variant="ghost" size="sm" onClick={() => { onUpdate(note.id, { is_archived: !note.is_archived }); onClose(); }} className="text-inherit hover:bg-black/5">
+          <Pressable variant="ghost" size="sm" onClick={() => { onUpdate(note.id, { is_archived: !note.is_archived }); onClose(); }} className="keep-note-secondary-action text-inherit hover:bg-black/5">
             <Archive size={15} />
           </Pressable>
-          <div className="relative">
+          <div className="keep-note-secondary-action relative">
             <Pressable variant="ghost" size="sm" onClick={() => setShowColorPicker(!showColorPicker)} className="text-inherit hover:bg-black/5 w-6 h-6 flex items-center justify-center">
               <span className="w-3.5 h-3.5 rounded-full border border-border-custom/30 inline-block" style={{ backgroundColor: c.dot }} />
             </Pressable>
@@ -183,11 +184,11 @@ export default function InlineEditor({
               </div>
             )}
           </div>
-          <Pressable variant="ghost" size="sm" onClick={async () => { if (await confirmDialog('Czy usunąć tę notatkę?')) { onDelete(note.id); onClose(); } }} className="text-inherit hover:bg-black/5 hover:text-danger">
+          <Pressable variant="ghost" size="sm" onClick={async () => { if (await confirmDialog('Czy usunąć tę notatkę?')) { onDelete(note.id); onClose(); } }} className="keep-note-secondary-action text-inherit hover:bg-black/5 hover:text-danger">
             <Trash2 size={15} />
           </Pressable>
           {onExportChecklists && (
-            <Pressable variant="ghost" size="sm" onClick={() => onExportChecklists(note)} className="text-inherit hover:bg-black/5">
+            <Pressable variant="ghost" size="sm" onClick={() => onExportChecklists(note)} className="keep-note-secondary-action text-inherit hover:bg-black/5">
               <X size={15} className="rotate-45" />
             </Pressable>
           )}
@@ -200,7 +201,7 @@ export default function InlineEditor({
           <Tag size={9} className="opacity-50" />
           <input type="text" placeholder="Dodaj tagi..." value={tagsInput} onChange={(e) => handleTagsChange(e.target.value)} className="bg-transparent border-0 outline-none p-0 flex-1 text-inherit placeholder:opacity-45 text-3xs focus:ring-0 focus:outline-none" />
         </div>
-        <div className="flex gap-2 my-1">
+        <div className="keep-note-ai-actions flex gap-2 my-1">
           <Pressable variant="ghost" size="sm" onClick={aiSummarize} disabled={!!aiLoading} className="text-4xs flex items-center gap-1 bg-black/5 hover:bg-black/10 border-0 rounded-lg text-inherit font-bold">
             {aiLoading === 'summary' ? <Spinner size="sm" className="h-3 w-3 !border-inherit/30" /> : <Sparkles size={10} />}
             Napisz podsumowanie
