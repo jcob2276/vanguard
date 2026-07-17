@@ -3,6 +3,8 @@ import { Bot, Pin } from 'lucide-react';
 import { Note } from './keepUtils';
 import NoteRow from './NoteRow';
 import InlineEditor from './InlineEditor';
+import NoteQuickActions from './NoteQuickActions';
+import { confirmDialog } from '../../lib/notify';
 
 interface SplitNotesViewProps {
   notes: Note[];
