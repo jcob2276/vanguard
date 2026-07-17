@@ -18,6 +18,7 @@ import type { GoalChip } from './types';
 
 interface CalendarWeekViewProps {
   weekStart: string;
+  selectedDay: string;
   setWeekStart: (start: string) => void;
   setSelectedDay: (day: string) => void;
   weather: WeatherState | null | undefined;
@@ -47,6 +48,7 @@ interface CalendarWeekViewProps {
 
 export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
   weekStart,
+  selectedDay,
   setWeekStart,
   setSelectedDay,
   weather,
@@ -69,11 +71,16 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
   scheduleTodoAt,
   gridRef,
 }) => {
+  const mobileGridRef = React.useRef<HTMLDivElement>(null);
   const untimedByDay = weekDays.map((day) => todosForDay(day).filter((t) => !t.scheduled_time));
+
+  React.useEffect(() => {
+    if (mobileGridRef.current) mobileGridRef.current.scrollTop = 7.5 * PX_PER_HOUR;
+  }, [selectedDay]);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
+      <div className="calendar-period-header flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
         <Pressable
           onClick={() => {
             const w = addDays(weekStart, -7);
@@ -112,12 +119,16 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
           <ChevronRight size={18} className="text-text-muted" />
         </Pressable>
       </div>
-      <div className="flex border-b border-border-custom/70" style={{ paddingLeft: 'var(--ds-inline-style-44)' }}>
+      <div className="calendar-week-strip flex border-b border-border-custom/70 md:pl-[var(--ds-inline-style-44)]">
         {weekDays.map((day) => {
           const isToday = day === today;
           const dayForecast = weather?.daily?.[day];
           return (
-            <div key={day} className="flex-1 text-center py-1.5 flex flex-col items-center justify-center relative group">
+            <Pressable
+              key={day}
+              onClick={() => setSelectedDay(day)}
+              className={`calendar-week-day flex-1 text-center py-1.5 flex flex-col items-center justify-center relative group ${day === selectedDay ? 'is-selected' : ''}`}
+            >
               <p className={`text-xs font-black uppercase tracking-wider ${isToday ? 'text-primary' : 'text-text-secondary'}`}>
                 {formatWeekdayShort(day)}
               </p>
@@ -142,21 +153,35 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
                   </span>
                 )}
               </div>
-            </div>
+            </Pressable>
           );
         })}
       </div>
-      {renderAllDayTodos({
-        days: weekDays,
-        untimedByDay,
-        goalChipFor,
-        completedTodoIds,
-        handleToggleTodo,
-        setEditingTodo,
-        setEditingTodoTitle,
-        setToastMessage,
-      })}
-      <div ref={gridRef} className="flex-1 overflow-y-auto">
+      <div className="hidden md:block">
+        {renderAllDayTodos({
+          days: weekDays,
+          untimedByDay,
+          goalChipFor,
+          completedTodoIds,
+          handleToggleTodo,
+          setEditingTodo,
+          setEditingTodoTitle,
+          setToastMessage,
+        })}
+      </div>
+      <div className="md:hidden">
+        {renderAllDayTodos({
+          days: [selectedDay],
+          untimedByDay: [todosForDay(selectedDay).filter((todo) => !todo.scheduled_time)],
+          goalChipFor,
+          completedTodoIds,
+          handleToggleTodo,
+          setEditingTodo,
+          setEditingTodoTitle,
+          setToastMessage,
+        })}
+      </div>
+      <div ref={gridRef} className="hidden flex-1 overflow-y-auto md:block">
         <div className="flex pt-3" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
           {renderTimeGutter({ dayKey: undefined, weather: undefined })}
           {weekDays.map((day) => (
@@ -186,6 +211,32 @@ export const CalendarWeekView: React.FC<CalendarWeekViewProps> = ({
               })}
             </div>
           ))}
+        </div>
+      </div>
+      <div ref={mobileGridRef} className="calendar-mobile-day-grid flex-1 overflow-y-auto md:hidden">
+        <div className="flex pt-3" style={{ minHeight: HOURS * PX_PER_HOUR + 40 }}>
+          {renderTimeGutter({ dayKey: selectedDay, weather })}
+          <div className="relative flex-1">
+            {renderDayColumn({
+              day: selectedDay,
+              today,
+              nowMin,
+              dayEvents: getEventsForDay(selectedDay),
+              dayTodos: todosForDay(selectedDay).filter((todo) => todo.scheduled_time),
+              dragSelect,
+              goalChipFor,
+              completedTodoIds,
+              handleColumnMouseDown,
+              handleColumnMouseMove,
+              handleEventMouseDown,
+              handleToggleTodo,
+              setEditingTodo,
+              setEditingTodoTitle,
+              setToastMessage,
+              setSaving,
+              scheduleTodoAt,
+            })}
+          </div>
         </div>
       </div>
     </div>

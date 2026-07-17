@@ -128,6 +128,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       return (
         <CalendarWeekView
           weekStart={weekStart}
+          selectedDay={selectedDay}
           setWeekStart={setWeekStart}
           setSelectedDay={setSelectedDay}
           weather={weather}

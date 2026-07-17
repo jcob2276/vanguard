@@ -70,7 +70,7 @@ export const CalendarDayView: React.FC<CalendarDayViewProps> = ({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
+      <div className="calendar-period-header flex items-center justify-between px-4 py-2 border-b border-border-custom/20">
         <Button
           variant="ghost"
           onClick={() => {

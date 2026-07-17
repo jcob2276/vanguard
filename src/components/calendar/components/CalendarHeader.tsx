@@ -28,6 +28,7 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
             variant="secondary"
             size="sm"
             icon={<RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />}
+            className="calendar-sync-button"
           >
             {isSyncing ? 'Synchronizuję…' : 'Sync'}
           </Pressable>

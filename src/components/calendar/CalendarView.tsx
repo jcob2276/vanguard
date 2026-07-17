@@ -20,6 +20,7 @@ import { useCalendarActions } from './calendarView/hooks/useCalendarActions';
 import { useCalendarIntegrations } from './calendarView/hooks/useCalendarIntegrations';
 import { useCalendarEffects } from './calendarView/hooks/useCalendarEffects';
 import WorkspaceNavigation from '../shared/WorkspaceNavigation';
+import './calendar.css';
 
 interface Props {
   session: Session;
@@ -161,7 +162,7 @@ export default function CalendarView({
 
   return (
     <CalendarContext.Provider value={contextValue}>
-      <div className="flex h-screen bg-background overflow-hidden relative font-sans">
+      <div className="calendar-shell flex h-screen bg-background overflow-hidden relative font-sans">
         <CalendarSidebar
           onBack={onBack}
           onNavigateTo={onNavigateTo}
