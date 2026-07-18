@@ -3,6 +3,7 @@ import { supabase, invokeEdge } from './supabase';
 import { warsawDayBoundsISO } from './date';
 import { isOfflineError, queueOfflineWrite } from './offlineQueue';
 import type { Database } from './database.types';
+import { normalizeCalendarEvent } from './calendarIntegrity';
 
 type VanguardCalendarRow = Database['public']['Tables']['vanguard_calendar']['Row'] & {
   description?: string | null;
@@ -17,7 +18,7 @@ export interface CalendarEvent {
   end: string;
   description?: string;
   category?: string;
-  recurrence?: string[];
+  recurrence?: string[] | null;
 }
 import { calendarKeys } from './queryKeys';
 
@@ -62,9 +63,10 @@ export function useCreateCalendarEvent() {
       accessToken?: string;
       event: Omit<CalendarEvent, 'id'>;
     }) => {
+      const safeEvent = normalizeCalendarEvent(event);
       try {
         const res = await invokeEdge('calendar-write', {
-          body: { userId, action: 'create', event },
+          body: { userId, action: 'create', event: safeEvent },
         });
         return res as { success: boolean; eventId: string };
       } catch (err: unknown) {
@@ -72,8 +74,8 @@ export function useCreateCalendarEvent() {
         const tempId = `offline-${crypto.randomUUID()}`;
         await queueOfflineWrite(
           'edge:calendar-write',
-          { userId, action: 'create', event: { ...event, id: tempId } },
-          `Utworzenie wydarzenia: ${event.summary}`
+          { userId, action: 'create', event: { ...safeEvent, id: tempId } },
+          `Utworzenie wydarzenia: ${safeEvent.summary}`
         );
         return { success: true, eventId: tempId };
       }
@@ -118,17 +120,18 @@ export function useUpdateCalendarEvent() {
       accessToken?: string;
       event: CalendarEvent & { id: string };
     }) => {
+      const safeEvent = normalizeCalendarEvent(event);
       try {
         const res = await invokeEdge('calendar-write', {
-          body: { userId, action: 'update', event },
+          body: { userId, action: 'update', event: safeEvent },
         });
         return res as { success: boolean; eventId: string };
       } catch (err: unknown) {
         if (!isOfflineError(err)) throw err;
         await queueOfflineWrite(
           'edge:calendar-write',
-          { userId, action: 'update', event },
-          `Aktualizacja wydarzenia: ${event.summary}`
+          { userId, action: 'update', event: safeEvent },
+          `Aktualizacja wydarzenia: ${safeEvent.summary}`
         );
         return { success: true, eventId: event.id };
       }

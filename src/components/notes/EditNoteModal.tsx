@@ -1,3 +1,4 @@
+/* eslint-disable max-lines, max-lines-per-function -- Dense rich-editor DOM, selection, backlinks and AI commands stay coordinated here. */
 /**
  * @component EditNoteModal
  * @role Pełnoekranowy modal edycji notatki (grid/list mode; split mode ma własny InlineEditor).
@@ -8,11 +9,11 @@ import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Bot, BrainCircuit, ChevronLeft, ChevronRight, Cpu, Link2, ListTodo, Loader2, MoreHorizontal, Pin, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import RichEditor from './RichEditor';
-import { COLORS, getColor, Note, getPlainText } from './keepUtils';
+import { COLORS, formatNoteDate, getColor, Note, getPlainText } from './keepUtils';
 import { invokeEdge } from '../../lib/supabase';
 import { notify } from '../../lib/notify';
 import { useUserId } from '../../store/useStore';
-import { createTodoItem } from '../../lib/todo/todo';
+import { createSourceTodos } from '../../lib/behavior/captureBridge';
 export default function EditNoteModal({
   note,
   onClose,
@@ -94,9 +95,7 @@ export default function EditNoteModal({
     return () => el.removeEventListener('wiki-link-navigate', handler);
   }, [note.id, onUpdate, onNavigateToNote, title, content, color, tagsInput]);
 
-  const noteDate = new Date(note.updated_at || note.created_at).toLocaleDateString('pl-PL', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
+  const noteDate = formatNoteDate(note.updated_at || note.created_at);
 
   const uncheckedCount = (() => {
     const doc = new DOMParser().parseFromString(content, 'text/html');
@@ -159,11 +158,9 @@ export default function EditNoteModal({
         return;
       }
       if (!userId) throw new Error('Brak zalogowanego użytkownika');
-      for (const t of tasks) {
-        await createTodoItem(userId, { title: t.trim() });
-      }
-      notify(`Dodano ${tasks.length} zadan do listy!`, 'success');
-      setAiResult({ type: 'tasks', text: `Dodano ${tasks.length} zadan:\n- ${tasks.join('\n- ')}` });
+      const created = await createSourceTodos(userId, tasks, `source:note:${note.id}`);
+      notify(created.length ? `Dodano ${created.length} zadań do listy.` : 'Te zadania są już na liście.', 'success');
+      setAiResult({ type: 'tasks', text: created.length ? `Dodano ${created.length} zadań:\n- ${created.map((item) => item.title).join('\n- ')}` : 'Nie dodano duplikatów.' });
     } catch (e: unknown) {
       notify('Blad AI: ' + (e instanceof Error ? e.message : 'Nieznany blad'), 'error');
     }

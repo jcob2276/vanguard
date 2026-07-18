@@ -22,7 +22,7 @@ export function useCalendarActions({
 }: UseCalendarActionsOptions) {
   const {
     quickCreate,
-    setQuickCreate,
+    closeQuickCreate,
     quickTitle,
     quickDuration,
     quickCategory,
@@ -71,7 +71,7 @@ export function useCalendarActions({
             (quickRecurrence === 'custom' ? undefined : quickRecurrence) ||
             undefined,
         });
-        setQuickCreate(null);
+        closeQuickCreate();
         setToastMessage('Dodano i zaplanowano zadanie! 📅');
         await fetchAllTodos();
       } catch (err) {
@@ -107,7 +107,7 @@ export function useCalendarActions({
       end,
       category: quickCategory || undefined,
       description: quickDescription.trim() || undefined,
-      recurrence,
+      recurrence: recurrence ?? null,
     };
     try {
       await createEventMutation.mutateAsync({
@@ -115,7 +115,7 @@ export function useCalendarActions({
         accessToken: accessToken || '',
         event: ev,
       });
-      setQuickCreate(null);
+      closeQuickCreate();
       setToastMessage('Dodano nowe wydarzenie! 🗓️');
       if (recurrence?.length && onResyncCalendar) {
         await onResyncCalendar();
@@ -144,7 +144,7 @@ export function useCalendarActions({
     fetchEvents,
     createScheduledTodo,
     fetchAllTodos,
-    setQuickCreate,
+    closeQuickCreate,
     setToastMessage,
     setSaving,
   ]);
@@ -175,7 +175,7 @@ export function useCalendarActions({
       end,
       category: editCategory || undefined,
       description: editDescription.trim() || undefined,
-      recurrence,
+      recurrence: recurrence ?? null,
     };
     try {
       await updateEventMutation.mutateAsync({
@@ -185,7 +185,7 @@ export function useCalendarActions({
       });
       setSelectedEvent(null);
       setToastMessage('Zmiany zostały zapisane! ✅');
-      if (recurrence?.length && onResyncCalendar) {
+      if (onResyncCalendar) {
         await onResyncCalendar();
         await fetchEvents();
       }

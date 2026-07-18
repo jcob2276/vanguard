@@ -23,7 +23,7 @@ interface QuickCreateEventModalProps {
 export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ calData, handleQuickSave }) => {
   const {
     quickCreate,
-    setQuickCreate,
+    closeQuickCreate,
     quickTitle,
     setQuickTitle,
     quickDuration,
@@ -44,7 +44,7 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
   } = calData;
 
   return (
-    <Modal isOpen={!!quickCreate} onClose={() => setQuickCreate(null)} title={quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'} size="md">
+    <Modal isOpen={!!quickCreate} onClose={closeQuickCreate} title={quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'} size="md">
       {quickCreate && <>
         <div className="flex gap-1 p-1 rounded-xl bg-surface/40 border border-border-custom/40">
           <Button

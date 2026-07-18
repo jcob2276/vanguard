@@ -3,6 +3,7 @@ import type { Database } from '../database.types';
 import { unwrap, unwrapList, unwrapMaybe } from '../supabaseUtils';
 import { getTodayWarsaw } from '../date';
 import { isOfflineError, queueOfflineWrite } from '../offlineQueue';
+import { normalizeTodoSchedule } from './todoIntegrity';
 
 export type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 export type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
@@ -60,6 +61,10 @@ interface CreateTodoItemFields {
 }
 
 export async function createTodoItem(userId: string, fields: CreateTodoItemFields): Promise<TodoItemRow> {
+  if (fields.recurrence && !fields.due_date && !fields.scheduled_time) {
+    throw new Error('Powtarzające się zadanie wymaga daty.');
+  }
+  const safeFields = normalizeTodoSchedule(fields);
   const tags = String(fields.tagsText || '')
     .split(',')
     .map((t) => t.trim())
@@ -68,14 +73,14 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
   const payload = {
     user_id: userId,
     section_id: fields.section_id || null,
-    title: fields.title.trim(),
+    title: safeFields.title,
     notes: fields.notes?.trim() || null,
     priority: fields.priority || 'normal',
     tags,
-    due_date: fields.due_date || null,
-    recurrence: fields.recurrence || null,
-    duration_minutes: fields.duration_minutes ?? null,
-    scheduled_time: fields.scheduled_time ?? null,
+    due_date: safeFields.due_date || null,
+    recurrence: safeFields.recurrence || null,
+    duration_minutes: safeFields.duration_minutes ?? null,
+    scheduled_time: safeFields.scheduled_time ?? null,
     reminder_at: fields.reminder_at ?? null,
     is_important: fields.is_important ?? false,
     parent_task_id: fields.parent_task_id ?? null,
@@ -127,10 +132,11 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
 }
 
 export async function updateTodoItem(id: string, patch: TodoItemUpdate): Promise<TodoItemRow | void> {
+  const safePatch = normalizeTodoSchedule(patch);
   try {
     const { data, error } = await supabase
       .from('todo_items')
-      .update(patch)
+      .update(safePatch)
       .eq('id', id)
       .select()
       .single();
@@ -139,7 +145,7 @@ export async function updateTodoItem(id: string, patch: TodoItemUpdate): Promise
     return data ?? undefined;
   } catch (err: unknown) {
     if (isOfflineError(err)) {
-      await queueOfflineWrite('table:update:todo_items', { match: { id }, payload: patch }, 'Edycja zadania');
+      await queueOfflineWrite('table:update:todo_items', { match: { id }, payload: safePatch }, 'Edycja zadania');
       return;
     }
     throw err;

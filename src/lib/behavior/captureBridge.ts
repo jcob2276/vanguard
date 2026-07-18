@@ -26,6 +26,23 @@ function htmlToPlainText(html: string): string {
   return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
 }
 
+export async function createSourceTodos(userId: string, titles: string[], sourceMarker: string) {
+  const cleanTitles = [...new Set(titles.map((title) => title.trim()).filter(Boolean))];
+  const { data: existing, error } = await supabase
+    .from('todo_items')
+    .select('title')
+    .eq('user_id', userId)
+    .ilike('notes', `%${sourceMarker}%`);
+  if (error) throw error;
+  const existingTitles = new Set((existing || []).map((item) => item.title.trim().toLocaleLowerCase('pl-PL')));
+  const created = [];
+  for (const title of cleanTitles) {
+    if (existingTitles.has(title.toLocaleLowerCase('pl-PL'))) continue;
+    created.push(await createTodoItem(userId, { title, notes: sourceMarker }));
+  }
+  return created;
+}
+
 function formatLinkTodoNotes(link: LinkCaptureFields): string {
   const lines = [link.url];
   if (link.takeaways?.length) {
@@ -58,16 +75,27 @@ export async function convertNoteToTodoItem(
   note: Pick<Note, 'id' | 'title' | 'content'>,
   archive = true,
 ) {
+  const sourceMarker = `source:note:${note.id}`;
+  const { data: existing, error: lookupError } = await supabase
+    .from('todo_items')
+    .select('*')
+    .eq('user_id', userId)
+    .ilike('notes', `%${sourceMarker}%`)
+    .limit(1)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+
   const plain = htmlToPlainText(note.content);
   const title = note.title?.trim() || plain.slice(0, 60) || 'Notatka';
-  const notes = plain ? `${plain}\n\nsource:note:${note.id}` : `source:note:${note.id}`;
-  const item = await createTodoItem(userId, { title, notes });
+  const notes = plain ? `${plain}\n\n${sourceMarker}` : sourceMarker;
+  const item = existing || await createTodoItem(userId, { title, notes });
   if (archive) {
-    await supabase
+    const { error } = await supabase
       .from('vanguard_notes')
       .update({ is_archived: true, is_pinned: false })
       .eq('id', note.id)
       .eq('user_id', userId);
+    if (error) throw error;
   }
   return item;
 }
@@ -132,9 +160,8 @@ export async function exportNoteChecklistsToTodos(
 ) {
   const titles = extractUncheckedKeepItems(note.content);
   if (!titles.length) throw new Error('Brak niezaznaczonych punktów na liście');
-  const created = [];
-  for (const title of titles) {
-    created.push(await createTodoItem(userId, { title, notes: `source:note:${note.id}` }));
-  }
+  const sourceMarker = `source:note:${note.id}`;
+  const created = await createSourceTodos(userId, titles, sourceMarker);
+  if (!created.length) throw new Error('Wszystkie punkty są już na liście zadań');
   return created;
 }

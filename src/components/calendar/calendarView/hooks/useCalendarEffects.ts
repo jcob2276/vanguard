@@ -5,7 +5,7 @@ import type { QuickCreateState } from '../../hooks/useCalendarData';
 
 interface UseCalendarEffectsOptions {
   quickCreate: QuickCreateState | null;
-  setQuickCreate: (v: QuickCreateState | null) => void;
+  closeQuickCreate: () => void;
   editingTodo: CalendarTodo | null;
   setEditingTodo: (v: CalendarTodo | null) => void;
   selectedEvent: CalRow | null;
@@ -19,7 +19,7 @@ interface UseCalendarEffectsOptions {
 
 export function useCalendarEffects({
   quickCreate,
-  setQuickCreate,
+  closeQuickCreate,
   editingTodo,
   setEditingTodo,
   selectedEvent,
@@ -42,7 +42,7 @@ export function useCalendarEffects({
       if (e.key === 'Escape') {
         if (quickCreate || editingTodo || selectedEvent || showBudgetConfig) {
           e.preventDefault();
-          setQuickCreate(null);
+          closeQuickCreate();
           setEditingTodo(null);
           setSelectedEvent(null);
           setShowBudgetConfig(false);
@@ -72,7 +72,7 @@ export function useCalendarEffects({
     editingTodo,
     selectedEvent,
     showBudgetConfig,
-    setQuickCreate,
+    closeQuickCreate,
     setEditingTodo,
     setSelectedEvent,
     setShowBudgetConfig,

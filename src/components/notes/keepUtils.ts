@@ -10,6 +10,10 @@ export function relativeDate(iso: string): string {
   return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 }
 
+export function formatNoteDate(iso: string): string {
+  return new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+}
+
 /** Strips HTML tags — shared by NoteRow, InlineEditor, EditNoteModal for snippet/AI text. */
 export function getPlainText(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();

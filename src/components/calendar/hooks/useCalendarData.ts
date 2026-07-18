@@ -82,6 +82,18 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   const [quickRecurrenceEndDate, setQuickRecurrenceEndDate] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const closeQuickCreate = useCallback(() => {
+    setQuickCreate(null);
+    setQuickTitle('');
+    setQuickDuration(60);
+    setQuickCategory(null);
+    setQuickType('event');
+    setQuickDescription('');
+    setQuickRecurrence('');
+    setQuickCustomDays([]);
+    setQuickRecurrenceEndDate('');
+  }, []);
+
   const [editingTodo, setEditingTodo] = useState<CalendarTodo | null>(null);
   const [editingTodoTitle, setEditingTodoTitle] = useState('');
 
@@ -244,7 +256,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     events, displayEvents,
     searchQuery, setSearchQuery,
     loading,
-    quickCreate, setQuickCreate,
+    quickCreate, setQuickCreate, closeQuickCreate,
     quickTitle, setQuickTitle,
     quickDuration, setQuickDuration,
     quickCategory, setQuickCategory,

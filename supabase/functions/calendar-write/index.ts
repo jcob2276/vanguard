@@ -52,6 +52,17 @@ Deno.serve(serveJson(async (req, ctx) => {
 
   const userId = ctx.userId
   if (!userId || !action) throw new Error('Missing userId or action')
+  if (!['create', 'update', 'delete'].includes(action)) throw new Error('Unknown calendar action')
+  if (!event || typeof event !== 'object') throw new Error('Missing calendar event')
+  if (action !== 'delete') {
+    const start = Date.parse(event.start)
+    const end = Date.parse(event.end)
+    if (!String(event.summary || '').trim()) throw new Error('Event summary is required')
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error('Invalid event time range')
+    if (event.recurrence != null && (!Array.isArray(event.recurrence) || event.recurrence.some((rule: unknown) => typeof rule !== 'string' || !rule.startsWith('RRULE:')))) {
+      throw new Error('Invalid event recurrence')
+    }
+  }
 
   const access_token = await getAccessToken(userId)
   const supabase = createServiceClient()
@@ -122,7 +133,7 @@ Deno.serve(serveJson(async (req, ctx) => {
       if (event.recurrence?.length) {
         // Adding or replacing recurrence
         putBody.recurrence = event.recurrence
-      } else {
+      } else if (event.recurrence === null) {
         // Explicitly remove recurrence (convert recurring → one-time)
         delete putBody.recurrence
       }
@@ -156,7 +167,7 @@ Deno.serve(serveJson(async (req, ctx) => {
           start_time: event.start,
           end_time: event.end,
           description: event.description ?? null,
-          recurrence: event.recurrence ?? null,
+          recurrence: updated.recurrence ?? null,
           series_id: null,
           category: event.category ?? 'vanguard',
         }, { onConflict: 'event_id' })

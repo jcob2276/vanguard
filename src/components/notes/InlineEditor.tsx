@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function -- Dense rich-editor DOM, selection and AI commands stay coordinated here. */
 /**
  * @component InlineEditor
  * @role Panel edycji notatki w trybie split (odpowiednik EditNoteModal, ale bez modala).
@@ -12,7 +13,7 @@ import { COLORS, getColor, Note, getPlainText, relativeDate } from './keepUtils'
 import { invokeEdge } from '../../lib/supabase';
 import { notify, confirmDialog } from '../../lib/notify';
 import { useUserId } from '../../store/useStore';
-import { createTodoItem } from '../../lib/todo/todo';
+import { createSourceTodos } from '../../lib/behavior/captureBridge';
 import Spinner from '../ui/Spinner';
 
 interface InlineEditorProps {
@@ -95,6 +96,8 @@ export default function InlineEditor({
       setAiResult(null);
       setShowColorPicker(false);
     }
+  // Reset only when navigating to another note; live note updates are autosave echoes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id, flushSave]);
 
   useEffect(() => {
@@ -142,12 +145,9 @@ export default function InlineEditor({
       if (tasks.length === 0) { setAiResult({ type: 'tasks', text: 'Brak zadań.' }); setAiLoading(null); return; }
       if (!userId) throw new Error('Brak zalogowanego użytkownika');
       
-      for (const t of tasks) {
-        await createTodoItem(userId, { title: t.trim() });
-      }
-      
-      setAiResult({ type: 'tasks', text: `Dodano ${tasks.length} zadań.` });
-      notify(`Dodano ${tasks.length} zadań do Todo`, 'success');
+      const created = await createSourceTodos(userId, tasks, `source:note:${note.id}`);
+      setAiResult({ type: 'tasks', text: created.length ? `Dodano ${created.length} zadań.` : 'Nie dodano duplikatów.' });
+      notify(created.length ? `Dodano ${created.length} zadań do listy.` : 'Te zadania są już na liście.', 'success');
     } catch (e: unknown) {
       notify('Błąd AI: ' + (e instanceof Error ? e.message : 'Nieznany błąd'), 'error');
     }

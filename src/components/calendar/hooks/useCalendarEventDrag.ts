@@ -16,7 +16,7 @@ interface UseCalendarEventDragParams {
     mutateAsync: (args: {
       userId: string;
       accessToken: string;
-      event: { id: string; summary: string; start: string; end: string; category?: string; description?: string; recurrence?: string[] };
+      event: { id: string; summary: string; start: string; end: string; category?: string; description?: string; recurrence?: string[] | null };
     }) => Promise<unknown>;
   };
   onEventClick: (ev: CalRow) => void;

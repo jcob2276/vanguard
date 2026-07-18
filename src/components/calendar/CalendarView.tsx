@@ -90,7 +90,7 @@ export default function CalendarView({
 
   useCalendarEffects({
     quickCreate: calData.quickCreate,
-    setQuickCreate: calData.setQuickCreate,
+    closeQuickCreate: calData.closeQuickCreate,
     editingTodo: calData.editingTodo,
     setEditingTodo: calData.setEditingTodo,
     selectedEvent: calData.selectedEvent,
@@ -145,6 +145,8 @@ export default function CalendarView({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
+  // The hook returns an object rebuilt on render; only the fields used above are dependencies.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calData.calView, calData.selectedDay, calData.weekStart, calData.setSelectedDay, calData.setWeekStart]);
 
   const contextValue: CalendarContextType = {
