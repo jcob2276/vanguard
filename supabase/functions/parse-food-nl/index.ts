@@ -8,14 +8,66 @@
  * @consumer Zapis posiłków w aplikacji frontendowej i Telegramie
  * @status active
  */
-import { createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
+import { createServiceClient } from '../_shared/supabase.ts'
 import { serveJson } from '../_shared/http.ts'
+import { openaiChat } from '../_shared/openai.ts'
 import {
   parseMealText,
   finalizeParsedItems,
   type UserParseContext,
   type FoodCorrection,
 } from '../_shared/foodParseCore.ts'
+
+function validMacro(value: unknown, max = 100): number | null {
+  if (value == null) return null
+  const number = Number(value)
+  return Number.isFinite(number) && number >= 0 && number <= max ? Math.round(number * 10) / 10 : null
+}
+
+async function parseNutritionLabel(imageBase64: string, mimeType: string, userId?: string) {
+  if (!/^image\/(jpeg|png|webp)$/.test(mimeType)) throw new Error('Unsupported image type')
+  if (!imageBase64 || imageBase64.length > 8_000_000) throw new Error('Image is missing or too large')
+  const apiKey = Deno.env.get('OPENAI_API_KEY') || ''
+  if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
+  const { content } = await openaiChat({
+    apiKey,
+    model: 'gpt-4o-mini',
+    temperature: 0.1,
+    maxTokens: 500,
+    responseFormat: { type: 'json_object' },
+    userId,
+    feature: 'nutrition-label-ocr',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: `Odczytaj etykietę żywieniową. Zwróć wyłącznie JSON z wartościami na 100 g lub 100 ml: {"name":string,"brand":string|null,"calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number|null,"sugar":number|null,"servingGrams":number|null,"confidence":"high"|"medium"|"low"}. Nie przeliczaj porcji na 100 g, jeśli na zdjęciu brakuje podstawy przeliczenia. Wtedy ustaw confidence="low" i brakujące pola null.` },
+        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+      ],
+    }],
+  })
+  const raw = JSON.parse(content || '{}') as Record<string, unknown>
+  const calories = validMacro(raw.calories, 1000)
+  const protein = validMacro(raw.protein)
+  const carbs = validMacro(raw.carbs)
+  const fat = validMacro(raw.fat)
+  if (!raw.name || calories == null || protein == null || carbs == null || fat == null) {
+    throw new Error('Label is incomplete or unreadable')
+  }
+  const macroCalories = protein * 4 + carbs * 4 + fat * 9
+  const labelConfidence = ['high', 'medium', 'low'].includes(String(raw.confidence)) ? String(raw.confidence) : 'medium'
+  const confidence = macroCalories > 0 && Math.abs(macroCalories - calories) / calories > 0.2
+    ? 'low' : labelConfidence
+  return {
+    name: String(raw.name).slice(0, 160),
+    brand: raw.brand ? String(raw.brand).slice(0, 100) : null,
+    barcode: null,
+    calories, protein, carbs, fat,
+    fiber: validMacro(raw.fiber), sugar: validMacro(raw.sugar),
+    defaultGrams: validMacro(raw.servingGrams, 2000) ?? 100,
+    source: 'label_ocr',
+    confidence,
+  }
+}
 
 async function loadUserContext(
   userId: string,
@@ -101,25 +153,24 @@ async function loadUserContext(
   }
 }
 
-Deno.serve(serveJson(async (req) => {
+Deno.serve(serveJson(async (req, auth) => {
   const body = await req.clone().json().catch(() => ({}))
   const text: string = (body.text || '').trim()
   const clientTime: string | undefined = body.clientTime
-  if (!text) throw new Error('Missing text')
-
-  const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || ''
-  if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY')
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-  let userId: string | undefined
-  try {
-    const scope = await resolveUserScope(req, body.userId ?? null)
-    userId = scope.userId ?? body.userId
-  } catch {
-    userId = body.userId
+  const userId = auth.userId ?? undefined
+
+  if (body.mode === 'label') {
+    const label = await parseNutritionLabel(String(body.imageBase64 || ''), String(body.mimeType || ''), userId)
+    return { label }
   }
+
+  if (!text) throw new Error('Missing text')
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY') || ''
+  if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY')
 
   const db = createServiceClient()
   let ctx: UserParseContext
@@ -163,4 +214,4 @@ Deno.serve(serveJson(async (req) => {
   console.log(`[parse-food-nl] "${text.slice(0, 60)}" → ${items.length} items (user=${userId ?? 'anon'})`)
 
   return { items }
-}, { auth: 'none' }))
+}, { auth: 'user' }))

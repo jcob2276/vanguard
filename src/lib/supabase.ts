@@ -23,6 +23,7 @@ export async function invokeEdge<K extends keyof EdgeFunctionResponses>(
     method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
     headers?: Record<string, string>;
     signal?: AbortSignal;
+    query?: Record<string, string>;
   }
 ): Promise<EdgeFunctionResponses[K]>;
 export async function invokeEdge(
@@ -32,6 +33,7 @@ export async function invokeEdge(
     method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
     headers?: Record<string, string>;
     signal?: AbortSignal;
+    query?: Record<string, string>;
   }
 ): Promise<Record<string, unknown>>;
 export async function invokeEdge(
@@ -41,9 +43,12 @@ export async function invokeEdge(
     method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
     headers?: Record<string, string>;
     signal?: AbortSignal;
+    query?: Record<string, string>;
   }
 ): Promise<Record<string, unknown>> {
-  const { data, error } = await supabase.functions.invoke(functionName, {
+  const queryString = options?.query ? new URLSearchParams(options.query).toString() : '';
+  const targetName = queryString ? `${functionName}?${queryString}` : functionName;
+  const { data, error } = await supabase.functions.invoke(targetName, {
     body: options?.body,
     method: options?.method || 'POST',
     headers: options?.headers,

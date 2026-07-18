@@ -125,7 +125,15 @@ export async function saveParsedFoodItems(
         sugar: item.sugar != null ? Math.round(item.sugar * scale100 * 10) / 10 : null,
         meal_type: opts.mealType,
         meal_group_id: groupId ?? null,
-        parse_meta: (item.parseMeta ?? null) as Json,
+        parse_meta: ({
+          ...(item.parseMeta ?? {}),
+          source: item.parseMeta?.macroSource ?? (item.source === 'library' ? 'confirmed' : 'estimated'),
+          trust_level: item.source === 'library' || item.parseMeta?.macroSource === 'user_correction'
+            ? 'confirmed'
+            : item.parseMeta?.macroSource === 'off' || item.parseMeta?.macroSource === 'reference_pl'
+              ? 'reference' : 'estimated',
+          uncertainty_pct: item.confidence === 'high' ? 10 : item.confidence === 'medium' ? 20 : 30,
+        }) as Json,
       },
     })
     if (error) throw error

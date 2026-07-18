@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase, invokeEdge } from '../../../../lib/supabase';
-import { NETWORK_TIMEOUT_MS } from '../../../../lib/constants';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { lookupFoodBarcode, searchExternalFoods, searchPrivateFoodLibrary } from '../../../../lib/health/foodSearch';
 import { type FoodBase, scale } from './foodEntryUtils';
 import { useHaptics } from '../../../../hooks/useHaptics';
 
@@ -11,101 +10,62 @@ interface UseFoodEntrySearchOptions {
   searchInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
-async function searchFood(query: string, userId: string): Promise<FoodBase[]> {
-  const libraryPromise = supabase
-    .from('food_library')
-    .select('name, brand, barcode, calories, protein, carbs, fat, fiber, sugar, default_grams')
-    .eq('user_id', userId)
-    .ilike('name', `%${query.trim()}%`)
-    .limit(10);
-
-  const offPromise = invokeEdge(
-    `lookup-food?q=${encodeURIComponent(query.trim())}`,
-    {
-      method: 'GET',
-      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-    }
-  ) as Promise<{ results: FoodBase[] }>;
-
-  const [libraryRes, offJson] = await Promise.all([libraryPromise, offPromise]);
-  if (libraryRes.error) {
-    console.error('[FoodEntryModal] food_library search failed', libraryRes.error);
-  }
-
-  const libraryResults: FoodBase[] = (libraryRes.data || []).map((r) => ({
-    name: r.name,
-    brand: r.brand,
-    barcode: r.barcode,
-    calories: r.calories,
-    protein: r.protein,
-    carbs: r.carbs,
-    fat: r.fat,
-    fiber: r.fiber,
-    sugar: r.sugar,
-    defaultGrams: r.default_grams,
-  }));
-  const seen = new Set(libraryResults.map((r) => r.name.toLowerCase()));
-  const offResults: FoodBase[] = (offJson.results || []).filter(
-    (r: FoodBase) => !seen.has(r.name.toLowerCase())
-  );
-  return [...libraryResults, ...offResults];
-}
-
-async function lookupBarcodeApi(code: string): Promise<FoodBase | null> {
-  const json = await invokeEdge(
-    `lookup-food?barcode=${encodeURIComponent(code)}`,
-    {
-      method: 'GET',
-      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
-    }
-  ) as { results: FoodBase[] };
-  return (json.results || [])[0] ?? null;
-}
-
-export function useFoodEntrySearch({
-  userId,
-  setError,
-  searchInputRef,
-}: UseFoodEntrySearchOptions) {
+export function useFoodEntrySearch({ userId, setError, searchInputRef }: UseFoodEntrySearchOptions) {
   const haptics = useHaptics();
-
-  const [query, setQuery] = useState('');
+  const [query, setQueryState] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selected, setSelected] = useState<FoodBase | null>(null);
   const [grams, setGrams] = useState('100');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [externalResults, setExternalResults] = useState<FoodBase[]>([]);
 
-  // Debounced search query — empty when input is too short
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const setQuery = useCallback((value: string) => {
+    setQueryState(value);
+    setExternalResults([]);
+  }, []);
+
   useEffect(() => {
-    if (query.trim().length < 2) {
-      // Defer the clear to avoid synchronous setState in effect
-      const t = setTimeout(() => setDebouncedQuery(''), 0);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => setDebouncedQuery(query.trim()), 400);
-    return () => clearTimeout(t);
+    const trimmed = query.trim();
+    const timer = setTimeout(() => setDebouncedQuery(trimmed.length >= 2 ? trimmed : ''), 220);
+    return () => clearTimeout(timer);
   }, [query]);
 
-  const searchQuery = useQuery({
-    queryKey: ['food-entry-search', userId, debouncedQuery],
-    queryFn: () => searchFood(debouncedQuery, userId!),
+  const localQuery = useQuery({
+    queryKey: ['food-private-search', userId, debouncedQuery],
+    queryFn: () => searchPrivateFoodLibrary(userId!, debouncedQuery),
     enabled: !!userId && debouncedQuery.length >= 2,
   });
 
+  const externalMutation = useMutation({
+    mutationFn: () => searchExternalFoods(query),
+    onSuccess: (response) => {
+      setExternalResults(response.results);
+      if (response.status !== 'ok') {
+        setError('Baza zewnętrzna jest chwilowo niedostępna. Twoja biblioteka nadal działa.');
+      } else if (response.results.length === 0 && response.incompleteCount > 0) {
+        setError('Znaleziono produkt, ale bez kalorii na etykiecie. Zeskanuj etykietę, żeby zapisać go bez zgadywania.');
+      }
+    },
+    onError: () => setError('Baza zewnętrzna jest chwilowo niedostępna. Twoja biblioteka nadal działa.'),
+  });
+
+  const searchExternal = useCallback(() => {
+    setError(null);
+    externalMutation.mutate();
+  }, [externalMutation, setError]);
+
   const barcodeMutation = useMutation({
-    mutationFn: lookupBarcodeApi,
+    mutationFn: lookupFoodBarcode,
     onSuccess: (result) => {
+      setScannerOpen(false);
       if (result) {
-        setScannerOpen(false);
         setSelected(result);
         setGrams(String(result.defaultGrams ?? 100));
-      } else {
-        setScannerOpen(false);
-        haptics.error();
-        setError('Nie znaleziono kodu — wpisz nazwę produktu');
-        setTimeout(() => { searchInputRef.current?.focus(); }, 50);
-        setTimeout(() => setError(null), 3000);
+        return;
       }
+      haptics.error();
+      setError('Nie znaleziono kodu — wpisz nazwę lub zeskanuj etykietę');
+      setTimeout(() => searchInputRef.current?.focus(), 50);
     },
     onError: () => {
       haptics.error();
@@ -122,28 +82,19 @@ export function useFoodEntrySearch({
     const gramsNum = parseInt(grams, 10) || 0;
     if (!selected) return null;
     return {
-      calories: scale(selected.calories, gramsNum),
-      protein: scale(selected.protein, gramsNum),
-      carbs: scale(selected.carbs, gramsNum),
-      fat: scale(selected.fat, gramsNum),
+      calories: scale(selected.calories, gramsNum), protein: scale(selected.protein, gramsNum),
+      carbs: scale(selected.carbs, gramsNum), fat: scale(selected.fat, gramsNum),
     };
   }, [selected, grams]);
 
   return {
-    query,
-    setQuery,
-    searchResults: searchQuery.data ?? [],
-    setSearchResults: () => { /* managed by react-query */ },
-    searching: searchQuery.isLoading,
-    selected,
-    setSelected,
-    grams,
-    setGrams,
-    scannerOpen,
-    setScannerOpen,
-    scanLookingUp: barcodeMutation.isPending,
-    setScanLookingUp: () => { /* managed by mutation */ },
-    lookupBarcode,
-    preview,
+    query, setQuery,
+    searchResults: [...(localQuery.data ?? []), ...externalResults],
+    searching: localQuery.isLoading,
+    externalSearching: externalMutation.isPending,
+    externalSearched: externalMutation.isSuccess,
+    searchExternal,
+    selected, setSelected, grams, setGrams, scannerOpen, setScannerOpen,
+    scanLookingUp: barcodeMutation.isPending, lookupBarcode, preview,
   };
 }

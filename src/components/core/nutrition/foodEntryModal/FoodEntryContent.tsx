@@ -7,6 +7,7 @@ import PortionScreen from './PortionScreen';
 import BrowseScreen from './BrowseScreen';
 
 interface FoodEntryContentProps {
+  userId?: string;
   screen: string;
   editingEntry: RecentEntry | null;
   setEditingEntry: (v: RecentEntry | null) => void;
@@ -46,6 +47,9 @@ interface FoodEntryContentProps {
   setQuery: (v: string) => void;
   searching: boolean;
   searchResults: FoodBase[];
+  externalSearching: boolean;
+  externalSearched: boolean;
+  searchExternal: () => void;
   scannerOpen: boolean;
   setScannerOpen: (v: boolean) => void;
   scanLookingUp: boolean;
@@ -66,7 +70,7 @@ interface FoodEntryContentProps {
 
 export default function FoodEntryContent(props: FoodEntryContentProps) {
   const {
-    screen, editingEntry, selected,
+    screen, editingEntry, selected, userId,
     // edit
     setEditingEntry, editGrams, setEditGrams, editMealType, setEditMealType,
     editPreview, error, editSaving, editDeleting, saveEntryEdit, deleteEntry,
@@ -78,6 +82,7 @@ export default function FoodEntryContent(props: FoodEntryContentProps) {
     setSelected, grams, setGrams, preview, saving, savedFlash, save,
     // browse
     searchInputRef, query, setQuery, searching, searchResults,
+    externalSearching, externalSearched, searchExternal,
     scannerOpen, setScannerOpen, scanLookingUp, lookupBarcode,
     quickAddingId, quickAddSearchResult, activeTab, setActiveTab,
     loadingList, favorites, quickAddFavorite, recent,
@@ -140,11 +145,15 @@ export default function FoodEntryContent(props: FoodEntryContentProps) {
 
       {screen === 'browse' && (
         <BrowseScreen
+          userId={userId}
           searchInputRef={searchInputRef}
           query={query}
           setQuery={setQuery}
           searching={searching}
           searchResults={searchResults}
+          externalSearching={externalSearching}
+          externalSearched={externalSearched}
+          searchExternal={searchExternal}
           scannerOpen={scannerOpen}
           setScannerOpen={setScannerOpen}
           scanLookingUp={scanLookingUp}

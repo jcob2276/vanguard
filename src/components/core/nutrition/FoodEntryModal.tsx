@@ -27,8 +27,8 @@ export default function FoodEntryModal({ onClose, onSaved, initialEditEntry, ini
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const {
-    activeTab, setActiveTab, favorites, recent, loadingList,
-    query, setQuery, searchResults, searching,
+    userId, activeTab, setActiveTab, favorites, recent, loadingList,
+    query, setQuery, searchResults, searching, externalSearching, externalSearched, searchExternal,
     selected, setSelected, grams, setGrams,
     mealType, setMealType, saving, quickAddingId, savedFlash,
     error, setError, scannerOpen, setScannerOpen, scanLookingUp,
@@ -110,6 +110,7 @@ export default function FoodEntryModal({ onClose, onSaved, initialEditEntry, ini
       />
 
       <FoodEntryContent
+        userId={userId}
         screen={screen}
         editingEntry={editingEntry}
         setEditingEntry={setEditingEntry}
@@ -149,6 +150,9 @@ export default function FoodEntryModal({ onClose, onSaved, initialEditEntry, ini
         setQuery={setQuery}
         searching={searching}
         searchResults={searchResults}
+        externalSearching={externalSearching}
+        externalSearched={externalSearched}
+        searchExternal={searchExternal}
         scannerOpen={scannerOpen}
         setScannerOpen={setScannerOpen}
         scanLookingUp={scanLookingUp}

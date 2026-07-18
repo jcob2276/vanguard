@@ -97,12 +97,18 @@ export interface KeepTriageResponse {
 }
 
 interface ParseFoodNLResponse {
-  items: Array<{
+  items?: Array<{
     name: string; grams: number; calories: number; protein: number; carbs: number; fat: number;
     fiber?: number; sugar?: number; barcode?: string | null; brand?: string | null;
     confidence: 'high' | 'medium' | 'low'; source: 'llm' | 'database' | 'library'; assumptions?: string[];
     parseMeta?: { macroSource: string; matchScore?: number; matchedName?: string; parserVersion: string; };
   }>;
+  label?: {
+    barcode: null; name: string; brand: string | null;
+    calories: number; protein: number; carbs: number; fat: number;
+    fiber: number | null; sugar: number | null; defaultGrams: number;
+    source: 'label_ocr'; confidence: 'high' | 'medium' | 'low';
+  };
 }
 
 interface CaptureVaultResponse { success: true; chunks: number; triads: number; message: string; }
@@ -145,7 +151,10 @@ interface LookupFoodResponse {
     calories: number | null; protein: number | null; carbs: number | null; fat: number | null;
     fiber: number | null; sugar: number | null; defaultGrams: number | null;
     source?: 'generic' | 'reference_pl' | 'off';
+    incomplete?: boolean;
   }>;
+  status: 'ok' | 'unavailable' | 'rate_limited';
+  incompleteCount: number;
 }
 
 // ── Registry ─────────────────────────────────────────────────────────

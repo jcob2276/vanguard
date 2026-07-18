@@ -1,18 +1,7 @@
 import { formatDayLabel } from '../../../../lib/date';
 import { type ParsedFoodItem as NLFoodItem } from '../../../../lib/health/foodLogging';
-
-export interface FoodBase {
-  barcode: string | null;
-  name: string;
-  brand: string | null;
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  fiber: number | null;
-  sugar: number | null;
-  defaultGrams?: number | null;
-}
+export type { FoodBase } from '../../../../lib/health/foodTypes';
+import type { FoodBase } from '../../../../lib/health/foodTypes';
 
 export interface Favorite extends FoodBase {
   id: string;

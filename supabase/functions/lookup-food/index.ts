@@ -26,6 +26,7 @@ interface FoodResult {
   sugar: number | null
   defaultGrams: number | null
   source?: 'generic' | 'reference_pl' | 'off'
+  incomplete?: boolean
 }
 
 function toFoodResult(f: typeof GENERIC_FOODS[number], source: FoodResult['source']): FoodResult {
@@ -102,6 +103,7 @@ function offProductToResult(product: any, barcode: string | null): FoodResult | 
     sugar: n['sugars_100g'] ?? null,
     defaultGrams: extractDefaultGrams(product),
     source: 'off',
+    incomplete: n['energy-kcal_100g'] == null,
   }
 }
 
@@ -148,15 +150,17 @@ async function lookupByBarcode(barcode: string): Promise<FoodResult[]> {
   return []
 }
 
-async function searchOpenFoodFacts(query: string): Promise<FoodResult[]> {
+async function searchOpenFoodFacts(query: string): Promise<{ results: FoodResult[]; status: 'ok' | 'unavailable'; incompleteCount: number }> {
   // Restricting to Polish-language products keeps foreign (often French, since OFF
   // started there) listings out of results for a Polish-only user.
   const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&tagtype_0=languages&tag_contains_0=contains&tag_0=polish`
   const res = await fetchOffWithRetry(url)
-  if (!res) return []
+  if (!res) return { results: [], status: 'unavailable', incompleteCount: 0 }
   const json = await res.json()
   const products = json.products || []
-  return products.map((p: any) => offProductToResult(p, p.code || null)).filter(Boolean) as FoodResult[]
+  const mapped = products.map((p: any) => offProductToResult(p, p.code || null)).filter(Boolean) as FoodResult[]
+  const complete = mapped.filter((product) => !product.incomplete)
+  return { results: complete, status: 'ok', incompleteCount: mapped.length - complete.length }
 }
 
 Deno.serve(serveJson(async (req) => {
@@ -165,13 +169,18 @@ Deno.serve(serveJson(async (req) => {
   const q = url.searchParams.get('q')
 
   if (barcode) {
-    return { results: await lookupByBarcode(barcode) }
+    const results = await lookupByBarcode(barcode)
+    return { results, status: 'ok', incompleteCount: results.filter((item) => item.incomplete).length }
   }
   if (q) {
     const refPl = searchReferencePl(q)
     const generic = searchGeneric(q)
     const off = await searchOpenFoodFacts(q)
-    return { results: [...refPl, ...generic, ...off] }
+    return {
+      results: [...refPl, ...generic, ...off.results],
+      status: off.status,
+      incompleteCount: off.incompleteCount,
+    }
   }
   throw new Error('Provide barcode or q')
 }, { auth: 'none' }))

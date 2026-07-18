@@ -15,6 +15,7 @@ import NutritionTargetsGrid from './nutrition/NutritionTargetsGrid';
 import { useNutritionData, type TodayEntry } from './useNutritionData';
 import NutritionChart from './NutritionChart';
 import { Card } from '../ui/Card';
+import NutritionTrustPanel from './nutrition/NutritionTrustPanel';
 
 interface NutritionCardProps {
   weeklyCalories: number;
@@ -35,6 +36,8 @@ export default function NutritionCard({
     deletingId,
     forecast,
     forecastNote,
+    dayAudit,
+    calibration,
     isExpanded, setIsExpanded,
     selectedMealType, setSelectedMealType,
     activeChartTab, setActiveChartTab,
@@ -120,6 +123,8 @@ export default function NutritionCard({
         proteinPct={proteinPct}
         avgProtein7d={avgProtein7d}
       />
+
+      <NutritionTrustPanel audit={dayAudit} calibration={calibration} />
 
       {/* Food quality analysis */}
       {todayAnalysis && (

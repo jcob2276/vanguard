@@ -6,6 +6,8 @@ import { getTodayWarsaw, shiftDateStr } from '../../lib/date';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useUserId } from '../../store/useStore';
 import type { Database } from '../../lib/database.types';
+import { auditNutritionDay } from '../../lib/health/nutritionAudit';
+import { calibrateNutrition } from '../../lib/health/nutritionCalibration';
 
 export type TodayEntry = Database['public']['Tables']['daily_food_entries']['Row'];
 export type DailyNutritionRow = Database['public']['Tables']['daily_nutrition']['Row'];
@@ -39,7 +41,8 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
     queryFn: async () => {
       if (!userId) return null;
       const since = shiftDateStr(todayRaw, -6);
-      const [targetRes, nutritionRes, entriesRes] = await Promise.all([
+      const calibrationSince = shiftDateStr(todayRaw, -27);
+      const [targetRes, nutritionRes, entriesRes, calibrationRes, weightsRes] = await Promise.all([
         supabase
           .from('nutrition_targets')
           .select('target_kcal, protein_floor_g, verdict, forecast_30d_weight_kg, forecast_60d_weight_kg, forecast_90d_weight_kg, forecast_30d_bf_pct, forecast_60d_bf_pct, forecast_90d_bf_pct, days_to_goal_est, adaptive_correction_kcal')
@@ -60,6 +63,10 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
           .eq('date', todayRaw)
           .order('logged_at', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: true }),
+        supabase.from('daily_nutrition').select('date,calories').eq('user_id', userId)
+          .gte('date', calibrationSince).order('date', { ascending: true }),
+        supabase.from('body_metrics').select('date,weight').eq('user_id', userId)
+          .gte('date', calibrationSince).not('weight', 'is', null).order('date', { ascending: true }),
       ]);
 
       const targetRow = targetRes.data;
@@ -113,6 +120,13 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
         forecast,
         aiSuggestions,
         forecastNote,
+        dayAudit: auditNutritionDay(todayEntries),
+        calibration: calibrateNutrition(
+          calibrationRes.data ?? [],
+          (weightsRes.data ?? [])
+            .filter((point): point is typeof point & { date: string } => typeof point.date === 'string')
+            .map((point) => ({ date: point.date, weight_kg: point.weight })),
+        ),
       };
     },
     enabled: !!userId,
@@ -133,6 +147,8 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
   const forecast = query.data?.forecast ?? null;
   const forecastNote = query.data?.forecastNote ?? null;
   const loading = query.isLoading;
+  const dayAudit = query.data?.dayAudit ?? auditNutritionDay([]);
+  const calibration = query.data?.calibration ?? calibrateNutrition([], []);
 
   const fetchRows = useCallback(async () => {
     await query.refetch();
@@ -271,6 +287,8 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
     aiSuggestions,
     forecast,
     forecastNote,
+    dayAudit,
+    calibration,
     isExpanded, setIsExpanded,
     selectedMealType, setSelectedMealType,
     activeChartTab, setActiveChartTab,
@@ -302,4 +320,3 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
     loading,
   };
 }
-

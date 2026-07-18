@@ -1,6 +1,7 @@
 import { Pressable, ControlInput } from '../../../ui/ControlPrimitives';
 import { Card } from '../../../ui/Card';
 import type { FoodBase } from '../hooks/useFoodEntryData';
+import { calorieRange, deriveFoodTrust } from '../../../../lib/health/foodTrust';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Śniadanie' },
@@ -30,12 +31,17 @@ export default function PortionScreen({
   preview, error,
   saving, savedFlash, save,
 }: PortionScreenProps) {
+  const trust = deriveFoodTrust(selected);
+  const range = calorieRange(preview?.calories ?? null, trust.uncertaintyPct);
   return (
     <div className="space-y-4">
       <Pressable variant="ghost" size="sm" onClick={() => setSelected(null)} className="px-0 py-0">← Wstecz</Pressable>
       <div>
         <p className="text-base font-black text-text-primary leading-tight">{selected.name}</p>
         {selected.brand && <p className="text-xs text-text-muted">{selected.brand}</p>}
+        <p className={`mt-1 text-2xs font-bold uppercase tracking-wider ${trust.level === 'estimated' ? 'text-warning' : trust.level === 'incomplete' ? 'text-danger' : 'text-success'}`}>
+          {trust.label}{range && range.min !== range.max ? ` · około ${range.min}–${range.max} kcal` : ''}
+        </p>
       </div>
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -79,7 +85,7 @@ export default function PortionScreen({
       <Pressable
         variant="primary"
         onClick={save}
-        disabled={saving}
+        disabled={saving || trust.level === 'incomplete'}
         loading={saving}
         className="w-full"
       >

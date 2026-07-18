@@ -6,6 +6,7 @@ import { notify } from '../../../../lib/notify';
 import {
   scheduleFoodQualityAnalysis,
 } from '../../../../lib/health/foodLogging';
+import { foodTrustMeta } from '../../../../lib/health/foodTrust';
 import {
   type FoodBase,
   type Favorite,
@@ -103,6 +104,7 @@ export function useFoodEntryActions({
             fiber: search.selected.fiber,
             sugar: search.selected.sugar,
             meal_type: mealType,
+            parse_meta: foodTrustMeta(search.selected),
           },
         },
         'Posiłek'
@@ -167,6 +169,7 @@ export function useFoodEntryActions({
               fiber: food.fiber,
               sugar: food.sugar,
               meal_type: mealType,
+              parse_meta: foodTrustMeta(food),
             },
           },
           'Posiłek'
@@ -230,6 +233,7 @@ export function useFoodEntryActions({
               fiber: fav.fiber,
               sugar: fav.sugar,
               meal_type: mealType,
+              parse_meta: foodTrustMeta({ ...fav, source: 'confirmed' }),
             },
           },
           'Posiłek'
@@ -294,6 +298,7 @@ export function useFoodEntryActions({
               fiber: null,
               sugar: null,
               meal_type: mealType,
+              parse_meta: foodTrustMeta({ ...entry, source: 'history' }),
             },
           },
           'Posiłek'
