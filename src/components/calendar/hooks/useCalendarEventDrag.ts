@@ -16,7 +16,7 @@ interface UseCalendarEventDragParams {
     mutateAsync: (args: {
       userId: string;
       accessToken: string;
-      event: { id: string; summary: string; start: string; end: string; category?: string };
+      event: { id: string; summary: string; start: string; end: string; category?: string; description?: string; recurrence?: string[] };
     }) => Promise<unknown>;
   };
   onEventClick: (ev: CalRow) => void;
@@ -41,6 +41,11 @@ export function useCalendarEventDrag({
     e.preventDefault();
 
     if (!ev.start_time || !ev.end_time) return;
+    if (ev.series_id) {
+      onEventClick(ev);
+      setToastMessage('Cykliczne wydarzenie zmienisz bezpiecznie w edycji całej serii.');
+      return;
+    }
 
     const cardElement = action === 'resize'
       ? (e.currentTarget.parentElement as HTMLDivElement)
@@ -159,6 +164,8 @@ export function useCalendarEventDrag({
             start: startISO,
             end: endISO,
             category: ev.category || undefined,
+            description: ev.description || undefined,
+            recurrence: ev.recurrence || undefined,
           },
         });
         setToastMessage('Zaktualizowano czas wydarzenia! 🕒');

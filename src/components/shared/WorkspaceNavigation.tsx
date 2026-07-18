@@ -1,5 +1,5 @@
 import { Pressable } from '../ui/ControlPrimitives';
-import { BookOpen, Calendar, FolderKanban, ListTodo, StickyNote } from 'lucide-react';
+import { BookOpen, Calendar, ListTodo, StickyNote } from 'lucide-react';
 import WorkspaceToolsLauncher from './WorkspaceToolsLauncher';
 
 export type WorkspaceDestination = 'keep' | 'todo' | 'kalendarz' | 'links' | 'projekty';
@@ -9,7 +9,6 @@ const ITEMS = [
   { id: 'todo', label: 'Zadania', icon: ListTodo },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'links', label: 'Pocket', icon: BookOpen },
-  { id: 'projekty', label: 'Projekty', icon: FolderKanban },
 ] satisfies { id: WorkspaceDestination; label: string; icon: typeof StickyNote }[];
 
 interface WorkspaceNavigationProps {

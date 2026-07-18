@@ -38,6 +38,7 @@ export function useCalendarActions({
     editStart,
     editEnd,
     editDate,
+    editDescription,
     editRecurrence,
     editCustomDays,
     editRecurrenceEndDate,
@@ -161,7 +162,7 @@ export function useCalendarActions({
 
     const end = `${endDateStr}T${editEnd}:00${getWarsawOffset(endDateStr)}`;
     const rawId = selectedEvent.event_id || selectedEvent.id;
-    const evId = rawId.includes('_') ? rawId.split('_')[0] : rawId;
+    const evId = selectedEvent.series_id || rawId;
     const recurrence = buildRecurrenceRule(
       editRecurrence,
       editCustomDays,
@@ -173,6 +174,7 @@ export function useCalendarActions({
       start,
       end,
       category: editCategory || undefined,
+      description: editDescription.trim() || undefined,
       recurrence,
     };
     try {
@@ -199,6 +201,7 @@ export function useCalendarActions({
     editStart,
     editEnd,
     editDate,
+    editDescription,
     editRecurrence,
     editCustomDays,
     editRecurrenceEndDate,
@@ -232,11 +235,34 @@ export function useCalendarActions({
     closeEditTodoModal();
   }, [editingTodo, fetchAllTodos, closeEditTodoModal]);
 
+  const saveTodoChanges = useCallback(async () => {
+    if (!editingTodo) return;
+    const title = editingTodoTitle.trim();
+    if (!title || !editingTodo.due_date) return;
+    setSaving(true);
+    try {
+      await updateTodoItem(editingTodo.id, {
+        title,
+        due_date: editingTodo.due_date,
+        scheduled_time: editingTodo.scheduled_time,
+        duration_minutes: editingTodo.duration_minutes,
+        recurrence: editingTodo.recurrence,
+        notes: editingTodo.notes?.trim() || null,
+      });
+      await fetchAllTodos();
+      setEditingTodo(null);
+      setToastMessage('Zadanie zostało zaktualizowane.');
+    } finally {
+      setSaving(false);
+    }
+  }, [editingTodo, editingTodoTitle, fetchAllTodos, setEditingTodo, setSaving, setToastMessage]);
+
   return {
     handleQuickSave,
     handleEditSave,
     closeEditTodoModal,
     saveTodoTitle,
+    saveTodoChanges,
     handleDeleteTodo,
   };
 }

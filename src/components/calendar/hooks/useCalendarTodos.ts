@@ -17,9 +17,10 @@ export interface CalendarTodo {
   category: string | null;
   priority: string | null;
   notes?: string | null;
+  recurrence: string | null;
 }
 
-const TODO_FIELDS = 'id, title, status, due_date, scheduled_time, duration_minutes, section_id, category, priority, notes';
+const TODO_FIELDS = 'id, title, status, due_date, scheduled_time, duration_minutes, section_id, category, priority, notes, recurrence';
 
 interface UseCalendarTodosProps {
   userId: string | undefined;
@@ -275,4 +276,3 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
     fetchAllTodos,
   };
 }
-

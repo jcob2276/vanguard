@@ -35,6 +35,9 @@ export interface CalRow {
   start_time: string | null;
   end_time: string | null;
   category: string | null;
+  description?: string | null;
+  recurrence?: string[] | null;
+  series_id?: string | null;
 }
 
 export function toLocalISO(date: Date) {

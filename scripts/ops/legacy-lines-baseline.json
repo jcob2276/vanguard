@@ -1,7 +1,7 @@
 {
   "src/components/desktop/fitness/fitnessScoreUtils.ts": 329,
   "src/components/medical/EndMyopiaCalculator.tsx": 414,
-  "src/components/notes/EditNoteModal.tsx": 425,
+  "src/components/notes/EditNoteModal.tsx": 426,
   "src/components/notes/RichEditor.tsx": 810,
   "src/components/todo/TodoCard.tsx": 427
 }

@@ -1,237 +1,166 @@
-import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
-import { useState } from 'react';
-import { Calendar, Flag, Tag, Folder, ChevronDown, Bell, Repeat, ScanText } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Bell, Calendar, ChevronDown, Flag, Folder, ScanText, SlidersHorizontal, Tag, X } from 'lucide-react';
+import Button from '../ui/Button';
+import { ControlInput, ControlSelect, ControlTextarea, Pressable } from '../ui/ControlPrimitives';
+import NlpHighlightInput from './NlpHighlightInput';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
-import NlpHighlightInput from './NlpHighlightInput';
-import { Card } from '../ui/Card';
 
 interface TodoFormState {
-  title: string;
-  notes: string;
-  priority: string;
-  tagsText: string;
-  due_date: string;
-  recurrence: string;
-  section_id: string;
-  scheduled_time: string;
-  reminder_at: string;
+  title: string; notes: string; priority: string; tagsText: string; due_date: string;
+  recurrence: string; section_id: string; scheduled_time: string; reminder_at: string;
 }
 
-interface TodoQuickCaptureProps {
+interface Props {
   quickCaptureRef: React.RefObject<HTMLDivElement | null>;
   form: TodoFormState;
   setForm: React.Dispatch<React.SetStateAction<TodoFormState>>;
   isExpanded: boolean;
-  setIsExpanded: (v: boolean) => void;
+  setIsExpanded: (value: boolean) => void;
   busy: boolean;
   addItem: () => void;
   sections: { id: string; name: string }[];
   parsedInput: {
-    title: string;
-    priority: string | null;
-    due_date: string | null;
-    scheduled_time: string | null;
-    recurrence?: string | null;
-    tokens: Array<{ type: string; value: string; label: string }>;
+    title: string; priority: string | null; due_date: string | null; scheduled_time: string | null;
+    recurrence?: string | null; tokens: Array<{ type: string; value: string; label: string }>;
   };
   today: string;
   onOpenScanText?: () => void;
 }
 
+const EMPTY_FORM: TodoFormState = {
+  title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '',
+  section_id: '', scheduled_time: '', reminder_at: '',
+};
+
+function priorityLabel(priority: string) {
+  if (priority === 'urgent') return 'P1';
+  if (priority === 'high') return 'P2';
+  if (priority === 'normal') return 'P3';
+  return 'P4';
+}
+
 export default function TodoQuickCapture({
-  quickCaptureRef,
-  form,
-  setForm,
-  setIsExpanded,
-  busy,
-  addItem,
-  sections,
-  parsedInput,
-  today,
-  onOpenScanText,
-}: TodoQuickCaptureProps) {
+  quickCaptureRef, form, setForm, isExpanded, setIsExpanded, busy, addItem,
+  sections, parsedInput, today, onOpenScanText,
+}: Props) {
   const [openPopover, setOpenPopover] = useState<'date' | 'reminder' | null>(null);
+  const [showDetails, setShowDetails] = useState(Boolean(form.notes || form.tagsText || form.reminder_at));
+  const dueDate = parsedInput.due_date || form.due_date || '';
+  const priority = parsedInput.priority || form.priority;
+  const scheduledTime = parsedInput.scheduled_time || form.scheduled_time || '';
+  const recurrence = parsedInput.recurrence || form.recurrence || '';
+  const sectionName = sections.find((section) => section.id === form.section_id)?.name || 'Skrzynka';
 
-  // Live preview: NLP tokens parsed straight from the typed title (e.g. "jutro o 12:15 p1")
-  // take precedence over explicit chip picks, mirroring the same precedence addItem() commits with.
-  const effectiveDueDate = parsedInput.due_date || form.due_date || '';
-  const effectivePriority = parsedInput.priority || form.priority;
-  const effectiveScheduledTime = parsedInput.scheduled_time || form.scheduled_time || '';
-  const effectiveRecurrence = parsedInput.recurrence || form.recurrence || '';
+  useEffect(() => {
+    if (!isExpanded) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsExpanded(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isExpanded, setIsExpanded]);
 
-  return (
-    <div ref={quickCaptureRef}>
-    <Card className="border border-border-custom bg-surface-solid/40 flex flex-col gap-4.5 shadow-lg" padding="1.125rem">
-      {/* Title & Description inputs */}
-      <div className="flex flex-col gap-1.5">
-        <NlpHighlightInput
-          value={form.title}
-          onChange={(val) => setForm({ ...form, title: val })}
-          onKeyDown={(e) => { if (e.key === 'Enter') addItem(); }}
-          onFocus={() => setIsExpanded(true)}
-          placeholder="Nazwa zadania"
-          className="w-full bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/40"
-        />
-        <ControlTextarea
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          rows={2}
-          placeholder="Opis"
-          className="w-full resize-none bg-transparent text-sm font-medium text-text-secondary outline-none placeholder:text-text-muted/40"
-        />
-      </div>
+  if (!isExpanded || typeof document === 'undefined') return null;
 
-      {/* Button chips row */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Date Button + popover */}
-        <div className="relative">
-          <Pressable
-            type="button"
-            onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${effectiveDueDate ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
-          >
-            <Calendar size={12} className={effectiveDueDate ? 'text-primary' : 'text-text-muted/60'} />
-            <span>{effectiveDueDate ? `${effectiveDueDate}${effectiveScheduledTime ? ` ${effectiveScheduledTime}` : ''}` : 'Termin'}</span>
-            {effectiveRecurrence && <Repeat size={11} className="text-primary" />}
+  const cancel = () => {
+    setForm(EMPTY_FORM);
+    setIsExpanded(false);
+  };
+
+  const content = (
+    <div className="fixed bottom-0 left-0 right-0 top-0 z-overlay bg-scrim/35 backdrop-blur-md" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsExpanded(false); }}>
+      <section
+        ref={quickCaptureRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="todo-create-title"
+        className="absolute inset-x-0 bottom-0 flex max-h-dvh flex-col overflow-hidden rounded-t-3xl border border-border-custom/50 bg-surface-1 shadow-float md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:w-full md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl"
+      >
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border-strong md:hidden" />
+        <header className="flex items-center justify-between px-5 pb-3 pt-4 md:px-6">
+          <div>
+            <p className="text-2xs font-black uppercase tracking-widest text-primary">Szybkie dodawanie</p>
+            <h2 id="todo-create-title" className="mt-0.5 font-display text-xl font-black tracking-tight text-text-primary">Nowe zadanie</h2>
+          </div>
+          <Pressable onClick={() => setIsExpanded(false)} aria-label="Zamknij" className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-tonal text-text-secondary hover:text-text-primary">
+            <X size={20} />
           </Pressable>
-          {openPopover === 'date' && (
-            <TodoDatePickerPopover
-              dueDate={effectiveDueDate || null}
-              scheduledTime={effectiveScheduledTime || null}
-              recurrence={form.recurrence || null}
-              today={today}
-              onChange={(patch) => setForm((f) => ({
-                ...f,
-                ...(patch.due_date !== undefined ? { due_date: patch.due_date || '' } : {}),
-                ...(patch.scheduled_time !== undefined ? { scheduled_time: patch.scheduled_time || '' } : {}),
-                ...(patch.recurrence !== undefined ? { recurrence: patch.recurrence || '' } : {}),
-              }))}
-              onClose={() => setOpenPopover(null)}
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-6 md:pb-6">
+          <div className="rounded-2xl border border-primary/20 bg-surface-solid p-4 shadow-md focus-within:border-primary/50 focus-within:shadow-lg">
+            <label htmlFor="todo-title-input" className="text-xs font-bold text-text-secondary">Co chcesz zrobić?</label>
+            <NlpHighlightInput
+              id="todo-title-input"
+              value={form.title}
+              onChange={(value) => setForm({ ...form, title: value })}
+              onKeyDown={(event) => { if (event.key === 'Enter' && form.title.trim()) addItem(); }}
+              placeholder="Np. zadzwonić do Marka jutro o 10 p1"
+              className="min-h-14 w-full bg-transparent text-lg font-bold leading-snug tracking-tight text-text-primary placeholder:text-text-muted/45"
             />
-          )}
+            <p className="mt-1 text-2xs font-medium text-text-muted">Możesz wpisać datę, godzinę i priorytet zwykłym językiem.</p>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="relative">
+              <Pressable onClick={() => setOpenPopover((value) => value === 'date' ? null : 'date')} className={`flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-bold ${dueDate ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom bg-surface-solid text-text-secondary'}`}>
+                <Calendar size={15} /><span className="truncate">{dueDate ? `${dueDate}${scheduledTime ? ` · ${scheduledTime}` : ''}` : 'Termin'}</span>
+              </Pressable>
+              {openPopover === 'date' ? <TodoDatePickerPopover dueDate={dueDate || null} scheduledTime={scheduledTime || null} recurrence={form.recurrence || null} today={today} onChange={(patch) => setForm((current) => ({ ...current, ...(patch.due_date !== undefined ? { due_date: patch.due_date || '' } : {}), ...(patch.scheduled_time !== undefined ? { scheduled_time: patch.scheduled_time || '' } : {}), ...(patch.recurrence !== undefined ? { recurrence: patch.recurrence || '' } : {}) }))} onClose={() => setOpenPopover(null)} /> : null}
+            </div>
+
+            <div className="relative">
+              <ControlSelect value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })} className="absolute inset-0 z-[var(--z-raised)] h-full w-full cursor-pointer opacity-[var(--opacity-0)]" aria-label="Priorytet">
+                <option value="urgent">Priorytet 1</option><option value="high">Priorytet 2</option><option value="normal">Priorytet 3</option><option value="low">Priorytet 4</option>
+              </ControlSelect>
+              <Pressable className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-border-custom bg-surface-solid px-2 text-xs font-bold text-text-secondary">
+                <Flag size={15} className={priority === 'urgent' ? 'text-danger' : priority === 'high' ? 'text-warning' : priority === 'normal' ? 'text-info' : 'text-text-muted'} />{priorityLabel(priority)}
+              </Pressable>
+            </div>
+
+            <div className="relative">
+              <ControlSelect value={form.section_id || ''} onChange={(event) => setForm({ ...form, section_id: event.target.value })} className="absolute inset-0 z-[var(--z-raised)] h-full w-full cursor-pointer opacity-[var(--opacity-0)]" aria-label="Sekcja">
+                <option value="">Skrzynka</option>{sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
+              </ControlSelect>
+              <Pressable className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-border-custom bg-surface-solid px-2 text-xs font-bold text-text-secondary">
+                <Folder size={15} /><span className="truncate">{sectionName}</span><ChevronDown size={12} />
+              </Pressable>
+            </div>
+          </div>
+
+          <Pressable onClick={() => setShowDetails((value) => !value)} className="mt-3 flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-sm font-bold text-text-secondary hover:bg-surface-tonal">
+            <span className="flex items-center gap-2"><SlidersHorizontal size={16} /> Szczegóły</span><ChevronDown size={15} className={`transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+          </Pressable>
+
+          {showDetails ? (
+            <div className="animate-in fade-in space-y-3 rounded-xl bg-surface-tonal p-3">
+              <ControlTextarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} rows={3} placeholder="Notatka lub kontekst…" className="w-full resize-y rounded-xl border border-border-custom bg-surface-solid px-3 py-3 text-sm text-text-primary placeholder:text-text-muted" />
+              <div className="flex items-center gap-2 rounded-xl border border-border-custom bg-surface-solid px-3">
+                <Tag size={15} className="text-text-muted" /><ControlInput value={form.tagsText} onChange={(event) => setForm({ ...form, tagsText: event.target.value })} placeholder="Tagi, oddzielone przecinkami" className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-text-primary" />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <div className="relative">
+                  <Pressable onClick={() => setOpenPopover((value) => value === 'reminder' ? null : 'reminder')} className="flex min-h-11 items-center gap-2 rounded-xl border border-border-custom bg-surface-solid px-3 text-xs font-bold text-text-secondary"><Bell size={15} /> {form.reminder_at ? 'Przypomnienie ustawione' : 'Przypomnienie'}</Pressable>
+                  {openPopover === 'reminder' ? <TodoReminderPopover dueDate={form.due_date || null} scheduledTime={form.scheduled_time || null} onSetReminder={(iso) => setForm((current) => ({ ...current, reminder_at: iso }))} onClose={() => setOpenPopover(null)} /> : null}
+                </div>
+                {onOpenScanText ? <Pressable onClick={onOpenScanText} className="flex min-h-11 items-center gap-2 rounded-xl border border-border-custom bg-surface-solid px-3 text-xs font-bold text-primary"><ScanText size={15} /> Skanuj tekst</Pressable> : null}
+                {recurrence ? <span className="flex min-h-11 items-center rounded-xl bg-primary/10 px-3 text-xs font-bold text-primary">Powtarzanie: {recurrence}</span> : null}
+              </div>
+            </div>
+          ) : null}
         </div>
 
-        {/* Priority Selector */}
-        <div className="relative">
-          <ControlSelect
-            value={form.priority}
-            onChange={(e) => setForm({ ...form, priority: e.target.value })}
-            className="absolute inset-0 opacity-[var(--opacity-0)] cursor-pointer w-full h-full z-[var(--z-raised)]"
-          >
-            <option value="urgent">🚩 Priorytet 1 (P1)</option>
-            <option value="high">🚩 Priorytet 2 (P2)</option>
-            <option value="normal">🚩 Priorytet 3 (P3)</option>
-            <option value="low">🚩 Priorytet 4 (P4)</option>
-          </ControlSelect>
-          <Pressable
-            type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all"
-          >
-            <Flag size={12} className={effectivePriority === 'urgent' ? 'text-danger' : effectivePriority === 'high' ? 'text-warning' : effectivePriority === 'normal' ? 'text-info' : 'text-text-muted/60'} />
-            <span>
-              {effectivePriority === 'urgent' ? 'P1' : effectivePriority === 'high' ? 'P2' : effectivePriority === 'normal' ? 'P3' : 'P4'}
-            </span>
-          </Pressable>
-        </div>
-
-        {/* Reminder Button + popover */}
-        <div className="relative">
-          <Pressable
-            type="button"
-            onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${form.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
-          >
-            <Bell size={12} className={form.reminder_at ? 'text-primary' : 'text-text-muted/60'} />
-            <span>
-              {form.reminder_at
-                ? new Date(form.reminder_at).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : 'Przypomnienia'}
-            </span>
-          </Pressable>
-          {openPopover === 'reminder' && (
-            <TodoReminderPopover
-              dueDate={form.due_date || null}
-              scheduledTime={form.scheduled_time || null}
-              onSetReminder={(iso) => setForm((f) => ({ ...f, reminder_at: iso }))}
-              onClose={() => setOpenPopover(null)}
-            />
-          )}
-        </div>
-
-        {/* Tags input chip */}
-        <div className="flex items-center gap-1 border border-border-custom/80 rounded-lg px-2.5 py-0.5 max-w-[var(--ds-maxw-150px)]">
-          <Tag size={11} className="text-text-muted/60" />
-          <ControlInput
-            value={form.tagsText}
-            onChange={(e) => setForm({ ...form, tagsText: e.target.value })}
-            placeholder="Tagi"
-            className="bg-transparent text-xs font-semibold text-text-secondary outline-none w-full"
-          />
-        </div>
-
-        {/* Skan Tekstu trigger */}
-        {onOpenScanText && (
-          <Pressable
-            type="button"
-            onClick={onOpenScanText}
-            className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-all"
-          >
-            <ScanText size={12} />
-            <span>Skan tekstu</span>
-          </Pressable>
-        )}
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="flex items-center justify-between border-t border-border-custom/80 pt-3 mt-1.5">
-        {/* Left: Section Selector Dropdown */}
-        <div className="relative flex items-center">
-          <ControlSelect
-            value={form.section_id || ''}
-            onChange={(e) => setForm({ ...form, section_id: e.target.value })}
-            className="absolute inset-0 opacity-[var(--opacity-0)] cursor-pointer w-full h-full z-[var(--z-raised)]"
-          >
-            <option value="">Skrzynka</option>
-            {sections.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </ControlSelect>
-          <Pressable
-            type="button"
-            className="flex items-center gap-1 px-2.5 py-1 text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-text-primary/[0.04] rounded-lg transition-all"
-          >
-            <Folder size={13} className="text-text-muted/60" />
-            <span>
-              {sections.find(s => s.id === form.section_id)?.name || 'Skrzynka'}
-            </span>
-            <ChevronDown size={11} className="text-text-muted/60" />
-          </Pressable>
-        </div>
-
-        {/* Right: Cancel & Add buttons */}
-        <div className="flex gap-2">
-          <Pressable
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setForm({ title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '', section_id: '', scheduled_time: '', reminder_at: '' });
-              setIsExpanded(false);
-            }}
-          >
-            Anuluj
-          </Pressable>
-          <Pressable
-            variant="primary"
-            size="sm"
-            onClick={addItem}
-            disabled={busy || !form.title.trim()}
-          >
-            Dodaj zadanie
-          </Pressable>
-        </div>
-      </div>
-    </Card>
+        <footer className="flex items-center gap-2 border-t border-border-custom/50 bg-surface-1/95 px-4 py-3 backdrop-blur-xl md:px-6">
+          <Button variant="ghost" size="lg" onClick={cancel} className="shrink-0">Anuluj</Button>
+          <Button size="lg" onClick={addItem} disabled={busy || !form.title.trim()} loading={busy} className="min-h-12 flex-1">Dodaj zadanie</Button>
+        </footer>
+      </section>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

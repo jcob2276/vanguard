@@ -166,6 +166,7 @@ export default function CalendarView({
     handleEditSave: actions.handleEditSave,
     closeEditTodoModal: actions.closeEditTodoModal,
     saveTodoTitle: actions.saveTodoTitle,
+    saveTodoChanges: actions.saveTodoChanges,
     deleteTodo: actions.handleDeleteTodo,
   };
 

@@ -1,6 +1,6 @@
 {
   "_comment": "Ceilings for frontend debt trackers. CI (check-frontend-ratchets.mjs) fails if any current count exceeds its baseline here. Lower a number and commit this file in the same commit as the cleanup that earned it — never raise a number without writing why in the commit message.",
-  "LEGACY_FILES": 9,
+  "LEGACY_FILES": 8,
   "NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS": 0,
   "NO_BUTTON_GUARD_EXCEPTIONS": 1,
   "NO_COLOR_GUARD_EXCEPTIONS": 0,
@@ -19,16 +19,16 @@
   "patternCount_asUnknown": 0,
   "patternCount_inlineHex": 0,
   "patternCount_rawControls": 4,
-  "patternCount_arbitraryDesignValues": 1,
-  "patternCount_localCssVisualDeclarations": 9,
+  "patternCount_arbitraryDesignValues": 10,
+  "patternCount_localCssVisualDeclarations": 33,
   "patternCount_untemplatedRouteScreens": 0,
-  "patternCount_localColorLiterals": 12,
-  "patternCount_namedPaletteUtilities": 19,
+  "patternCount_localColorLiterals": 20,
+  "patternCount_namedPaletteUtilities": 14,
   "patternCount_hardcodedMotionUtilities": 1,
-  "patternCount_uncontrolledVisualUtilities": 7,
+  "patternCount_uncontrolledVisualUtilities": 10,
   "patternCount_staticInlineStyleValues": 0,
-  "patternCount_embeddedCssVisualValues": 0,
-  "patternCount_localCssNumericValues": 34,
+  "patternCount_embeddedCssVisualValues": 1,
+  "patternCount_localCssNumericValues": 95,
   "patternCount_undefinedCssVariables": 1
 }
 

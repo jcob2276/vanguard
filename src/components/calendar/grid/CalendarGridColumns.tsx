@@ -246,7 +246,17 @@ export const renderAllDayTodos = ({
               <div
                 key={todo.id}
                 title={todo.title}
-                className={`flex items-center gap-1.5 truncate rounded border border-dashed border-primary/40 bg-primary/8 px-1.5 py-0.5 text-2xs font-bold text-primary transition-colors cursor-pointer hover:bg-primary/15 ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
+                draggable
+                onDragStart={(event) => {
+                  event.stopPropagation();
+                  event.dataTransfer.setData('text/plain', JSON.stringify({
+                    id: todo.id,
+                    title: todo.title,
+                    duration_minutes: todo.duration_minutes || 60,
+                  }));
+                  event.dataTransfer.effectAllowed = 'move';
+                }}
+                className={`flex min-h-9 items-center gap-2 truncate rounded-lg border border-primary/20 bg-primary/10 px-2 text-xs font-bold text-primary transition-colors cursor-grab active:cursor-grabbing hover:bg-primary/15 ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingTodo(todo);
@@ -261,11 +271,11 @@ export const renderAllDayTodos = ({
                     setToastMessage(`Ukończono: "${todo.title}" ✅`);
                   }}
                   aria-label={`Oznacz zadanie jako wykonane: ${todo.title}`}
-                  className={`relative after:absolute after:-inset-2 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
+                  className={`relative after:absolute after:-inset-2 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
                 >
-                  {isCompleting && <Check size={7} className="text-on-accent" strokeWidth={4} />}
+                  {isCompleting && <Check size={10} className="text-on-accent" strokeWidth={4} />}
                 </Pressable>
-                {GoalIcon && <GoalIcon size={8} className="shrink-0" />}
+                {GoalIcon && <GoalIcon size={11} className="shrink-0" />}
                 <span className={`truncate ${isCompleting ? 'line-through' : ''}`}>{todo.title}</span>
               </div>
             );

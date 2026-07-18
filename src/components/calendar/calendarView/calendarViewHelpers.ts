@@ -22,6 +22,41 @@ export const buildRecurrenceRule = (
   return [`RRULE:${rule}`];
 };
 
+export type RecurrenceState = {
+  recurrence: '' | 'daily' | 'weekly' | 'monthly' | 'custom';
+  customDays: string[];
+  endDate: string;
+};
+
+export function parseRecurrenceRule(rules: string[] | null | undefined): RecurrenceState {
+  const rule = rules?.find((value) => value.startsWith('RRULE:'))?.slice(6);
+  if (!rule) return { recurrence: '', customDays: [], endDate: '' };
+
+  const values = Object.fromEntries(
+    rule.split(';').map((part) => {
+      const [key, value = ''] = part.split('=');
+      return [key, value];
+    }),
+  );
+  const customDays = values.BYDAY?.split(',').filter(Boolean) ?? [];
+  const frequency = values.FREQ;
+  const recurrence = customDays.length > 0
+    ? 'custom'
+    : frequency === 'DAILY'
+      ? 'daily'
+      : frequency === 'WEEKLY'
+        ? 'weekly'
+        : frequency === 'MONTHLY'
+          ? 'monthly'
+          : '';
+  const until = values.UNTIL?.slice(0, 8) ?? '';
+  const endDate = until.length === 8
+    ? `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`
+    : '';
+
+  return { recurrence, customDays, endDate };
+}
+
 export function calculateWeeklyTotals(events: CalRow[], weekStart: string, offsetDays: number) {
   const totals: Record<string, number> = Object.fromEntries(LIFE_SPHERES.map((s) => [s.id, 0]));
   const targetWeekStart = offsetDays === 0 ? weekStart : addDays(weekStart, offsetDays);

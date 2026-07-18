@@ -2,6 +2,7 @@ import { ControlInput } from '../ui/ControlPrimitives';
 import React from 'react';
 
 interface NlpHighlightInputProps {
+  id?: string;
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
@@ -12,6 +13,7 @@ interface NlpHighlightInputProps {
 }
 
 export default function NlpHighlightInput({
+  id,
   value,
   onChange,
   placeholder,
@@ -47,6 +49,7 @@ export default function NlpHighlightInput({
 
       {/* Foreground Input layer */}
       <ControlInput
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

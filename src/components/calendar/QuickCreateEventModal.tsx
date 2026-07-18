@@ -1,5 +1,5 @@
 import Button from '../ui/Button';
-import { ControlInput } from '../ui/ControlPrimitives';
+import { ControlInput, ControlTextarea } from '../ui/ControlPrimitives';
 import React from 'react';
 import { Clock, Calendar } from 'lucide-react';
 import { useCalendarData } from './hooks/useCalendarData';
@@ -32,6 +32,8 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
     setQuickCategory,
     quickType,
     setQuickType,
+    quickDescription,
+    setQuickDescription,
     quickRecurrence,
     setQuickRecurrence,
     quickCustomDays,
@@ -42,7 +44,7 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
   } = calData;
 
   return (
-    <Modal isOpen={!!quickCreate} onClose={() => setQuickCreate(null)} title={quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'} size="sm">
+    <Modal isOpen={!!quickCreate} onClose={() => setQuickCreate(null)} title={quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'} size="md">
       {quickCreate && <>
         <div className="flex gap-1 p-1 rounded-xl bg-surface/40 border border-border-custom/40">
           <Button
@@ -73,7 +75,15 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
           value={quickTitle}
           onChange={(e) => setQuickTitle(e.target.value)}
           placeholder="Tytuł..."
-          className="w-full bg-surface-solid border border-border-custom/60 rounded-xl px-4 py-3.5 text-base font-semibold text-text-primary outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-text-muted/30"
+          className="min-h-14 w-full rounded-xl border border-border-custom bg-surface-solid px-4 text-lg font-bold tracking-tight text-text-primary focus:border-primary/50 placeholder:text-text-muted/40"
+        />
+
+        <ControlTextarea
+          value={quickDescription}
+          onChange={(event) => setQuickDescription(event.target.value)}
+          rows={2}
+          placeholder="Notatka lub kontekst (opcjonalnie)"
+          className="w-full resize-y rounded-xl border border-border-custom bg-surface-solid px-3 py-3 text-sm text-text-primary placeholder:text-text-muted"
         />
 
         <div className="flex items-center gap-2.5 text-text-secondary bg-surface-solid border border-border-custom/40 rounded-xl px-3.5 py-2.5">
@@ -105,8 +115,7 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
           <CategoryPicker selected={quickCategory} onSelect={setQuickCategory} />
         </div>
 
-        {quickType === 'event' && (
-          <RecurrencePicker
+        <RecurrencePicker
             recurrence={quickRecurrence}
             setRecurrence={setQuickRecurrence}
             customDays={quickCustomDays}
@@ -114,14 +123,14 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
             endDate={quickRecurrenceEndDate}
             setEndDate={setQuickRecurrenceEndDate}
             minDate={quickCreate.date}
+            allowCustom={quickType === 'event'}
           />
-        )}
 
         <div className="flex gap-2.5 pt-2">
           <Button
             variant="primary"
             onClick={handleQuickSave}
-            disabled={saving}
+            disabled={saving || !quickTitle.trim() || (quickRecurrence === 'custom' && quickCustomDays.length === 0)}
             className="flex-1 py-3 text-sm uppercase tracking-wider"
             loading={saving}
           >

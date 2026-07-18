@@ -86,6 +86,9 @@ Deno.serve(serveJson(async (req, ctx) => {
           summary: created.summary,
           start_time: event.start,
           end_time: event.end,
+          description: event.description ?? null,
+          recurrence: event.recurrence ?? null,
+          series_id: null,
           category: event.category ?? 'vanguard',
         }, { onConflict: 'event_id' })
       )
@@ -152,6 +155,9 @@ Deno.serve(serveJson(async (req, ctx) => {
           summary: event.summary,
           start_time: event.start,
           end_time: event.end,
+          description: event.description ?? null,
+          recurrence: event.recurrence ?? null,
+          series_id: null,
           category: event.category ?? 'vanguard',
         }, { onConflict: 'event_id' })
       )

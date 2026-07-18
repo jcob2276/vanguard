@@ -108,7 +108,7 @@ export const renderTodoBlock = ({
         setEditingTodo(todo);
         setEditingTodoTitle(todo.title);
       }}
-      className={`absolute rounded-md border border-dashed border-primary/50 bg-primary/10 hover:bg-primary/20 hover:scale-[var(--ds-arbitrary-1-01)] hover:shadow-md px-1 py-0.5 overflow-hidden transition-all duration-[var(--motion-medium)] z-[var(--z-raised)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
+      className={`absolute rounded-lg border border-primary/25 bg-primary/10 hover:bg-primary/15 hover:shadow-sm px-2 py-1 overflow-hidden transition-[background-color,box-shadow] duration-[var(--motion-fast)] z-[var(--z-raised)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
       style={{ top, height, left: 'var(--ds-inline-style-75)', width: 'var(--ds-inline-style-24)' }}
     >
       <div className="flex items-start gap-0.5">
@@ -120,12 +120,12 @@ export const renderTodoBlock = ({
             setToastMessage(`Ukończono: "${todo.title}" ✅`);
           }}
           aria-label={`Oznacz zadanie jako wykonane: ${todo.title}`}
-          className={`relative after:absolute after:-inset-2 mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
+          className={`relative after:absolute after:-inset-2 mt-0.5 h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${isCompleting ? 'bg-success border-success' : 'border-primary/50 hover:bg-primary/20'}`}
         >
-          {isCompleting && <Check size={6} className="text-on-accent" strokeWidth={4} />}
+          {isCompleting && <Check size={9} className="text-on-accent" strokeWidth={4} />}
         </Pressable>
-        <p className={`flex items-center gap-0.5 text-2xs font-bold text-primary leading-tight line-clamp-2 ${isCompleting ? 'line-through' : ''}`}>
-          {GoalIcon && <GoalIcon size={7} className="shrink-0" />}
+        <p className={`flex items-center gap-1 text-xs font-bold text-primary leading-tight line-clamp-2 ${isCompleting ? 'line-through' : ''}`}>
+          {GoalIcon && <GoalIcon size={10} className="shrink-0" />}
           <span className="truncate">{todo.title}</span>
         </p>
       </div>

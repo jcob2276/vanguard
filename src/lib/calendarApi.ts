@@ -4,7 +4,11 @@ import { warsawDayBoundsISO } from './date';
 import { isOfflineError, queueOfflineWrite } from './offlineQueue';
 import type { Database } from './database.types';
 
-type VanguardCalendarRow = Database['public']['Tables']['vanguard_calendar']['Row'];
+type VanguardCalendarRow = Database['public']['Tables']['vanguard_calendar']['Row'] & {
+  description?: string | null;
+  recurrence?: string[] | null;
+  series_id?: string | null;
+};
 
 export interface CalendarEvent {
   id?: string;
@@ -84,6 +88,9 @@ export function useCreateCalendarEvent() {
           start_time: variables.event.start,
           end_time: variables.event.end,
           category: variables.event.category ?? 'vanguard',
+          description: variables.event.description ?? null,
+          recurrence: variables.event.recurrence ?? null,
+          series_id: null,
           created_at: new Date().toISOString(),
         };
         queryClient.setQueriesData<VanguardCalendarRow[]>(
@@ -140,6 +147,8 @@ export function useUpdateCalendarEvent() {
                 start_time: variables.event.start,
                 end_time: variables.event.end,
                 category: variables.event.category ?? e.category,
+                description: variables.event.description ?? null,
+                recurrence: variables.event.recurrence ?? null,
               };
             }
             return e;
@@ -198,7 +207,7 @@ export function useDeleteCalendarEvent() {
           return prev.filter(e => {
             const evId = e.event_id || e.id;
             if (variables.deleteScope === 'all') {
-              const seriesId = evId.split('_')[0];
+              const seriesId = e.series_id || evId.split('_')[0];
               return seriesId !== baseId;
             }
             return evId !== baseId;

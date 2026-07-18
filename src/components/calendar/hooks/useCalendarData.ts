@@ -23,6 +23,7 @@ import {
 import { CalendarTodo } from './useCalendarTodos';
 import { useCalendarWeather } from './useCalendarWeather';
 import { useCalendarEventDrag } from './useCalendarEventDrag';
+import { parseRecurrenceRule } from '../calendarView/calendarViewHelpers';
 
 export interface QuickCreateState {
   date: string;
@@ -90,6 +91,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   const [editStart, setEditStart] = useState('');
   const [editEnd, setEditEnd] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [editRecurrence, setEditRecurrence] = useState<'' | 'daily' | 'weekly' | 'monthly' | 'custom'>('');
   const [editCustomDays, setEditCustomDays] = useState<string[]>([]);
   const [editRecurrenceEndDate, setEditRecurrenceEndDate] = useState('');
@@ -181,6 +183,11 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     setSelectedEvent(ev);
     setEditTitle(ev.summary || '');
     setEditCategory(ev.category || null);
+    setEditDescription(ev.description || '');
+    const recurrenceState = parseRecurrenceRule(ev.recurrence);
+    setEditRecurrence(recurrenceState.recurrence);
+    setEditCustomDays(recurrenceState.customDays);
+    setEditRecurrenceEndDate(recurrenceState.endDate);
     if (ev.start_time) {
       setEditStart(formatTimeOfISO(ev.start_time));
       setEditDate(dateOfISO(ev.start_time));
@@ -204,7 +211,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     if (!selectedEvent) return;
     setDeleting(true);
     const instanceId = selectedEvent.event_id || selectedEvent.id;
-    const seriesBaseId = recurringSeriesBaseId(instanceId);
+    const seriesBaseId = selectedEvent.series_id || recurringSeriesBaseId(instanceId);
     const evId = scope === 'all' && seriesBaseId ? seriesBaseId : instanceId;
     try {
       await deleteEventMutation.mutateAsync({
@@ -255,6 +262,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     editStart, setEditStart,
     editEnd, setEditEnd,
     editDate, setEditDate,
+    editDescription, setEditDescription,
     editRecurrence, setEditRecurrence,
     editCustomDays, setEditCustomDays,
     editRecurrenceEndDate, setEditRecurrenceEndDate,

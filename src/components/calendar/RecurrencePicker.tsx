@@ -1,91 +1,69 @@
-import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import type { Dispatch, SetStateAction } from 'react';
-import { X, Repeat } from 'lucide-react';
+import { Repeat, X } from 'lucide-react';
+import { ControlInput, Pressable } from '../ui/ControlPrimitives';
 
-interface RecurrencePickerProps {
-  recurrence: '' | 'daily' | 'weekly' | 'monthly' | 'custom';
-  setRecurrence: (r: '' | 'daily' | 'weekly' | 'monthly' | 'custom') => void;
+type Recurrence = '' | 'daily' | 'weekly' | 'monthly' | 'custom';
+
+interface Props {
+  recurrence: Recurrence;
+  setRecurrence: (value: Recurrence) => void;
   customDays: string[];
   setCustomDays: Dispatch<SetStateAction<string[]>>;
   endDate: string;
-  setEndDate: (d: string) => void;
+  setEndDate: (date: string) => void;
   minDate: string;
+  allowCustom?: boolean;
 }
 
+const LABELS: Record<Recurrence, string> = {
+  '': 'Jednorazowo', daily: 'Codziennie', weekly: 'Co tydzień', monthly: 'Co miesiąc', custom: 'Własne dni',
+};
+
+const WEEKDAYS = [
+  { key: 'MO', label: 'Pon' }, { key: 'TU', label: 'Wt' }, { key: 'WE', label: 'Śr' },
+  { key: 'TH', label: 'Czw' }, { key: 'FR', label: 'Pt' }, { key: 'SA', label: 'Sob' },
+  { key: 'SU', label: 'Ndz' },
+];
+
 export default function RecurrencePicker({
-  recurrence,
-  setRecurrence,
-  customDays,
-  setCustomDays,
-  endDate,
-  setEndDate,
-  minDate,
-}: RecurrencePickerProps) {
+  recurrence, setRecurrence, customDays, setCustomDays, endDate, setEndDate,
+  minDate, allowCustom = true,
+}: Props) {
+  const options: Recurrence[] = allowCustom
+    ? ['', 'daily', 'weekly', 'monthly', 'custom']
+    : ['', 'daily', 'weekly', 'monthly'];
+
   return (
-    <div className="space-y-2">
-      <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
-        <Repeat size={11} /> Powtarzanie
-      </label>
-      <div className="flex flex-wrap gap-1.5">
-        {(['', 'daily', 'weekly', 'monthly', 'custom'] as const).map((r) => (
-          <Pressable
-            key={r || 'none'}
-            type="button"
-            onClick={() => setRecurrence(r)}
-            className={`flex-1 min-w-[var(--ds-w-70px)] text-xs font-bold py-2 rounded-xl border transition-all ${recurrence === r ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
-          >
-            {r === '' ? 'Nie powtarza się' : r === 'daily' ? 'Codziennie' : r === 'weekly' ? 'Co tydzień' : r === 'monthly' ? 'Co miesiąc' : 'Niestandardowe'}
+    <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-border-custom bg-surface-tonal p-3">
+      <p className="flex items-center gap-1.5 text-xs font-bold text-text-secondary"><Repeat size={14} /> Powtarzanie</p>
+      <div className="grid grid-cols-2 gap-2 sm:flex">
+        {options.map((option) => (
+          <Pressable key={option || 'once'} onClick={() => setRecurrence(option)} className={`min-h-11 flex-1 rounded-xl border px-2 text-xs font-bold ${recurrence === option ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom bg-surface-solid text-text-secondary hover:bg-surface-2'}`}>
+            {LABELS[option]}
           </Pressable>
         ))}
       </div>
-      {recurrence === 'custom' && (
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {[
-            { key: 'MO', label: 'Pon' },
-            { key: 'TU', label: 'Wt' },
-            { key: 'WE', label: 'Śr' },
-            { key: 'TH', label: 'Czw' },
-            { key: 'FR', label: 'Pt' },
-            { key: 'SA', label: 'Sob' },
-            { key: 'SU', label: 'Ndz' },
-          ].map((day) => {
-            const isSelected = customDays.includes(day.key);
+
+      {recurrence === 'custom' ? (
+        <div className="flex gap-1.5 pt-1">
+          {WEEKDAYS.map((day) => {
+            const selected = customDays.includes(day.key);
             return (
-              <Pressable
-                key={day.key}
-                type="button"
-                onClick={() => setCustomDays((prev) =>
-                  isSelected ? prev.filter((k) => k !== day.key) : [...prev, day.key],
-                )}
-                className={`w-10 text-xs font-bold py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-primary/10 text-primary border-primary/30 font-black' : 'border-border-custom/60 text-text-muted hover:text-text-primary bg-surface-solid/20'}`}
-              >
+              <Pressable key={day.key} onClick={() => setCustomDays((current) => selected ? current.filter((key) => key !== day.key) : [...current, day.key])} className={`min-h-11 min-w-0 flex-1 rounded-xl border text-2xs font-bold ${selected ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-custom bg-surface-solid text-text-secondary'}`}>
                 {day.label}
               </Pressable>
             );
           })}
         </div>
-      )}
-      {recurrence !== '' && (
-        <div className="flex items-center gap-2.5 pt-1">
-          <span className="text-xs text-text-muted font-bold uppercase tracking-wider shrink-0">Kończy się:</span>
-          <ControlInput
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            min={minDate}
-            className="flex-1 bg-surface-solid border border-border-custom/60 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-text-primary outline-none focus:border-primary/50 transition-all cursor-pointer"
-          />
-          {endDate && (
-            <Pressable
-              variant="ghost"
-              size="sm"
-              onClick={() => setEndDate('')}
-              icon={<X size={13} />}
-              className="shrink-0 text-text-muted/50 hover:text-danger"
-            />
-          )}
+      ) : null}
+
+      {recurrence ? (
+        <div className="flex items-center gap-2 pt-1">
+          <span className="shrink-0 text-xs font-bold text-text-secondary">Kończy się</span>
+          <ControlInput type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} min={minDate} className="min-h-11 flex-1 cursor-pointer rounded-xl border border-border-custom bg-surface-solid px-3 text-sm font-semibold text-text-primary focus:border-primary/50" />
+          {endDate ? <Pressable variant="ghost" size="sm" onClick={() => setEndDate('')} icon={<X size={13} />} aria-label="Usuń datę końcową" className="shrink-0 text-text-muted hover:text-danger" /> : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

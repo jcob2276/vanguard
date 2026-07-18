@@ -36,6 +36,7 @@ export interface CalendarContextType {
   handleEditSave: () => Promise<void>;
   closeEditTodoModal: () => void;
   saveTodoTitle: () => Promise<void>;
+  saveTodoChanges: () => Promise<void>;
   deleteTodo: () => Promise<void>;
 }
 
