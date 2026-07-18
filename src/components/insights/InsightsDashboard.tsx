@@ -18,7 +18,7 @@ import { useUserId } from '../../store/useStore';
 
 import { insightCardsKeys } from '../../lib/queryKeys';
 
-export function InsightsDashboard() {
+export function InsightsDashboard({ mode = 'chronicle' }: { mode?: 'chronicle' | 'patterns' }) {
   const userId = useUserId();
   const queryClient = useQueryClient();
   const { data: snapshot, loading: statsLoading } = useUserStatsSnapshot(userId!);
@@ -83,6 +83,10 @@ export function InsightsDashboard() {
 
   if (!userId) return null;
 
+  if (mode === 'patterns') {
+    return <PatternsView />;
+  }
+
   if (detailCard) {
     return (
       <DetailPageLayout title={detailCard.title} subtitle="Insight" onBack={() => setDetailCard(null)}>
@@ -101,8 +105,6 @@ export function InsightsDashboard() {
     <div className="space-y-5">
       <UserStatsOverviewCard snapshot={snapshot} loading={statsLoading} />
 
-
-      <PatternsView />
 
       {cards.length > 0 && (
         <div className="space-y-3">

@@ -4,16 +4,18 @@
  * @usedBy Dashboard
  */
 import { Suspense, lazy } from 'react';
-import { Activity, Sparkles } from 'lucide-react';
+import { Archive, Brain, History, Sparkles } from 'lucide-react';
 import { useSession } from '../../store/useStore';
 import Spinner from '../ui/Spinner';
 import Tabs from '../ui/Tabs';
+import HorizonHeader from './HorizonHeader';
 
 const Stats             = lazy(() => import('./Stats'));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const StravaWidget      = lazy(() => import('../integrations/StravaWidget'));
 
 const Photos            = lazy(() => import('../identity/Photos'));
+const NutritionCard     = lazy(() => import('./NutritionCard'));
 
 function ViewFallback() {
   return (
@@ -24,21 +26,32 @@ function ViewFallback() {
 }
 
 interface Props {
-  historySubTab: 'chronicle' | 'bio';
-  onSetSubTab: (tab: 'chronicle' | 'bio') => void;
+  historySubTab: 'chronicle' | 'patterns' | 'archive';
+  onSetSubTab: (tab: 'chronicle' | 'patterns' | 'archive') => void;
+  weeklyCalories: number;
+  nutritionKey: number;
 }
 
-export function DashboardHistoriaTab({ historySubTab, onSetSubTab }: Props) {
+export function DashboardHistoriaTab({ historySubTab, onSetSubTab, weeklyCalories, nutritionKey }: Props) {
   const session = useSession();
   if (!session) return null;
 
   const tabs = [
     { key: 'chronicle', label: 'Kronika', icon: <Sparkles size={14} /> },
-    { key: 'bio', label: 'Trener & Bio', icon: <Activity size={14} /> },
+    { key: 'patterns', label: 'Wzorce', icon: <Brain size={14} /> },
+    { key: 'archive', label: 'Archiwum', icon: <Archive size={14} /> },
   ];
 
   return (
     <div className="p-5 pb-8">
+      <div className="mb-5">
+        <HorizonHeader
+          eyebrow="Uczę się"
+          title="Historia"
+          description="Znaczące zdarzenia, wzorce oparte na dowodach i pełne dane źródłowe — każdy poziom osobno."
+          icon={History}
+        />
+      </div>
       <Suspense fallback={<ViewFallback />}>
         <div className="space-y-6">
           <div className="px-1">
@@ -46,10 +59,16 @@ export function DashboardHistoriaTab({ historySubTab, onSetSubTab }: Props) {
           </div>
 
           <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
-            <InsightsDashboard />
+            <InsightsDashboard mode="chronicle" />
             <Photos />
           </div>
-          <div className={historySubTab === 'bio' ? '' : 'hidden'}>
+          <div className={historySubTab === 'patterns' ? '' : 'hidden'}>
+            <InsightsDashboard mode="patterns" />
+          </div>
+          <div className={historySubTab === 'archive' ? '' : 'hidden'}>
+            <div className="mb-6">
+              <NutritionCard weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />
+            </div>
             <Stats runningSlot={<StravaWidget session={session} />} />
           </div>
         </div>

@@ -5,8 +5,11 @@
  */
 import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
-import NutritionCard from './NutritionCard';
 import Spinner from '../ui/Spinner';
+import { SlidersHorizontal } from 'lucide-react';
+import HorizonHeader from './HorizonHeader';
+import WeeklyNutritionPulse from './WeeklyNutritionPulse';
+import WeeklyBodyPulse from './WeeklyBodyPulse';
 
 const Direction = lazy(() => import('../lifestyle/Direction'));
 
@@ -29,13 +32,20 @@ export function DashboardTydzienTab({ weeklyCalories, nutritionKey, onOpenAction
   if (!session) return null;
   return (
     <div className="p-5 pb-8">
-      <Suspense fallback={<ViewFallback />}>
-        <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-7 lg:space-y-0">
-          <NutritionCard weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />
-          <div className="lg:col-span-2">
-            <Direction session={session} onOpenActionCenter={onOpenActionCenter} />
-          </div>
+      <div className="mb-5 space-y-4">
+        <HorizonHeader
+          eyebrow="Reguluję"
+          title="Tydzień"
+          description="Sprawdź przebieg, zobacz tylko istotne odchylenia i popraw pozostałą część tygodnia."
+          icon={SlidersHorizontal}
+        />
+        <div className="grid gap-3 lg:grid-cols-2">
+          <WeeklyBodyPulse />
+          <WeeklyNutritionPulse weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />
         </div>
+      </div>
+      <Suspense fallback={<ViewFallback />}>
+        <Direction session={session} onOpenActionCenter={onOpenActionCenter} />
       </Suspense>
     </div>
   );

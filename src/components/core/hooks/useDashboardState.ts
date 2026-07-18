@@ -76,7 +76,7 @@ export function useDashboardState(session: Session) {
 
   // Modal visibility state
   const [actionCenterOpen, setActionCenterOpen]     = useState(false);
-  const [historySubTab, setHistorySubTab]           = useState<'chronicle' | 'bio'>('chronicle');
+  const [historySubTab, setHistorySubTab]           = useState<'chronicle' | 'patterns' | 'archive'>('chronicle');
   const [workoutInitial, setWorkoutInitial]         = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey]                 = useState(0);
   const [showMorningPlan, setShowMorningPlan]       = useState(false);
@@ -256,7 +256,7 @@ export function useDashboardState(session: Session) {
   // Data
   const { count: pendingActionCount, reload: reloadPendingActions } = usePendingActionCount();
   const { isSyncing, setSyncing } = useStore();
-  const { weeklyCalories, todayWin, loading, refresh } = useDashboardData(session);
+  const { weeklyCalories, todayWin, proteinToday, hasWorkoutToday, readiness, loading, refresh } = useDashboardData(session);
   const { guidance: spineGuidance, loading: spineGuidanceLoading } = useSpineGuidance(userId, todayWin);
   const { syncCalendar, startGoogleAuth } = useSyncActions({ userId, accessToken, onRefresh: refresh, setSyncing });
   const { reviewOverdueDays, urgentTodoCount, staleNoteCount, refresh: refreshNudge } = useNudgeData(userId);
@@ -410,7 +410,7 @@ export function useDashboardState(session: Session) {
     view, navigate, goBack, navigateTo,
     location, handleMainTouchStart, handleMainTouchEnd,
     // data
-    weeklyCalories, todayWin, loading, refresh,
+    weeklyCalories, todayWin, proteinToday, hasWorkoutToday, readiness, loading, refresh,
     spineGuidance, spineGuidanceLoading,
     reviewOverdueDays, urgentTodoCount, staleNoteCount, refreshNudge,
     pendingActionCount, reloadPendingActions,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, CalendarDays, Check, Plus, Target } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, Gauge, Plus, Target } from 'lucide-react';
 import { getTodayWarsaw } from '../../lib/date';
 import { addProjectActionToTopFive } from '../../lib/dailyTopFive';
 import { notify } from '../../lib/notify';
@@ -29,6 +29,7 @@ function ProjectRowView({ project, pillar }: { project: ProjectRow; pillar: Pill
   const [added, setAdded] = useState(false);
   const action = stats[project.id]?.openItems[0] ?? null;
   const remaining = daysUntil(project.deadline);
+  const projectStats = stats[project.id];
 
   async function addToToday() {
     if (!action || adding) return;
@@ -82,6 +83,11 @@ function ProjectRowView({ project, pillar }: { project: ProjectRow; pillar: Pill
           </Pressable>
         )}
       </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-semibold text-text-muted">
+        <span className="flex items-center gap-1"><Gauge size={10} /> Koszt zobowiązania</span>
+        <span>{projectStats?.openItems.length ?? 0} otwartych działań</span>
+        <span>{projectStats?.daysSince == null ? 'brak historii ruchu' : `${projectStats.daysSince} dni od ruchu`}</span>
+      </div>
     </div>
   );
 }
@@ -131,10 +137,16 @@ function PillarSection({ pillar }: { pillar: PillarId }) {
 }
 
 export function DirectionView() {
-  const { activeProjects } = useProjectsContext();
+  const { activeProjects, stats } = useProjectsContext();
   const nearest = useMemo(() => activeProjects
     .filter((project) => project.deadline && daysUntil(project.deadline)! >= 0)
     .sort((a, b) => a.deadline!.localeCompare(b.deadline!))[0] ?? null, [activeProjects]);
+  const commitment = useMemo(() => activeProjects.reduce((acc, project) => {
+    const projectStats = stats[project.id];
+    acc.openActions += projectStats?.openItems.length ?? 0;
+    if (projectStats?.slipping) acc.slipping += 1;
+    return acc;
+  }, { openActions: 0, slipping: 0 }), [activeProjects, stats]);
 
   return (
     <div className="space-y-4 p-5 pb-8">
@@ -143,7 +155,12 @@ export function DirectionView() {
           <Target size={17} />
           <h2 className="text-xl font-bold tracking-tight">Kierunek</h2>
         </div>
-        <p className="mt-1 text-sm text-text-muted">Kierunek → projekt → dzisiejsze Top 5</p>
+        <p className="mt-1 text-sm text-text-muted">Wybieram: kierunek → projekt → następne działanie → ręczne Top 5.</p>
+        <div className="mt-3 grid grid-cols-3 gap-2 rounded-2xl border border-border-custom/50 bg-surface/60 p-3">
+          <Summary label="Aktywne" value={`${activeProjects.length}`} />
+          <Summary label="Otwarte ruchy" value={`${commitment.openActions}`} />
+          <Summary label="Bez tempa" value={`${commitment.slipping}`} warning={commitment.slipping > 0} />
+        </div>
         {nearest && (
           <div className="mt-3 rounded-2xl border border-primary/15 bg-primary/[0.06] px-4 py-3">
             <p className="text-2xs font-black uppercase tracking-widest text-primary">Najbliższy główny cel</p>
@@ -156,6 +173,15 @@ export function DirectionView() {
       </header>
 
       {PILLARS.map((pillar) => <PillarSection key={pillar} pillar={pillar} />)}
+    </div>
+  );
+}
+
+function Summary({ label, value, warning = false }: { label: string; value: string; warning?: boolean }) {
+  return (
+    <div className="min-w-0 text-center">
+      <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">{label}</p>
+      <p className={`mt-1 text-lg font-black ${warning ? 'text-warning' : 'text-text-primary'}`}>{value}</p>
     </div>
   );
 }

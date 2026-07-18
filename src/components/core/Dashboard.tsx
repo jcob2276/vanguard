@@ -201,6 +201,8 @@ export default function Dashboard({ session }: { session: Session }) {
                       <DashboardHistoriaTab
                         historySubTab={s.historySubTab}
                         onSetSubTab={s.setHistorySubTab}
+                        weeklyCalories={s.weeklyCalories}
+                        nutritionKey={s.nutritionKey}
                       />
                     </Suspense>
                   )}

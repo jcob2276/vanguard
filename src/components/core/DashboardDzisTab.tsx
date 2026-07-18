@@ -6,16 +6,18 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
+import { Play } from 'lucide-react';
 import { useSession } from '../../store/useStore';
 import OrientationFooter from './OrientationFooter';
 import PowerList from '../lifestyle/PowerList';
 import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import Spinner from '../ui/Spinner';
 import { useDashboardContext } from './context/DashboardContext';
+import HorizonHeader from './HorizonHeader';
+import TodayStatusStrip from './TodayStatusStrip';
 
 const DailyStrainCard  = lazy(() => import('../biometrics/DailyStrainCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
-const TodayEventsCard   = lazy(() => import('./TodayEventsCard'));
 const TodayRunwayCard   = lazy(() => import('./TodayRunwayCard'));
 
 function ViewFallback() {
@@ -55,10 +57,18 @@ export function DashboardDzisTab() {
 
   return (
     <div className="p-5 pb-8">
+      <div className="mb-5 space-y-4">
+        <HorizonHeader
+          eyebrow="Wykonuję"
+          title="Dziś"
+          description="Stan, najważniejszy ruch i najbliższa rzecz do zrobienia. Reszta systemu pracuje w tle."
+          icon={Play}
+        />
+        <TodayStatusStrip />
+      </div>
       <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-5 lg:space-y-0">
         {/* Lewa kolumna: Planowanie i aktywne zadania */}
         <div className="space-y-5">
-          <OrientationFooter />
           {weeklyReviewNudge}
           <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
           <Suspense fallback={null}>
@@ -81,9 +91,6 @@ export function DashboardDzisTab() {
           <Suspense fallback={<ViewFallback />}>
             <DailyStrainCard refreshSignal={s.nutritionKey + s.workoutKey} />
           </Suspense>
-          <Suspense fallback={null}>
-            <TodayEventsCard />
-          </Suspense>
           <FoodQuickCapture
             refreshSignal={s.nutritionKey}
             onSaved={() => { s.refresh(); s.setNutritionKey(k => k + 1); }}
@@ -92,6 +99,7 @@ export function DashboardDzisTab() {
           <Suspense fallback={<ViewFallback />}>
             <DailySnapshotCard />
           </Suspense>
+          <OrientationFooter />
         </div>
       </div>
     </div>
