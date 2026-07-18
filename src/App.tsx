@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/core/ErrorBoundary';
 import { ToastHost } from './components/ui/ToastHost';
 import SettingsView from './components/settings/SettingsView';
 import PageTemplateBoundary, { type PageTemplateKind } from './components/shared/PageTemplateBoundary';
+import ActionHistoryController from './components/core/ActionHistoryController';
 
 const DesktopDashboard = lazy(() => import('./components/desktop/shell/DesktopDashboard'));
 const GrowthView = lazy(() => import('./components/growth/GrowthView'));
@@ -129,6 +130,7 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AppRoutes />
+        <ActionHistoryController />
         <ToastHost />
       </BrowserRouter>
     </ErrorBoundary>

@@ -15,6 +15,7 @@ import { useSyncActions } from '../../hooks/useSyncActions';
 import { notify } from '../../lib/notify';
 import type { Tables } from '../../lib/database.types';
 import { Card } from '../ui/Card';
+import AiContextSettings from './AiContextSettings';
 
 export default function SettingsView({ session }: { session: Session }) {
   const queryClient = useQueryClient();
@@ -129,6 +130,8 @@ export default function SettingsView({ session }: { session: Session }) {
       </Card>
 
       <NutritionProfileSettings profile={profile} onChange={setProfile} />
+
+      <AiContextSettings userId={session.user.id} />
 
       <Card padding="1rem" className="space-y-3">
         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-text-muted">

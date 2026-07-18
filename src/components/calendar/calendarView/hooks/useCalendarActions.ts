@@ -5,6 +5,8 @@ import { buildRecurrenceRule } from '../calendarViewHelpers';
 import { parseTodoQuickInput } from '../../../../lib/todo/todoParser';
 import type { useCalendarData } from '../../hooks/useCalendarData';
 import type { useCalendarTodos } from '../../hooks/useCalendarTodos';
+import { registerReversibleAction, undoAction } from '../../../../lib/actionHistory';
+import { notify } from '../../../../lib/notify';
 
 interface UseCalendarActionsOptions {
   userId: string | undefined;
@@ -194,8 +196,37 @@ export function useCalendarActions({
         accessToken: accessToken || '',
         event: ev,
       });
+      const originalEvent = {
+        id: evId,
+        summary: selectedEvent.summary || '',
+        start: selectedEvent.start_time || start,
+        end: selectedEvent.end_time || end,
+        category: selectedEvent.category || undefined,
+        description: selectedEvent.description || undefined,
+        recurrence: selectedEvent.recurrence ?? null,
+      };
+      const actionId = registerReversibleAction({
+        label: `Edycja wydarzenia: ${ev.summary}`,
+        undo: async () => {
+          await updateEventMutation.mutateAsync({
+            userId: userId || '',
+            accessToken: accessToken || '',
+            event: originalEvent,
+          });
+        },
+        redo: async () => {
+          await updateEventMutation.mutateAsync({
+            userId: userId || '',
+            accessToken: accessToken || '',
+            event: ev,
+          });
+        },
+      });
       setSelectedEvent(null);
-      setToastMessage('Zmiany zostały zapisane! ✅');
+      setToastMessage(null);
+      notify('Zmieniono wydarzenie.', 'success', {
+        action: { label: 'Cofnij', onClick: () => { void undoAction(actionId); } },
+      });
       if (onResyncCalendar) {
         await onResyncCalendar();
         await fetchEvents();

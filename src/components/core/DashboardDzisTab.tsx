@@ -16,6 +16,7 @@ import { useDashboardContext } from './context/DashboardContext';
 const DailyStrainCard  = lazy(() => import('../biometrics/DailyStrainCard'));
 const DailySnapshotCard = lazy(() => import('./DailySnapshotCard'));
 const TodayEventsCard   = lazy(() => import('./TodayEventsCard'));
+const TodayRunwayCard   = lazy(() => import('./TodayRunwayCard'));
 
 function ViewFallback() {
   return (
@@ -60,6 +61,9 @@ export function DashboardDzisTab() {
           <OrientationFooter />
           {weeklyReviewNudge}
           <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
+          <Suspense fallback={null}>
+            <TodayRunwayCard />
+          </Suspense>
           {s.todayWin && isAfter20() && (
             <Pressable
               onClick={() => s.setShowShutdown(true)}

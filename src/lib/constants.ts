@@ -23,8 +23,6 @@ export const LIMITER_PL: Record<string, string> = {
   recovery_ok: 'OK',
 };
 
-export const SYSTEM_VERSION = '3.0';
-export const NEURAL_LINK_VERSION = '3.1';
 
 /** Fixed (non-parameterized) localStorage keys shared across components. */
 export const STORAGE_KEYS = {

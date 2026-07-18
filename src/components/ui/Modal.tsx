@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import Button from './Button';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -104,13 +105,15 @@ export default function Modal({
               )}
             </div>
             {showCloseButton && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={onClose}
-                className="rounded-full p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/50 transition-all cursor-pointer flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0 rounded-full p-0 text-text-muted"
                 aria-label="Zamknij"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             )}
           </div>
         )}

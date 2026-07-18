@@ -5,6 +5,15 @@ import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
 import { fetchWorldState } from "../../_shared/worldState.ts";
 
+type TodoPriority = 'urgent' | 'high' | 'normal' | 'low';
+
+function normalizePriority(value: unknown): TodoPriority {
+  if (value === 'medium') return 'normal';
+  return value === 'urgent' || value === 'high' || value === 'normal' || value === 'low'
+    ? value
+    : 'normal';
+}
+
 export async function handleTodoCommand(
   text: string,
   chatId: number,
@@ -31,7 +40,7 @@ export async function handleTodoCommand(
     let title = raw;
     let dueDate: string | null = null;
     let dueTime: string | null = null;
-    let priority: 'high' | 'medium' | 'low' = 'medium';
+    let priority: TodoPriority = 'normal';
     let notes = '';
 
     const systemPrompt = `Jesteś parserem zadań (TODO) w systemie Vanguard.
@@ -46,7 +55,7 @@ Zasady parsowania terminów:
 - "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela" -> due_date = najbliższy dany dzień tygodnia
 - "za tydzień" -> due_date = dzisiejsza data + 7 dni
 - godziny np. "o 14", "15:30" -> due_time = "14:00" lub "15:30"
-- priorytety np. "pilne", "ASAP", "na wczoraj", wykrzykniki "!" -> priority = "high"
+- priorytety np. "pilne", "ASAP", "na wczoraj", wykrzykniki "!" -> priority = "urgent"
 - priorytety np. "kiedyś", "low", "niski" -> priority = "low"
 
 Wymagany format wyjściowy JSON:
@@ -54,7 +63,7 @@ Wymagany format wyjściowy JSON:
   "title": "oczyszczony tytuł zadania (bez słów kluczowych dat/godzin/priorytetów, np. 'kupić mleko')",
   "due_date": "RRRR-MM-DD lub null",
   "due_time": "GG:MM lub null",
-  "priority": "high | medium | low",
+  "priority": "urgent | high | normal | low",
   "notes": "wszelkie dodatkowe uwagi lub kontekst"
 }
 
@@ -79,20 +88,26 @@ Zwróć TYLKO czysty obiekt JSON.`;
         title = (parsed.title as string) || title;
         dueDate = (parsed.due_date as string) || null;
         dueTime = (parsed.due_time as string) || null;
-        priority = (parsed.priority as 'high' | 'medium' | 'low') || 'medium';
+        priority = normalizePriority(parsed.priority);
         notes = (parsed.notes as string) || '';
       }
     }
 
-    const { error } = await supabase.from('todo_items').insert({
+    const scheduledTime = dueDate && dueTime
+      ? `${dueDate}T${dueTime}:00${warsawOffsetForDate(dueDate)}`
+      : null;
+    const { data: inserted, error } = await supabase.from('todo_items').insert({
       user_id: vanguardUserId,
       title,
       status: 'open',
       priority,
       due_date: dueDate,
+      scheduled_time: scheduledTime,
+      reminder_at: scheduledTime,
+      reminder_sent: false,
       notes,
-      tags: ['telegram'],
-    });
+      tags: ['telegram', ...(scheduledTime ? ['reminder'] : [])],
+    }).select('id').single();
     if (error) throw error;
 
     // Invalidate world state cache asynchronously
@@ -101,10 +116,27 @@ Zwróć TYLKO czysty obiekt JSON.`;
     });
 
     const duePart = dueDate ? ` · ${dueDate}${dueTime ? ` ${dueTime}` : ''}` : '';
-    const prioPart = priority === 'high' ? ' · 🔴' : priority === 'low' ? ' · ⬇️' : '';
-    await safeSendTelegram(chatId, `✅ "${title}"${duePart}${prioPart}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+    const priorityLabels: Record<TodoPriority, string> = {
+      urgent: ' · 🔴', high: ' · 🟠', normal: '', low: ' · ⬇️',
+    };
+    const prioPart = priorityLabels[priority];
+    await safeSendTelegram(chatId, `✅ Rozpoznałem zadanie: "${title}"${duePart}${prioPart}`, telegramToken, {
+      reply_markup: {
+        inline_keyboard: [[{ text: '↩️ Cofnij', callback_data: `todo_undo:${inserted.id}` }]],
+      },
+    });
   } catch (err) {
     console.error('[commands] /todo failed:', err);
     await safeSendTelegram(chatId, '❌ Błąd zapisu todo: ' + (err as Error).message, telegramToken);
   }
+}
+
+function warsawOffsetForDate(date: string): string {
+  const probe = new Date(`${date}T12:00:00Z`);
+  const offset = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Warsaw',
+    timeZoneName: 'longOffset',
+  }).formatToParts(probe).find((part) => part.type === 'timeZoneName')?.value.replace('GMT', '') || '+01:00';
+  if (offset.includes(':')) return offset;
+  return `${offset[0]}${offset.slice(1).padStart(2, '0')}:00`;
 }

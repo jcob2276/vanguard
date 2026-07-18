@@ -150,6 +150,7 @@ export default function TodoCardConnected({
   const onAddChildTask = useCallback((title: string) => addChildTask(item, title), [item, addChildTask]);
 
   return (
+    <div data-todo-id={item.id}>
     <TodoCard
       key={item.id}
       item={item}
@@ -192,5 +193,6 @@ export default function TodoCardConnected({
       onSetNotes={handlers.onSetNotes}
       onAddChildTask={onAddChildTask}
     />
+    </div>
   );
 }

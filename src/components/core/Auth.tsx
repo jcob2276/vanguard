@@ -1,155 +1,121 @@
-import { Pressable, ControlInput } from '../ui/ControlPrimitives';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Fingerprint, LockKeyhole } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Shield, Fingerprint, Lock } from 'lucide-react';
-import { SYSTEM_VERSION, NEURAL_LINK_VERSION, STORAGE_KEYS } from '../../lib/constants';
+import { STORAGE_KEYS } from '../../lib/constants';
+import { ControlInput, Pressable } from '../ui/ControlPrimitives';
+
+type AuthMode = 'signin' | 'signup' | 'reset';
+
+const COPY: Record<AuthMode, { title: string; subtitle: string; submit: string }> = {
+  signin: { title: 'Witaj ponownie', subtitle: 'Zaloguj się do swojego Vanguard.', submit: 'Zaloguj się' },
+  signup: { title: 'Utwórz konto', subtitle: 'Jedno prywatne miejsce dla Twojego systemu.', submit: 'Utwórz konto' },
+  reset: { title: 'Odzyskaj dostęp', subtitle: 'Wyślemy bezpieczny link na Twój adres e-mail.', submit: 'Wyślij link' },
+};
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync theme with document class on mount
   useEffect(() => {
     const theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', theme === 'dark');
   }, []);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const changeMode = (next: AuthMode) => {
+    setMode(next);
+    setError(null);
+    setMessage(null);
+  };
+
+  const handleAuth = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
-
     try {
       if (mode === 'reset') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/`,
         });
-        if (error) throw error;
-        setMessage('Link do resetu hasła wysłany na e-mail.');
-        return;
+        if (resetError) throw resetError;
+        setMessage('Link do odzyskania dostępu został wysłany.');
+      } else if (mode === 'signup') {
+        const { error: signupError } = await supabase.auth.signUp({ email, password });
+        if (signupError) throw signupError;
+        setMessage('Konto utworzone. Sprawdź pocztę, jeśli wymagana jest weryfikacja.');
+      } else {
+        const { error: signinError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signinError) throw signinError;
       }
-      if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setMessage('Konto utworzone. Sprawdź e-mail jeśli wymagana jest weryfikacja.');
-        return;
-      }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? (error as Error).message : String(error);
-      setError(msg === 'Invalid login credentials' ? 'Błędne poświadczenia dostępu.' : msg);
+    } catch (caught: unknown) {
+      const value = caught instanceof Error ? caught.message : String(caught);
+      setError(value === 'Invalid login credentials' ? 'Nieprawidłowy e-mail lub hasło.' : value);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden transition-colors duration-[var(--motion-slow)]">
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-0 w-full h-full bg-background/50"></div>
-      <div className="absolute top-[var(--ds-arbitrary-10)] right-[var(--ds-arbitrary-10-coll-2)] w-[var(--ds-w-50)] h-[var(--ds-h-50)] bg-primary/5 rounded-full blur-[var(--blur-ambient)]"></div>
-      <div className="absolute bottom-[var(--ds-arbitrary-10-coll-3)] left-[var(--ds-arbitrary-10-coll-4)] w-[var(--ds-w-50)] h-[var(--ds-h-50)] bg-primary/3 rounded-full blur-[var(--blur-ambient)] opacity-[var(--opacity-20)]"></div>
-
-      <div className="w-full max-w-md relative z-[var(--z-raised)] animate-in fade-in zoom-in-95 duration-[var(--motion-ambient)]">
-        <div className="bg-surface/55 border border-border-custom backdrop-blur-[var(--blur-2xl)] rounded-[var(--radius-xl)] p-10 shadow-lg">
-
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-20 h-20 bg-primary/10 rounded-[var(--radius-xl)] flex items-center justify-center mb-6 border border-primary/20 relative group">
-              <div className="absolute inset-0 bg-primary/20 rounded-[var(--radius-xl)] blur-[var(--blur-xl)] opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] transition-opacity duration-[var(--motion-ambient)]"></div>
-              <Fingerprint className="text-primary relative z-[var(--z-raised)] animate-pulse" size={40} />
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-5 py-10 text-text-primary">
+      <section className="relative w-full max-w-sm">
+        <div className="rounded-[var(--radius-xl)] border border-border-custom bg-surface p-7 shadow-xl sm:p-8">
+          <div className="mb-8">
+            <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Fingerprint size={25} strokeWidth={1.8} />
             </div>
-            <h1 className="text-3xl font-display font-black tracking-tight text-text-primary uppercase italic">
-              Vanguard OS <span className="text-primary not-italic text-sm align-top ml-1">v{SYSTEM_VERSION}</span>
-            </h1>
-            <p className="text-text-muted text-xs font-black uppercase tracking-[var(--ds-arbitrary-0-4em)] mt-2">Identity Verification Required</p>
+            <h1 className="text-3xl font-black leading-tight tracking-tight">{COPY[mode].title}</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-text-muted">{COPY[mode].subtitle}</p>
           </div>
 
-          <form onSubmit={handleAuth} className="space-y-6">
-            {message && (
-              <div className="bg-success/10 border border-success/20 text-success p-4 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
-                {message}
-              </div>
-            )}
-            {error && (
-              <div className="bg-danger/10 border border-danger/20 text-danger p-4 rounded-2xl text-xs font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
-                {error}
-              </div>
-            )}
+          <form onSubmit={handleAuth} className="space-y-4">
+            {message ? <p role="status" className="rounded-xl bg-success/10 px-3 py-2.5 text-sm font-semibold text-success">{message}</p> : null}
+            {error ? <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2.5 text-sm font-semibold text-danger">{error}</p> : null}
 
-            <div className="space-y-2">
-              <label className="text-xs font-black text-text-muted uppercase tracking-widest ml-4">Access ID</label>
-              <div className="relative">
-                <ControlInput
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-2xl py-4 px-6 text-sm text-text-primary focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus transition-all outline-none placeholder:text-text-muted/40 font-bold"
-                  placeholder="name@vanguard.sys"
-                />
-              </div>
-            </div>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-semibold text-text-secondary">E-mail</span>
+              <ControlInput
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="twoj@email.pl"
+                className="min-h-12 w-full rounded-xl border border-border-custom bg-surface-solid px-3.5 text-base text-text-primary transition-[background-color,border-color,box-shadow] placeholder:text-text-muted/50 focus:border-primary/45"
+              />
+            </label>
 
-            {mode !== 'reset' && (
-            <div className="space-y-2">
-              <label className="text-xs font-black text-text-muted uppercase tracking-widest ml-4">Secure Key</label>
-              <div className="relative">
+            {mode !== 'reset' ? (
+              <label className="block space-y-1.5">
+                <span className="text-sm font-semibold text-text-secondary">Hasło</span>
                 <ControlInput
                   type="password"
                   required
+                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-surface border border-border-custom rounded-2xl py-4 px-6 text-sm text-text-primary focus:border-primary/50 focus:bg-surface-solid focus:shadow-focus transition-all outline-none placeholder:text-text-muted/40 font-bold"
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder="••••••••"
+                  className="min-h-12 w-full rounded-xl border border-border-custom bg-surface-solid px-3.5 text-base text-text-primary transition-[background-color,border-color,box-shadow] placeholder:text-text-muted/50 focus:border-primary/45"
                 />
-              </div>
-            </div>
-            )}
+              </label>
+            ) : null}
 
-            <Pressable
-              type="submit"
-              loading={loading}
-              icon={!loading ? <Lock size={16} /> : undefined}
-              className="w-full py-5 font-black text-xs uppercase tracking-[var(--ds-arbitrary-0-2em)] mt-4"
-            >
-              {mode === 'reset' ? 'Wyślij link resetu' : mode === 'signup' ? 'Utwórz konto' : 'Inicjuj Sesję'}
+            <Pressable type="submit" variant="primary" size="lg" loading={loading} icon={<LockKeyhole size={16} />} className="mt-2 w-full">
+              {COPY[mode].submit}
             </Pressable>
           </form>
 
-          <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs font-bold text-text-muted">
-            {mode !== 'signin' && (
-              <Pressable type="button" onClick={() => { setMode('signin'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Logowanie</Pressable>
-            )}
-            {mode !== 'signup' && (
-              <Pressable type="button" onClick={() => { setMode('signup'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Rejestracja</Pressable>
-            )}
-            {mode !== 'reset' && (
-              <Pressable type="button" onClick={() => { setMode('reset'); setError(null); setMessage(null); }} className="hover:text-primary cursor-pointer">Reset hasła</Pressable>
-            )}
-          </div>
-
-          <div className="mt-10 pt-8 border-t border-border-custom text-center">
-            <div className="flex items-center justify-center gap-2 text-text-muted">
-              <Shield size={12} />
-              <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)]">Encrypted Connection Active</p>
-            </div>
-          </div>
+          <nav aria-label="Opcje logowania" className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-semibold">
+            {mode !== 'signin' ? <Pressable onClick={() => changeMode('signin')} className="text-text-muted hover:text-primary">Logowanie</Pressable> : null}
+            {mode !== 'signup' ? <Pressable onClick={() => changeMode('signup')} className="text-text-muted hover:text-primary">Utwórz konto</Pressable> : null}
+            {mode !== 'reset' ? <Pressable onClick={() => changeMode('reset')} className="text-text-muted hover:text-primary">Nie pamiętam hasła</Pressable> : null}
+          </nav>
         </div>
-
-        <p className="text-center mt-8 text-2xs font-black text-text-muted/50 uppercase tracking-[var(--ds-arbitrary-0-5em)]">
-          Authorized Personnel Only • Neural Link {NEURAL_LINK_VERSION}
-        </p>
-      </div>
-    </div>
+        <p className="mt-5 text-center text-xs text-text-muted">Twoje dane pozostają prywatne i przypisane do Twojego konta.</p>
+      </section>
+    </main>
   );
 }

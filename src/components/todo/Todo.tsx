@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import DataStateNotice from '../core/DataStateNotice';
 import { createTodoSection, renameTodoSection, archiveTodoSection } from '../../lib/todo/todo';
@@ -36,6 +36,21 @@ function TodoInner({ onBack, onNavigateTo }: { onBack: () => void; onNavigateTo?
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [navDest, setNavDest] = useState<TodoNavDest>('overview');
   const viewSwipe = useTodoViewSwipe(todoView, setTodoView);
+
+  useEffect(() => {
+    const taskId = new URLSearchParams(window.location.search).get('task');
+    if (!taskId || !todoData.items.some((item) => item.id === taskId)) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    window.setTimeout(() => {
+      setTodoView('lista');
+      setNavDest('overview');
+      setActiveFilterSection(null);
+      setExpandedId(taskId);
+      document.querySelector(`[data-todo-id="${CSS.escape(taskId)}"]`)?.scrollIntoView({
+        behavior: 'smooth', block: 'center',
+      });
+    }, 50);
+  }, [todoData.items, setActiveFilterSection, setExpandedId]);
 
   const {
     activeAddSectionId, scanTextOpen, setScanTextOpen,

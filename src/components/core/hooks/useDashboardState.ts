@@ -222,6 +222,19 @@ export function useDashboardState(session: Session) {
     }
   }, [location.search, navigate]);
 
+  // PWA Share Target lands on `/`; route link payloads to the canonical Pocket
+  // consumer instead of silently leaving the parameters on Dzisiaj.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sharedUrl = params.get('share_url') || '';
+    const sharedText = params.get('share_text') || '';
+    const hasUrl = /https?:\/\/[^\s]+/.test(`${sharedUrl} ${sharedText}`);
+    const target = hasUrl ? '/links' : sharedText.trim() ? '/keep' : null;
+    if (target && location.pathname !== target) {
+      navigate(`${target}?${params.toString()}`, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
   // Logo long-press → food entry
   const logoLongPressTimer = useRef<number | null>(null);
   const logoLongPressFired = useRef(false);

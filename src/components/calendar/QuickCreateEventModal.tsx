@@ -10,6 +10,8 @@ import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
 import CalendarConflictNotice from './CalendarConflictNotice';
 import { findCalendarConflicts } from '../../lib/calendarConflicts';
+import PlanningFrameNotice from './PlanningFrameNotice';
+import { useCalendar } from './context/CalendarContext';
 
 function minutesLabel(m: number) {
   const h = Math.floor(m / 60);
@@ -23,6 +25,7 @@ interface QuickCreateEventModalProps {
 }
 
 export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ calData, handleQuickSave }) => {
+  const { timeBudgets: { budgets } } = useCalendar();
   const {
     quickCreate,
     closeQuickCreate,
@@ -97,6 +100,13 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
           </span>
         </div>
         <CalendarConflictNotice titles={conflicts.map((event) => event.summary || 'Wydarzenie')} />
+        {quickCategory ? (
+          <PlanningFrameNotice
+            frame={budgets.find((budget) => budget.category === quickCategory)}
+            date={quickCreate.date}
+            startMinutes={quickCreate.startMin}
+          />
+        ) : null}
 
         <div className="space-y-2">
           <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Czas trwania:</span>

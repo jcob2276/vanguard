@@ -63,6 +63,16 @@ export function useKeepPageEffects({
     }
   }, [autoNewNote, handleNewNote, setEditingId]);
 
+  const linkedNoteHandled = useRef(false);
+  useEffect(() => {
+    if (linkedNoteHandled.current) return;
+    const noteId = new URLSearchParams(window.location.search).get('note');
+    if (!noteId) return;
+    linkedNoteHandled.current = true;
+    window.history.replaceState({}, '', window.location.pathname);
+    setEditingId(noteId);
+  }, [setEditingId]);
+
   // Capture shared text/title with no URL
   const autoShareCaptureHandled = useRef(false);
   useEffect(() => {

@@ -5175,25 +5175,37 @@ export type Database = {
         Row: {
           category: string
           created_at: string | null
+          frame_strength: string
           id: string
           max_hours: number | null
           min_hours: number | null
+          preferred_days: number[]
+          preferred_end: string | null
+          preferred_start: string | null
           user_id: string
         }
         Insert: {
           category: string
           created_at?: string | null
+          frame_strength?: string
           id?: string
           max_hours?: number | null
           min_hours?: number | null
+          preferred_days?: number[]
+          preferred_end?: string | null
+          preferred_start?: string | null
           user_id?: string
         }
         Update: {
           category?: string
           created_at?: string | null
+          frame_strength?: string
           id?: string
           max_hours?: number | null
           min_hours?: number | null
+          preferred_days?: number[]
+          preferred_end?: string | null
+          preferred_start?: string | null
           user_id?: string
         }
         Relationships: []

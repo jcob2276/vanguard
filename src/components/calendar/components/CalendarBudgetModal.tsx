@@ -4,6 +4,7 @@ import React from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { LIFE_SPHERES } from '../../../lib/projects/lifeSpheres';
 import Modal from '../../ui/Modal';
+import TimeFrameFields from './TimeFrameFields';
 
 export default function CalendarBudgetModal() {
   const {
@@ -14,6 +15,14 @@ export default function CalendarBudgetModal() {
       setBudgetMinInputs,
       budgetMaxInputs,
       setBudgetMaxInputs,
+      frameDaysInputs,
+      setFrameDaysInputs,
+      frameStartInputs,
+      setFrameStartInputs,
+      frameEndInputs,
+      setFrameEndInputs,
+      frameStrengthInputs,
+      setFrameStrengthInputs,
       setToastMessage,
     },
     timeBudgets: {
@@ -30,7 +39,12 @@ export default function CalendarBudgetModal() {
         LIFE_SPHERES.map((sphere) => {
           const minVal = budgetMinInputs[sphere.id] ? parseFloat(budgetMinInputs[sphere.id]) : null;
           const maxVal = budgetMaxInputs[sphere.id] ? parseFloat(budgetMaxInputs[sphere.id]) : null;
-          return saveBudget(sphere.id, minVal, maxVal);
+          return saveBudget(sphere.id, minVal, maxVal, {
+            days: frameDaysInputs[sphere.id] || [],
+            start: frameStartInputs[sphere.id] || null,
+            end: frameEndInputs[sphere.id] || null,
+            strength: frameStrengthInputs[sphere.id] || 'prefer',
+          });
         })
       );
       setToastMessage('Budżety zapisane! 📊');
@@ -42,7 +56,7 @@ export default function CalendarBudgetModal() {
   };
 
   return (
-    <Modal isOpen={!!showBudgetConfig} onClose={() => setShowBudgetConfig(false)} title="Ustaw Budżety Czasu" size="sm">
+    <Modal isOpen={!!showBudgetConfig} onClose={() => setShowBudgetConfig(false)} title="Rytm i budżety tygodnia" size="lg">
       <div className="space-y-3 max-h-[var(--ds-h-380px)] overflow-y-auto pr-1">
         {LIFE_SPHERES.map((sphere) => {
           let placeholderMin = 'np. 3';
@@ -55,7 +69,7 @@ export default function CalendarBudgetModal() {
           }
 
           return (
-            <div key={sphere.id} className="space-y-1.5 border-none p-0">
+            <div key={sphere.id} className="space-y-3 rounded-2xl border border-border-custom/45 bg-surface-solid/20 p-3.5">
               <span className="text-xs font-bold text-text-primary block">{sphere.label}</span>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col space-y-1">
@@ -89,6 +103,17 @@ export default function CalendarBudgetModal() {
                   />
                 </div>
               </div>
+              <TimeFrameFields
+                category={sphere.id}
+                days={frameDaysInputs}
+                starts={frameStartInputs}
+                ends={frameEndInputs}
+                strengths={frameStrengthInputs}
+                setDays={setFrameDaysInputs}
+                setStarts={setFrameStartInputs}
+                setEnds={setFrameEndInputs}
+                setStrengths={setFrameStrengthInputs}
+              />
             </div>
           );
         })}

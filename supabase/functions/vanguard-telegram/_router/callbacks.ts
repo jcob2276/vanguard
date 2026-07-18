@@ -24,6 +24,10 @@ import {
   handleFoodMealCallback,
   isFoodMealCallback,
 } from "../_handlers/foodMeal.ts";
+import {
+  handleTodoCaptureCallback,
+  isTodoCaptureCallback,
+} from "../_handlers/todoCapture.ts";
 
 type CallbackQuery = {
   id: string;
@@ -44,6 +48,11 @@ export async function handleCallbackQuery(
   const chatId = message.chat.id;
   const messageId = message.message_id;
   const { supabase, telegramToken, vanguardUserId } = ctx;
+
+  if (isTodoCaptureCallback(data)) {
+    await handleTodoCaptureCallback(data, chatId, messageId, callbackId, supabase, telegramToken, vanguardUserId);
+    return;
+  }
 
   if (isFoodMealCallback(data)) {
     await handleFoodMealCallback(

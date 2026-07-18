@@ -7,6 +7,7 @@ import { nextOccurrenceDate } from '../todoUtils';
 import { parseTodoQuickInput } from '../../../lib/todo/todoParser';
 import type { TodoItemRow } from '../useTodoData';
 import { notify } from '../../../lib/notify';
+import { registerReversibleAction, undoAction } from '../../../lib/actionHistory';
 
 interface UseTodoActionsProps {
   userId: string;
@@ -105,15 +106,29 @@ export function useTodoActions({
     setTodoStatus(item, newStatus)
       .then(async () => {
         if (newStatus === 'done' && !item.recurrence) {
+          const actionId = registerReversibleAction({
+            label: `Ukończenie: ${item.title}`,
+            undo: async () => {
+              setItems(prev => prev.map(i => i.id === item.id
+                ? { ...i, status: 'open', completed_at: null }
+                : i
+              ));
+              await setTodoStatus({ id: item.id }, 'open');
+            },
+            redo: async () => {
+              const completedAt = new Date().toISOString();
+              setItems(prev => prev.map(i => i.id === item.id
+                ? { ...i, status: 'done', completed_at: completedAt }
+                : i
+              ));
+              await setTodoStatus({ id: item.id }, 'done');
+            },
+          });
           notify('Zadanie wykonane.', 'success', {
             action: {
               label: 'Cofnij',
               onClick: () => {
-                setItems(prev => prev.map(i => i.id === item.id
-                  ? { ...i, status: 'open', completed_at: null }
-                  : i
-                ));
-                void setTodoStatus({ id: item.id }, 'open').catch((err) => {
+                void undoAction(actionId).catch((err) => {
                   setError(err instanceof Error ? err.message : String(err));
                 });
               },

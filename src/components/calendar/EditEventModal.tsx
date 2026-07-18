@@ -7,6 +7,7 @@ import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
 import CalendarConflictNotice from './CalendarConflictNotice';
 import { findCalendarConflicts } from '../../lib/calendarConflicts';
+import EventContextCard from './EventContextCard';
 
 interface Props {
   calData: ReturnType<typeof useCalendarData>;
@@ -39,6 +40,12 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
         <ControlInput id="calendar-event-title" autoFocus value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder="Tytuł wydarzenia" className="mt-1.5 min-h-12 w-full rounded-xl border border-border-custom bg-surface-solid px-4 text-base font-bold text-text-primary focus:border-primary/50" />
       </div>
       <CalendarConflictNotice titles={conflicts.map((event) => event.summary || 'Wydarzenie')} />
+      {selectedEvent ? (
+        <EventContextCard
+          eventId={selectedEvent.event_id || selectedEvent.id}
+          title={selectedEvent.summary || editTitle}
+        />
+      ) : null}
 
       <div className="rounded-[var(--radius-lg)] border border-border-custom bg-surface-tonal p-3">
         <p className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-text-muted"><Clock size={14} /> Kiedy</p>

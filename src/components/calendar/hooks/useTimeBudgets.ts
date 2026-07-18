@@ -31,10 +31,12 @@ export function useTimeBudgets(userId: string) {
       category,
       minHours,
       maxHours,
+      frame,
     }: {
       category: string;
       minHours: number | null;
       maxHours: number | null;
+      frame?: { days: number[]; start: string | null; end: string | null; strength: 'prefer' | 'only' };
     }) => {
       if (!userId) throw new Error('User ID is required');
       const { data, error } = await supabase
@@ -45,6 +47,10 @@ export function useTimeBudgets(userId: string) {
             category,
             min_hours: minHours,
             max_hours: maxHours,
+            preferred_days: frame?.days,
+            preferred_start: frame?.start,
+            preferred_end: frame?.end,
+            frame_strength: frame?.strength,
           },
           {
             onConflict: 'user_id,category',
@@ -62,8 +68,13 @@ export function useTimeBudgets(userId: string) {
   });
 
   const saveBudget = useCallback(
-    async (category: string, minHours: number | null, maxHours: number | null) => {
-      return mutation.mutateAsync({ category, minHours, maxHours });
+    async (
+      category: string,
+      minHours: number | null,
+      maxHours: number | null,
+      frame?: { days: number[]; start: string | null; end: string | null; strength: 'prefer' | 'only' },
+    ) => {
+      return mutation.mutateAsync({ category, minHours, maxHours, frame });
     },
     [mutation]
   );
@@ -74,4 +85,3 @@ export function useTimeBudgets(userId: string) {
 
   return { budgets, loading, saveBudget, refresh };
 }
-

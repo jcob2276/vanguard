@@ -3,6 +3,11 @@ import { Note, createNoteApi, updateNoteApi, deleteNoteApi, sortNotes, isNetwork
 import { notify, dismissToast } from '../../../lib/notify';
 import { isOfflineError, queueOfflineWrite } from '../../../lib/offlineQueue';
 import { STORAGE_KEYS } from '../../../lib/constants';
+import {
+  registerReversibleAction,
+  removeReversibleAction,
+  undoAction,
+} from '../../../lib/actionHistory';
 
 async function createNoteAction(
   userId: string,
@@ -51,9 +56,9 @@ async function updateNoteAction(
     if (!original) return;
     const isArchiving = patch.is_archived && !original.is_archived;
     setNotes((prev) => sortNotes(prev.map((n) => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n))));
-    let cancelled = false;
+    let committed = false;
     const timer = window.setTimeout(async () => {
-      if (cancelled) return;
+      committed = true;
       try {
         await updateNoteApi(id, { ...patch, updated_at: updatedAt });
       } catch (err) {
@@ -62,14 +67,34 @@ async function updateNoteAction(
         }
       }
     }, 5000);
+    const actionId = registerReversibleAction({
+      label: isArchiving ? 'Archiwizacja notatki' : 'Przywrócenie notatki',
+      undo: async () => {
+        clearTimeout(timer);
+        setNotes((prev) => sortNotes(prev.map((n) => (n.id === id ? original : n))));
+        if (committed) {
+          await updateNoteApi(id, {
+            is_archived: original.is_archived,
+            updated_at: new Date().toISOString(),
+          });
+        }
+      },
+      redo: async () => {
+        const redoUpdatedAt = new Date().toISOString();
+        setNotes((prev) => sortNotes(prev.map((n) => (
+          n.id === id ? { ...n, ...patch, updated_at: redoUpdatedAt } : n
+        ))));
+        await updateNoteApi(id, { ...patch, updated_at: redoUpdatedAt });
+      },
+    });
     const toastId = notify(isArchiving ? 'Zarchiwizowano' : 'Przywrócono', 'info', {
       duration: 5000,
       action: {
         label: 'Cofnij',
         onClick: () => {
-          cancelled = true;
-          clearTimeout(timer);
-          setNotes((prev) => sortNotes(prev.map((n) => (n.id === id ? original : n))));
+          void undoAction(actionId).catch((err: unknown) => {
+            setError(err instanceof Error ? err.message : String(err));
+          });
           dismissToast(toastId);
         },
       },
@@ -106,8 +131,10 @@ async function deleteNoteAction(
   if (!noteToDelete) return;
   setNotes((prev) => prev.filter((n) => n.id !== id));
   let cancelled = false;
+  let actionId = '';
   const timer = window.setTimeout(async () => {
     if (cancelled) return;
+    removeReversibleAction(actionId);
     try {
       await deleteNoteApi(id);
     } catch (err) {
@@ -120,14 +147,22 @@ async function deleteNoteAction(
       });
     }
   }, 5000);
+  actionId = registerReversibleAction({
+    label: 'Usunięcie notatki',
+    undo: () => {
+      cancelled = true;
+      clearTimeout(timer);
+      setNotes((prev) => sortNotes([...prev, noteToDelete]));
+    },
+  });
   const toastId = notify('Notatka usunięta', 'info', {
     duration: 5000,
     action: {
       label: 'Cofnij',
       onClick: () => {
-        cancelled = true;
-        clearTimeout(timer);
-        setNotes((prev) => sortNotes([...prev, noteToDelete]));
+        void undoAction(actionId).catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : String(err));
+        });
         dismissToast(toastId);
       },
     },
