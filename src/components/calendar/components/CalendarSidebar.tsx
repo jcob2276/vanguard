@@ -60,7 +60,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo, collapsed, onTog
 
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-6">
         <div>
           <p className="pixel-label mb-1.5 px-2.5 text-text-muted/60">Workspace</p>
           <WorkspaceNavigation active="kalendarz" onNavigate={onNavigateTo} />
