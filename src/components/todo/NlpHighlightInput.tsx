@@ -1,5 +1,6 @@
 import { ControlInput } from '../ui/ControlPrimitives';
 import React from 'react';
+import { TODO_NLP_HIGHLIGHT_REGEX } from '../../lib/todo/todoParser';
 
 interface NlpHighlightInputProps {
   id?: string;
@@ -22,10 +23,7 @@ export default function NlpHighlightInput({
   onFocus,
   onBlur,
 }: NlpHighlightInputProps) {
-  // Regex matches: p1-p4, relative dates, days of week, recurrence keywords, times (e.g. o 22, 22:00), and numeric dates (e.g. 12.05)
-  const nlpRegex = /\b(p[1-4]|dzisiaj|dzis|dziś|jutro|pojutrze|poniedziałek|wtorek|środa|czwartek|piątek|sobota|niedziela|poniedzialek|sroda|piatek|pon|wt|śr|sr|czw|pt|sob|nd|niedz|codziennie|co\s+dzień|co\s+dzien|co\s+tydzień|co\s+tydzien|co\s+miesiąc|co\s+miesiac|o\s+\d{1,2}(?:[:.]\d{2})?|\d{1,2}:\d{2}|\d{1,2}[./-]\d{1,2})\b/gi;
-
-  const segments = value.split(nlpRegex);
+  const segments = value.split(TODO_NLP_HIGHLIGHT_REGEX);
 
   return (
     <div className="relative w-full flex items-center">

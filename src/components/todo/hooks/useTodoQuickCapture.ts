@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { Database } from '../../../lib/database.types';
 import { usePersistentDraft } from '../../../hooks/usePersistentDraft';
 import { parseTodoQuickInput } from '../../../lib/todo/todoParser';
@@ -69,7 +69,11 @@ export function useTodoQuickCapture({
     const duration_minutes = parsedInput.duration_minutes ?? null;
     const section_id = form.section_id || activeFilterSection || null;
     const notes = form.notes || null;
-    const tagsText = form.tagsText;
+    const tags = [...new Set([
+      ...parsedInput.tags,
+      ...form.tagsText.split(',').map((tag) => tag.trim()).filter(Boolean),
+    ])];
+    const tagsText = tags.join(',');
     const recurrence = parsedInput.recurrence || form.recurrence || null;
     const scheduledTimeHHMM = parsedInput.scheduled_time || form.scheduled_time || null;
     const scheduled_time =
@@ -77,11 +81,6 @@ export function useTodoQuickCapture({
         ? combineDateTimeWarsawISO(due_date, scheduledTimeHHMM)
         : null;
     const reminder_at = form.reminder_at || (scheduled_time ? scheduled_time : null);
-    const tags = tagsText
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
-
     // Optimistic insert
     const tempId = `__temp_${Date.now()}`;
     const optimistic: TodoItemRow = {
@@ -158,6 +157,3 @@ export function useTodoQuickCapture({
     addItem,
   };
 }
-
-// Helper inline useMemo replacement because of imports
-import { useMemo } from 'react';

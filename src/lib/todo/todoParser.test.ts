@@ -72,6 +72,27 @@ describe('parseTodoQuickInput', () => {
       // Next Friday from Monday 2024-01-08 is 2024-01-12
       expect(result.due_date).toBe('2024-01-12');
     });
+
+    it.each([
+      ['raport za tydzień o 12', '2024-01-15', '12:00'],
+      ['raport za 3 dni', '2024-01-11', null],
+      ['raport za 2 tygodnie', '2024-01-22', null],
+      ['raport za 2 miesiące', '2024-03-08', null],
+    ])('parses relative date in "%s"', (input, dueDate, scheduledTime) => {
+      const result = parseTodoQuickInput(input, MONDAY);
+      expect(result.title).toBe('raport');
+      expect(result.due_date).toBe(dueDate);
+      expect(result.scheduled_time).toBe(scheduledTime);
+    });
+
+    it.each(['urlop 18.07.2026', 'urlop 18 lipca 2026'])(
+      'parses a full calendar date in "%s"',
+      (input) => expect(parseTodoQuickInput(input, MONDAY).due_date).toBe('2026-07-18'),
+    );
+
+    it('does not accept an impossible date', () => {
+      expect(parseTodoQuickInput('urlop 31.02.2026', MONDAY).due_date).toBeNull();
+    });
   });
 
   describe('duration tokens', () => {
@@ -83,6 +104,44 @@ describe('parseTodoQuickInput', () => {
     it('parses "1.5h" as 90 minutes', () => {
       const result = parseTodoQuickInput('bieganie 1.5h', MONDAY);
       expect(result.duration_minutes).toBe(90);
+    });
+
+    it.each([
+      ['trening 2 godziny 30 min', 150],
+      ['telefon 45 minut', 45],
+    ])('parses natural duration in "%s"', (input, duration) => {
+      expect(parseTodoQuickInput(input, MONDAY).duration_minutes).toBe(duration);
+    });
+  });
+
+  describe('natural language combinations', () => {
+    it('turns a relative clock into date and time', () => {
+      const result = parseTodoQuickInput('wyjść za 30 minut', MONDAY);
+      expect(result.title).toBe('wyjść');
+      expect(result.due_date).toBe('2024-01-08');
+      expect(result.scheduled_time).toBe('10:30');
+    });
+
+    it.each([
+      ['bieganie jutro rano', '2024-01-09', '08:00'],
+      ['kolacja wieczorem', '2024-01-08', '18:00'],
+    ])('parses a part of day in "%s"', (input, dueDate, scheduledTime) => {
+      const result = parseTodoQuickInput(input, MONDAY);
+      expect(result.due_date).toBe(dueDate);
+      expect(result.scheduled_time).toBe(scheduledTime);
+    });
+
+    it('parses recurring weekday and hashtag', () => {
+      const result = parseTodoQuickInput('raport co poniedziałek #praca', MONDAY);
+      expect(result.title).toBe('raport');
+      expect(result.due_date).toBe('2024-01-15');
+      expect(result.recurrence).toBe('weekly');
+      expect(result.tags).toEqual(['praca']);
+    });
+
+    it('parses a natural priority only as a trailing command', () => {
+      expect(parseTodoQuickInput('opłacić fakturę pilne', MONDAY).priority).toBe('urgent');
+      expect(parseTodoQuickInput('ważne dokumenty', MONDAY).priority).toBeNull();
     });
   });
 

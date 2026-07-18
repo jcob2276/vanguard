@@ -1,10 +1,13 @@
-import { startOfDay, addDays, format } from 'date-fns';
+import { addDays, addHours, addMinutes, addMonths, addWeeks, format, startOfDay } from 'date-fns';
 
-const PRIORITY_TOKENS = {
-  p1: { priority: 'urgent', label: 'P1' },
-  p2: { priority: 'high', label: 'P2' },
-  p3: { priority: 'normal', label: 'P3' },
-  p4: { priority: 'low', label: 'P4' },
+const PRIORITIES = {
+  p1: { value: 'urgent', label: 'P1' },
+  p2: { value: 'high', label: 'P2' },
+  p3: { value: 'normal', label: 'P3' },
+  p4: { value: 'low', label: 'P4' },
+  pilne: { value: 'urgent', label: 'Pilne' },
+  ważne: { value: 'high', label: 'Ważne' },
+  wazne: { value: 'high', label: 'Ważne' },
 } as const;
 
 const WEEKDAYS = [
@@ -18,191 +21,179 @@ const WEEKDAYS = [
 ];
 
 const MONTHS = [
-  ['sty', 'stycznia'],
-  ['lut', 'lutego'],
-  ['mar', 'marca'],
-  ['kwi', 'kwietnia'],
-  ['maj', 'maja'],
-  ['cze', 'czerwca'],
-  ['lip', 'lipca'],
-  ['sie', 'sierpnia'],
-  ['wrz', 'wrzesnia', 'września'],
-  ['paz', 'paź', 'pazdziernika', 'października'],
-  ['lis', 'listopada'],
-  ['gru', 'grudnia'],
+  ['sty', 'stycznia'], ['lut', 'lutego'], ['mar', 'marca'], ['kwi', 'kwietnia'],
+  ['maj', 'maja'], ['cze', 'czerwca'], ['lip', 'lipca'], ['sie', 'sierpnia'],
+  ['wrz', 'wrzesnia', 'września'], ['paz', 'paź', 'pazdziernika', 'października'],
+  ['lis', 'listopada'], ['gru', 'grudnia'],
 ];
 
-function toDateKey(date: Date): string {
-  return format(date, 'yyyy-MM-dd');
+type TokenType = 'priority' | 'date' | 'duration' | 'time' | 'recurrence' | 'tag';
+interface ParsedToken { type: TokenType; label: string; value: string }
+
+const escape = (word: string) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const alternatives = (groups: string[][]) => groups.flat().map(escape).join('|');
+const boundary = (source: string) => new RegExp(`(^|\\s)(${source})(?=\\s|$|[,.!?])`, 'i');
+const toDateKey = (date: Date) => format(date, 'yyyy-MM-dd');
+
+export const TODO_NLP_HIGHLIGHT_REGEX = /((?:\b(?:p[1-4]|pilne|ważne|wazne|dzisiaj|dzis|dziś|jutro|pojutrze|za\s+(?:tydzień|tydzien|\d+\s+(?:dni|dzień|dzien|tygodnie|tygodni|miesiące|miesiace|miesięcy|miesiecy|min(?:ut(?:y|ę)?)?|godz(?:in(?:y|ę)?)?))|(?:w\s+)?(?:następny\s+|nastepny\s+)?(?:poniedziałek|poniedzialek|wtorek|środa|sroda|czwartek|piątek|piatek|sobota|niedziela)|codziennie|co\s+(?:dzień|dzien|tydzień|tydzien|miesiąc|miesiac|poniedziałek|poniedzialek|wtorek|środa|sroda|czwartek|piątek|piatek|sobota|niedziela)|(?:każdy|kazdy)\s+(?:poniedziałek|poniedzialek|wtorek|środa|sroda|czwartek|piątek|piatek|sobota|niedziela)|(?:o|na|godz\.?|godzina)\s*\d{1,2}(?:[:.]\d{2})?|\d{1,2}:\d{2}|rano|w\s+południe|w\s+poludnie|wieczorem|w\s+nocy|\d{1,2}[./-]\d{1,2}(?:[./-]20\d{2})?)\b)|(?:#[\p{L}\d_-]+))/giu;
+
+function consume(text: string, match: RegExpMatchArray): string {
+  if (match.index == null) return text;
+  return `${text.slice(0, match.index)} ${text.slice(match.index + match[0].length)}`;
+}
+
+function cleanTitle(title: string): string {
+  return title.replace(/\s+/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
+}
+
+function validDate(year: number, month: number, day: number): Date | null {
+  const date = new Date(year, month, day);
+  return date.getFullYear() === year && date.getMonth() === month && date.getDate() === day ? date : null;
+}
+
+function futureMonthDay(now: Date, month: number, day: number, year?: number): Date | null {
+  const today = startOfDay(now);
+  if (year != null) return validDate(year, month, day);
+  const current = validDate(today.getFullYear(), month, day);
+  if (!current) return null;
+  return current < today ? validDate(today.getFullYear() + 1, month, day) : current;
 }
 
 function nextWeekday(now: Date, weekday: number): Date {
   const today = startOfDay(now);
-  const diff = (weekday - today.getDay() + 7) % 7 || 7;
-  return addDays(today, diff);
+  return addDays(today, (weekday - today.getDay() + 7) % 7 || 7);
 }
 
-function futureDateForMonthDay(now: Date, monthIndex: number, day: number): Date {
-  const today = startOfDay(now);
-  let date = new Date(today.getFullYear(), monthIndex, day);
-  if (date < today) date = new Date(today.getFullYear() + 1, monthIndex, day);
-  return date;
-}
-
-function tokenPattern(words: string[]): string {
-  return words.map((w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-}
-
-function cleanTitle(title: string): string {
-  return title
-    .replace(/\s+/g, ' ')
-    .replace(/\s+([,.!?])/g, '$1')
-    .trim();
-}
-
-function consumeMatch(text: string, match: RegExpMatchArray): string {
-  if (match.index === undefined) return text;
-  return `${text.slice(0, match.index)} ${text.slice(match.index + match[0].length)}`;
+function dateLabel(date: Date): string {
+  return new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short' }).format(date);
 }
 
 export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {
   let title = String(input || '');
-  const tokens: Array<{ type: 'priority' | 'date' | 'duration' | 'time' | 'recurrence'; label: string; value: string }> = [];
+  const tokens: ParsedToken[] = [];
+  const has = (type: TokenType) => tokens.some((token) => token.type === type);
+  const add = (type: TokenType, label: string, value: string) => tokens.push({ type, label, value });
 
-  const priorityMatch = title.match(/(^|\s)(p[1-4])(?=\s|$)/i);
-  if (priorityMatch) {
-    const raw = priorityMatch[2].toLowerCase() as keyof typeof PRIORITY_TOKENS;
-    const meta = PRIORITY_TOKENS[raw];
-    tokens.push({ type: 'priority', label: meta.label, value: meta.priority });
-    title = consumeMatch(title, priorityMatch);
+  const priority = title.match(boundary('p[1-4]'))
+    || title.match(/(^|\s)(pilne|ważne|wazne)(?=\s*$)/i);
+  if (priority) {
+    const meta = PRIORITIES[priority[2].toLocaleLowerCase('pl-PL') as keyof typeof PRIORITIES];
+    add('priority', meta.label, meta.value);
+    title = consume(title, priority);
   }
 
-  const relativeMatch = title.match(/(^|\s)(dzisiaj|dzis|dziś|jutro|pojutrze)(?=\s|$)/i);
-  if (relativeMatch) {
-    const raw = relativeMatch[2].toLowerCase();
-    const days = raw === 'jutro' ? 1 : raw === 'pojutrze' ? 2 : 0;
-    const date = addDays(startOfDay(now), days);
-    tokens.push({ type: 'date', label: days === 0 ? 'Dzisiaj' : days === 1 ? 'Jutro' : 'Pojutrze', value: toDateKey(date) });
-    title = consumeMatch(title, relativeMatch);
-  }
-
-  if (!tokens.some((token) => token.type === 'date')) {
-    const weekdayWords = WEEKDAYS.flat();
-    const weekdayMatch = title.match(new RegExp(`(^|\\s)(${tokenPattern(weekdayWords)})(?=\\s|$)`, 'i'));
-    if (weekdayMatch) {
-      const raw = weekdayMatch[2].toLowerCase();
-      const weekday = WEEKDAYS.findIndex((aliases) => aliases.includes(raw));
-      const date = nextWeekday(now, weekday);
-      const label = date.toLocaleDateString('pl-PL', { weekday: 'long' });
-      tokens.push({ type: 'date', label: label.charAt(0).toUpperCase() + label.slice(1), value: toDateKey(date) });
-      title = consumeMatch(title, weekdayMatch);
-    }
-  }
-
-  if (!tokens.some((token) => token.type === 'date')) {
-    const monthWords = MONTHS.flat();
-    const monthDateMatch = title.match(new RegExp(`(^|\\s)([0-3]?\\d)\\s+(${tokenPattern(monthWords)})(?=\\s|$)`, 'i'));
-    if (monthDateMatch) {
-      const day = Number(monthDateMatch[2]);
-      const rawMonth = monthDateMatch[3].toLowerCase();
-      const monthIndex = MONTHS.findIndex((aliases) => aliases.includes(rawMonth));
-      if (day >= 1 && day <= 31 && monthIndex >= 0) {
-        const date = futureDateForMonthDay(now, monthIndex, day);
-        tokens.push({ type: 'date', label: date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }), value: toDateKey(date) });
-        title = consumeMatch(title, monthDateMatch);
-      }
-    }
-  }
-
-  if (!tokens.some((token) => token.type === 'date')) {
-    const numericDateMatch = title.match(/(^|\s)([0-3]?\d)[./-]([01]?\d)(?=\s|$)/);
-    if (numericDateMatch) {
-      const day = Number(numericDateMatch[2]);
-      const month = Number(numericDateMatch[3]);
-      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
-        const date = futureDateForMonthDay(now, month - 1, day);
-        tokens.push({ type: 'date', label: date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }), value: toDateKey(date) });
-        title = consumeMatch(title, numericDateMatch);
-      }
-    }
-  }
-
-  // Clock time: "o 12:15", "o 8", "12:15" (not confused with duration, which requires an h/min suffix)
-  const timeMatch = title.match(/(^|\s)o\s+([01]?\d|2[0-3])(?:[:.]([0-5]\d))?(?=\s|$)/i)
-    || title.match(/(^|\s)([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/);
-  if (timeMatch) {
-    const hour = Number(timeMatch[2]);
-    const minute = timeMatch[3] ? Number(timeMatch[3]) : 0;
-    const hh = String(hour).padStart(2, '0');
-    const mm = String(minute).padStart(2, '0');
-    tokens.push({ type: 'time', label: `${hh}:${mm}`, value: `${hh}:${mm}` });
-    title = consumeMatch(title, timeMatch);
-  }
-
-  // Duration: "30min", "1h", "1.5h", "2h30min", "90min", "45m"
-  const durationMatch = title.match(/(^|\s)(\d+(?:[.,]\d+)?)\s*h(?:(?:our|rs?)?(?:\s*(\d+)\s*m(?:in)?)?)?(?=\s|$)|(^|\s)(\d+)\s*m(?:in)?(?=\s|$)/i);
-  if (durationMatch) {
-    let minutes = 0;
-    if (durationMatch[2]) {
-      // Xh or Xh Ym form
-      const hours = parseFloat(durationMatch[2].replace(',', '.'));
-      minutes = Math.round(hours * 60);
-      if (durationMatch[3]) minutes += parseInt(durationMatch[3]);
-    } else if (durationMatch[5]) {
-      // Xmin or Xm form
-      minutes = parseInt(durationMatch[5]);
-    }
-    if (minutes > 0 && minutes <= 480) {
-      const label = minutes < 60 ? `${minutes}min` : minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h${minutes % 60}min`;
-      tokens.push({ type: 'duration', label, value: String(minutes) });
-      title = consumeMatch(title, durationMatch);
-    }
-  }
-
-  // Recurrence: "codziennie", "co dzień", "co dzien", "co tydzień", "co tydzien", "co miesiąc", "co miesiac"
-  const recurrenceMatch = title.match(/(^|\s)(codziennie|co\s+dzień|co\s+dzien|co\s+tydzień|co\s+tydzien|co\s+miesiąc|co\s+miesiac)(?=\s|$)/i);
+  const recurringWeekday = title.match(boundary(`(?:co|każdy|kazdy|w\\s+każdy|w\\s+kazdy)\\s+(${alternatives(WEEKDAYS)})`));
   let recurrence: string | null = null;
-  if (recurrenceMatch) {
-    const raw = recurrenceMatch[2].toLowerCase();
-    let value = '';
-    let label = '';
-    // Check weekly/monthly FIRST — "tydzień" contains "dzień", so order matters
-    if (raw.includes('tydzien') || raw.includes('tydzień')) {
-      value = 'weekly';
-      label = 'Co tydzień';
-    } else if (raw.includes('miesiac') || raw.includes('miesiąc')) {
-      value = 'monthly';
-      label = 'Co miesiąc';
-    } else if (raw.includes('dzien') || raw.includes('dzień') || raw === 'codziennie') {
-      value = 'daily';
-      label = 'Codziennie';
-    }
-
-    if (value) {
-      recurrence = value;
-      tokens.push({ type: 'recurrence', label, value });
-      title = consumeMatch(title, recurrenceMatch);
-      // If recurrence is daily/weekly/monthly and no due date is parsed yet, default due_date to today
-      if (!tokens.some(t => t.type === 'date')) {
-        tokens.push({ type: 'date', label: 'Dzisiaj', value: toDateKey(now) });
-      }
+  if (recurringWeekday) {
+    const weekdayWord = recurringWeekday[3].toLocaleLowerCase('pl-PL');
+    const weekday = WEEKDAYS.findIndex((aliases) => aliases.includes(weekdayWord));
+    const date = nextWeekday(now, weekday);
+    recurrence = 'weekly';
+    add('recurrence', `Co ${weekdayWord}`, recurrence);
+    add('date', dateLabel(date), toDateKey(date));
+    title = consume(title, recurringWeekday);
+  } else {
+    const recurring = title.match(boundary('codziennie|co\\s+dzień|co\\s+dzien|co\\s+tydzień|co\\s+tydzien|co\\s+miesiąc|co\\s+miesiac'));
+    if (recurring) {
+      const raw = recurring[2].toLocaleLowerCase('pl-PL');
+      recurrence = raw.includes('tydzie') ? 'weekly' : raw.includes('miesi') ? 'monthly' : 'daily';
+      add('recurrence', recurrence === 'daily' ? 'Codziennie' : recurrence === 'weekly' ? 'Co tydzień' : 'Co miesiąc', recurrence);
+      title = consume(title, recurring);
     }
   }
 
-  const priority = tokens.find((token) => token.type === 'priority')?.value || null;
-  const due_date = tokens.find((token) => token.type === 'date')?.value || null;
-  const scheduled_time = tokens.find((token) => token.type === 'time')?.value || null;
-  const duration_minutes = tokens.find((token) => token.type === 'duration')?.value
-    ? parseInt(tokens.find((token) => token.type === 'duration')!.value)
-    : null;
+  const relativeClock = title.match(boundary('za\\s+(\\d+)\\s*(min(?:ut(?:y|ę)?)?|godz(?:in(?:y|ę)?)?)'));
+  if (relativeClock) {
+    const amount = Number(relativeClock[3]);
+    const target = relativeClock[4].startsWith('godz') ? addHours(now, amount) : addMinutes(now, amount);
+    add('date', dateLabel(target), toDateKey(target));
+    add('time', format(target, 'HH:mm'), format(target, 'HH:mm'));
+    title = consume(title, relativeClock);
+  }
 
+  if (!has('date')) {
+    const relative = title.match(boundary('dzisiaj|dzis|dziś|jutro|pojutrze|za\\s+tydzień|za\\s+tydzien|za\\s+(\\d+)\\s+(dni|dzień|dzien|tygodnie|tygodni|miesiące|miesiace|miesięcy|miesiecy)'));
+    if (relative) {
+      const raw = relative[2].toLocaleLowerCase('pl-PL');
+      const amount = Number(relative[3] || 1);
+      const date = raw === 'jutro' ? addDays(now, 1)
+        : raw === 'pojutrze' ? addDays(now, 2)
+        : raw.includes('tydzie') || raw.includes('tygod') ? addWeeks(now, amount)
+        : raw.includes('miesi') ? addMonths(now, amount)
+        : raw.startsWith('za ') ? addDays(now, amount)
+        : now;
+      add('date', dateLabel(date), toDateKey(date));
+      title = consume(title, relative);
+    }
+  }
+
+  if (!has('date')) {
+    const weekday = title.match(boundary(`(?:w\\s+)?(?:następny\\s+|nastepny\\s+)?${alternatives(WEEKDAYS)}`));
+    if (weekday) {
+      const raw = weekday[2].trim().split(/\s+/).at(-1)!.toLocaleLowerCase('pl-PL');
+      const index = WEEKDAYS.findIndex((aliases) => aliases.includes(raw));
+      const date = nextWeekday(now, index);
+      add('date', dateLabel(date), toDateKey(date));
+      title = consume(title, weekday);
+    }
+  }
+
+  if (!has('date')) {
+    const namedDate = title.match(new RegExp(`(^|\\s)([0-3]?\\d)\\s+(${alternatives(MONTHS)})(?:\\s+(20\\d{2}))?(?=\\s|$|[,.!?])`, 'i'));
+    if (namedDate) {
+      const month = MONTHS.findIndex((aliases) => aliases.includes(namedDate[3].toLocaleLowerCase('pl-PL')));
+      const date = futureMonthDay(now, month, Number(namedDate[2]), namedDate[4] ? Number(namedDate[4]) : undefined);
+      if (date) { add('date', dateLabel(date), toDateKey(date)); title = consume(title, namedDate); }
+    }
+  }
+
+  if (!has('date')) {
+    const numeric = title.match(/(^|\s)([0-3]?\d)[./-]([01]?\d)(?:[./-](20\d{2}))?(?=\s|$|[,.!?])/);
+    if (numeric) {
+      const date = futureMonthDay(now, Number(numeric[3]) - 1, Number(numeric[2]), numeric[4] ? Number(numeric[4]) : undefined);
+      if (date) { add('date', dateLabel(date), toDateKey(date)); title = consume(title, numeric); }
+    }
+  }
+
+  const time = title.match(/(^|\s)(?:o|na|godz\.?|godzina)\s*([01]?\d|2[0-3])(?:[:.]([0-5]\d))?(?=\s|$|[,.!?])/i)
+    || title.match(/(^|\s)([01]?\d|2[0-3]):([0-5]\d)(?=\s|$|[,.!?])/);
+  const period = !time && title.match(boundary('rano|w\\s+południe|w\\s+poludnie|wieczorem|w\\s+nocy'));
+  if (time) {
+    const value = `${String(Number(time[2])).padStart(2, '0')}:${String(Number(time[3] || 0)).padStart(2, '0')}`;
+    add('time', value, value);
+    title = consume(title, time);
+  } else if (period) {
+    const raw = period[2].toLocaleLowerCase('pl-PL');
+    const value = raw.includes('połud') || raw.includes('polud') ? '12:00' : raw.includes('wiecz') ? '18:00' : raw.includes('nocy') ? '22:00' : '08:00';
+    add('time', value, value);
+    title = consume(title, period);
+  }
+  if (has('time') && !has('date')) add('date', 'Dzisiaj', toDateKey(now));
+
+  const duration = title.match(/(^|\s)(?:(\d+(?:[.,]\d+)?)\s*(?:h|godz(?:in(?:y|ę)?)?)(?:\s*(\d+)\s*m(?:in(?:ut)?)?)?|(\d+)\s*m(?:in(?:ut(?:y|ę)?)?)?)(?=\s|$|[,.!?])/i);
+  if (duration) {
+    const minutes = duration[2] ? Math.round(Number(duration[2].replace(',', '.')) * 60) + Number(duration[3] || 0) : Number(duration[4]);
+    if (minutes >= 5 && minutes <= 1440) {
+      add('duration', minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} godz.${minutes % 60 ? ` ${minutes % 60} min` : ''}`, String(minutes));
+      title = consume(title, duration);
+    }
+  }
+
+  const tagMatches = [...title.matchAll(/(^|\s)#([\p{L}\d_-]+)(?=\s|$|[,.!?])/giu)];
+  for (const match of tagMatches) add('tag', `#${match[2]}`, match[2].toLocaleLowerCase('pl-PL'));
+  for (const match of [...tagMatches].reverse()) title = consume(title, match);
+
+  if (recurrence && !has('date')) add('date', 'Dzisiaj', toDateKey(now));
+
+  const token = (type: TokenType) => tokens.find((item) => item.type === type)?.value || null;
   return {
     title: cleanTitle(title),
-    priority,
-    due_date,
-    scheduled_time,
-    duration_minutes,
+    priority: token('priority'),
+    due_date: token('date'),
+    scheduled_time: token('time'),
+    duration_minutes: token('duration') ? Number(token('duration')) : null,
     recurrence,
+    tags: tokens.filter((item) => item.type === 'tag').map((item) => item.value),
     tokens,
   };
 }
