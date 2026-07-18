@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Note } from '../../../lib/notesApi';
 import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../../lib/behavior/captureBridge';
 import { notify, confirmDialog } from '../../../lib/notify';
@@ -34,6 +34,7 @@ export function useKeepView({
   onBack, onNavigateTo,
 }: UseKeepViewProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function useKeepView({
     });
   }, []);
   const [columns, setColumns] = useState(3);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(() => searchParams.get('note'));
   const [visibleCount, setVisibleCount] = useState(30);
 
   useKeepPageEffects({
@@ -79,7 +80,13 @@ export function useKeepView({
 
   const goBack = useCallback(() => (onBack ? onBack() : navigate('/')), [onBack, navigate]);
 
-  const handleCloseCard = useCallback(() => setEditingId(null), []);
+  const handleCloseCard = useCallback(() => {
+    setEditingId(null);
+    if (!searchParams.has('note')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('note');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const allTags = Array.from(new Set(notes.flatMap(n => n.tags))).sort();
 

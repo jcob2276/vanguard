@@ -6,6 +6,7 @@ import { invokeEdge } from '../../../lib/supabase';
 import { nextOccurrenceDate } from '../todoUtils';
 import { parseTodoQuickInput } from '../../../lib/todo/todoParser';
 import type { TodoItemRow } from '../useTodoData';
+import { notify } from '../../../lib/notify';
 
 interface UseTodoActionsProps {
   userId: string;
@@ -103,6 +104,22 @@ export function useTodoActions({
     ));
     setTodoStatus(item, newStatus)
       .then(async () => {
+        if (newStatus === 'done' && !item.recurrence) {
+          notify('Zadanie wykonane.', 'success', {
+            action: {
+              label: 'Cofnij',
+              onClick: () => {
+                setItems(prev => prev.map(i => i.id === item.id
+                  ? { ...i, status: 'open', completed_at: null }
+                  : i
+                ));
+                void setTodoStatus({ id: item.id }, 'open').catch((err) => {
+                  setError(err instanceof Error ? err.message : String(err));
+                });
+              },
+            },
+          });
+        }
         if (newStatus === 'done' && item.recurrence && userId) {
           const nextDate = nextOccurrenceDate(item.due_date, item.recurrence, today);
           let nextScheduledTime: string | undefined = undefined;

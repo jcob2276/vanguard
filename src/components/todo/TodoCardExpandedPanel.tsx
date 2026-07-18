@@ -6,7 +6,8 @@
  */
 import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
-import { Paperclip, X, Calendar, Flag, Bell, Tag, Folder, ChevronDown } from 'lucide-react';
+import { Paperclip, X, Calendar, Flag, Bell, Tag, Folder, ChevronDown, StickyNote } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import NlpHighlightInput from './NlpHighlightInput';
 import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
@@ -14,6 +15,7 @@ import TodoCardSubtasks from './TodoCardSubtasks';
 import { Card } from '../ui/Card';
 import type { useTodoCardAttachments } from './useTodoCardAttachments';
 import type { TodoItemRow, TodoAttachmentRow } from '../../lib/todo/todo';
+import { sourceNoteId } from '../../lib/behavior/captureBridge';
 
 interface TodoCardExpandedPanelProps {
   item: TodoItemRow;
@@ -23,7 +25,7 @@ interface TodoCardExpandedPanelProps {
   onEditChange: (val: string) => void;
   onEditSave: () => void;
   onSetNotes?: (notes: string | null) => void;
-  onSetDueDate: (date: string | null) => void;
+  onSetSchedule: (patch: { due_date?: string | null; scheduled_time?: string | null }) => void;
   onSetPriority: (p: string) => void;
   onSetReminder: (isoDatetime: string) => void;
   onSetTags: (tags: string[]) => void;
@@ -43,13 +45,15 @@ interface TodoCardExpandedPanelProps {
 }
 
 export default function TodoCardExpandedPanel({
-  item, isEditing, editingTitle, onEditStart, onEditChange, onEditSave, onSetNotes, onSetDueDate,
-  onSetPriority, onSetReminder, onSetTags, onMoveSection, onDrop, onToggleExpand, sections, today,
+  item, isEditing, editingTitle, onEditStart, onEditChange, onEditSave, onSetNotes,
+  onSetPriority, onSetReminder, onSetTags, onSetSchedule, onMoveSection, onDrop, onToggleExpand, sections, today,
   childTasks, onAddChildTask, onToggleChildTask, attachments, uploadingFile, fileInputRef,
   handleFileUpload, handleDeleteAttachment
 }: TodoCardExpandedPanelProps) {
   const [openPopover, setOpenPopover] = useState<'date' | 'reminder' | null>(null);
   const [tagInput, setTagInput] = useState('');
+  const navigate = useNavigate();
+  const linkedNoteId = sourceNoteId(item.notes);
 
   return (
     <div onClick={e => e.stopPropagation()}>
@@ -113,6 +117,15 @@ export default function TodoCardExpandedPanel({
 
       {/* Button chips row (Termin, Załącznik, Priorytet, Przypomnienia, Tagi) */}
       <div className="flex flex-wrap items-center gap-2 border-t border-border-custom/20 pt-2.5">
+        {linkedNoteId && (
+          <Pressable
+            type="button"
+            onClick={() => navigate(`/keep?note=${linkedNoteId}`)}
+            className="flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary transition-colors hover:bg-text-primary/[0.04]"
+          >
+            <StickyNote size={12} className="text-primary" /> Notatka źródłowa
+          </Pressable>
+        )}
         {/* Date button + popover */}
         <div className="relative">
           <Pressable
@@ -130,10 +143,7 @@ export default function TodoCardExpandedPanel({
               recurrence={null}
               today={today}
               onChange={(patch) => {
-                if (patch.due_date !== undefined) onSetDueDate(patch.due_date);
-                if (patch.scheduled_time !== undefined) {
-                  // DatePicker can set scheduled time, we pass it up via parent
-                }
+                onSetSchedule(patch);
               }}
               onClose={() => setOpenPopover(null)}
             />

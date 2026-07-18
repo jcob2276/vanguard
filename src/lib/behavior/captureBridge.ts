@@ -26,6 +26,10 @@ function htmlToPlainText(html: string): string {
   return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
 }
 
+export function sourceNoteId(notes: string | null | undefined): string | null {
+  return notes?.match(/(?:^|\s)source:note:([0-9a-f-]{36})(?:\s|$)/i)?.[1] || null;
+}
+
 export async function createSourceTodos(userId: string, titles: string[], sourceMarker: string) {
   const cleanTitles = [...new Set(titles.map((title) => title.trim()).filter(Boolean))];
   const { data: existing, error } = await supabase

@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { calendarKeys } from '../../../lib/queryKeys';
 import { parseTime, dateOfISO, getWarsawOffset, HOUR_START, HOUR_END, PX_PER_MIN, CalRow } from '../calendarHelpers';
+import { notify } from '../../../lib/notify';
 
 interface VisibleRange {
   rangeStart: string;
@@ -168,7 +169,28 @@ export function useCalendarEventDrag({
             recurrence: ev.recurrence || undefined,
           },
         });
-        setToastMessage('Zaktualizowano czas wydarzenia! 🕒');
+        notify('Zaktualizowano czas wydarzenia.', 'success', {
+          action: {
+            label: 'Cofnij',
+            onClick: () => {
+              void updateEventMutation.mutateAsync({
+                userId: userId || '',
+                accessToken: accessToken || '',
+                event: {
+                  id: evId,
+                  summary: ev.summary || '',
+                  start: ev.start_time!,
+                  end: ev.end_time!,
+                  category: ev.category || undefined,
+                  description: ev.description || undefined,
+                  recurrence: ev.recurrence || undefined,
+                },
+              }).then(() => queryClient.invalidateQueries({
+                queryKey: calendarKeys.events(userId || '', visibleRange.rangeStart, visibleRange.rangeEnd),
+              }));
+            },
+          },
+        });
       } catch (err) {
         console.error('Failed to save drag/resize changes:', err);
         setToastMessage('Nie udało się zapisać zmian.');

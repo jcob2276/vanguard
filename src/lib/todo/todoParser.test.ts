@@ -59,6 +59,7 @@ describe('parseTodoQuickInput', () => {
     it('parses "jutro" as next day', () => {
       const result = parseTodoQuickInput('zadzwonić jutro', MONDAY);
       expect(result.due_date).toBe('2024-01-09');
+      expect(result.date_explicit).toBe(true);
       expect(result.title).toBe('zadzwonić');
     });
 
@@ -120,6 +121,13 @@ describe('parseTodoQuickInput', () => {
       expect(result.title).toBe('wyjść');
       expect(result.due_date).toBe('2024-01-08');
       expect(result.scheduled_time).toBe('10:30');
+      expect(result.date_explicit).toBe(true);
+    });
+
+    it('marks a date inferred only from a clock as implicit', () => {
+      const result = parseTodoQuickInput('spotkanie o 14', MONDAY);
+      expect(result.due_date).toBe('2024-01-08');
+      expect(result.date_explicit).toBe(false);
     });
 
     it.each([

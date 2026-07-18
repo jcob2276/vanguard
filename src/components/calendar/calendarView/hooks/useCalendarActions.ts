@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { updateTodoItem, deleteTodoItem } from '../../../../lib/todo/todo';
 import { getWarsawOffset, addDays } from '../../calendarHelpers';
 import { buildRecurrenceRule } from '../calendarViewHelpers';
+import { parseTodoQuickInput } from '../../../../lib/todo/todoParser';
 import type { useCalendarData } from '../../hooks/useCalendarData';
 import type { useCalendarTodos } from '../../hooks/useCalendarTodos';
 
@@ -58,18 +59,26 @@ export function useCalendarActions({
     if (!quickCreate || !quickTitle.trim()) return;
     setSaving(true);
     const { date, startMin } = quickCreate;
+    const parsed = parseTodoQuickInput(quickTitle);
+    const parsedStartMin = parsed.scheduled_time
+      ? Number(parsed.scheduled_time.slice(0, 2)) * 60 + Number(parsed.scheduled_time.slice(3, 5))
+      : startMin;
+    const parsedDate = parsed.date_explicit && parsed.due_date ? parsed.due_date : date;
+    const parsedDuration = parsed.duration_minutes || quickDuration;
+    const parsedRecurrence = parsed.recurrence || (quickRecurrence === 'custom' ? undefined : quickRecurrence) || undefined;
+    const parsedTitle = parsed.title || quickTitle.trim();
 
     if (quickType === 'task') {
       try {
         await createScheduledTodo({
-          title: quickTitle.trim(),
-          day: date,
-          startMin,
-          durationMinutes: quickDuration,
+          title: parsedTitle,
+          day: parsedDate,
+          startMin: parsedStartMin,
+          durationMinutes: parsedDuration,
           notes: quickDescription.trim() || undefined,
-          recurrence:
-            (quickRecurrence === 'custom' ? undefined : quickRecurrence) ||
-            undefined,
+          recurrence: parsedRecurrence,
+          priority: parsed.priority || undefined,
+          tagsText: parsed.tags.join(','),
         });
         closeQuickCreate();
         setToastMessage('Dodano i zaplanowano zadanie! 📅');
@@ -83,26 +92,28 @@ export function useCalendarActions({
       return;
     }
 
-    const endMin = startMin + quickDuration;
-    const [y, m, d] = date.split('-');
-    const startH = Math.floor(startMin / 60);
-    const startM = startMin % 60;
-    const endH = Math.floor(endMin / 60);
-    const endM = endMin % 60;
+    const endMin = parsedStartMin + parsedDuration;
+    const [y, m, d] = parsedDate.split('-');
+    const startH = Math.floor(parsedStartMin / 60);
+    const startM = parsedStartMin % 60;
+    const endDate = addDays(parsedDate, Math.floor(endMin / (24 * 60)));
+    const normalizedEndMin = endMin % (24 * 60);
+    const endH = Math.floor(normalizedEndMin / 60);
+    const endM = normalizedEndMin % 60;
     const pad = (n: number) => String(n).padStart(2, '0');
     const start = `${y}-${m}-${d}T${pad(startH)}:${pad(startM)}:00${getWarsawOffset(
-      `${y}-${m}-${d}`
+      parsedDate
     )}`;
-    const end = `${y}-${m}-${d}T${pad(Math.min(endH, 23))}:${pad(
+    const end = `${endDate}T${pad(endH)}:${pad(
       endM
-    )}:00${getWarsawOffset(`${y}-${m}-${d}`)}`;
+    )}:00${getWarsawOffset(endDate)}`;
     const recurrence = buildRecurrenceRule(
-      quickRecurrence,
+      (parsed.recurrence || quickRecurrence) as typeof quickRecurrence,
       quickCustomDays,
       quickRecurrenceEndDate
     );
     const ev = {
-      summary: quickTitle.trim(),
+      summary: parsedTitle,
       start,
       end,
       category: quickCategory || undefined,

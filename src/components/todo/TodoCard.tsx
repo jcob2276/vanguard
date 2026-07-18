@@ -40,7 +40,7 @@ export interface TodoCardProps {
   isDragging: boolean;
   onShowContextMenu: (item: TodoItemRow, clientX: number, clientY: number) => void;
   onMoveToToday?: () => void;
-  onSetDueDate: (date: string | null) => void;
+  onSetSchedule: (patch: { due_date?: string | null; scheduled_time?: string | null }) => void;
   onSetRecurrence: (r: string | null) => void;
   dreamTitle?: string | null;
   onSetReminder: (isoDatetime: string) => void;
@@ -77,7 +77,7 @@ export default function TodoCard({
   onDragStart,
   isDragging,
   onShowContextMenu,
-  onSetDueDate,
+  onSetSchedule,
   dreamTitle,
   onSetReminder,
   onSetTags,
@@ -383,7 +383,7 @@ export default function TodoCard({
                 onEditChange={onEditChange}
                 onEditSave={onEditSave}
                 onSetNotes={onSetNotes}
-                onSetDueDate={onSetDueDate}
+                onSetSchedule={onSetSchedule}
                 onSetPriority={onSetPriority}
                 onSetReminder={onSetReminder}
                 onSetTags={onSetTags}

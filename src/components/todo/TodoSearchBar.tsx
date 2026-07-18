@@ -1,6 +1,6 @@
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useState } from 'react';
-import { Bookmark } from 'lucide-react';
+import { Bookmark, Search, X } from 'lucide-react';
 import { confirmDialog } from '../../lib/notify';
 import { useTodoContext } from './context/TodoContext';
 
@@ -11,7 +11,6 @@ export default function TodoSearchBar() {
     activeSmartListId,
     setActiveSmartListId,
     smartLists,
-    activeSmartQuery,
     saveCurrentAsSmartList,
     removeSmartList,
   } = useTodoContext();
@@ -25,10 +24,26 @@ export default function TodoSearchBar() {
     setShowSaveSmartList(false);
   };
 
-  if (smartLists.length === 0 && !activeSmartQuery) return null;
-
   return (
     <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1 pt-3">
+      <div className="flex min-h-10 min-w-64 flex-1 items-center gap-2 rounded-xl border border-border-custom/70 bg-surface-solid/50 px-3 focus-within:border-primary/40">
+        <Search size={14} className="shrink-0 text-text-muted" />
+        <ControlInput
+          value={searchQuery}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+            setActiveSmartListId(null);
+          }}
+          placeholder="Szukaj lub filtruj, np. due:week duration:short"
+          aria-label="Szukaj i filtruj zadania"
+          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted/50"
+        />
+        {searchQuery && (
+          <Pressable onClick={() => setSearchQuery('')} aria-label="Wyczyść wyszukiwanie" className="text-text-muted hover:text-text-primary">
+            <X size={13} />
+          </Pressable>
+        )}
+      </div>
       {smartLists.map((smartList) => (
         <Pressable
           key={smartList.id}

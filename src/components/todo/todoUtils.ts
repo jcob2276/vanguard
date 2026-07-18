@@ -83,7 +83,8 @@ export function relativeDate(dateStr: string | null | undefined, today: string) 
 }
 
 // ── Smart query language ──
-// Tokens: tag:x priority:high due:today|week|overdue|none section:name text...
+// Tokens: tag:x priority:high due:today|week|overdue|none section:name
+// duration:short|deep|minutes scheduled:yes|no reminder:yes|no text...
 // Unrecognized tokens and anything left over are treated as free-text title search.
 export interface SmartQueryItem {
   id: string;
@@ -93,6 +94,9 @@ export interface SmartQueryItem {
   due_date: string | null;
   section_id: string | null;
   status: string;
+  duration_minutes?: number | null;
+  scheduled_time?: string | null;
+  reminder_at?: string | null;
 }
 
 export function matchesSmartQuery(
@@ -135,6 +139,21 @@ export function matchesSmartQuery(
           }
           return true;
         });
+        break;
+      case 'duration':
+        conditions.push(() => {
+          const minutes = item.duration_minutes;
+          if (v === 'short') return minutes != null && minutes <= 15;
+          if (v === 'deep') return minutes != null && minutes >= 60;
+          const exact = Number(v);
+          return Number.isFinite(exact) && minutes === exact;
+        });
+        break;
+      case 'scheduled':
+        conditions.push(() => v === 'yes' ? !!item.scheduled_time : v === 'no' ? !item.scheduled_time : false);
+        break;
+      case 'reminder':
+        conditions.push(() => v === 'yes' ? !!item.reminder_at : v === 'no' ? !item.reminder_at : false);
         break;
     }
   }

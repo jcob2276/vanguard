@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase';
 import { createTodoItem, setTodoStatus, updateTodoItem } from '../../../lib/todo/todo';
 import { fetchGoalLineage, type SectionGoalMaps } from '../../../lib/goal/goalLineage';
 import { combineDateTimeWarsawISO } from '../../../lib/date';
+import { parseTodoQuickInput } from '../../../lib/todo/todoParser';
 
 export interface CalendarTodo {
   id: string;
@@ -155,9 +156,21 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
   }, [scheduledTodos, inboxTodos, userId, rangeStart, rangeEnd, queryClient, toggleTodoMutation]);
 
   const quickAddTodoMutation = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async (input: string) => {
       if (!userId) throw new Error('User ID is required');
-      return createTodoItem(userId, { title });
+      const parsed = parseTodoQuickInput(input);
+      const scheduled_time = parsed.scheduled_time && parsed.due_date
+        ? combineDateTimeWarsawISO(parsed.due_date, parsed.scheduled_time)
+        : null;
+      return createTodoItem(userId, {
+        title: parsed.title || input,
+        due_date: parsed.due_date || undefined,
+        scheduled_time,
+        duration_minutes: parsed.duration_minutes,
+        recurrence: parsed.recurrence || undefined,
+        priority: parsed.priority || undefined,
+        tagsText: parsed.tags.join(','),
+      });
     },
     onSuccess: (created) => {
       queryClient.setQueryData<CalendarTodo[]>(['calendar-todos-inbox', userId], (prev) => [
@@ -191,6 +204,8 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
       durationMinutes?: number;
       notes?: string;
       recurrence?: string;
+      priority?: string;
+      tagsText?: string;
     }) => {
       if (!userId) throw new Error('User ID is required');
       const pad = (n: number) => String(n).padStart(2, '0');
@@ -203,6 +218,8 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
         duration_minutes: params.durationMinutes ?? null,
         notes: params.notes,
         recurrence: params.recurrence,
+        priority: params.priority,
+        tagsText: params.tagsText,
       });
     },
     onSuccess: (created) => {
@@ -221,6 +238,8 @@ export function useCalendarTodos({ userId, rangeStart, rangeEnd }: UseCalendarTo
     durationMinutes?: number;
     notes?: string;
     recurrence?: string;
+    priority?: string;
+    tagsText?: string;
   }) => {
     if (!userId) return;
     return createScheduledTodoMutation.mutateAsync(params);

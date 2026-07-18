@@ -70,6 +70,7 @@ function dateLabel(date: Date): string {
 
 export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {
   let title = String(input || '');
+  let dateExplicit = false;
   const tokens: ParsedToken[] = [];
   const has = (type: TokenType) => tokens.some((token) => token.type === type);
   const add = (type: TokenType, label: string, value: string) => tokens.push({ type, label, value });
@@ -91,6 +92,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     recurrence = 'weekly';
     add('recurrence', `Co ${weekdayWord}`, recurrence);
     add('date', dateLabel(date), toDateKey(date));
+    dateExplicit = true;
     title = consume(title, recurringWeekday);
   } else {
     const recurring = title.match(boundary('codziennie|co\\s+dzień|co\\s+dzien|co\\s+tydzień|co\\s+tydzien|co\\s+miesiąc|co\\s+miesiac'));
@@ -107,6 +109,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     const amount = Number(relativeClock[3]);
     const target = relativeClock[4].startsWith('godz') ? addHours(now, amount) : addMinutes(now, amount);
     add('date', dateLabel(target), toDateKey(target));
+    dateExplicit = true;
     add('time', format(target, 'HH:mm'), format(target, 'HH:mm'));
     title = consume(title, relativeClock);
   }
@@ -123,6 +126,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
         : raw.startsWith('za ') ? addDays(now, amount)
         : now;
       add('date', dateLabel(date), toDateKey(date));
+      dateExplicit = true;
       title = consume(title, relative);
     }
   }
@@ -134,6 +138,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
       const index = WEEKDAYS.findIndex((aliases) => aliases.includes(raw));
       const date = nextWeekday(now, index);
       add('date', dateLabel(date), toDateKey(date));
+      dateExplicit = true;
       title = consume(title, weekday);
     }
   }
@@ -143,7 +148,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     if (namedDate) {
       const month = MONTHS.findIndex((aliases) => aliases.includes(namedDate[3].toLocaleLowerCase('pl-PL')));
       const date = futureMonthDay(now, month, Number(namedDate[2]), namedDate[4] ? Number(namedDate[4]) : undefined);
-      if (date) { add('date', dateLabel(date), toDateKey(date)); title = consume(title, namedDate); }
+      if (date) { add('date', dateLabel(date), toDateKey(date)); dateExplicit = true; title = consume(title, namedDate); }
     }
   }
 
@@ -151,7 +156,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     const numeric = title.match(/(^|\s)([0-3]?\d)[./-]([01]?\d)(?:[./-](20\d{2}))?(?=\s|$|[,.!?])/);
     if (numeric) {
       const date = futureMonthDay(now, Number(numeric[3]) - 1, Number(numeric[2]), numeric[4] ? Number(numeric[4]) : undefined);
-      if (date) { add('date', dateLabel(date), toDateKey(date)); title = consume(title, numeric); }
+      if (date) { add('date', dateLabel(date), toDateKey(date)); dateExplicit = true; title = consume(title, numeric); }
     }
   }
 
@@ -193,6 +198,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     scheduled_time: token('time'),
     duration_minutes: token('duration') ? Number(token('duration')) : null,
     recurrence,
+    date_explicit: dateExplicit,
     tags: tokens.filter((item) => item.type === 'tag').map((item) => item.value),
     tokens,
   };

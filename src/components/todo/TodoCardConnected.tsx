@@ -7,10 +7,11 @@
 import { useCallback } from 'react';
 import { useTodoContext } from './context/TodoContext';
 import TodoCard from './TodoCard';
-import { supabase } from '../../lib/supabase';
+import { invokeEdge } from '../../lib/supabase';
 import { updateTodoItem, setTodoStatus } from '../../lib/todo/todo';
 import { applyOptimisticPatch } from './todoOptimistic';
 import type { Database } from '../../lib/database.types';
+import { combineDateTimeWarsawISO, warsawTimeOfDay } from '../../lib/date';
 
 type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 
@@ -42,8 +43,12 @@ function useTodoCardHandlers(item: TodoItemRow) {
     applyOptimisticPatch(setItems, item, patch, () => updateTodoItem(item.id, patch), setError);
   }, [item, today, setItems, setError]);
 
-  const onSetDueDate = useCallback((date: string | null) => {
-    const patch = { due_date: date, ai_bucket: null };
+  const onSetSchedule = useCallback((change: { due_date?: string | null; scheduled_time?: string | null }) => {
+    const due_date = change.due_date !== undefined ? change.due_date : item.due_date;
+    const currentTime = item.scheduled_time ? warsawTimeOfDay(item.scheduled_time) : null;
+    const time = change.scheduled_time !== undefined ? change.scheduled_time : currentTime;
+    const scheduled_time = due_date && time ? combineDateTimeWarsawISO(due_date, time) : null;
+    const patch = { due_date, scheduled_time, ai_bucket: null };
     applyOptimisticPatch(setItems, item, patch, () => updateTodoItem(item.id, patch as Partial<TodoItemRow>), setError);
   }, [item, setItems, setError]);
 
@@ -78,7 +83,7 @@ function useTodoCardHandlers(item: TodoItemRow) {
     onSetPriority,
     onMoveSection,
     onMoveToToday,
-    onSetDueDate,
+    onSetSchedule,
     onSetRecurrence,
     onSetReminder,
     onSetTags,
@@ -130,13 +135,9 @@ export default function TodoCardConnected({
   }, [item, setItems, setError]);
 
   const onAiBreakdown = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke(
-      'vanguard-oracle?action=task-breakdown',
-      {
-        body: { itemId: item.id, userId, title: item.title, notes: item.notes },
-      }
-    );
-    if (error) throw error;
+    const data = await invokeEdge('vanguard-oracle', {
+      body: { action: 'task-breakdown', itemId: item.id, userId, title: item.title, notes: item.notes },
+    });
     return (data?.subtasks as string[]) ?? [];
   }, [item, userId]);
 
@@ -173,7 +174,7 @@ export default function TodoCardConnected({
       onSetPriority={handlers.onSetPriority}
       onDrop={onDrop}
       onMoveSection={handlers.onMoveSection}
-      onSetDueDate={handlers.onSetDueDate}
+      onSetSchedule={handlers.onSetSchedule}
       onSetRecurrence={handlers.onSetRecurrence}
       onSetReminder={handlers.onSetReminder}
       onCancelReminder={onCancelReminder}
