@@ -6,11 +6,10 @@
  */
 import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
-import { Paperclip, X, Calendar, Flag, Bell, Tag, Folder, ChevronDown, StickyNote } from 'lucide-react';
+import { Paperclip, X, Flag, Tag, Folder, ChevronDown, StickyNote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NlpHighlightInput from './NlpHighlightInput';
-import TodoDatePickerPopover from './TodoDatePickerPopover';
-import TodoReminderPopover from './TodoReminderPopover';
+import TodoTaskTimingControls from './TodoTaskTimingControls';
 import TodoCardSubtasks from './TodoCardSubtasks';
 import { Card } from '../ui/Card';
 import type { useTodoCardAttachments } from './useTodoCardAttachments';
@@ -26,6 +25,8 @@ interface TodoCardExpandedPanelProps {
   onEditSave: () => void;
   onSetNotes?: (notes: string | null) => void;
   onSetSchedule: (patch: { due_date?: string | null; scheduled_time?: string | null }) => void;
+  onSetRecurrence: (recurrence: string | null) => void;
+  onSetDeadline: (date: string | null) => void;
   onSetPriority: (p: string) => void;
   onSetReminder: (isoDatetime: string) => void;
   onSetTags: (tags: string[]) => void;
@@ -46,7 +47,7 @@ interface TodoCardExpandedPanelProps {
 
 export default function TodoCardExpandedPanel({
   item, isEditing, editingTitle, onEditStart, onEditChange, onEditSave, onSetNotes,
-  onSetPriority, onSetReminder, onSetTags, onSetSchedule, onMoveSection, onDrop, onToggleExpand, sections, today,
+  onSetPriority, onSetReminder, onSetTags, onSetSchedule, onSetRecurrence, onSetDeadline, onMoveSection, onDrop, onToggleExpand, sections, today,
   childTasks, onAddChildTask, onToggleChildTask, attachments, uploadingFile, fileInputRef,
   handleFileUpload, handleDeleteAttachment
 }: TodoCardExpandedPanelProps) {
@@ -126,29 +127,7 @@ export default function TodoCardExpandedPanel({
             <StickyNote size={12} className="text-primary" /> Notatka źródłowa
           </Pressable>
         )}
-        {/* Date button + popover */}
-        <div className="relative">
-          <Pressable
-            type="button"
-            onClick={() => setOpenPopover((p) => p === 'date' ? null : 'date')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.due_date ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
-          >
-            <Calendar size={12} className={item.due_date ? 'text-primary' : 'text-text-muted/60'} />
-            <span>{item.due_date ? `${item.due_date}${item.scheduled_time ? ` ${item.scheduled_time.slice(11, 16)}` : ''}` : 'Termin'}</span>
-          </Pressable>
-          {openPopover === 'date' && (
-            <TodoDatePickerPopover
-              dueDate={item.due_date || null}
-              scheduledTime={item.scheduled_time ? item.scheduled_time.slice(11, 16) : null}
-              recurrence={null}
-              today={today}
-              onChange={(patch) => {
-                onSetSchedule(patch);
-              }}
-              onClose={() => setOpenPopover(null)}
-            />
-          )}
-        </div>
+        <TodoTaskTimingControls item={item} today={today} openPopover={openPopover} setOpenPopover={setOpenPopover} onSetSchedule={onSetSchedule} onSetDeadline={onSetDeadline} onSetRecurrence={onSetRecurrence} onSetReminder={onSetReminder} />
 
         {/* Attachment button */}
         <div className="relative">
@@ -194,30 +173,6 @@ export default function TodoCardExpandedPanel({
               {item.priority === 'urgent' ? 'P1' : item.priority === 'high' ? 'P2' : item.priority === 'normal' ? 'P3' : 'P4'}
             </span>
           </Pressable>
-        </div>
-
-        {/* Reminder button + popover */}
-        <div className="relative">
-          <Pressable
-            type="button"
-            onClick={() => setOpenPopover((p) => p === 'reminder' ? null : 'reminder')}
-            className={`flex items-center gap-1.5 rounded-lg border border-border-custom/80 px-2.5 py-1 text-xs font-semibold text-text-secondary hover:bg-text-primary/[0.04] transition-all ${item.reminder_at ? 'text-primary border-primary/30 bg-primary/5' : ''}`}
-          >
-            <Bell size={12} className={item.reminder_at ? 'text-primary' : 'text-text-muted/60'} />
-            <span>
-              {item.reminder_at
-                ? new Date(item.reminder_at).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : 'Przypomnienia'}
-            </span>
-          </Pressable>
-          {openPopover === 'reminder' && (
-            <TodoReminderPopover
-              dueDate={item.due_date || null}
-              scheduledTime={item.scheduled_time ? item.scheduled_time.slice(11, 16) : null}
-              onSetReminder={(iso) => onSetReminder(iso)}
-              onClose={() => setOpenPopover(null)}
-            />
-          )}
         </div>
 
         {/* Tags input chip */}

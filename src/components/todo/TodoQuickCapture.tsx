@@ -8,7 +8,7 @@ import TodoDatePickerPopover from './TodoDatePickerPopover';
 import TodoReminderPopover from './TodoReminderPopover';
 
 interface TodoFormState {
-  title: string; notes: string; priority: string; tagsText: string; due_date: string;
+  title: string; notes: string; priority: string; tagsText: string; due_date: string; deadline_date: string;
   recurrence: string; section_id: string; scheduled_time: string; reminder_at: string;
 }
 
@@ -22,7 +22,7 @@ interface Props {
   addItem: () => void;
   sections: { id: string; name: string }[];
   parsedInput: {
-    title: string; priority: string | null; due_date: string | null; scheduled_time: string | null;
+    title: string; priority: string | null; due_date: string | null; deadline_date?: string | null; scheduled_time: string | null;
     recurrence?: string | null; tokens: Array<{ type: string; value: string; label: string }>;
   };
   today: string;
@@ -30,7 +30,7 @@ interface Props {
 }
 
 const EMPTY_FORM: TodoFormState = {
-  title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', recurrence: '',
+  title: '', notes: '', priority: 'normal', tagsText: '', due_date: '', deadline_date: '', recurrence: '',
   section_id: '', scheduled_time: '', reminder_at: '',
 };
 
@@ -143,6 +143,10 @@ export default function TodoQuickCapture({
                 <Tag size={15} className="text-text-muted" /><ControlInput value={form.tagsText} onChange={(event) => setForm({ ...form, tagsText: event.target.value })} placeholder="Tagi, oddzielone przecinkami" className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-text-primary" />
               </div>
               <div className="flex flex-wrap gap-2">
+                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border-custom bg-surface-solid px-3 text-xs font-bold text-text-secondary">
+                  <Calendar size={15} /> Deadline
+                  <ControlInput type="date" min={dueDate || undefined} value={parsedInput.deadline_date || form.deadline_date} onChange={(event) => setForm((current) => ({ ...current, deadline_date: event.target.value }))} className="bg-transparent text-xs text-text-primary" />
+                </label>
                 <div className="relative">
                   <Pressable onClick={() => setOpenPopover((value) => value === 'reminder' ? null : 'reminder')} className="flex min-h-11 items-center gap-2 rounded-xl border border-border-custom bg-surface-solid px-3 text-xs font-bold text-text-secondary"><Bell size={15} /> {form.reminder_at ? 'Przypomnienie ustawione' : 'Przypomnienie'}</Pressable>
                   {openPopover === 'reminder' ? <TodoReminderPopover dueDate={form.due_date || null} scheduledTime={form.scheduled_time || null} onSetReminder={(iso) => setForm((current) => ({ ...current, reminder_at: iso }))} onClose={() => setOpenPopover(null)} /> : null}

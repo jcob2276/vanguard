@@ -5,6 +5,8 @@ import Modal from '../ui/Modal';
 import { useCalendarData } from './hooks/useCalendarData';
 import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
+import CalendarConflictNotice from './CalendarConflictNotice';
+import { findCalendarConflicts } from '../../lib/calendarConflicts';
 
 interface Props {
   calData: ReturnType<typeof useCalendarData>;
@@ -20,6 +22,9 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
     saving, handleEditDelete,
   } = calData;
   const isSeries = Boolean(selectedEvent?.series_id || selectedEvent?.recurrence?.length);
+  const startMs = new Date(`${editDate}T${editStart || '00:00'}:00`).getTime();
+  const endMs = new Date(`${editDate}T${editEnd || '00:00'}:00`).getTime();
+  const conflicts = findCalendarConflicts(calData.events, startMs, endMs, selectedEvent?.id);
 
   return (
     <Modal isOpen={Boolean(selectedEvent)} onClose={() => setSelectedEvent(null)} title="Edytuj wydarzenie" size="md">
@@ -33,6 +38,7 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
         <label htmlFor="calendar-event-title" className="text-xs font-bold text-text-secondary">Nazwa wydarzenia</label>
         <ControlInput id="calendar-event-title" autoFocus value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder="Tytuł wydarzenia" className="mt-1.5 min-h-12 w-full rounded-xl border border-border-custom bg-surface-solid px-4 text-base font-bold text-text-primary focus:border-primary/50" />
       </div>
+      <CalendarConflictNotice titles={conflicts.map((event) => event.summary || 'Wydarzenie')} />
 
       <div className="rounded-[var(--radius-lg)] border border-border-custom bg-surface-tonal p-3">
         <p className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-text-muted"><Clock size={14} /> Kiedy</p>

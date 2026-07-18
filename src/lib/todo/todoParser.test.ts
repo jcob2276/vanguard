@@ -4,6 +4,21 @@ import { parseTodoQuickInput } from './todoParser';
 // Fixed anchor date: Monday 2024-01-08 (week: Mon=1, Tue=2, ..., Sun=0)
 const MONDAY = new Date('2024-01-08T10:00:00');
 
+describe('todo deadline tokens', () => {
+    it('separates planned day from a hard deadline', () => {
+      const result = parseTodoQuickInput('napisz raport jutro do piątku', MONDAY);
+      expect(result.due_date).toBe('2024-01-09');
+      expect(result.deadline_date).toBe('2024-01-12');
+      expect(result.title).toBe('napisz raport');
+    });
+
+    it('parses a numeric deadline without scheduling the task', () => {
+      const result = parseTodoQuickInput('wyślij deklarację do 20.01', MONDAY);
+      expect(result.due_date).toBeNull();
+      expect(result.deadline_date).toBe('2024-01-20');
+    });
+});
+
 describe('parseTodoQuickInput', () => {
   describe('recurrence tokens', () => {
     it('parses "codziennie" as daily recurrence', () => {

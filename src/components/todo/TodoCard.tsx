@@ -42,6 +42,7 @@ export interface TodoCardProps {
   onMoveToToday?: () => void;
   onSetSchedule: (patch: { due_date?: string | null; scheduled_time?: string | null }) => void;
   onSetRecurrence: (r: string | null) => void;
+  onSetDeadline: (date: string | null) => void;
   dreamTitle?: string | null;
   onSetReminder: (isoDatetime: string) => void;
   onCancelReminder: () => void;
@@ -78,6 +79,8 @@ export default function TodoCard({
   isDragging,
   onShowContextMenu,
   onSetSchedule,
+  onSetRecurrence,
+  onSetDeadline,
   dreamTitle,
   onSetReminder,
   onSetTags,
@@ -238,6 +241,11 @@ export default function TodoCard({
             {/* Metadata */}
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               {dateInfo && !isDone && <span className={`text-2xs font-medium ${dateInfo.color}`}>{dateInfo.text}</span>}
+              {item.deadline_date && !isDone && (
+                <span className={`text-2xs font-semibold ${item.deadline_date <= today ? 'text-danger' : 'text-warning'}`}>
+                  do {item.deadline_date}
+                </span>
+              )}
               {item.recurrence && (
                 <span className="flex items-center gap-0.5 text-2xs text-primary/40">
                   <Repeat2 size={8} /> {RECURRENCE_LABELS[item.recurrence]}
@@ -384,6 +392,8 @@ export default function TodoCard({
                 onEditSave={onEditSave}
                 onSetNotes={onSetNotes}
                 onSetSchedule={onSetSchedule}
+                onSetRecurrence={onSetRecurrence}
+                onSetDeadline={onSetDeadline}
                 onSetPriority={onSetPriority}
                 onSetReminder={onSetReminder}
                 onSetTags={onSetTags}

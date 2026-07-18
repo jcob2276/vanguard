@@ -31,6 +31,7 @@ export function useTodoQuickCapture({
       priority: 'normal',
       tagsText: '',
       due_date: '',
+      deadline_date: '',
       recurrence: '',
       section_id: '',
       scheduled_time: '',
@@ -66,6 +67,7 @@ export function useTodoQuickCapture({
 
     const priority = parsedInput.priority || form.priority;
     const due_date = parsedInput.due_date || form.due_date || null;
+    const deadline_date = parsedInput.deadline_date || form.deadline_date || null;
     const duration_minutes = parsedInput.duration_minutes ?? null;
     const section_id = form.section_id || activeFilterSection || null;
     const notes = form.notes || null;
@@ -89,9 +91,11 @@ export function useTodoQuickCapture({
       title,
       notes,
       priority,
+      deadline_date,
       due_date,
       section_id,
       recurrence,
+      recurrence_origin_id: null,
       tags,
       status: 'open',
       parent_task_id: null,
@@ -118,6 +122,7 @@ export function useTodoQuickCapture({
       priority: 'normal',
       tagsText: '',
       due_date: '',
+      deadline_date: '',
       recurrence: '',
       section_id: '',
       scheduled_time: '',
@@ -130,6 +135,7 @@ export function useTodoQuickCapture({
       notes: notes || undefined,
       priority,
       due_date: due_date || undefined,
+      deadline_date: deadline_date || undefined,
       duration_minutes: duration_minutes || undefined,
       section_id: section_id || undefined,
       recurrence: recurrence || undefined,

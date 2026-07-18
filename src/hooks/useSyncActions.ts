@@ -70,13 +70,13 @@ export function useSyncActions({
     try {
       const val = localStorage.getItem(LAST_SYNC_KEY);
       lastSync = val ? parseInt(val, 10) : 0;
-    } catch (e) { /* ignore */ }
+    } catch { /* local storage can be unavailable */ }
 
     // Throttle to 10 minutes (600,000 ms)
     if (now - lastSync > 10 * 60 * 1000) {
       try {
         localStorage.setItem(LAST_SYNC_KEY, String(now));
-      } catch (e) { /* ignore */ }
+      } catch { /* local storage can be unavailable */ }
       void syncCalendarSilent();
     }
   }, [userId, syncCalendarSilent]);
@@ -93,7 +93,7 @@ export function useSyncActions({
       const LAST_SYNC_KEY = 'vanguard_last_unified_sync_time';
       try {
         localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
-      } catch (e) { /* ignore */ }
+      } catch { /* local storage can be unavailable */ }
       if (userId) {
         await queryClient.invalidateQueries({ queryKey: calendarKeys.all });
         await queryClient.invalidateQueries({ queryKey: biometricsKeys.all });

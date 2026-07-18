@@ -16,4 +16,10 @@ describe('normalizeTodoSchedule', () => {
     expect(() => normalizeTodoSchedule({ recurrence: 'yearly', due_date: '2026-07-19' })).toThrow('powtarzania');
     expect(() => normalizeTodoSchedule({ duration_minutes: 0 })).toThrow('5 minut');
   });
+
+  it('accepts useful recurrence patterns and protects deadline order', () => {
+    expect(normalizeTodoSchedule({ recurrence: 'weekdays', due_date: '2026-07-20' }).recurrence).toBe('weekdays');
+    expect(normalizeTodoSchedule({ recurrence: 'biweekly', due_date: '2026-07-20' }).recurrence).toBe('biweekly');
+    expect(() => normalizeTodoSchedule({ due_date: '2026-07-20', deadline_date: '2026-07-19' })).toThrow('Termin końcowy');
+  });
 });

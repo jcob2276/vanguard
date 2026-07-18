@@ -9,7 +9,7 @@ import {
   useSaveSupplement,
 } from '../../../lib/health/supplementsApi';
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
-import { notify } from '../../../lib/notify';
+import { confirmDialog, notify } from '../../../lib/notify';
 
 export function useSupplementsData(userId: string) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -59,7 +59,7 @@ export function useSupplementsData(userId: string) {
   }
 
   async function handleDeactivate(sup: Supplement) {
-    if (!confirm(`Czy na pewno chcesz zarchiwizować suplement "${sup.name}"?`)) return;
+    if (!await confirmDialog(`Czy na pewno chcesz zarchiwizować suplement "${sup.name}"?`)) return;
     try {
       await saveMutation.mutateAsync({
         userId,

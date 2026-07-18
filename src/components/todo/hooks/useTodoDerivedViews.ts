@@ -54,7 +54,7 @@ export function useTodoDerivedViews({
 
   const { todayItems, inboxItems, upcomingItems, sectionsWithItems } = useMemo(() => {
     const todayList = openItems
-      .filter((i) => (i.due_date && i.due_date <= today) || i.ai_bucket === 'today')
+      .filter((i) => (i.due_date && i.due_date <= today) || (i.deadline_date && i.deadline_date <= today) || i.ai_bucket === 'today')
       .sort((a, b) => {
         const pA = PRIORITY_ORDER.indexOf(a.priority || 'normal');
         const pB = PRIORITY_ORDER.indexOf(b.priority || 'normal');
@@ -71,8 +71,11 @@ export function useTodoDerivedViews({
     const upcomingCutoffStr = shiftDateStr(today, 7);
     const upcoming = applyFilter(
       remainingItems
-        .filter((i) => i.due_date && i.due_date > today && i.due_date <= upcomingCutoffStr)
-        .sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')),
+        .filter((i) => {
+          const nextDate = i.due_date || i.deadline_date;
+          return nextDate && nextDate > today && nextDate <= upcomingCutoffStr;
+        })
+        .sort((a, b) => (a.due_date || a.deadline_date || '').localeCompare(b.due_date || b.deadline_date || '')),
     );
 
     const sectionsMap: Record<string, TodoItemRow[]> = {};

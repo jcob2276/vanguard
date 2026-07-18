@@ -27,7 +27,7 @@ const MONTHS = [
   ['lis', 'listopada'], ['gru', 'grudnia'],
 ];
 
-type TokenType = 'priority' | 'date' | 'duration' | 'time' | 'recurrence' | 'tag';
+type TokenType = 'priority' | 'date' | 'deadline' | 'duration' | 'time' | 'recurrence' | 'tag';
 interface ParsedToken { type: TokenType; label: string; value: string }
 
 const escape = (word: string) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -81,6 +81,23 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     const meta = PRIORITIES[priority[2].toLocaleLowerCase('pl-PL') as keyof typeof PRIORITIES];
     add('priority', meta.label, meta.value);
     title = consume(title, priority);
+  }
+
+  const deadline = title.match(/(^|\s)do\s+(jutra|pojutrza|poniedziałku|poniedzialku|wtorku|środy|srody|czwartku|piątku|piatku|soboty|niedzieli|[0-3]?\d[./-][01]?\d(?:[./-]20\d{2})?)(?=\s|$|[,.!?])/i);
+  if (deadline) {
+    const raw = deadline[2].toLocaleLowerCase('pl-PL');
+    const inflectedWeekdays: Record<string, number> = {
+      niedzieli: 0, 'poniedziałku': 1, poniedzialku: 1, wtorku: 2,
+      'środy': 3, srody: 3, czwartku: 4, 'piątku': 5, piatku: 5, soboty: 6,
+    };
+    let value: Date | null = raw === 'jutra' ? addDays(now, 1) : raw === 'pojutrza' ? addDays(now, 2) : null;
+    if (raw in inflectedWeekdays) value = nextWeekday(now, inflectedWeekdays[raw]);
+    const numeric = raw.match(/^([0-3]?\d)[./-]([01]?\d)(?:[./-](20\d{2}))?$/);
+    if (numeric) value = futureMonthDay(now, Number(numeric[2]) - 1, Number(numeric[1]), numeric[3] ? Number(numeric[3]) : undefined);
+    if (value) {
+      add('deadline', `Do ${dateLabel(value)}`, toDateKey(value));
+      title = consume(title, deadline);
+    }
   }
 
   const recurringWeekday = title.match(boundary(`(?:co|każdy|kazdy|w\\s+każdy|w\\s+kazdy)\\s+(${alternatives(WEEKDAYS)})`));
@@ -195,6 +212,7 @@ export function parseTodoQuickInput(input: string | null | undefined, now: Date 
     title: cleanTitle(title),
     priority: token('priority'),
     due_date: token('date'),
+    deadline_date: token('deadline'),
     scheduled_time: token('time'),
     duration_minutes: token('duration') ? Number(token('duration')) : null,
     recurrence,

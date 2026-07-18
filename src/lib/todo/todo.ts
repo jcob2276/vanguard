@@ -51,6 +51,7 @@ interface CreateTodoItemFields {
   priority?: string;
   tagsText?: string;
   due_date?: string;
+  deadline_date?: string;
   recurrence?: string;
   section_id?: string;
   duration_minutes?: number | null;
@@ -78,6 +79,7 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
     priority: fields.priority || 'normal',
     tags,
     due_date: safeFields.due_date || null,
+    deadline_date: safeFields.deadline_date || null,
     recurrence: safeFields.recurrence || null,
     duration_minutes: safeFields.duration_minutes ?? null,
     scheduled_time: safeFields.scheduled_time ?? null,
@@ -107,7 +109,9 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
         priority: fields.priority || 'normal',
         tags,
         due_date: fields.due_date || null,
+        deadline_date: fields.deadline_date || null,
         recurrence: fields.recurrence || null,
+        recurrence_origin_id: null,
         duration_minutes: fields.duration_minutes ?? null,
         scheduled_time: fields.scheduled_time ?? null,
         reminder_at: fields.reminder_at ?? null,

@@ -19,7 +19,7 @@ export function useTodoQuickAdd() {
     const defaultSec = sectionId === 'today' || sectionId === 'inbox' ? '' : sectionId;
     setForm({
       title: '', notes: '', priority: 'normal', tagsText: '',
-      due_date: defaultDate, recurrence: '', section_id: defaultSec,
+      due_date: defaultDate, deadline_date: '', recurrence: '', section_id: defaultSec,
       scheduled_time: '', reminder_at: '',
     });
     window.setTimeout(() => {
@@ -39,7 +39,7 @@ export function useTodoQuickAdd() {
       setIsExpanded(true);
       setForm({
         title: '', notes: '', priority: 'normal', tagsText: '',
-        due_date: today, recurrence: '', section_id: '',
+        due_date: today, deadline_date: '', recurrence: '', section_id: '',
         scheduled_time: '', reminder_at: '',
       });
     }

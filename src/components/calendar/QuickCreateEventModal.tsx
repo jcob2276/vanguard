@@ -8,6 +8,8 @@ import { monthLabel } from './calendarHelpers';
 import Modal from '../ui/Modal';
 import CategoryPicker from './CategoryPicker';
 import RecurrencePicker from './RecurrencePicker';
+import CalendarConflictNotice from './CalendarConflictNotice';
+import { findCalendarConflicts } from '../../lib/calendarConflicts';
 
 function minutesLabel(m: number) {
   const h = Math.floor(m / 60);
@@ -42,6 +44,8 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
     setQuickRecurrenceEndDate,
     saving,
   } = calData;
+  const quickStart = quickCreate ? new Date(`${quickCreate.date}T${minutesLabel(quickCreate.startMin)}:00`).getTime() : 0;
+  const conflicts = findCalendarConflicts(calData.events, quickStart, quickStart + quickDuration * 60_000);
 
   return (
     <Modal isOpen={!!quickCreate} onClose={closeQuickCreate} title={quickType === 'task' ? 'Nowe zadanie' : 'Nowe wydarzenie'} size="md">
@@ -92,6 +96,7 @@ export const QuickCreateEventModal: React.FC<QuickCreateEventModalProps> = ({ ca
             {monthLabel(quickCreate.date)}, {minutesLabel(quickCreate.startMin)} – {minutesLabel(quickCreate.startMin + quickDuration)}
           </span>
         </div>
+        <CalendarConflictNotice titles={conflicts.map((event) => event.summary || 'Wydarzenie')} />
 
         <div className="space-y-2">
           <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Czas trwania:</span>

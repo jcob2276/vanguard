@@ -57,6 +57,11 @@ function useTodoCardHandlers(item: TodoItemRow) {
     applyOptimisticPatch(setItems, item, patch, () => updateTodoItem(item.id, { recurrence: r || undefined }), setError);
   }, [item, setItems, setError]);
 
+  const onSetDeadline = useCallback((deadline_date: string | null) => {
+    const patch = { deadline_date };
+    applyOptimisticPatch(setItems, item, patch, () => updateTodoItem(item.id, patch), setError);
+  }, [item, setItems, setError]);
+
   const onSetReminder = useCallback((isoDatetime: string) => {
     const patch = { reminder_at: isoDatetime, reminder_sent: false };
     applyOptimisticPatch(setItems, item, patch, () => updateTodoItem(item.id, patch as Partial<TodoItemRow>), setError);
@@ -85,6 +90,7 @@ function useTodoCardHandlers(item: TodoItemRow) {
     onMoveToToday,
     onSetSchedule,
     onSetRecurrence,
+    onSetDeadline,
     onSetReminder,
     onSetTags,
     onSetSphere,
@@ -176,6 +182,7 @@ export default function TodoCardConnected({
       onMoveSection={handlers.onMoveSection}
       onSetSchedule={handlers.onSetSchedule}
       onSetRecurrence={handlers.onSetRecurrence}
+      onSetDeadline={handlers.onSetDeadline}
       onSetReminder={handlers.onSetReminder}
       onCancelReminder={onCancelReminder}
       onSetTags={handlers.onSetTags}

@@ -1,10 +1,11 @@
 import { formatWarsawDate } from '../date';
 
-const RECURRENCES = new Set(['daily', 'weekly', 'monthly']);
+const RECURRENCES = new Set(['daily', 'weekdays', 'weekly', 'biweekly', 'monthly']);
 
 interface TodoScheduleFields {
   title?: string | null;
   due_date?: string | null;
+  deadline_date?: string | null;
   scheduled_time?: string | null;
   recurrence?: string | null;
   duration_minutes?: number | null;
@@ -32,6 +33,9 @@ export function normalizeTodoSchedule<T extends TodoScheduleFields>(fields: T): 
   }
   if (normalized.recurrence && 'due_date' in normalized && !normalized.due_date) {
     throw new Error('Powtarzające się zadanie wymaga daty.');
+  }
+  if (normalized.deadline_date && normalized.due_date && normalized.deadline_date < normalized.due_date) {
+    throw new Error('Termin końcowy nie może być wcześniejszy niż zaplanowany dzień.');
   }
   if (normalized.duration_minutes != null && (normalized.duration_minutes < 5 || normalized.duration_minutes > 1440)) {
     throw new Error('Czas zadania musi wynosić od 5 minut do 24 godzin.');
