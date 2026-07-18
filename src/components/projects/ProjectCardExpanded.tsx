@@ -1,3 +1,9 @@
+/**
+ * @component ProjectCardExpanded
+ * @role Rozwinięty widok karty projektu — edycja, checkpointy, evidence strip.
+ * @composes ProjectEvidenceStrip
+ * @usedBy ProjectCard (gdy expandedId === project.id)
+ */
 import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import { Edit3, Plus, Save, Trash2, CalendarDays, Flag, Check, Repeat2, X, Zap } from 'lucide-react';
 import { Card } from '../ui/Card';

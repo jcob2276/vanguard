@@ -1,3 +1,10 @@
+/**
+ * @component DirectionPlanningMode
+ * @role Tryb planowania tygodnia w Direction (recap + refleksja + pogłębienie + plan tygodnia).
+ * @folders directionPlan/ = DirectionPlanBlocks (Block1Narrative/Block2WeekStats), DirectionPlanReflection,
+ *          DirectionPlanDeepening, DirectionPlanWeekPlan
+ * @usedBy Direction
+ */
 import type { Session } from "@supabase/supabase-js";
 import { useDirectionContext } from "./direction/hooks/useDirectionContext";
 import WeekPlanningRecap from "./WeekPlanningRecap";

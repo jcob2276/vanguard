@@ -1,3 +1,9 @@
+/**
+ * @component TodoCardExpandedPanel
+ * @role Formularz edycji rozwiniętej karty (notatki, termin, priorytet, tagi, załączniki).
+ * @composes TodoCardSubtasks (checklist podzadań)
+ * @usedBy TodoCard (renderowany gdy expanded=true)
+ */
 import { Pressable, ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
 import { Paperclip, X, Calendar, Flag, Bell, Tag, Folder, ChevronDown } from 'lucide-react';

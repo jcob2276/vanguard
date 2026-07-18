@@ -1,3 +1,9 @@
+/**
+ * @component WidgetFactory
+ * @role Dispatcher renderowania widgetów po typie (trend/bar/timeline) — dane z Oracle/insights są untyped.
+ * @composes TrendChart, BarChartWidget, TimelineWidget
+ * @usedBy InsightCard
+ */
 import { TrendChart, type TrendChartData } from './TrendChart';
 import { BarChartWidget, type BarChartData } from './BarChart';
 import { TimelineWidget, type TimelineWidgetData } from './TimelineWidget';

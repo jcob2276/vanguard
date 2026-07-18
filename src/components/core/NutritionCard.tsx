@@ -1,3 +1,9 @@
+/**
+ * @component NutritionCard
+ * @role Hub karty dieta: makra, dziennik posiłków, forecast, targety.
+ * @composes nutrition/FoodEntryModal (dodawanie/edycja wpisu, patrz jego @folders)
+ * @usedBy DashboardTydzienTab
+ */
 import Button from '../ui/Button';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';

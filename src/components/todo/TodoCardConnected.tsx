@@ -1,3 +1,9 @@
+/**
+ * @component TodoCardConnected
+ * @role Warstwa danych/handlerów karty zadania — spina TodoContext, optimistic patch i RPC (lib/todo/todo.ts).
+ * @composes TodoCard (prezentacja) -> TodoCardExpandedPanel (edit rozwinięty) -> TodoCardSubtasks (checklist)
+ * @usedBy TodoTodayZone, TodoInboxZone, TodoSectionFlatView, TodoSectionsList, TodoSmartListView, TodoDoneHistory
+ */
 import { useCallback } from 'react';
 import { useTodoContext } from './context/TodoContext';
 import TodoCard from './TodoCard';

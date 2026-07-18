@@ -1,3 +1,8 @@
+/**
+ * @component ProjectCardCollapsed
+ * @role Zwinięty widok karty projektu (health score, next action, sparkline KPI).
+ * @usedBy ProjectCard (domyślny widok)
+ */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { AlertTriangle, ChevronDown, ChevronUp, Check, ArrowRight, CalendarDays } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';

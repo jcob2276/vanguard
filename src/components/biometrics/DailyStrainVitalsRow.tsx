@@ -1,3 +1,8 @@
+/**
+ * @component DailyStrainVitalsRow
+ * @role Wiersz witalności (HRV/RHR/sen/temp/kroki) z kolorowaniem z-score.
+ * @usedBy DailyStrainCard
+ */
 import { Zap, Activity, Moon, Thermometer, Footprints } from 'lucide-react';
 import type { Tables } from '../../lib/database.types';
 import { StatHero } from '../ui/StatHero';

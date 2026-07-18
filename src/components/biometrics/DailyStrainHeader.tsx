@@ -1,3 +1,8 @@
+/**
+ * @component DailyStrainHeader
+ * @role Nagłówek karty strain (status, refresh, confidence pill).
+ * @usedBy DailyStrainCard
+ */
 import Button from '../ui/Button';
 import { RefreshCw } from 'lucide-react';
 import { CONF_PILL, CONF_LABEL, READINESS_MAP } from './dailyStrainCardStyles';

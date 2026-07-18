@@ -1,3 +1,12 @@
+/**
+ * @component WorkoutLogger
+ * @role Logowanie treningu (ćwiczenia, serie, wagi, RIR/RPE) + auto-resume po kill PWA.
+ * @composes workout/ExerciseCard (-> ExerciseNameInput, ExerciseStrengthSets/WellnessSets), workout/VolumeBar,
+ *           workout/PlyoBlock
+ * @folders hooks/ = useWorkoutLogger (ten plik); useWorkoutResume żyje tu, ale konsument to
+ *          core/hooks/useDashboardState (auto-resume na poziomie Dashboard, nie tego komponentu)
+ * @usedBy Dashboard (lazy)
+ */
 import { Pressable, ControlInput, ControlTextarea } from '../ui/ControlPrimitives';
 import { ChevronLeft, Save, Dumbbell, Clock, Play, Square, Plus } from 'lucide-react';
 import { useWorkoutLogger } from './hooks/useWorkoutLogger';

@@ -57,12 +57,6 @@ export interface ProjectsContextType {
   setPausedOpen: React.Dispatch<React.SetStateAction<boolean>>;
   doneOpen: boolean;
   setDoneOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  showForm: boolean;
-  setShowForm: React.Dispatch<React.SetStateAction<boolean>>;
-  form: { name: string; goal: string; deadline: string; color: string; dream_id: string };
-  setForm: React.Dispatch<React.SetStateAction<{ name: string; goal: string; deadline: string; color: string; dream_id: string }>>;
-  goalCreateOpen: boolean;
-  setGoalCreateOpen: React.Dispatch<React.SetStateAction<boolean>>;
 
   // derived data
   dreamById: Record<string, DreamRow>;

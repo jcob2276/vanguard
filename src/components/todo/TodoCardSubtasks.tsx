@@ -1,3 +1,8 @@
+/**
+ * @component TodoCardSubtasks
+ * @role Checklist podzadań (child tasks) — liść łańcucha TodoCardConnected -> TodoCard -> TodoCardExpandedPanel.
+ * @usedBy TodoCardExpandedPanel
+ */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';

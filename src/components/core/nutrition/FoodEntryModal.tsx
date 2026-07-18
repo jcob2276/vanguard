@@ -1,3 +1,11 @@
+/**
+ * @component FoodEntryModal
+ * @role Modal dodawania/edycji wpisu jedzenia (NL parsing, browse, portion, edit).
+ * @folders foodEntryModal/ = ekrany (BrowseScreen, EditScreen, NLScreen, PortionScreen,
+ *          FoodEntryHeader/Content) | hooks/ = logika (useFoodEntryData/Actions/Edit/Lists/NL/Search,
+ *          useQuickCaptureData)
+ * @usedBy NutritionCard, FoodQuickCapture
+ */
 import { useEffect, useRef } from 'react';
 import {
   useFoodEntryData,

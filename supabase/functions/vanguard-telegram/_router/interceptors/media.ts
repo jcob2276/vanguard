@@ -1,7 +1,15 @@
 import { sendChatAction, transcribeAudio } from "../../../_shared/telegram.ts";
+import { safeSendTelegram } from "../../_utils/helpers.ts";
 import { getLatestSentReconciliation } from "../../../_shared/repos/reconciliationsRepo.ts";
 import { handleKeepCommand } from "../commands.ts";
 import { MessageContext, MessageInterceptor, tryResumeStuckReconciliationVoice } from "../interceptors.ts";
+
+// Whisper budget scaluje się z realną długością głosówki (Telegram ją podaje) zamiast
+// jednego sztywnego limitu — krótkie nagrania failują szybko, długie dostają realny czas
+// na transkrypcję. 3s przetwarzania na 1s audio to spory margines nad typowym tempem Whisper.
+function transcriptionTimeoutFor(durationSec: number): number {
+  return Math.min(120000, Math.max(30000, durationSec * 3000));
+}
 
 // 1. Photo handling
 export class PhotoInterceptor implements MessageInterceptor {
@@ -50,12 +58,22 @@ export class TranscriptionInterceptor implements MessageInterceptor {
       }
     }
 
-    ctx.text = await transcribeAudio(
-      ctx.voiceAttachment!.file_id,
-      ctx.telegramToken,
-      ctx.openAiKey,
-      ctx.pendingReconciliation ? { timeoutMs: 22000 } : undefined,
-    );
+    try {
+      ctx.text = await transcribeAudio(
+        ctx.voiceAttachment!.file_id,
+        ctx.telegramToken,
+        ctx.openAiKey,
+        { timeoutMs: transcriptionTimeoutFor(ctx.voiceAttachment?.duration ?? 0) },
+      );
+    } catch (err) {
+      console.error("[telegram] transcription failed:", err);
+      await safeSendTelegram(
+        ctx.chatId,
+        "⚠️ Nie udało się przetworzyć głosówki (transkrypcja nie powiodła się — spróbuj nagrać ponownie albo napisz tekstem).",
+        ctx.telegramToken,
+      );
+      return true;
+    }
     ctx.cleanText = ctx.text;
 
     // ForceReply intercept Keep before stream recording

@@ -138,7 +138,7 @@ async function loadLongTermGoals(userId: string): Promise<LongTermGoals> {
       .eq('user_id', userId),
     supabase
       .from('life_goals')
-      .select('goal_cialo, goal_duch, goal_konto, date_cialo, date_duch, date_konto, bhag_pillar')
+      .select('goal_cialo, goal_duch, goal_konto, date_cialo, date_duch, date_konto, anti_goal_cialo, anti_goal_duch, anti_goal_konto, bhag_pillar')
       .eq('user_id', userId)
       .maybeSingle(),
   ]);

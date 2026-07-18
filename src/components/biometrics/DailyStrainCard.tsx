@@ -1,3 +1,9 @@
+/**
+ * @component DailyStrainCard
+ * @role Karta dobowego strain/recovery (DZIŚ tab) — spina Header/MetricsRow/VitalsRow.
+ * @composes DailyStrainHeader, DailyStrainMetricsRow, DailyStrainVitalsRow
+ * @usedBy DashboardDzisTab (lazy)
+ */
 import { getTodayWarsaw } from '../../lib/date';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';

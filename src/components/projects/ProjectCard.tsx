@@ -1,3 +1,9 @@
+/**
+ * @component ProjectCard
+ * @role Czyta ProjectsContext (stats/checkpointy/KPI) i dispatchuje collapsed/expanded widok.
+ * @composes ProjectCardCollapsed (domyślny), ProjectCardExpanded (gdy expandedId === project.id)
+ * @usedBy ProjectCardWrapper
+ */
 import { Card } from '../ui/Card';
 import {
   colorOf, PILLAR_META, ProjectStats, ProjectRow,

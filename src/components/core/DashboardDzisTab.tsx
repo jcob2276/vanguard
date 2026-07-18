@@ -1,3 +1,8 @@
+/**
+ * @component DashboardDzisTab
+ * @role Zakładka DZIŚ — PowerList, DailyStrainCard, DailySnapshotCard, TodayEventsCard, FoodQuickCapture.
+ * @usedBy Dashboard
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';

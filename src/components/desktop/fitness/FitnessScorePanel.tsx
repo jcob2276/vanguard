@@ -1,3 +1,9 @@
+/**
+ * @component FitnessScorePanel
+ * @role Panel fitness score (composite z body/oura/nutrition/sessions/strava/habits).
+ * @composes FitnessRadarChart, fitnessScoreUtils (computeFitnessProfile, wraps fitnessScoreHelpers)
+ * @usedBy DesktopDashboard
+ */
 import { useMemo } from 'react';
 import { Panel } from '../shell/Panel';
 import { getTodayWarsaw } from '../../../lib/date';

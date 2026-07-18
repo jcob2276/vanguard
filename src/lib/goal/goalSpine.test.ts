@@ -137,7 +137,12 @@ describe('goalSpine week goals', () => {
       sprintReview: null,
       month: { closingMonthStart: null, review: null, due: false, activeTheme: null, activeMonthLabel: null },
       longTerm: {
-        declarations: { goal_cialo: 'BHAG ciało', goal_duch: null, goal_konto: null, date_cialo: null, date_duch: null, date_konto: null, bhag_pillar: null },
+        declarations: {
+          goal_cialo: 'BHAG ciało', goal_duch: null, goal_konto: null,
+          date_cialo: null, date_duch: null, date_konto: null,
+          anti_goal_cialo: null, anti_goal_duch: null, anti_goal_konto: null,
+          bhag_pillar: null,
+        },
         projects: [
           {
             id: 'duch',

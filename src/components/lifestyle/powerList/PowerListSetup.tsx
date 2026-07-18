@@ -1,102 +1,20 @@
-import { Pressable, ControlInput, ControlTextarea } from '../../ui/ControlPrimitives';
-import { Sparkles, Link2, X, Upload } from 'lucide-react';
+import { ArrowRight, Link2, LockKeyhole, X } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import Badge from '../../ui/Badge';
+import { ControlInput, Pressable } from '../../ui/ControlPrimitives';
 import PlanningCheckpointsStrip from '../../shared/PlanningCheckpointsStrip';
-import TodoPicker from './TodoPicker';
-import { SPHERE_SLOTS, PRIORITY_DOT } from './powerListConstants';
-import { type TaskSlot, type DailyWinWithTasks } from '../usePowerListData';
-import type { Tables } from '../../../lib/database.types';
 import type { TodoItemRow } from '../../../lib/todo/todo';
 import type { useDirectionContext } from '../direction/hooks/useDirectionContext';
+import type { DailyWinWithTasks, TaskSlot } from '../usePowerListData';
+import { AiHelper, YesterdayRecap } from './PowerListSetupCards';
+import PowerListSetupHeader from './PowerListSetupHeader';
+import { PRIORITY_DOT, SPHERE_SLOTS } from './powerListConstants';
+import TodoPicker from './TodoPicker';
 
-interface YesterdayRecapProps {
+interface Props {
   yesterdayWin: DailyWinWithTasks | null;
   yesterdayNote: string;
-  setYesterdayNote: (v: string) => void;
-  yesterdayNoteRequired: boolean;
-}
-
-function YesterdayRecap({
-  yesterdayWin,
-  yesterdayNote,
-  setYesterdayNote,
-  yesterdayNoteRequired,
-}: YesterdayRecapProps) {
-  if (!yesterdayWin) return null;
-  return (
-    <Card variant="notice" padding="0.875rem" className="space-y-2.5">
-      <p className="text-2xs font-black uppercase tracking-widest text-warning dark:text-warning">
-        Zanim zaczniesz dziś — wczoraj ({yesterdayWin.date})
-      </p>
-      <ul className="space-y-1">
-        {(yesterdayWin.daily_win_tasks || []).map((t: Tables<'daily_win_tasks'>) => (
-          <li key={t.id} className="flex items-center gap-2 text-xs font-medium">
-            <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${t.done ? 'bg-dayC' : 'bg-text-muted/30'}`} />
-            <span className={t.done ? 'text-text-secondary line-through opacity-[var(--opacity-70)]' : 'text-text-primary'}>
-              {t.title}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-text-muted leading-relaxed">
-        Dlaczego zrealizowałeś / nie zrealizowałeś te zadania?{' '}
-        {yesterdayNoteRequired && (
-          <span className="font-bold text-warning dark:text-warning">(wymagane)</span>
-        )}
-      </p>
-      <ControlTextarea
-        value={yesterdayNote}
-        onChange={(e) => setYesterdayNote(e.target.value)}
-        placeholder="Napisz szczerze…"
-        rows={3}
-        className="w-full bg-surface-solid border border-border-custom rounded-xl px-3 py-2 text-sm
-          text-text-primary placeholder-text-muted resize-y min-h-[var(--ds-h-64px)]
-          focus:outline-none focus:border-primary/50 transition-colors"
-      />
-    </Card>
-  );
-}
-
-interface AiHelperProps {
-  aiLoading: boolean;
-  aiQuestions: string | null;
-  generateQuestions: () => void;
-}
-
-function AiHelper({ aiLoading, aiQuestions, generateQuestions }: AiHelperProps) {
-  return (
-    <Card variant="accent" padding="0.875rem" className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-primary">
-          <Sparkles size={12} className="animate-pulse" /> Asystent AI
-        </span>
-        <Pressable
-          type="button"
-          onClick={generateQuestions}
-          disabled={aiLoading}
-          className="rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1 text-2xs font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95 disabled:opacity-[var(--opacity-50)] cursor-pointer"
-        >
-          {aiLoading ? 'Analizowanie...' : aiQuestions ? '🔄 Zadaj inne pytania' : '❓ Pomoc AI (Zadaj pytania)'}
-        </Pressable>
-      </div>
-
-      {aiQuestions && (
-        <div className="rounded-lg border border-border-custom bg-surface p-3 text-left animate-in fade-in duration-[var(--motion-slow)]">
-          <p className="text-2xs font-black uppercase tracking-widest text-text-muted mb-1.5 font-display">Pytania do przemyślenia:</p>
-          <div className="text-xs font-semibold text-text-primary leading-relaxed whitespace-pre-line">
-            {aiQuestions}
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-interface PowerListSetupProps {
-  yesterdayWin: DailyWinWithTasks | null;
-  yesterdayNote: string;
-  setYesterdayNote: (v: string) => void;
+  setYesterdayNote: (value: string) => void;
   yesterdayNoteRequired: boolean;
   direction: ReturnType<typeof useDirectionContext>;
   fillSlotFromCheckpoint: (checkpoint: { title: string; checkpointId: string; projectId: string }) => void;
@@ -105,150 +23,85 @@ interface PowerListSetupProps {
   aiLoading: boolean;
   generateQuestions: () => void;
   newTaskForm: TaskSlot[];
-  updateSlot: (i: number, u: Partial<TaskSlot>) => void;
+  updateSlot: (index: number, update: Partial<TaskSlot>) => void;
   todoItems: TodoItemRow[];
   pickerSlot: number;
-  setPickerSlot: (v: number) => void;
+  setPickerSlot: (value: number) => void;
   pickerRef: React.RefObject<HTMLDivElement | null>;
   startNewDay: () => void;
   submitting: boolean;
 }
 
 export default function PowerListSetup({
-  yesterdayWin,
-  yesterdayNote,
-  setYesterdayNote,
-  yesterdayNoteRequired,
-  direction,
-  fillSlotFromCheckpoint,
-  occupiedSlots,
-  aiQuestions,
-  aiLoading,
-  generateQuestions,
-  newTaskForm,
-  updateSlot,
-  todoItems,
-  pickerSlot,
-  setPickerSlot,
-  pickerRef,
-  startNewDay,
-  submitting,
-}: PowerListSetupProps) {
-  const filledCount = newTaskForm.filter((t) => t.task.trim()).length;
-  const allFilled = filledCount === 5;
+  yesterdayWin, yesterdayNote, setYesterdayNote, yesterdayNoteRequired,
+  direction, fillSlotFromCheckpoint, occupiedSlots, aiQuestions, aiLoading,
+  generateQuestions, newTaskForm, updateSlot, todoItems, pickerSlot,
+  setPickerSlot, pickerRef, startNewDay, submitting,
+}: Props) {
+  const filledCount = newTaskForm.filter((slot) => slot.task.trim()).length;
+  const reflectionReady = !yesterdayNoteRequired || Boolean(yesterdayNote.trim());
+  const ready = reflectionReady && filledCount === 5;
+  const missingTasks = 5 - filledCount;
 
   return (
-    <Card padding="1.25rem" className="space-y-5">
-      <YesterdayRecap
-        yesterdayWin={yesterdayWin}
-        yesterdayNote={yesterdayNote}
-        setYesterdayNote={setYesterdayNote}
-        yesterdayNoteRequired={yesterdayNoteRequired}
-      />
+    <Card variant="glass" padding="0.75rem" className="space-y-3">
+      <PowerListSetupHeader reflectionRequired={yesterdayNoteRequired} reflectionReady={reflectionReady} filledCount={filledCount} />
+      <YesterdayRecap yesterdayWin={yesterdayWin} yesterdayNote={yesterdayNote} setYesterdayNote={setYesterdayNote} yesterdayNoteRequired={yesterdayNoteRequired} />
+      <PlanningCheckpointsStrip checkpoints={[...direction.checkpoints.overdue, ...direction.checkpoints.upcoming]} loading={direction.loading} onFillSlot={fillSlotFromCheckpoint} occupiedSlots={occupiedSlots} />
 
-      <PlanningCheckpointsStrip
-        checkpoints={[...direction.checkpoints.overdue, ...direction.checkpoints.upcoming]}
-        loading={direction.loading}
-        onFillSlot={fillSlotFromCheckpoint}
-        occupiedSlots={occupiedSlots}
-      />
-
-      <div>
-        <h3 className="font-display text-base font-black tracking-tight text-text-primary">
-          Zdefiniuj 5 zwycięstw
-        </h3>
-        <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary">
-          Wpisz ręcznie lub wybierz z{' '}
-          <span className="inline-flex items-center gap-1 font-bold text-primary">
-            Zadań <Link2 size={10} />
-          </span>
-          .
+      <div className="px-1 pt-2">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-2xs font-black uppercase tracking-widest text-primary">Plan dnia</p>
+            <h3 className="mt-1 font-display text-base font-black tracking-tight text-text-primary">Pięć dzisiejszych zwycięstw</h3>
+          </div>
+          <span className={`rounded-full px-2.5 py-1 text-2xs font-black ${filledCount === 5 ? 'bg-success/10 text-success' : 'bg-surface-tonal text-text-secondary'}`} aria-live="polite">{filledCount} / 5</span>
+        </div>
+        <p className="mt-1.5 text-xs font-medium leading-relaxed text-text-secondary">
+          Wpisz własne zadania lub wybierz je z <span className="inline-flex items-center gap-1 font-bold text-primary">To-do <Link2 size={10} /></span>.
         </p>
       </div>
 
-      <AiHelper
-        aiLoading={aiLoading}
-        aiQuestions={aiQuestions}
-        generateQuestions={generateQuestions}
-      />
+      <AiHelper aiLoading={aiLoading} aiQuestions={aiQuestions} generateQuestions={generateQuestions} />
 
-      <div className="space-y-2.5" ref={pickerRef}>
-        {newTaskForm.map((slot: TaskSlot, i: number) => {
-          const sphere = i < 3 ? SPHERE_SLOTS[i] : null;
+      <div className="space-y-2" ref={pickerRef}>
+        {newTaskForm.map((slot, index) => {
+          const sphere = index < 3 ? SPHERE_SLOTS[index] : null;
           const SphereIcon = sphere?.icon;
           return (
-            <div key={i}>
-              <div
-                className={`flex items-center gap-2 rounded-xl border bg-surface transition-colors ${
-                  pickerSlot === i ? 'border-primary/40 bg-surface-solid' : 'border-border-custom'
-                }`}
-              >
-                {/* Sphere badge for slots 0-2 */}
-                {sphere && SphereIcon && (
-                  <Badge variant="tag" className="ml-3 shrink-0">
-                    <SphereIcon size={8} /> {sphere.label}
-                  </Badge>
-                )}
-
+            <div key={index}>
+              <div className={`group flex items-center gap-2 rounded-xl border bg-surface-solid shadow-[var(--shadow-inner)] transition-[transform,border-color,background-color,box-shadow] ease-[var(--spring)] ${pickerSlot === index ? 'border-primary/40 bg-primary/[0.03] shadow-[var(--shadow-card)]' : 'border-border-custom'}`}>
+                <span className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-tonal text-2xs font-black text-text-muted">{index + 1}</span>
+                {sphere && SphereIcon ? <Badge variant="tag" className="shrink-0"><SphereIcon size={8} /> {sphere.label}</Badge> : <Badge variant="tag" className="shrink-0">Własne</Badge>}
                 {slot.todoId ? (
-                  <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-3">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((x) => x.id === slot.todoId)?.priority ?? ''] || 'bg-info'}`} />
+                  <div className="flex min-w-0 flex-1 items-center gap-2 py-3.5 pr-1">
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_DOT[todoItems.find((item) => item.id === slot.todoId)?.priority ?? ''] || 'bg-info'}`} />
                     <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{slot.task}</span>
                   </div>
                 ) : (
-                  <ControlInput
-                    placeholder={sphere?.placeholder ?? `Zadanie ${i + 1}`}
-                    value={slot.task}
-                    onChange={(e) => updateSlot(i, { task: e.target.value })}
-                    className={`min-w-0 flex-1 bg-transparent py-3 text-sm font-medium text-text-primary outline-none placeholder:text-text-muted/40 ${sphere ? 'px-2' : 'px-3.5'}`}
-                  />
+                  <ControlInput placeholder={sphere?.placeholder ?? `Zadanie ${index + 1}`} value={slot.task} onChange={(event) => updateSlot(index, { task: event.target.value })} className="min-w-0 flex-1 bg-transparent py-3.5 pr-1 text-sm font-medium text-text-primary placeholder:text-text-muted/50" />
                 )}
-
-                {slot.todoId ? (
-                  <Pressable
-                    onClick={() => updateSlot(i, { task: '', todoId: null })}
-                    className="mr-3 shrink-0 rounded-full p-1.5 text-primary transition-colors hover:bg-danger/10 hover:text-danger"
-                    title="Usuń powiązanie"
-                  >
-                    <X size={14} />
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    onClick={() => setPickerSlot(pickerSlot === i ? -1 : i)}
-                    className={`mr-3 shrink-0 rounded-full p-1.5 transition-colors ${
-                      pickerSlot === i ? 'bg-primary/15 text-primary' : 'text-text-muted hover:bg-primary/10 hover:text-primary'
-                    }`}
-                    title="Wybierz z zadań"
-                  >
-                    <Link2 size={14} />
-                  </Pressable>
-                )}
+                <Pressable onClick={() => slot.todoId ? updateSlot(index, { task: '', todoId: null }) : setPickerSlot(pickerSlot === index ? -1 : index)} className={`mr-3 shrink-0 rounded-full p-1.5 ${pickerSlot === index ? 'bg-primary/15 text-primary' : 'text-text-muted hover:bg-primary/10 hover:text-primary'}`} title={slot.todoId ? 'Usuń powiązanie' : 'Wybierz z To-do'}>
+                  {slot.todoId ? <X size={14} /> : <Link2 size={14} />}
+                </Pressable>
               </div>
-
-              {pickerSlot === i && (
-                <TodoPicker
-                  items={todoItems.filter((item: TodoItemRow) => !newTaskForm.some((s: TaskSlot, idx: number) => idx !== i && s.todoId === item.id))}
-                  onSelect={(item) => updateSlot(i, { task: item.title, todoId: item.id, checkpointId: null, pinId: null })}
-                  onClose={() => setPickerSlot(-1)}
-                />
-              )}
+              {pickerSlot === index ? (
+                <TodoPicker items={todoItems.filter((item) => !newTaskForm.some((candidate, candidateIndex) => candidateIndex !== index && candidate.todoId === item.id))} onSelect={(item) => updateSlot(index, { task: item.title, todoId: item.id, checkpointId: null, pinId: null })} onClose={() => setPickerSlot(-1)} />
+              ) : null}
             </div>
           );
         })}
       </div>
 
-      {!allFilled && (
-        <p className="text-center text-xs font-bold text-text-muted">
-          Wypełnione {filledCount}/5 — uzupełnij wszystkie, żeby zacząć dzień
+      <div className="rounded-[var(--radius-lg)] border border-border-custom bg-surface-solid p-3 shadow-[var(--shadow-card)]">
+        <p className="mb-2.5 flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-text-secondary" aria-live="polite">
+          {ready ? 'Wszystko gotowe. Możesz zacząć dzień.' : !reflectionReady ? <><LockKeyhole size={12} /> Najpierw zapisz krótką refleksję.</> : <><LockKeyhole size={12} /> {missingTasks === 1 ? 'Brakuje jednego zadania.' : `Brakuje ${missingTasks} zadań.`}</>}
         </p>
-      )}
-      <Pressable
-        onClick={startNewDay}
-        disabled={submitting || !allFilled || (yesterdayNoteRequired && !yesterdayNote.trim())}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-on-accent shadow-lg shadow-[var(--shadow-glow-primary)] transition-all hover:bg-primary-hover active:scale-[var(--ds-arbitrary-0-98)] disabled:opacity-[var(--opacity-50)] disabled:cursor-not-allowed"
-      >
-        <Upload size={14} /> {submitting ? 'Zapisywanie…' : 'Zacznij dzień'}
-      </Pressable>
+        <Pressable onClick={startNewDay} disabled={submitting || !ready} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-display text-sm font-bold text-on-accent shadow-[var(--shadow-glow-primary)] hover:bg-primary-hover disabled:bg-surface-tonal disabled:text-text-muted disabled:shadow-none">
+          {ready ? <ArrowRight size={15} /> : <LockKeyhole size={14} />}
+          {submitting ? 'Zapisywanie…' : ready ? 'Zacznij dzień' : 'Dokończ rytuał'}
+        </Pressable>
+      </div>
     </Card>
   );
 }

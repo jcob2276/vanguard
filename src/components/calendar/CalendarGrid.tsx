@@ -1,3 +1,9 @@
+/**
+ * @component CalendarGrid
+ * @role Dispatcher renderowania siatki — wybiera day/week/agenda z grid/.
+ * @composes grid/CalendarDayView, grid/CalendarWeekView, grid/CalendarAgendaView, grid/useCalendarDragSelect
+ * @usedBy CalendarView
+ */
 import React, { useRef, useEffect, useMemo } from 'react';
 import { useCalendarData } from './hooks/useCalendarData';
 import {

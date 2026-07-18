@@ -51,7 +51,16 @@ Deno.serve(serveJson(async (req, ctx) => {
     const method = record.payload.method || "sendMessage";
     const body = record.payload.body || {};
 
-    const responseData = await callTelegramMethod(token, method, body);
+    let responseData = await callTelegramMethod(token, method, body);
+
+    // Same fallback as the direct-send path (_utils/helpers.ts): if parse_mode was set and
+    // Telegram rejected it (e.g. unclosed Markdown entities from an LLM-generated recap),
+    // retry once as plain text instead of leaving the whole message stuck in 'failed'.
+    if (!responseData.ok && body.parse_mode) {
+      console.warn(`[outbox-sender] send with parse_mode failed, retrying as plain text: ${responseData.description}`);
+      const { parse_mode: _parseMode, ...bodyWithoutParseMode } = body;
+      responseData = await callTelegramMethod(token, method, bodyWithoutParseMode);
+    }
 
     if (!responseData.ok) {
       throw new Error(`Telegram API failed: ${responseData.description || "unknown error"}`);

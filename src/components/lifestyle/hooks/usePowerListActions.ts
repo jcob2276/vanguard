@@ -6,6 +6,7 @@ import { notify } from '../../../lib/notify';
 import { markCheckpointDone } from '../../../lib/checkpoints';
 import { gatherDailyWinsContext } from '../../../lib/aiContext';
 import { updateTodoItem } from '../../../lib/todo/todo';
+import { materializeDailyWinTodos } from '../../../lib/todo/dailyWinTodoBridge';
 import type { TablesUpdate } from '../../../lib/database.types';
 import {
   applyKpiRollup,
@@ -292,6 +293,15 @@ async function startNewDayHelper(args: UsePowerListActionsArgs, haptics: ReturnT
       await updateDailyWin(args.userId, args.yesterdayWin.id, { day_note: args.yesterdayNote.trim() });
     }
 
+    const todoIds = await materializeDailyWinTodos(
+      args.userId,
+      args.newTaskForm.map((slot) => ({
+        title: slot.task.trim(),
+        todoId: slot.todoId,
+        projectId: slot.projectId,
+      })),
+    );
+
     const parentWin = await insertDailyWin(args.userId, {
       user_id: args.userId,
       date: args.today,
@@ -304,7 +314,7 @@ async function startNewDayHelper(args: UsePowerListActionsArgs, haptics: ReturnT
       user_id: args.userId,
       title: slot.task,
       category: idx === 0 ? 'cialo' : idx === 1 ? 'duch' : idx === 2 ? 'konto' : 'general',
-      todo_id: slot.todoId,
+      todo_id: todoIds[idx],
       checkpoint_id: slot.checkpointId,
       project_id: slot.projectId,
       pin_id: slot.pinId,

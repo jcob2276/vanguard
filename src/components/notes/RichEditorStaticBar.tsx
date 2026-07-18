@@ -1,3 +1,8 @@
+/**
+ * @component RichEditorStaticBar
+ * @role Stały pasek narzędzi edytora, wydzielony z RichEditor.tsx pod limit 300 linii.
+ * @usedBy RichEditor
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { useRef, useEffect } from 'react';
 import {

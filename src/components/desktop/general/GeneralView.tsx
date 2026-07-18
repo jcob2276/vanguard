@@ -1,3 +1,11 @@
+/**
+ * @component GeneralView
+ * @role Uniwersalny widok ogólny (health charts, friction, memex, rekomendacje).
+ * @folders generalView/ = GeneralHealthCharts, GeneralFrictionPanels, GeneralMemexPanels,
+ *          GeneralRecommendationsPanel, ScoreBar, generalViewUtils | hooks/ = useGeneralViewData,
+ *          useHexagonScores
+ * @usedBy DesktopDashboard
+ */
 import { Link } from 'react-router-dom';
 import { BarChart2, ChevronRight } from 'lucide-react';
 import { useGeneralViewData } from './hooks/useGeneralViewData';

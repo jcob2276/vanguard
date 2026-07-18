@@ -1,3 +1,9 @@
+/**
+ * @component TodoContextMenuConnected
+ * @role Warstwa handlerów menu kontekstowego (delete/duplicate/priority/due date/section) — spina TodoContext.
+ * @composes ContextMenu (prezentacja)
+ * @usedBy Todo
+ */
 import { useTodoContext } from './context/TodoContext';
 import ContextMenu from './ContextMenu';
 import { applyOptimisticPatch } from './todoOptimistic';

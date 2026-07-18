@@ -1,3 +1,10 @@
+/**
+ * @component PowerList
+ * @role Codzienna lista 5 zadań (setup vs. tryb aktywny) — trzon zakładki DZIŚ.
+ * @composes powerList/PowerListSetup, powerList/PowerListActive (obie używają powerList/TodoPicker)
+ * @folders hooks/ = usePowerListActions, usePowerListEffects (wrapowane przez usePowerListData)
+ * @usedBy DashboardDzisTab
+ */
 import { useEffect } from 'react';
 import { Target } from 'lucide-react';
 import { usePowerListData } from './usePowerListData';

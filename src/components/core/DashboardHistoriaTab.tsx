@@ -1,3 +1,8 @@
+/**
+ * @component DashboardHistoriaTab
+ * @role Zakładka HISTORIA — Stats (ciało/treningi/dieta), InsightsDashboard, StravaWidget, Photos.
+ * @usedBy Dashboard
+ */
 import { Suspense, lazy } from 'react';
 import { Activity, Sparkles } from 'lucide-react';
 import { useSession } from '../../store/useStore';

@@ -1,3 +1,12 @@
+/**
+ * @component Direction
+ * @role Zunifikowany widok TYDZIEŃ — review/refleksja, KPI, sprint, plan miesiąca (4 tryby + WeekHub).
+ * @composes DirectionMonthlyMode, DirectionSprintMode, DirectionPlanningMode (patrz jego @folders),
+ *           DirectionRadarMode, WeekHub
+ * @folders direction/hooks/ = useDirection (fetch+akcje, wraps directionFetcher/Actions/Keys),
+ *          useDirectionContext (stan współdzielony przez tryby)
+ * @usedBy DashboardTydzienTab (lazy)
+ */
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Calendar } from 'lucide-react';

@@ -1,23 +1,21 @@
 import { useCallback, useRef } from 'react';
 import {
-  createProject,
   updateProject,
   deleteProject,
   linkSectionToProject,
   createProjectCheckpoint,
   updateProjectCheckpoint,
   deleteProjectCheckpoint,
-  createGoalKpi,
   upsertKpiEntry,
   ProjectCheckpoint,
   type ProjectUpdate,
 } from '../../lib/projects/projects';
-import { createTodoSection, createTodoItem, setTodoStatus, deleteTodoSection, TodoItemRow } from '../../lib/todo/todo';
+import { createTodoSection, createTodoItem, setTodoStatus, TodoItemRow } from '../../lib/todo/todo';
 import { getTodayWarsaw } from '../../lib/date';
 import { getWeekStartWarsaw } from '../../lib/growth/growth';
 import { notify, confirmDialog } from '../../lib/notify';
-import { STATUS_NEXT, PillarId, PILLAR_META } from './projectUtils';
-import type { useProjectsData, ProjectRow, ProjectFormState, GoalCreatePreview, DreamRow } from './useProjectsData';
+import { STATUS_NEXT } from './projectUtils';
+import type { useProjectsData, ProjectRow } from './useProjectsData';
 
 function useProjectCrudHandlers(
   userId: string,
@@ -40,37 +38,6 @@ function useProjectCrudHandlers(
     await linkSectionToProject(section.id, project.id);
     return section;
   }, [sections, userId]);
-
-  const handleCreate = useCallback((form: ProjectFormState, setShowForm: (v: boolean) => void, setForm: (v: ProjectFormState) => void) => {
-    if (!form.name.trim()) return;
-    run(async () => {
-      let project: { id?: string } | null = null;
-      let section: { id?: string } | null = null;
-      try {
-        project = await createProject(userId, {
-          name: form.name.trim(),
-          goal: form.goal.trim() || undefined,
-          deadline: form.deadline || undefined,
-          color: form.color,
-          dream_id: form.dream_id || undefined,
-        });
-        section = await createTodoSection(userId, form.name.trim());
-        if (section?.id && project?.id) {
-          await linkSectionToProject(section.id, project.id);
-        }
-        setForm({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
-        setShowForm(false);
-      } catch (err: unknown) {
-        if (section?.id) {
-          await deleteTodoSection(section.id);
-        }
-        if (project?.id) {
-          await deleteProject(project.id).catch(() => {});
-        }
-        throw err;
-      }
-    });
-  }, [userId, run]);
 
   const handleDelete = useCallback((id: string) => {
     void confirmDialog('Usunąć projekt? Zadania w sekcji zostają.').then((ok) => {
@@ -128,7 +95,6 @@ function useProjectCrudHandlers(
 
   return {
     ensureProjectSection,
-    handleCreate,
     handleDelete,
     handleStatusCycle,
     handleRetroSubmit,
@@ -222,46 +188,6 @@ function useProjectTaskKpiHandlers(
     });
   }, [run, userId, setEditingKpiId]);
 
-  const handleGoalCreateConfirm = useCallback((preview: GoalCreatePreview, pillar: PillarId, dreams: DreamRow[], setGoalCreateOpen: (v: boolean) => void) => {
-    const pm = PILLAR_META[pillar];
-    run(async () => {
-      const dream = dreams.find(d => d.life_goal === pillar);
-      const project = await createProject(userId, {
-        name: preview.project_name,
-        goal: preview.affirmation,
-        color: pm.color,
-        dream_id: dream?.id,
-      });
-      const section = await createTodoSection(userId, preview.project_name);
-      if (!project?.id) return;
-      const projectId = project.id;
-      if (section?.id) await linkSectionToProject(section.id, projectId);
-      const kpisList = preview.kpis ?? [];
-      for (let i = 0; i < kpisList.length; i++) {
-        const kpi = kpisList[i];
-        await createGoalKpi(
-          userId,
-          projectId,
-          pillar,
-          kpi.name || kpi.label || kpi.description || kpi.indicator || '',
-          kpi.unit ?? '',
-          kpi.target ?? null,
-          i
-        );
-      }
-      const checkpointsList = preview.checkpoints ?? [];
-      for (let i = 0; i < checkpointsList.length; i++) {
-        const cp = checkpointsList[i];
-        await createProjectCheckpoint(userId, {
-          project_id: projectId,
-          title: cp.title || cp.name || cp.description || cp.milestone || '',
-          due_date: cp.due_date || null
-        });
-      }
-      setGoalCreateOpen(false);
-    });
-  }, [userId, run]);
-
   return {
     handleAddTask,
     handleAddCheckpoint,
@@ -271,7 +197,6 @@ function useProjectTaskKpiHandlers(
     handleToggleTask,
     handleToggleTaskDone,
     handleUpdateKpiValue,
-    handleGoalCreateConfirm,
   };
 }
 

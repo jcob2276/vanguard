@@ -18,15 +18,6 @@ export type { ProjectRow, GoalKpiRow };
 export type DreamRow = Awaited<ReturnType<typeof listDreams>>[number];
 type LongTermGoals = Awaited<ReturnType<typeof fetchLongTermGoals>>;
 
-export type ProjectFormState = { name: string; goal: string; deadline: string; color: string; dream_id: string };
-
-export type GoalCreatePreview = {
-  project_name: string;
-  affirmation?: string;
-  kpis?: { name?: string; label?: string; description?: string; indicator?: string; unit?: string; target?: number }[];
-  checkpoints?: { title?: string; name?: string; description?: string; milestone?: string; due_date?: string | null }[];
-};
-
 interface ProjectsDataResult {
   projects: ProjectRow[];
   sections: TodoSectionRow[];

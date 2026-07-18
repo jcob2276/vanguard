@@ -22,6 +22,9 @@ type LifeGoalDeclarations = Pick<
   | 'date_cialo'
   | 'date_duch'
   | 'date_konto'
+  | 'anti_goal_cialo'
+  | 'anti_goal_duch'
+  | 'anti_goal_konto'
   | 'bhag_pillar'
 >;
 

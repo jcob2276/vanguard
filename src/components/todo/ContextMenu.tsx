@@ -1,3 +1,8 @@
+/**
+ * @component ContextMenu
+ * @role Prezentacyjne menu kontekstowe karty zadania — logikę dostarcza TodoContextMenuConnected.
+ * @usedBy TodoContextMenuConnected (jedyny konsument)
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import React, { useEffect, useRef } from 'react';
 import { Pencil, Calendar, Sun, CalendarDays, MoreHorizontal, Flag, FolderInput, Copy, Trash2, ChevronRight } from 'lucide-react';

@@ -1,3 +1,8 @@
+/**
+ * @component DailyShutdownModal
+ * @role Wieczorny rytuał zamknięcia dnia (score sliders + refleksja), może odpalić MorningPlanModal na jutro.
+ * @folders shutdown/ = useShutdownData, ShutdownScoreSliders
+ */
 import Button from '../ui/Button';
 import { ControlTextarea } from '../ui/ControlPrimitives';
 import { useState } from 'react';

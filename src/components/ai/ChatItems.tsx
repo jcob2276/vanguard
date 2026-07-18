@@ -1,3 +1,7 @@
+/**
+ * @role Typy i prezentacyjne itemy czatu (Thinking/ToolCall/AiMessage/UserMessage/Error/...).
+ * @usedBy OracleChat
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import React, { useState, useEffect } from 'react';
 import { Brain, Terminal, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';

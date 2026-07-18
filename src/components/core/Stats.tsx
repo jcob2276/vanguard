@@ -1,3 +1,10 @@
+/**
+ * @component Stats
+ * @role Hub zakładki Historia → Stats: ciało, treningi, dieta, eksport danych.
+ * @folders stats/ = sekcje (TrainingAnalysisSection, WorkoutHistorySection, BodyMetricsSection,
+ *          DataExportSection, FoodAnalysisSection -> stats/foodAnalysis/{Range,Single})
+ * @usedBy DashboardHistoriaTab
+ */
 import Button from '../ui/Button';
 import type { ReactNode } from 'react';
 import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';

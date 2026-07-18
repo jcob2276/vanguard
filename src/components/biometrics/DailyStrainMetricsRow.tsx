@@ -1,3 +1,8 @@
+/**
+ * @component DailyStrainMetricsRow
+ * @role Wiersz metryk strain/recovery (StatHero).
+ * @usedBy DailyStrainCard
+ */
 import { StatHero } from '../ui/StatHero';
 
 interface DailyStrainMetricsRowProps {

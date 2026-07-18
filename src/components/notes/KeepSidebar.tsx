@@ -1,3 +1,8 @@
+/**
+ * @component KeepSidebar
+ * @role Nawigacja boczna: tagi + przełącznik notatki/archiwum.
+ * @usedBy Keep
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { Archive, CheckSquare, Tag, Trash2 } from 'lucide-react';
 import { Note } from '../../lib/notesApi';

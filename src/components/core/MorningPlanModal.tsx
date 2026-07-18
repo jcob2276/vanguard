@@ -1,3 +1,9 @@
+/**
+ * @component MorningPlanModal
+ * @role Poranny plan dnia: review wczoraj → PowerList → time-box (3 kroki).
+ * @folders morningPlan/ = useMorningPlanData/Actions + kroki (Step1Review, Step2PowerList,
+ *          Step3TimeBox), WeekStrip, FooterActions
+ */
 import Button from '../ui/Button';
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';

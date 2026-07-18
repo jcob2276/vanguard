@@ -19,9 +19,6 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
   const [searchQuery, setSearchQuery] = useState('');
   const [pausedOpen, setPausedOpen]     = useState(false);
   const [doneOpen, setDoneOpen]         = useState(false);
-  const [showForm, setShowForm]         = useState(false);
-  const [form, setForm]                 = useState({ name: '', goal: '', deadline: '', color: 'indigo', dream_id: '' });
-  const [goalCreateOpen, setGoalCreateOpen] = useState(false);
 
   const data     = useProjectsData(userId);
   const handlers = useProjectHandlers(userId, data);
@@ -43,7 +40,9 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
     sections.forEach(s => { if (s.project_id) sectionByProject[s.project_id] = s; });
     return Object.fromEntries(projects.map(p => {
       const section      = sectionByProject[p.id] ?? null;
-      const sectionItems = section ? items.filter(i => i.section_id === section.id) : [];
+      const sectionItems = items.filter(i =>
+        i.project_id === p.id || (section ? i.section_id === section.id : false)
+      );
       const doneItems    = sectionItems.filter(i => i.status === 'done');
       const openItems    = sectionItems.filter(i => i.status === 'open');
       const total        = sectionItems.length;
@@ -126,12 +125,6 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
     setPausedOpen,
     doneOpen,
     setDoneOpen,
-    showForm,
-    setShowForm,
-    form,
-    setForm,
-    goalCreateOpen,
-    setGoalCreateOpen,
     dreamById,
     stats,
     checkpointsByProject,
@@ -152,7 +145,7 @@ export function ProjectsProvider({ userId, children }: { userId: string; childre
     editingKpiId, setEditingKpiId, retroProject, setRetroProject,
     retroForm, setRetroForm, loading, error, setError, busy,
     setItems, setSections, run,
-    handlers, pillarFilter, statusFilter, searchQuery, pausedOpen, doneOpen, showForm, form, goalCreateOpen,
+    handlers, pillarFilter, statusFilter, searchQuery, pausedOpen, doneOpen,
     dreamById, stats, checkpointsByProject, kpisByProject, projectPillar,
     activeFiltered, pausedFiltered, doneFiltered, activeProjects, directionalGoalCount,
     focusProject, userId,

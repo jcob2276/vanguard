@@ -1,3 +1,8 @@
+/**
+ * @component DashboardTydzienTab
+ * @role Zakładka TYDZIEŃ — Direction (review/KPI/sprint) + NutritionCard.
+ * @usedBy Dashboard
+ */
 import { Suspense, lazy } from 'react';
 import { useSession } from '../../store/useStore';
 import NutritionCard from './NutritionCard';

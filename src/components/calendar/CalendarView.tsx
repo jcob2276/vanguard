@@ -1,3 +1,12 @@
+/**
+ * @component CalendarView
+ * @role Top-level orchestrator widoku kalendarza.
+ * @folders hooks/ = fetch+mutacje danych | calendarView/ = logika wydzielona z tego pliku pod limit 300 linii
+ *          (actions/integrations/effects) | components/ = modale + header/sidebar | grid/ = warianty
+ *          renderowania day/week/agenda (patrz CalendarGrid) | context/ = CalendarContext
+ * @composes CalendarGrid (renderowanie siatki, patrz grid/)
+ * @usedBy Dashboard, WeeklyBalanceHexagon
+ */
 import { useEffect, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 

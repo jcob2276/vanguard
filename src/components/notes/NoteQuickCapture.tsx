@@ -1,3 +1,9 @@
+/**
+ * @component NoteQuickCapture
+ * @role Szybkie dodawanie notatki inline nad listą.
+ * @composes RichEditor
+ * @usedBy KeepNotesList
+ */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Tag } from 'lucide-react';

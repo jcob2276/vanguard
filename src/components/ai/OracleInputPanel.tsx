@@ -18,6 +18,7 @@ interface OracleInputPanelProps {
   onSubmit: () => void;
 }
 
+/** @usedBy OracleCard */
 export function OracleInputPanel({
   input,
   setInput,

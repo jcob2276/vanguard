@@ -1,3 +1,9 @@
+/**
+ * @component OracleCard
+ * @role Hub Wyroczni — spina input, historię czatu i clarification requests.
+ * @composes OracleChat (-> ChatItems), OracleInputPanel, ClarificationRequestCard, useOracleChat (fetch+stan)
+ * @usedBy MedicalRetestPanel (storageScope='medical'), embedowany jako panel AI (embedded=true)
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { useRef, useState } from 'react';
 import { Sparkles, X } from 'lucide-react';

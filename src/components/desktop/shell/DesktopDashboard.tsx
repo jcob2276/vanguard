@@ -1,3 +1,14 @@
+/**
+ * @component DesktopDashboard
+ * @role Root wielokolumnowego cockpitu desktopowego (trasa /dashboard) — spina panele ze wszystkich
+ *       domenowych folderów desktop/.
+ * @folders hero/ = DesktopHero, CockpitBanner, SmartAlerts | fitness/ = Heatmap, MarathonPanel,
+ *          FitnessScorePanel, ScoreboardPanel, SprintPanel/SprintMetricsGrid | health/ = SystemHealth,
+ *          LeniePanelMini, HabitsPanel, SupplementsPanel | general/ = IntelligencePanel, HexagonPanel,
+ *          BehaviorCapturePanel, GeneralView (patrz jego @folders) | vision/ = DreamsPanel,
+ *          VisionBoardPanel, DreamEditModal | shell/hooks/ = useDesktopDataFallback
+ * @usedBy App.tsx (trasa /dashboard)
+ */
 import Button from '../../ui/Button';
 import { notify } from '../../../lib/notify';
 import { STORAGE_KEYS } from '../../../lib/constants';

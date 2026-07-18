@@ -1,3 +1,9 @@
+/**
+ * @component SplitNotesView
+ * @role Alternatywny tryb widoku: lista + panel edycji obok siebie (zamiast grid+modal).
+ * @composes NoteRow (lista), InlineEditor (panel edycji)
+ * @usedBy Keep (gdy viewMode === 'split')
+ */
 import { useEffect, useState } from 'react';
 import { Bot, Pin } from 'lucide-react';
 import { Note } from './keepUtils';

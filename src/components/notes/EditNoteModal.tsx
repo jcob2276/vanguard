@@ -1,3 +1,9 @@
+/**
+ * @component EditNoteModal
+ * @role Pełnoekranowy modal edycji notatki (grid/list mode; split mode ma własny InlineEditor).
+ * @composes RichEditor
+ * @usedBy Keep
+ */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Bot, BrainCircuit, ChevronLeft, ChevronRight, Cpu, Link2, ListTodo, Loader2, MoreHorizontal, Pin, Sparkles, Tag, Trash2, X } from 'lucide-react';

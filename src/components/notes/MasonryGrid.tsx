@@ -1,3 +1,9 @@
+/**
+ * @component MasonryGrid
+ * @role Układ masonry dla kafelków notatek.
+ * @composes NoteCard
+ * @usedBy KeepNotesList
+ */
 import { useState } from 'react';
 import NoteCard from './NoteCard';
 import { Note } from './keepUtils';

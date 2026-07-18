@@ -1,3 +1,8 @@
+/**
+ * @component NoteRow
+ * @role Wiersz notatki w widoku split (odpowiednik NoteCard dla trybu list).
+ * @usedBy SplitNotesView
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { Pin } from 'lucide-react';
 import { useRef } from 'react';

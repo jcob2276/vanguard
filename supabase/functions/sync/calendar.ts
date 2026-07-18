@@ -1,4 +1,5 @@
 import { safeExecute, createServiceClient, resolveUserScope } from '../_shared/supabase.ts'
+import { fetchWithRetry } from '../_shared/httpClient.ts'
 
 export async function runCalendarSync(req: Request): Promise<unknown> {
     const body = await req.json().catch(() => ({}))
@@ -51,7 +52,9 @@ export async function runCalendarSync(req: Request): Promise<unknown> {
 
     if (!tokenData) throw new Error('No token')
 
-    const refreshRes = await fetch('https://oauth2.googleapis.com/token', { signal: AbortSignal.timeout(15000),
+    // Google's token endpoint occasionally 500s transiently (seen 2026-07-15) — plain fetch
+    // had zero retry, so every cron-driven calendar sync failed outright on that blip.
+    const refreshRes = await fetchWithRetry('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -60,7 +63,7 @@ export async function runCalendarSync(req: Request): Promise<unknown> {
         client_secret: GOOGLE_CLIENT_SECRET!,
         grant_type: 'refresh_token'
       })
-    })
+    }, { timeoutMs: 15000, retries: 2, retryStatusCodes: [429, 500, 502, 503, 504], logTag: 'google.tokenRefresh' })
 
     if (!refreshRes.ok) throw new Error(`Google token refresh failed: ${refreshRes.status}`);
     const { access_token } = await refreshRes.json()

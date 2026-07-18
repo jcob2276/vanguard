@@ -1,3 +1,8 @@
+/**
+ * @component NoteCard
+ * @role Kafelek notatki w widoku grid.
+ * @usedBy MasonryGrid, KeepNotesList
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { useRef } from 'react';
 import { Archive, ListTodo, Pin, Trash2 } from 'lucide-react';

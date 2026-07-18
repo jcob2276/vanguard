@@ -1,3 +1,9 @@
+/**
+ * @component OracleChat
+ * @role Renderuje historię czatu (dispatch po typie itemu z ChatItems).
+ * @composes ChatItems (TimeDivider/ThinkingItem/ToolCallItem/AiMessageItem/UserMessageItem/ErrorItem/...)
+ * @usedBy OracleCard
+ */
 import Button from '../ui/Button';
 import type { RefObject } from 'react';
 import {

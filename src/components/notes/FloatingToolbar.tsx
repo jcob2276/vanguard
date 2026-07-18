@@ -1,3 +1,8 @@
+/**
+ * @component FloatingToolbar
+ * @role Pływający pasek formatowania pokazywany przy zaznaczeniu tekstu.
+ * @usedBy RichEditor
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import { CheckSquare, Table2, Image } from 'lucide-react';

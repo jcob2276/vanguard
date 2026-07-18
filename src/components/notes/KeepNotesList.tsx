@@ -1,3 +1,9 @@
+/**
+ * @component KeepNotesList
+ * @role Kontener trybu grid/list: stany pusty/błąd + quick capture nad listą.
+ * @composes MasonryGrid (layout) -> NoteCard (kafelek), NoteQuickCapture (szybkie dodawanie)
+ * @usedBy Keep
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { AlertCircle, CheckSquare, Pin, X } from 'lucide-react';
 import Skeleton from '../ui/Skeleton';

@@ -1,3 +1,9 @@
+/**
+ * @component InlineEditor
+ * @role Panel edycji notatki w trybie split (odpowiednik EditNoteModal, ale bez modala).
+ * @composes RichEditor
+ * @usedBy SplitNotesView
+ */
 import { Pressable } from '../ui/ControlPrimitives';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Bot, ChevronLeft, Pin, Sparkles, Tag, Trash2, X } from 'lucide-react';

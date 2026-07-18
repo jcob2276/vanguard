@@ -27,6 +27,7 @@ interface Props {
 const UNCERTAIN_OPT: Option = { id: '__uncertain__', label: 'Nie jestem pewny/a', value: '__uncertain__' };
 const OTHER_OPT: Option = { id: '__other__', label: 'Inna odpowiedź', value: '__other__' };
 
+/** @usedBy OracleCard, shared/ActionCenterSheet */
 export function ClarificationRequestCard({ request, onAnswered }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [customText, setCustomText] = useState('');
