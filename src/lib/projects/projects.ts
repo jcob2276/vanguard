@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import type { Database } from '../database.types';
 import { invalidateGoalSpineCache } from '../goal/goalSpine.queries';
 import { unwrap, unwrapMaybe } from '../supabaseUtils';
+import { createTodoItem, updateTodoItem, deleteTodoItem } from '../todo/todo';
 
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
@@ -114,20 +115,13 @@ export async function createProjectCheckpoint(
   userId: string,
   fields: { project_id: string; title: string; due_date?: string | null },
 ): Promise<ProjectCheckpoint> {
-  const row = unwrap<Database['public']['Tables']['todo_items']['Row']>(
-    await supabase
-      .from('todo_items')
-      .insert({
-        user_id: userId,
-        project_id: fields.project_id,
-        title: fields.title.trim(),
-        due_date: fields.due_date || null,
-        is_milestone: true,
-        priority: 'high',
-      })
-      .select()
-      .single(),
-  );
+  const row = await createTodoItem(userId, {
+    project_id: fields.project_id,
+    title: fields.title,
+    due_date: fields.due_date || undefined,
+    is_milestone: true,
+    priority: 'high',
+  });
 
   return {
     id: row.id,
@@ -147,56 +141,61 @@ export async function updateProjectCheckpoint(
   id: string,
   patch: Partial<Pick<ProjectCheckpoint, 'title' | 'due_date' | 'status' | 'completed_at' | 'sort_order'>>,
 ): Promise<ProjectCheckpoint> {
-  const todoRow = unwrap<Database['public']['Tables']['todo_items']['Row']>(
-    await supabase
-      .from('todo_items')
-      .update({
-        title: patch.title !== undefined ? patch.title.trim() : undefined,
-        due_date: patch.due_date,
-        status: patch.status === 'done' ? 'done' : (patch.status === 'pending' || patch.status === 'open') ? 'open' : undefined,
-        completed_at: patch.completed_at,
-        sort_order: patch.sort_order !== undefined ? patch.sort_order : undefined,
-      })
-      .eq('id', id)
-      .select()
-      .single(),
-  );
+  const todoRow = await updateTodoItem(id, {
+    title: patch.title !== undefined ? patch.title.trim() : undefined,
+    due_date: patch.due_date,
+    status: patch.status === 'done' ? 'done' : (patch.status === 'pending' || patch.status === 'open') ? 'open' : undefined,
+    completed_at: patch.completed_at,
+    sort_order: patch.sort_order !== undefined ? patch.sort_order : undefined,
+  });
 
   return {
-    id: todoRow.id,
-    user_id: todoRow.user_id,
-    project_id: todoRow.project_id || '',
-    title: todoRow.title,
-    due_date: todoRow.due_date,
-    status: todoRow.status === 'done' ? 'done' : 'pending',
-    completed_at: todoRow.completed_at,
-    sort_order: todoRow.sort_order,
-    created_at: todoRow.created_at,
-    updated_at: todoRow.updated_at,
+    id: todoRow?.id || id,
+    user_id: todoRow?.user_id || '',
+    project_id: todoRow?.project_id || '',
+    title: todoRow?.title || patch.title || '',
+    due_date: todoRow?.due_date || patch.due_date || null,
+    status: todoRow?.status === 'done' ? 'done' : 'pending',
+    completed_at: todoRow?.completed_at || patch.completed_at || null,
+    sort_order: todoRow?.sort_order ?? patch.sort_order ?? 999,
+    created_at: todoRow?.created_at || new Date().toISOString(),
+    updated_at: todoRow?.updated_at || new Date().toISOString(),
   };
 }
 
 export async function deleteProjectCheckpoint(id: string): Promise<ProjectCheckpoint> {
-  const todoRow = unwrap<Database['public']['Tables']['todo_items']['Row']>(
-    await supabase
-      .from('todo_items')
-      .delete()
-      .eq('id', id)
-      .select()
-      .single(),
-  );
+  const { data: row } = await supabase
+    .from('todo_items')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  await deleteTodoItem(id);
+
+  const fallbackRow = row || {
+    id,
+    user_id: '',
+    project_id: '',
+    title: '',
+    due_date: null,
+    status: 'dropped',
+    completed_at: null,
+    sort_order: 999,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
   return {
-    id: todoRow.id,
-    user_id: todoRow.user_id,
-    project_id: todoRow.project_id || '',
-    title: todoRow.title,
-    due_date: todoRow.due_date,
-    status: todoRow.status === 'done' ? 'done' : 'pending',
-    completed_at: todoRow.completed_at,
-    sort_order: todoRow.sort_order,
-    created_at: todoRow.created_at,
-    updated_at: todoRow.updated_at,
+    id: fallbackRow.id,
+    user_id: fallbackRow.user_id,
+    project_id: fallbackRow.project_id || '',
+    title: fallbackRow.title,
+    due_date: fallbackRow.due_date,
+    status: fallbackRow.status === 'done' ? 'done' : 'pending',
+    completed_at: fallbackRow.completed_at,
+    sort_order: fallbackRow.sort_order,
+    created_at: fallbackRow.created_at,
+    updated_at: fallbackRow.updated_at,
   };
 }
 

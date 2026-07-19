@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { unwrap } from '../supabaseUtils';
-import type { TodoItemRow, TodoSectionRow } from './todo';
-import { updateTodoItem } from './todo';
+import type { TodoSectionRow } from './todo';
+import { updateTodoItem, createTodoItem } from './todo';
 
 const DAILY_WIN_SECTION_NAMES = ['Stan ciała', 'Stan ducha', 'Stan konta'] as const;
 
@@ -45,17 +45,10 @@ export async function materializeDailyWinTodos(
       return slot.todoId;
     }
 
-    const item = unwrap<TodoItemRow>(
-      await supabase
-        .from('todo_items')
-        .insert({
-          user_id: userId,
-          title: slot.title,
-          ...placement,
-        })
-        .select()
-        .single(),
-    );
+    const item = await createTodoItem(userId, {
+      title: slot.title,
+      ...placement,
+    });
     return item.id;
   }));
 }

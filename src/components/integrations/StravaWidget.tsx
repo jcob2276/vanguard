@@ -1,5 +1,5 @@
 import { Pressable } from '../ui/ControlPrimitives';
-import { TIMEZONE } from '../../lib/date';
+import { TIMEZONE, formatShortDateWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
 import { supabase, invokeEdge } from '../../lib/supabase';
@@ -42,11 +42,7 @@ function fmtTime(seconds: number | null | undefined) {
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return '--';
-  return new Date(iso).toLocaleDateString('pl-PL', {
-    timeZone: TIMEZONE,
-    day: '2-digit',
-    month: '2-digit',
-  });
+  return formatShortDateWarsaw(iso);
 }
 
 function isRun(activity: StravaActivityItem) {

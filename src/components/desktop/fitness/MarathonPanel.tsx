@@ -3,6 +3,7 @@ import { differenceInDays } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { C, weeklyRunKm, avg, type StravaActivitySummary } from '../desktopUtils';
 import { Panel, Tip } from '../shell/Panel';
+import { formatLongDateWarsaw } from '../../../lib/date';
 
 type MarathonTargetTime = string | { hours?: number; minutes?: number } | null | undefined;
 
@@ -48,7 +49,7 @@ export default function MarathonPanel({ strava, grid, tick, marathon }: Marathon
   const bestKm = kmData.length ? Math.max(...kmData.map(w => w.km)) : null;
 
   const formattedDate = marathon?.date
-    ? new Date(marathon.date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? formatLongDateWarsaw(marathon.date)
     : null;
 
   return (

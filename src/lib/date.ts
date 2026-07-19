@@ -18,3 +18,20 @@ export function formatDashboardDate(): string {
     timeZone: TIMEZONE,
   });
 }
+
+export function formatShortDateWarsaw(date: Date | string | number): string {
+  return new Date(date).toLocaleDateString('pl-PL', {
+    timeZone: TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+  });
+}
+
+export function formatLongDateWarsaw(date: Date | string | number): string {
+  return new Date(date).toLocaleDateString('pl-PL', {
+    timeZone: TIMEZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}

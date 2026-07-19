@@ -59,6 +59,10 @@ interface CreateTodoItemFields {
   reminder_at?: string | null;
   is_important?: boolean;
   parent_task_id?: string | null;
+  category?: string | null;
+  project_id?: string | null;
+  is_milestone?: boolean;
+  sort_order?: number | null;
 }
 
 export async function createTodoItem(userId: string, fields: CreateTodoItemFields): Promise<TodoItemRow> {
@@ -86,6 +90,10 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
     reminder_at: fields.reminder_at ?? null,
     is_important: fields.is_important ?? false,
     parent_task_id: fields.parent_task_id ?? null,
+    category: fields.category ?? null,
+    project_id: fields.project_id ?? null,
+    is_milestone: fields.is_milestone ?? false,
+    sort_order: fields.sort_order ?? undefined,
   };
 
   try {
@@ -103,7 +111,7 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
         id,
         user_id: userId,
         section_id: fields.section_id || null,
-        project_id: null,
+        project_id: fields.project_id || null,
         title: fields.title.trim(),
         notes: fields.notes?.trim() || null,
         priority: fields.priority || 'normal',
@@ -120,11 +128,11 @@ export async function createTodoItem(userId: string, fields: CreateTodoItemField
         status: 'open',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        category: null,
+        category: fields.category ?? null,
         completed_at: null,
-        is_milestone: false,
+        is_milestone: fields.is_milestone ?? false,
         reminder_sent: false,
-        sort_order: 999,
+        sort_order: fields.sort_order ?? 999,
         ai_bucket: null,
         ai_classified_at: null,
       };
@@ -320,4 +328,3 @@ export async function deleteTodoSection(sectionId: string): Promise<void> {
     .eq('id', sectionId);
   if (error) throw error;
 }
-

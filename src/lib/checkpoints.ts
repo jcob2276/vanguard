@@ -1,6 +1,7 @@
 import { differenceInDays } from 'date-fns';
 import { getTodayWarsaw, shiftDateStr } from './date';
 import { supabase } from './supabase';
+import { updateTodoItem } from './todo/todo';
 
 export type EnrichedCheckpoint = {
   id: string;
@@ -79,10 +80,5 @@ export async function fetchUpcomingCheckpoints(
 }
 
 export async function markCheckpointDone(checkpointId: string): Promise<void> {
-  const { error } = await supabase
-    .from('todo_items')
-    .update({ status: 'done', completed_at: new Date().toISOString() })
-    .eq('id', checkpointId);
-
-  if (error) throw new Error(error.message);
+  await updateTodoItem(checkpointId, { status: 'done', completed_at: new Date().toISOString() });
 }

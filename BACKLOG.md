@@ -84,7 +84,7 @@ Część II §5.1–§5.6 (braki danych, coverage metryk, korekty LLM, cykliczno
 - Panel zdrowia systemu z `audit_events` — bundle z §5.2 (licznik pokrycia metryk).
 - Sprzątanie repo (`.mimocode`, `screeny/`, `PRPs/`, `examples/`, skrypty jednorazowe).
 
-**Budżet/kolejka powiadomień:** co najmniej 8 funkcji woła Telegram API bezpośrednio, bez wspólnej bramki. Tabela `outbound_messages(priority, dedupe_key, send_after)` + jeden worker wysyłający — każda funkcja proponuje, nie wysyła bezpośrednio.
+**[x] Budżet/kolejka powiadomień:** co najmniej 8 funkcji woła Telegram API bezpośrednio, bez wspólnej bramki. Tabela `outbound_messages(priority, dedupe_key, send_after)` + jeden worker wysyłający — zaimplementowane w `_shared/infra/telegram/send.ts` i `vanguard-outbox-sender`.
 
 ## Frontend Code Debt — wyniki audytu 2026-07-16
 
@@ -95,7 +95,7 @@ Część II §5.1–§5.6 (braki danych, coverage metryk, korekty LLM, cykliczno
 | Plik | Linie | Co z tym zrobić |
 |---|---|---|
 | `lifestyle/hooks/usePowerListActions.ts` | 437 | Hook — podziel na useActions + useMutations |
-| `todo/TodoCard.tsx` | 426 | Miesza dane + JSX → Container + View |
+| `todo/TodoCard.tsx` | 426 | [x] Rozbite na TodoCard.tsx i TodoCardCollapsedRow.tsx |
 | `notes/EditNoteModal.tsx` | 419 | Duży, ale gęsty — przy następnej dużej zmianie split |
 | `core/hooks/useDashboardState.ts` | 416 | God hook — podziel domenowo |
 | `medical/EndMyopiaCalculator.tsx` | 413 | Samodzielny kalkulator, można split na logikę + widok |
@@ -111,9 +111,9 @@ Część II §5.1–§5.6 (braki danych, coverage metryk, korekty LLM, cykliczno
 
 Znalezione w audycie pliki z inline `toLocaleDateString('pl-PL', ...)` — przy dotyku zastąp odpowiednim helperem z `lib/date.ts` lub modułowego utils:
 
-- `ai/ChatItems.tsx` (L35, L39)
-- `desktop/fitness/MarathonPanel.tsx` (L51)
-- `integrations/StravaWidget.tsx` (L45)
+- `ai/ChatItems.tsx` (L35, L39) — [x] Plik usunięty podczas refaktoryzacji widoków AI
+- `desktop/fitness/MarathonPanel.tsx` (L51) — [x] Zastąpione przez formatLongDateWarsaw
+- `integrations/StravaWidget.tsx` (L45) — [x] Zastąpione przez formatShortDateWarsaw
 - `notes/EditNoteModal.tsx` (L91) — do naprawienia przy następnym refaktorze
 - `notes/InlineEditor.tsx` (L150) — do naprawienia przy następnym refaktorze
 
