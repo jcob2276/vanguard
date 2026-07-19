@@ -34,7 +34,7 @@ async function fetchOura(url: string, headers: Record<string, string>, attempt =
 export const runEnhanced = async (req: Request) => {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
-    const days: number = body.days ?? 5        // okno bezpieczeństwa — 5 dni bo Oura opóźnia szczegółowe fazy snu
+    const days: number = body.days ?? 30        // okno bezpieczeństwa — 30 dni bo Oura opóźnia szczegółowe fazy snu
     const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
     const onlyUserId: string | null = scopedUserId
 

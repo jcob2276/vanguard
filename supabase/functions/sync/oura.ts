@@ -30,7 +30,7 @@ export async function runOuraSync(req: Request): Promise<unknown> {
     const now = new Date()
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const resolvedEnd = end_date || tomorrow
-    const resolvedStart = start_date || new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const resolvedStart = start_date || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     // Split into 90-day batches to avoid Oura API / edge function timeouts on large ranges
     function dateBatches(start: string, end: string, batchDays = 90): Array<[string, string]> {
@@ -198,7 +198,7 @@ export async function runOuraSync(req: Request): Promise<unknown> {
     const subReq = new Request(req.url, {
       method: 'POST',
       headers: req.headers,
-      body: JSON.stringify({ userId, days: start_date ? undefined : 7 })
+      body: JSON.stringify({ userId, days: start_date ? undefined : 30 })
     })
     await runEnhanced(subReq).catch(e => console.error('[OURA] Enhanced Error', e));
 

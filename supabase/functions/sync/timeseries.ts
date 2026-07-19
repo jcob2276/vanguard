@@ -112,7 +112,7 @@ async function safeUpsertChunked(
 export const runTimeseries = async (req: Request) => {
     const supabase = serviceClient()
     const body = await req.json().catch(() => ({}))
-    const days: number = body.days ?? 2
+    const days: number = body.days ?? 30
     const { userId: scopedUserId } = await resolveUserScope(req, body.userId ?? null)
     const onlyUserId: string | null = scopedUserId
 

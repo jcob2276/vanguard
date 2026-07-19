@@ -83,9 +83,14 @@ export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
 
   let totalDiff = 0;
   let count = 0;
-  for (const d of sleepDates14) {
+  for (let i = 0; i < 14; i++) {
+    const d = sleepDates14[i];
     if (sleepByDate[d] != null) {
-      totalDiff += (sleepByDate[d] - DEBT_TARGET);
+      // Exponential decay: weight = 0.9^age, where age is days since the night occurred.
+      // sleepDates14 is ordered oldest-first, so index 13 is yesterday (age 0), index 0 is 13 days ago (age 13).
+      const age = 13 - i;
+      const weight = Math.pow(0.9, age);
+      totalDiff += weight * (sleepByDate[d] - DEBT_TARGET);
       count++;
     }
   }
