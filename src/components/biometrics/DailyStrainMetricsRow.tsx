@@ -3,6 +3,7 @@
  * @role Wiersz metryk strain/recovery (StatHero).
  * @usedBy DailyStrainCard
  */
+import React from 'react';
 import { StatHero } from '../ui/StatHero';
 
 interface DailyStrainMetricsRowProps {
@@ -12,6 +13,13 @@ interface DailyStrainMetricsRowProps {
   recovTone: string;
   fuelingScore?: number | null;
   sleepDebtH?: number | null;
+}
+
+function formatSleepDebt(val: number): string {
+  const absVal = Math.abs(val);
+  const hrs = Math.floor(absVal);
+  const mins = Math.round((absVal % 1) * 60);
+  return `${hrs}h ${mins}m`;
 }
 
 export default function DailyStrainMetricsRow({
@@ -52,7 +60,7 @@ export default function DailyStrainMetricsRow({
       {sleepDebtH != null && (
         <div>
           <StatHero
-            value={sleepDebtH < 0 ? `${Math.abs(sleepDebtH)}h` : sleepDebtH > 0 ? `+${sleepDebtH}h` : '–'}
+            value={Math.abs(sleepDebtH) < 0.05 ? '–' : formatSleepDebt(sleepDebtH)}
             label={sleepDebtH < 0 ? 'Dług snu' : 'Nadwyżka'}
             color={sleepDebtH < -0.5 ? 'text-danger' : sleepDebtH > 0.5 ? 'text-success' : 'text-text-primary'}
             size="sm"
