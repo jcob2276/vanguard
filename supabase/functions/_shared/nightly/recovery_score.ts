@@ -66,18 +66,33 @@ export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
   } = input;
 
   // ── SLEEP DEBT (Strand SleepDebt.swift) 14-night rolling ledger ──
-  // Target: sleepTargetH (or fallback 7.5h). Positive = nadwyżka snu, Negative = dług.
-  const SLEEP_TARGET = input.sleepTargetH ?? 7.5;
+  // Oura sleep debt is computed against the baseline sleep need (~7.5h), not the user's custom target (8.0h).
+  const DEBT_TARGET = 7.5;
   if (sleep != null) {
     sleepByDate[date] = Number(sleep);
   }
-  const sleepDates14 = Object.keys(sleepByDate)
-    .sort()
-    .filter((d) => d <= date)
-    .slice(-14);
+
+  // Construct strictly the last 14 calendar dates ending on the current date
+  const sleepDates14: string[] = [];
+  const currentDate = new Date(date + 'T12:00:00Z');
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(currentDate.getTime() - i * 24 * 3600 * 1000);
+    sleepDates14.push(d.toISOString().slice(0, 10));
+  }
+  sleepDates14.reverse();
+
+  let totalDiff = 0;
+  let count = 0;
+  for (const d of sleepDates14) {
+    if (sleepByDate[d] != null) {
+      totalDiff += (sleepByDate[d] - DEBT_TARGET);
+      count++;
+    }
+  }
+
   const sleepDebtH =
-    sleepDates14.length >= 4
-      ? Math.round(sleepDates14.reduce((acc, d) => acc + (sleepByDate[d] - SLEEP_TARGET), 0) * 10) / 10
+    count >= 4
+      ? Math.round(totalDiff * 10) / 10
       : null;
 
   // z-scores hoisted out of recovery block for VitalBands export
