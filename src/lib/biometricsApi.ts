@@ -9,6 +9,9 @@ export function useDailyStrainOura(userId: string) {
   return useQuery({
     queryKey: biometricsKeys.dailyStrainOura(userId),
     queryFn: async () => {
+      const todayStr = getTodayWarsaw();
+      const yesterdayStr = shiftDateStr(todayStr, -1);
+
       const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }] = await Promise.all([
         supabase
           .from('daily_strain')
@@ -21,47 +24,22 @@ export function useDailyStrainOura(userId: string) {
           .from('oura_daily_summary')
           .select('*')
           .eq('user_id', userId)
-          .order('date', { ascending: false })
-          .limit(2),
+          .in('date', [todayStr, yesterdayStr]),
         supabase
           .from('oura_enhanced')
           .select('*')
           .eq('user_id', userId)
-          .order('date', { ascending: false })
-          .limit(2),
+          .in('date', [todayStr, yesterdayStr]),
       ]);
 
       if (e1) throw new Error(e1.message);
       if (e2) throw new Error(e2.message);
       if (e3) throw new Error(e3.message);
 
-      let ouraRow = null;
-      let ouraYesterdayRow = null;
-      if (ouraRows?.length) {
-        const todayStr = getTodayWarsaw();
-        const todayIdx = ouraRows.findIndex((s) => s.date === todayStr);
-        if (todayIdx !== -1) {
-          ouraRow = ouraRows[todayIdx];
-          ouraYesterdayRow = ouraRows.find((s, idx) => idx !== todayIdx) || null;
-        } else {
-          ouraRow = ouraRows[0];
-          ouraYesterdayRow = ouraRows[1] || null;
-        }
-      }
-
-      let enhancedRow = null;
-      let enhancedYesterdayRow = null;
-      if (enhancedRows?.length) {
-        const todayStr = getTodayWarsaw();
-        const todayIdx = enhancedRows.findIndex((s) => s.date === todayStr);
-        if (todayIdx !== -1) {
-          enhancedRow = enhancedRows[todayIdx];
-          enhancedYesterdayRow = enhancedRows.find((s, idx) => idx !== todayIdx) || null;
-        } else {
-          enhancedRow = enhancedRows[0];
-          enhancedYesterdayRow = enhancedRows[1] || null;
-        }
-      }
+      const ouraRow = ouraRows?.find((s) => s.date === todayStr) ?? ouraRows?.[0] ?? null;
+      const ouraYesterdayRow = ouraRows?.find((s) => s.date === yesterdayStr) ?? null;
+      const enhancedRow = enhancedRows?.find((s) => s.date === todayStr) ?? enhancedRows?.[0] ?? null;
+      const enhancedYesterdayRow = enhancedRows?.find((s) => s.date === yesterdayStr) ?? null;
 
       return {
         row: strainRows,
@@ -112,4 +90,3 @@ export function useWeeklyBodyPulse(userId: string) {
     staleTime: 1000 * 60 * 30,
   });
 }
-
