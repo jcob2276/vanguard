@@ -14,19 +14,19 @@ export async function handleKeepCommand(
   try {
     const content = text.trim();
     if (!content) {
-      await safeSendTelegram(chatId, '❌ Pusta notatka.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      await safeSendTelegram(chatId, '! Pusta notatka.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
       return;
     }
 
     const firstLine = content.split('\n')[0].slice(0, 80);
     const tags = fromVoice ? ['telegram', 'voice'] : ['telegram'];
 
-    const { error } = await supabase.from('vanguard_notes').insert({
+    const { data: note, error } = await supabase.from('vanguard_notes').insert({
       user_id: vanguardUserId,
       title: firstLine,
       content,
       tags,
-    });
+    }).select('id').single();
     if (error) throw error;
 
     const todayStr = getWarsawDateString();
@@ -34,10 +34,23 @@ export async function handleKeepCommand(
       console.error("[telegram] fetchWorldState forceRefresh failed:", e);
     });
 
-    const label = fromVoice ? '🎤 Głosówka zapisana w Keep' : '📒 Notatka zapisana w Keep';
-    await safeSendTelegram(chatId, `${label}\n"${firstLine}"`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+    const statusLine = fromVoice ? '✓ Zapisano notatkę (głosowo)' : '✓ Zapisano notatkę';
+    const messageText = `${statusLine}\n\n${firstLine}`;
+
+    const inlineKeyboard = fromVoice 
+      ? [[
+          { text: "Pokaż tekst", callback_data: `show_text:note:${note.id}` },
+          { text: "Cofnij", callback_data: `undo:note:${note.id}` }
+        ]]
+      : [[
+          { text: "Cofnij", callback_data: `undo:note:${note.id}` }
+        ]];
+
+    await safeSendTelegram(chatId, messageText, telegramToken, {
+      reply_markup: { inline_keyboard: inlineKeyboard }
+    });
   } catch (err) {
     console.error('[commands] /keep failed:', err);
-    await safeSendTelegram(chatId, '❌ Błąd zapisu notatki: ' + (err as Error).message, telegramToken);
+    await safeSendTelegram(chatId, '! Nie udało się zapisać notatki.', telegramToken);
   }
 }

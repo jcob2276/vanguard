@@ -8,7 +8,7 @@ export class ForceReplyInterceptor implements MessageInterceptor {
     // Only text ForceReply unless it's a voice message replying to something other than Vanguard Keep
     if (ctx.isVoice) {
       const replyToText = ctx.message.reply_to_message?.text || "";
-      if (replyToText.includes("Vanguard Keep")) {
+      if (replyToText.includes("Notatka") || replyToText.includes("Vanguard Keep")) {
         return false; // Handled by TranscriptionInterceptor
       }
     }

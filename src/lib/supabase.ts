@@ -60,36 +60,3 @@ export async function invokeEdge(
   }
   return data as Record<string, unknown>;
 }
-
-export async function invokeEdgeStream(
-  functionName: string,
-  options?: {
-    body?: unknown;
-    method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
-    headers?: Record<string, string>;
-    signal?: AbortSignal;
-  }
-): Promise<Response> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  const base = supabaseUrl || 'https://placeholder.supabase.co';
-  const url = `${base}/functions/v1/${functionName}`;
-
-  const response = await fetch(url, {
-    method: options?.method || 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-    body: options?.body ? JSON.stringify(options.body) : undefined,
-    signal: options?.signal,
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Edge function stream ${functionName} failed: ${response.status} ${errText}`);
-  }
-
-  return response;
-}

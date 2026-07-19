@@ -82,10 +82,10 @@ export class CommandRouterInterceptor implements MessageInterceptor {
       return true;
     }
     if (lowerText.startsWith("/todo")) {
-      await handleTodoCommand(ctx.text, ctx.chatId, ctx.telegramToken, ctx.supabase, ctx.vanguardUserId, ctx.deepseekApiKey);
+      await handleTodoCommand(ctx.text, ctx.chatId, ctx.telegramToken, ctx.supabase, ctx.vanguardUserId, ctx.deepseekApiKey, ctx.inboxRecordId);
       return true;
     }
-    if (lowerText === "/s" || lowerText === "/suplement" || lowerText === "💊 suple") {
+    if (lowerText === "/s" || lowerText === "/suplement" || lowerText === "💊 suple" || lowerText === "💊 suplement") {
       await handleSuplementCommand(ctx.chatId, ctx.telegramToken, ctx.supabase, ctx.vanguardUserId);
       return true;
     }
@@ -120,6 +120,7 @@ export class TodoAutoCaptureInterceptor implements MessageInterceptor {
         ctx.supabase,
         ctx.vanguardUserId,
         ctx.deepseekApiKey,
+        ctx.inboxRecordId,
       );
       return true;
     }

@@ -22,8 +22,8 @@ import {
 } from '../../../lib/growth/growthWeek';
 import { fetchGrowthPrevWeekSummary } from './useGrowthWeekRecap';
 
-import type { GrowthLinkRow, GrowthWeekNote, GrowthTodoRow, GrowthProjectSummary } from '../../../lib/growth/growth.types';
-export type { GrowthLinkRow, GrowthWeekNote, GrowthTodoRow, GrowthProjectSummary } from '../../../lib/growth/growth.types';
+import type { GrowthLinkRow, GrowthWeekNote, GrowthTodoRow, GrowthProjectSummary, VanguardIdentityData } from '../../../lib/growth/growth.types';
+export type { GrowthLinkRow, GrowthWeekNote, GrowthTodoRow, GrowthProjectSummary, VanguardIdentityData } from '../../../lib/growth/growth.types';
 
 export interface GrowthContextData {
   weekIntention: string | null;
@@ -64,6 +64,7 @@ export interface GrowthDataResult {
   weekFocusScore: number | null;
   activeProjects: GrowthProjectSummary[];
   upcomingCheckpoints: GrowthCheckpoint[];
+  identity: VanguardIdentityData | null;
 }
 
 export function useGrowthData(userId: string | undefined, weekStart: string) {
@@ -104,6 +105,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         dailyWinsRes,
         checkpointsRes,
         prevWeekRes,
+        identityRes,
       ] = await Promise.all([
         supabase
           .from('learning_skills')
@@ -185,6 +187,11 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .order('due_date', { ascending: true })
           .limit(10),
         fetchGrowthPrevWeekSummary(userId, weekStart),
+        supabase
+          .from('vanguard_identity')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle(),
       ]);
 
       const skills = (((skillsRes.data as LearningSkill[]) ?? []).map((s) => ({
@@ -308,6 +315,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
         weekFocusScore,
         activeProjects,
         upcomingCheckpoints,
+        identity: (identityRes.data as VanguardIdentityData | null) ?? null,
       };
     },
     enabled: !!userId,
@@ -397,6 +405,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
     setPins,
     setSkills,
     upcomingCheckpoints,
+    identity: query.data?.identity ?? null,
   };
 }
 

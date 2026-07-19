@@ -20,11 +20,8 @@ export function isFoodMealCallback(data: string): boolean {
 }
 
 function sourceTag(item: ParsedFoodItem): string {
-  if (item.source === 'library') return '📚'
-  if (item.source === 'database') return '🗂'
-  if (item.confidence === 'low') return '⚠️'
-  if (item.confidence === 'medium') return '~'
-  return '✓'
+  if (item.confidence === 'low') return '! '
+  return ''
 }
 
 function formatFoodPreviewMessage(
@@ -34,11 +31,13 @@ function formatFoodPreviewMessage(
   const label = MEAL_TYPE_LABELS[mealType] ?? mealType
   const lines = items.map((item) => {
     const tag = sourceTag(item)
+    const isUncertain = item.confidence === 'low'
+    const uncertainSuffix = isUncertain ? ' (niepewne)' : ''
     const note = item.assumptions?.[0]
-    return `${tag} ${item.name} — ${item.grams}g — ${item.calories} kcal${note ? `\n   ↳ ${note}` : ''}`
+    return `${tag}${item.name} — ${item.grams}g — ${item.calories} kcal${uncertainSuffix}${note ? `\n   ↳ ${note}` : ''}`
   })
   const total = items.reduce((s, i) => s + i.calories, 0)
-  return `🍽 Podgląd (${label}):\n${lines.join('\n')}\nRazem: ${total} kcal\n\nSprawdź i zapisz, albo anuluj.`
+  return `• Podgląd posiłku\n\n${lines.join('\n')}\nRazem: ${total} kcal (${label})`
 }
 
 async function saveParsedFoodEntries(
@@ -171,7 +170,7 @@ export async function handleFoodMealCallback(
 
   if (action === 'food_cancel') {
     await deletePendingFoodLog(supabase, pendingId)
-    await safeSendTelegram(chatId, 'Anulowano zapis posiłku.', telegramToken)
+    await safeSendTelegram(chatId, '• Anulowano zapis posiłku.', telegramToken)
     return
   }
 
@@ -207,7 +206,7 @@ export async function handleFoodMealCallback(
   const label = MEAL_TYPE_LABELS[pending.mealType] ?? pending.mealType
   await safeSendTelegram(
     chatId,
-    `🍽 Zapisano (${label}):\n${lines}\nRazem: ${total} kcal`,
+    `✓ Zapisano posiłek\n\n${lines}\nRazem: ${total} kcal (${label})`,
     telegramToken,
   )
 }
@@ -235,8 +234,8 @@ export async function sendFoodParseResult(
       {
         reply_markup: {
           inline_keyboard: [[
-            { text: '✅ Zapisz', callback_data: `food_save:${pendingId}` },
-            { text: '❌ Anuluj', callback_data: `food_cancel:${pendingId}` },
+            { text: 'Zapisz', callback_data: `food_save:${pendingId}` },
+            { text: 'Anuluj', callback_data: `food_cancel:${pendingId}` },
           ]],
         },
       },
@@ -260,7 +259,7 @@ export async function sendFoodParseResult(
   const label = MEAL_TYPE_LABELS[mealType] ?? mealType
   await safeSendTelegram(
     chatId,
-    `🍽 Zapisano (${label}):\n${lines}\nRazem: ${total} kcal`,
+    `✓ Zapisano posiłek\n\n${lines}\nRazem: ${total} kcal (${label})`,
     telegramToken,
     { reply_markup: replyKeyboard },
   )

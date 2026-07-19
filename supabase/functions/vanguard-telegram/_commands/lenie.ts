@@ -18,41 +18,82 @@ export async function handleLenieCommand(
     const contextNote = parts[1] || '';
 
     const today = getWarsawDateString();
-    
-    // Check if there's already a log for today
-    const { data: existing } = await supabase.from('habit_logs')
-      .select('id, metadata')
+
+    // 1. Get or create habit "Lenie"
+    let { data: habit, error: habitErr } = await supabase
+      .from('habits')
+      .select('id')
       .eq('user_id', vanguardUserId)
-      .eq('habit_name', 'Lenie')
+      .eq('name', 'Lenie')
+      .maybeSingle();
+
+    if (habitErr) throw habitErr;
+
+    if (!habit) {
+      const { data: newHabit, error: hErr } = await supabase
+        .from('habits')
+        .insert({ user_id: vanguardUserId, name: 'Lenie', icon: '😒', is_positive: false })
+        .select('id')
+        .single();
+      if (hErr) throw hErr;
+      habit = newHabit;
+    }
+
+    // 2. Check if there's already a log for today
+    const { data: existing, error: findErr } = await supabase
+      .from('habit_logs')
+      .select('id, final_stimulus, context_note')
+      .eq('user_id', vanguardUserId)
+      .eq('habit_id', habit.id)
       .eq('date', today)
       .maybeSingle();
 
-    let finalStimulus = stimulus;
+    if (findErr) throw findErr;
+
+    let nextStimulus = stimulus;
+    let nextContext = contextNote;
+
     if (existing) {
-      const prevMeta = existing.metadata || {};
-      const prevStimuli = Array.isArray(prevMeta.stimuli) ? prevMeta.stimuli : (prevMeta.stimulus ? [prevMeta.stimulus] : []);
+      const prevStimuli = existing.final_stimulus ? [existing.final_stimulus] : [];
       const newStimuli = [...prevStimuli];
       if (stimulus) newStimuli.push(stimulus);
+      nextStimulus = newStimuli.join(' + ');
 
-      const count = (prevMeta.count || 1) + 1;
-      await supabase.from('habit_logs').update({
-        metadata: { ...prevMeta, count, stimuli: newStimuli, last_stimulus: stimulus }
-      }).eq('id', existing.id);
-      finalStimulus = newStimuli.join(' + ');
+      const prevContext = existing.context_note ? [existing.context_note] : [];
+      const newContexts = [...prevContext];
+      if (contextNote) newContexts.push(contextNote);
+      nextContext = newContexts.join(' · ');
+
+      const { error: updateErr } = await supabase
+        .from('habit_logs')
+        .update({
+          completed: true,
+          final_stimulus: nextStimulus || null,
+          context_note: nextContext || null,
+          logged_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+      if (updateErr) throw updateErr;
     } else {
-      await supabase.from('habit_logs').insert({
-        user_id: vanguardUserId,
-        habit_name: 'Lenie',
-        date: today,
-        value_number: 1,
-        metadata: { count: 1, stimuli: stimulus ? [stimulus] : [], last_stimulus: stimulus }
-      });
+      const { error: insertErr } = await supabase
+        .from('habit_logs')
+        .insert({
+          user_id: vanguardUserId,
+          habit_id: habit.id,
+          date: today,
+          completed: true,
+          final_stimulus: stimulus || null,
+          context_note: contextNote || null,
+          logged_at: new Date().toISOString(),
+        });
+      if (insertErr) throw insertErr;
     }
 
     // Mirror to vanguard_stream
-    const streamParts = [`[LOG NAWYKU] Lenie x${existing ? (existing.metadata?.count || 1) + 1 : 1}`];
-    if (finalStimulus) streamParts.push(`Bodziec: ${finalStimulus}`);
-    if (contextNote) streamParts.push(`Kontekst: ${contextNote}`);
+    const count = nextStimulus ? nextStimulus.split(' + ').length : 1;
+    const streamParts = [`[LOG NAWYKU] Lenie x${count}`];
+    if (nextStimulus) streamParts.push(`Bodziec: ${nextStimulus}`);
+    if (nextContext) streamParts.push(`Kontekst: ${nextContext}`);
 
     try {
       await insertStreamRecord(supabase, {
@@ -72,10 +113,11 @@ export async function handleLenieCommand(
       console.error("[telegram] fetchWorldState forceRefresh failed:", e);
     });
 
-    const label = finalStimulus ? `"${finalStimulus}"` : 'bez opisu';
-    await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+    const label = stimulus ? `"${stimulus}"` : 'bez opisu';
+    const totalLabel = nextStimulus && nextStimulus !== stimulus ? ` (razem dzisiaj: "${nextStimulus}")` : '';
+    await safeSendTelegram(chatId, `✅ Lenie zapisane (${today})\nBodziec: ${label}${totalLabel}${contextNote ? `\nKontekst: ${contextNote}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
   } catch (err) {
     console.error('[commands] /lenie failed:', err);
-    await safeSendTelegram(chatId, '❌ Błąd zapisu lenie: ' + (err as Error).message, telegramToken);
+    await safeSendTelegram(chatId, '! Nie udało się zapisać lenie.', telegramToken);
   }
 }

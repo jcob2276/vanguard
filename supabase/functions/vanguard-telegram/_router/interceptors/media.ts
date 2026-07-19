@@ -38,7 +38,9 @@ export class TranscriptionInterceptor implements MessageInterceptor {
   async handle(ctx: MessageContext): Promise<boolean> {
     if (!ctx.isVoice) return false;
 
-    await sendChatAction(ctx.telegramToken, ctx.chatId, "record_voice", { direct: true });
+    await sendChatAction(ctx.telegramToken, ctx.chatId, "typing", { direct: true });
+    const { setMessageReaction } = await import("../../../_shared/telegram.ts");
+    await setMessageReaction(ctx.telegramToken, ctx.chatId, ctx.messageId, "👀", { direct: true });
 
     if (await tryResumeStuckReconciliationVoice(ctx.messageId, ctx.chatId, ctx)) {
       return true;
@@ -79,7 +81,7 @@ export class TranscriptionInterceptor implements MessageInterceptor {
     // ForceReply intercept Keep before stream recording
     const replyTo = ctx.message.reply_to_message;
     if (replyTo?.text && ctx.text) {
-      if (replyTo.text.includes("Vanguard Keep")) {
+      if (replyTo.text.includes("Notatka") || replyTo.text.includes("Vanguard Keep")) {
         await handleKeepCommand(
           ctx.text,
           ctx.chatId,

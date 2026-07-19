@@ -150,10 +150,3 @@ export const userStatsKeys = {
   all: ['userStats'] as const,
   snapshot: (userId: string) => [...userStatsKeys.all, 'snapshot', userId] as const,
 };
-
-// ── ORACLE CHAT KEYS ──
-export const oracleChatKeys = {
-  all: ['oracle-chat'] as const,
-  dailyMode: (userId: string) => [...oracleChatKeys.all, 'dailyMode', userId] as const,
-  pendingClarification: (userId: string) => [...oracleChatKeys.all, 'pendingClarification', userId] as const,
-};

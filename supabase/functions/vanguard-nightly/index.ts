@@ -139,6 +139,60 @@ Deno.serve(serveJson(async (req, ctx) => {
     if (!ouraIsFresh) freshnessWarnings.push('Oura sleep data is not fresh');
     if (!nutritionIsFresh) freshnessWarnings.push('Nutrition log is not fresh');
 
+    // 1.5. Retry failed inbox items
+    await runLedgerStep(supabase, userId, runId, 'retry-failed-inbox-items', false, async () => {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: failedItems } = await supabase
+        .from('vanguard_telegram_inbox')
+        .select('*')
+        .eq('status', 'failed')
+        .gte('created_at', threeDaysAgo);
+
+      if (failedItems && failedItems.length > 0) {
+        console.log(`[vanguard-nightly] Found ${failedItems.length} failed inbox items. Retrying...`);
+        const { createTelegramContext } = await import('../vanguard-telegram/_router/config.ts');
+        const { handleIncomingMessage } = await import('../vanguard-telegram/_router/messages.ts');
+        const { handleCallbackQuery } = await import('../vanguard-telegram/_router/callbacks.ts');
+        
+        for (const record of failedItems) {
+          try {
+            console.log(`[vanguard-nightly] Retrying inbox item ${record.id}`);
+            await supabase
+              .from('vanguard_telegram_inbox')
+              .update({ status: 'processing', updated_at: new Date().toISOString() })
+              .eq('id', record.id);
+
+            const telegramCtx = {
+              ...createTelegramContext(),
+              inboxRecordId: record.id
+            };
+
+            const innerPayload = record.payload;
+            if (innerPayload.callback_query) {
+              await handleCallbackQuery(innerPayload.callback_query as never, telegramCtx);
+            } else {
+              const message = innerPayload.message;
+              if (message) {
+                await handleIncomingMessage(message as never, telegramCtx);
+              }
+            }
+
+            await supabase
+              .from('vanguard_telegram_inbox')
+              .update({ status: 'completed', error_log: null, updated_at: new Date().toISOString() })
+              .eq('id', record.id);
+          } catch (err: any) {
+            console.error(`[vanguard-nightly] Retry failed for inbox item ${record.id}:`, err);
+            const trace = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack}` : String(err);
+            await supabase
+              .from('vanguard_telegram_inbox')
+              .update({ status: 'failed', error_log: trace, updated_at: new Date().toISOString() })
+              .eq('id', record.id);
+          }
+        }
+      }
+    });
+
     // 2. save-daily-aggregate (today + finalize yesterday)
     await runLedgerStep(supabase, userId, runId, 'save-daily-aggregate', true, async () => {
       await runSaveDailyAggregate(supabase, userId, todayStr);

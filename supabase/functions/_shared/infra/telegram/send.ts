@@ -178,7 +178,7 @@ export async function answerCallbackQuery(
   });
 }
 
-async function editMessageReplyMarkup(
+export async function editMessageReplyMarkup(
   token: string,
   chatId: number,
   messageId: number,
@@ -293,4 +293,30 @@ export async function transcribeAudio(
   }
 
   return transcribeBlob(audioBlob, openAiKey, { filename: "voice.ogg", timeoutMs: transcribeTimeoutMs });
+}
+
+export async function setMessageReaction(
+  token: string,
+  chatId: number,
+  messageId: number,
+  emoji: string,
+  options: { isBig?: boolean; direct?: boolean } = {},
+): Promise<void> {
+  const body = {
+    chat_id: chatId,
+    message_id: messageId,
+    reaction: [{ type: "emoji", emoji }],
+    is_big: options.isBig,
+  };
+  if (options.direct) {
+    await fetchWithRetry(`https://api.telegram.org/bot${token}/setMessageReaction`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }, { timeoutMs: 10000, retries: 1, logTag: "telegram.setMessageReaction" }).catch((err) => {
+      console.warn("[telegram] setMessageReaction failed:", err);
+    });
+    return;
+  }
+  await queueOutbox("setMessageReaction", body);
 }

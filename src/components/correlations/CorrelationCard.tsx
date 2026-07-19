@@ -1,13 +1,18 @@
 import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import type { CorrelationResult } from '@vanguard/domain';
-import { CATEGORY_LABELS, CONFIDENCE_LABELS, formatLag, METHOD_LABELS, rColor } from '@vanguard/domain';
+import type { ImpactFactor } from '@vanguard/domain';
+import { CATEGORY_LABELS, rColor } from '@vanguard/domain';
 import { Card } from '../ui/Card';
+import Button from '../ui/Button';
+import { useNOf1Store } from '../../store/nOf1Store';
+import { notify } from '../../lib/notify';
+import { Play } from 'lucide-react';
 
 interface Props {
-  item: CorrelationResult;
+  item: ImpactFactor;
   expanded?: boolean;
+  showExperimentButton?: boolean;
 }
 
 function MiniTip({ active, payload }: { active?: boolean; payload?: { payload: { day: string; x: number; y: number } }[] }) {
@@ -21,98 +26,150 @@ function MiniTip({ active, payload }: { active?: boolean; payload?: { payload: {
   );
 }
 
-export default function CorrelationCard({ item, expanded = false }: Props) {
+export default function CorrelationCard({ item, expanded = false, showExperimentButton = false }: Props) {
   const color = rColor(item.r);
   const showChart = item.scatter.length >= 3;
-  const method = item.method ?? 'pearson';
+  const { experiments, startExperiment } = useNOf1Store();
+
+  const activeExp = experiments.find(
+    (e) => e.factorKey === item.x_metric && e.outcomeKey === item.y_metric && e.status === 'active'
+  );
+
+  const handleStartExperiment = () => {
+    const condition = `Wprowadź/kontroluj czynnik: ${item.x_label} (optymalizacja)`;
+    startExperiment(item.x_metric, item.x_label, item.y_metric, item.y_label, 14, condition);
+    notify(`Uruchomiono eksperyment N-of-1: ${item.x_label} vs ${item.y_label}`, 'success');
+  };
+
+  const getTierConfig = (tier: string) => {
+    switch (tier) {
+      case 'confirmed':
+        return { label: 'Potwierdzony', bg: 'bg-success/10 text-success border-success/20' };
+      case 'probable':
+        return { label: 'Prawdopodobny', bg: 'bg-primary/10 text-primary border-primary/20' };
+      case 'hypothesis':
+        return { label: 'Hipoteza', bg: 'bg-warning/10 text-warning border-warning/20' };
+      default:
+        return { label: 'Brak dowodu', bg: 'bg-surface-solid text-text-muted border-border-custom' };
+    }
+  };
+
+  const tier = getTierConfig(item.evidence_level);
 
   return (
     <Card
       variant="surface"
-      padding="1rem"
-      className={`border ${item.significant ? 'border-primary/25' : 'border-border-custom'}`}
+      padding="1.25rem"
+      className={`border transition-all duration-200 ${
+        item.evidence_level === 'confirmed' ? 'border-success/20 hover:border-success/40' :
+        item.evidence_level === 'probable' ? 'border-primary/20 hover:border-primary/40' :
+        'border-border-custom hover:border-border-custom-hover'
+      }`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5 mb-1">
-            <span className="text-2xs font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid">
-              {CATEGORY_LABELS[item.category] ?? item.category}
+      <div className="flex flex-col gap-2">
+        {/* Badges strip */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-3xs font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid border border-border-custom/50">
+            {CATEGORY_LABELS[item.category] ?? item.category}
+          </span>
+          <span className={`text-3xs font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${tier.bg}`}>
+            {tier.label}
+          </span>
+          <span className="text-3xs font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid border border-border-custom/50">
+            N={item.n}
+          </span>
+          {activeExp && (
+            <span className="text-3xs font-black uppercase tracking-widest bg-success/15 text-success px-1.5 py-0.5 rounded border border-success/20 animate-pulse">
+              Eksperyment w toku
             </span>
-            {item.cross_domain && (
-              <span className="text-2xs font-black uppercase tracking-widest text-success px-1.5 py-0.5 rounded bg-success/10">
-                Cross
-              </span>
-            )}
-            {item.discovered && !item.cross_domain && (
-              <span className="text-2xs font-black uppercase tracking-widest text-primary px-1.5 py-0.5 rounded bg-primary/10">
-                Odkryte
-              </span>
-            )}
-            <span className="text-2xs font-black uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded bg-surface-solid" title={METHOD_LABELS[method]}>
-              {method === 'spearman' ? 'ρ' : 'r'}
-            </span>
-            <span className={`text-2xs font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
-              item.confidence === 'solid' ? 'bg-success/10 text-success' :
-              item.confidence === 'building' ? 'bg-warning/10 text-warning' :
-              'bg-surface-2/10 text-text-muted'
-            }`}>
-              {CONFIDENCE_LABELS[item.confidence]} · N={item.n}
-            </span>
+          )}
+        </div>
+
+        {/* Title & Natural effect size */}
+        <div className="flex items-start justify-between gap-4 mt-1">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-text-primary leading-snug">
+              {item.x_label} ➔ {item.y_label}
+            </h3>
+            <p className="text-xs text-text-secondary mt-1 font-medium">
+              Powiązany z: <span className="text-text-primary font-bold">{item.natural_effect}</span>
+            </p>
           </div>
-          <h3 className="text-sm font-bold text-text-primary leading-snug">{item.label}</h3>
-          <p className="text-xs text-text-muted mt-0.5">Lag: {formatLag(item.lag_days)}</p>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-black tabular-nums leading-none" style={{ color: color }}>
+              {item.r > 0 ? '+' : ''}{item.r.toFixed(2)}
+            </p>
+          </div>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-2xl font-black tabular-nums leading-none" style={{ color }}>
-            {item.r > 0 ? '+' : ''}{item.r.toFixed(2)}
-          </p>
-          <p className="text-2xs font-semibold text-text-muted mt-0.5">{item.interpretation}</p>
+
+        {/* Notes / Descriptions */}
+        <div className="text-xs text-text-muted leading-relaxed mt-1">
+          {item.evidence_level === 'confirmed' && (
+            <p>Silny i czasowo stabilny wpływ czynnika. Występuje w obu połowach badanego okresu.</p>
+          )}
+          {item.evidence_level === 'probable' && (
+            <p>Spójny kierunek wpływu, lecz wymaga zgromadzenia większej próby dla pełnego potwierdzenia.</p>
+          )}
+          {item.evidence_level === 'hypothesis' && (
+            <p>Dostrzegalny trend w danych. Przetestuj czynnik w kontrolowanym eksperymencie, aby potwierdzić wpływ.</p>
+          )}
+          {item.evidence_level === 'no_evidence' && (
+            <p>Brak jednoznacznego statystycznego dowodu na powiązanie w dotychczasowych logach.</p>
+          )}
         </div>
-      </div>
 
-      <p className="text-xs text-text-secondary leading-relaxed mb-3">{item.note}</p>
-
-      {!item.has_enough_data && (
-        <p className="text-xs font-medium text-warning dark:text-warning mb-2">
-          Za mało par danych — loguj regularnie, sygnał pojawi się po kilku dniach.
-        </p>
-      )}
-
-      {showChart && (
-        <div className={expanded ? 'h-[var(--ds-h-180px)]' : 'h-[var(--ds-h-120px)]'}>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-            <ScatterChart margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" />
-              <XAxis
-                dataKey="x"
-                type="number"
-                name={item.x_label}
-                tick={{ fontSize: 8, fill: 'var(--color-text-muted)' }}
-                label={expanded ? { value: item.x_label, position: 'insideBottom', offset: -2, fontSize: 9, fill: 'var(--color-text-muted)' } : undefined}
-              />
-              <YAxis
-                dataKey="y"
-                type="number"
-                name={item.y_label}
-                tick={{ fontSize: 8, fill: 'var(--color-text-muted)' }}
-                width={32}
-              />
-              <Tooltip content={<MiniTip />} />
-              <Scatter data={item.scatter} fill={color} fillOpacity={0.65} />
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-3 mt-2 pt-2 border-t border-border-custom/60 text-2xs text-text-muted">
-        <span>{item.x_label} ↔ {item.y_label}</span>
-        {item.r_pearson != null && item.r_spearman != null && method === 'spearman' && (
-          <span title="Pearson r">r={item.r_pearson.toFixed(2)}</span>
+        {/* Hypothesis Call-to-action button */}
+        {showExperimentButton && item.evidence_level === 'hypothesis' && !activeExp && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStartExperiment}
+            className="flex items-center justify-center gap-1.5 w-full mt-3 text-success hover:bg-success/10 border-success/20"
+          >
+            <Play size={12} className="fill-current animate-pulse" />
+            Sprawdź przez 14 dni
+          </Button>
         )}
-        {item.significant ? (
-          <span className="text-success font-bold">p={item.p.toFixed(3)}</span>
-        ) : (
-          <span>p={item.p.toFixed(3)}</span>
+
+        {/* Details section inside evidence archive */}
+        {expanded && (
+          <div className="mt-4 pt-3 border-t border-border-custom/60 space-y-3">
+            {showChart && (
+              <div className="h-[140px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" opacity={0.4} />
+                    <XAxis
+                      dataKey="x"
+                      type="number"
+                      name={item.x_label}
+                      tick={{ fontSize: 8, fill: 'var(--color-text-muted)' }}
+                    />
+                    <YAxis
+                      dataKey="y"
+                      type="number"
+                      name={item.y_label}
+                      tick={{ fontSize: 8, fill: 'var(--color-text-muted)' }}
+                      width={32}
+                    />
+                    <Tooltip content={<MiniTip />} />
+                    <Scatter data={item.scatter} fill={color} fillOpacity={0.6} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 text-2xs text-text-muted pt-1">
+              <div>
+                <p>Metoda: <span className="font-semibold text-text-secondary">{item.method}</span></p>
+                <p>P-value: <span className="font-semibold text-text-secondary">p={item.p.toFixed(4)}</span></p>
+              </div>
+              <div>
+                <p>Stabilność: <span className={`font-semibold ${item.is_stable ? 'text-success' : 'text-text-muted'}`}>{item.is_stable ? 'Stabilny' : 'Brak stabilności'}</span></p>
+                <p>CI (95%): <span className="font-semibold text-text-secondary">[{item.ci_lower.toFixed(2)}, {item.ci_upper.toFixed(2)}]</span></p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </Card>

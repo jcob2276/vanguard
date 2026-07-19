@@ -12,7 +12,7 @@ export type GrowthResourceType =
   | 'podcast'
   | 'exercise';
 
-export type GrowthPinSlot = 'must' | 'active';
+type GrowthPinSlot = 'must' | 'active';
 type GrowthPinEntityType = 'link' | 'todo' | 'manual';
 
 export interface LearningSkill {
@@ -59,8 +59,8 @@ export interface LearningWeekPin {
   done_at: string | null;
 }
 
-export const MAX_MUST = 3;
-export const MAX_ACTIVE = 2;
+const MAX_MUST = 3;
+const MAX_ACTIVE = 2;
 
 export const RESOURCE_TYPE_META: Record<
   GrowthResourceType,
@@ -74,7 +74,7 @@ export const RESOURCE_TYPE_META: Record<
   exercise: { label: 'Ćwiczenie', emoji: '🏋' },
 };
 
-export const SCORE_LABELS = [
+const SCORE_LABELS = [
   'Brak',
   'Słyszałem',
   'Podstawy',
@@ -84,7 +84,7 @@ export const SCORE_LABELS = [
 ] as const;
 
 /** Krótkie rubryki poziomów (devloop-style) — Twoja deklaracja, nie ocena systemu. */
-export const SCORE_RUBRICS: Record<number, string> = {
+const SCORE_RUBRICS: Record<number, string> = {
   0: 'Brak praktyki ani świadomego uczenia się w tym obszarze.',
   1: 'Znasz pojęcia, czytasz/oglądasz, ale rzadko stosujesz.',
   2: 'Pod podstawowym nadzorem — schematy, szablony, z cudzą pomocą.',

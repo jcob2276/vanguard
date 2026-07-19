@@ -11,6 +11,7 @@ export type TelegramRouterContext = {
   authorizedChatId: number;
   supabaseUrl: string;
   supabaseServiceRoleKey: string;
+  inboxRecordId?: string;
 };
 
 export function createTelegramContext(): TelegramRouterContext {

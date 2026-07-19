@@ -1,6 +1,4 @@
-/** Kanoniczna mapa: co logować gdzie (SSOT dla UI i agentów). */
-
-export type BehaviorCaptureStore =
+type BehaviorCaptureStore =
   | 'vanguard_stream'
   | 'habit_logs'
   | 'workout_sessions'
@@ -9,7 +7,7 @@ export type BehaviorCaptureStore =
   | 'supplement_logs'
   | 'derived';
 
-export type BehaviorCaptureEntry = {
+type BehaviorCaptureEntry = {
   id: string;
   label: string;
   store: BehaviorCaptureStore;
@@ -19,7 +17,7 @@ export type BehaviorCaptureEntry = {
   deprecated?: boolean;
 };
 
-export const BEHAVIOR_CAPTURE_ENTRIES: BehaviorCaptureEntry[] = [
+const BEHAVIOR_CAPTURE_ENTRIES: BehaviorCaptureEntry[] = [
   {
     id: 'stream_free',
     label: 'Dowolny opis dnia, tarcie, kontekst',
@@ -100,7 +98,7 @@ export const BEHAVIOR_CONFOUNDERS = [
 
 export type BehaviorConfounderKey = (typeof BEHAVIOR_CONFOUNDERS)[number]['key'];
 
-export function storeLabel(store: BehaviorCaptureStore): string {
+function storeLabel(store: BehaviorCaptureStore): string {
   switch (store) {
     case 'vanguard_stream':
       return 'stream';

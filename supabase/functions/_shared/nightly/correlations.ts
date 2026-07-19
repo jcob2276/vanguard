@@ -1,6 +1,7 @@
 
 import {
   confidenceTier, dualCorrelation, interpretR, laggedPairs, type CorrelationMethod, type ScatterPoint,
+  classifyImpactFactors,
 } from '../correlationEngine.ts'
 import { METRIC_LABELS, type CorrelationCategory } from '../correlationCatalog.ts'
 import {
@@ -99,11 +100,27 @@ function computePair(
   xMetric: string,
   yMetric: string,
   lagDays: number,
+  confoundedDays: Set<string>,
 ) {
   const x = series[xMetric]
   const y = series[yMetric]
   if (!x?.length || !y?.length) return null
-  const { pairs, scatter } = laggedPairs(x, y, lagDays)
+  let { pairs, scatter } = laggedPairs(x, y, lagDays)
+
+  const isConfounderX = xMetric === 'travel_day' || xMetric.includes('illness')
+  if (!isConfounderX && confoundedDays.size > 0) {
+    const newPairs: [number, number][] = []
+    const newScatter: ScatterPoint[] = []
+    for (const p of scatter) {
+      if (!confoundedDays.has(p.day)) {
+        newScatter.push(p)
+        newPairs.push([p.x, p.y])
+      }
+    }
+    pairs = newPairs
+    scatter = newScatter
+  }
+
   if (pairs.length < 6) return null
   const dual = dualCorrelation(pairs)
   return dual.primary ? { dual, scatter } : null
@@ -160,13 +177,20 @@ export const runComputeCorrelations = async (
     const candidates: CorrelationResult[] = []
     const seen = new Set<string>()
 
+    const travelDays = new Set(series.travel_day?.filter(p => p.value > 0).map(p => p.day) ?? [])
+    const illnessDays = new Set([
+      ...(series.illness_day?.filter(p => p.value > 0).map(p => p.day) ?? []),
+      ...(series.illness_score?.filter(p => p.value > 0).map(p => p.day) ?? [])
+    ])
+    const confoundedDays = new Set([...travelDays, ...illnessDays])
+
     for (const xMetric of metrics) {
       for (const yMetric of metrics) {
         for (const lagDays of DISCOVERY_LAGS) {
           if (shouldSkipDiscoveryPair(xMetric, yMetric, lagDays)) continue
           const pk = pairKey(xMetric, yMetric, lagDays)
           if (seen.has(pk)) continue
-          const computed = computePair(series, xMetric, yMetric, lagDays)
+          const computed = computePair(series, xMetric, yMetric, lagDays, confoundedDays)
           if (!computed) continue
           const p = computed.dual.primary!
           if (!passesDiscoveryGate(Math.abs(p.r), p.n, p.p)) continue
@@ -189,17 +213,19 @@ export const runComputeCorrelations = async (
     }))
     interesting.sort((a, b) => correlationInterestScore(b) - correlationInterestScore(a))
 
-    // Bridge: save top 10 interesting significant correlations as entity links
-    for (const r of interesting.slice(0, 10)) {
-      if (!r.significant) continue;
-      const xLabel = labels[r.x_metric] ?? r.x_metric, yLabel = labels[r.y_metric] ?? r.y_metric;
-      const lagText = r.lag_days > 0 ? ` z opóźnieniem ${r.lag_days}d` : '';
-      const fact_text = `${xLabel} koreluje z ${yLabel}${lagText} (r = ${r.r}, p = ${r.p}, N = ${r.n})`;
+    const classified = classifyImpactFactors(interesting)
+    const confirmed = classified.filter(f => f.evidence_level === 'confirmed')
+
+    // Bridge: save top 10 confirmed correlations as entity links
+    for (const f of confirmed.slice(0, 10)) {
+      const xLabel = labels[f.x_metric] ?? f.x_metric, yLabel = labels[f.y_metric] ?? f.y_metric;
+      const lagText = f.lag_days > 0 ? ` z opóźnieniem ${f.lag_days}d` : '';
+      const fact_text = `${xLabel} koreluje z ${yLabel}${lagText} (${f.natural_effect})`;
       const { error: upsertErr } = await supabase.from('vanguard_entity_links').upsert({
         user_id: userId, source_entity: xLabel, source_type: 'metric', relation: 'koreluje_z',
-        target_entity: yLabel, target_type: 'metric', confidence_score: r.r_abs, memory_type: 'correlation',
+        target_entity: yLabel, target_type: 'metric', confidence_score: f.r, memory_type: 'correlation',
         status: 'active', temporal_status: 'current', fact_text,
-        metadata: { x_metric: r.x_metric, y_metric: r.y_metric, lag_days: r.lag_days, r: r.r, p: r.p, n: r.n, discovered_at: new Date().toISOString() },
+        metadata: { x_metric: f.x_metric, y_metric: f.y_metric, lag_days: f.lag_days, r: f.r, p: f.p, n: f.n, discovered_at: new Date().toISOString() },
       }, { onConflict: 'user_id,source_entity,relation,target_entity' });
       if (upsertErr) console.error(`[correlations] Failed to save correlation link: ${upsertErr.message}`);
     }

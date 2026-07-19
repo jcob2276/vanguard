@@ -141,7 +141,7 @@ export function buildRetestSuggestions(input: {
     .slice(0, 6);
 }
 
-export function buildOracleLabPrompt(
+function buildOracleLabPrompt(
   suggestions: RetestSuggestion[],
   user: MedicalUserContext,
   fullPanel: FullPanelInfo | null,

@@ -50,7 +50,7 @@ export async function handlePosilekCommand(
   try {
     const raw = text.replace(/^\/posilek\s*/i, '').trim();
     if (!raw) {
-      await safeSendTelegram(chatId, '❌ Napisz co zjadłeś, np. "/posilek makaron z serkiem tłustym piątnica".', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      await safeSendTelegram(chatId, '! Napisz co zjadłeś, np. "/posilek makaron z serkiem tłustym piątnica".', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
       return;
     }
 
@@ -58,7 +58,7 @@ export async function handlePosilekCommand(
 
     const items = await callParseFoodNl(raw, vanguardUserId, supabaseUrl, supabaseServiceRoleKey);
     if (items.length === 0) {
-      await safeSendTelegram(chatId, '❌ Nie udało się rozpoznać posiłku, spróbuj opisać inaczej.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+      await safeSendTelegram(chatId, '! Nie udało się rozpoznać posiłku, spróbuj opisać inaczej.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
       return;
     }
 
@@ -76,6 +76,6 @@ export async function handlePosilekCommand(
     });
   } catch (err) {
     console.error('[commands] /posilek failed:', err);
-    await safeSendTelegram(chatId, '❌ Błąd zapisu posiłku: ' + (err as Error).message, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
+    await safeSendTelegram(chatId, '! Nie udało się zapisać posiłku.', telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
   }
 }

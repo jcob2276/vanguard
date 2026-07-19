@@ -5,6 +5,7 @@ interface SupplementAddFormProps {
   emoji: string; setEmoji: (v: string) => void;
   unit: string; setUnit: (v: string) => void;
   skipQty: boolean; setSkipQty: (v: boolean) => void;
+  reverseLogic: boolean; setReverseLogic: (v: boolean) => void;
   hasCycle: boolean; setHasCycle: (v: boolean) => void;
   startDate: string; setStartDate: (v: string) => void;
   endDate: string; setEndDate: (v: string) => void;
@@ -18,6 +19,7 @@ import { Card } from '../../ui/Card';
 
 export default function SupplementAddForm({
   name, setName, emoji, setEmoji, unit, setUnit, skipQty, setSkipQty,
+  reverseLogic, setReverseLogic,
   hasCycle, setHasCycle, startDate, setStartDate, endDate, setEndDate,
   hasReminder, setHasReminder, reminderTime, setReminderTime,
   submitting, onSubmit,
@@ -43,10 +45,17 @@ export default function SupplementAddForm({
           <ControlInput type="text" value={unit} onChange={e => setUnit(e.target.value)} placeholder="np. porcja, kapsułka"
             className="w-full rounded-lg border border-border-custom bg-surface px-3 py-2 text-xs focus:outline-none focus:border-success" />
         </div>
-        <div className="flex items-center gap-2 pt-5">
-          <ControlInput type="checkbox" id="skipQty" checked={skipQty} onChange={e => setSkipQty(e.target.checked)}
-            className="rounded border-border-custom bg-surface text-success focus:ring-0 cursor-pointer" />
-          <label htmlFor="skipQty" className="text-xs font-medium text-text-secondary select-none cursor-pointer">Pomiń wybór ilości</label>
+        <div className="flex flex-col gap-2 pt-3">
+          <div className="flex items-center gap-2">
+            <ControlInput type="checkbox" id="skipQty" checked={skipQty} onChange={e => setSkipQty(e.target.checked)}
+              className="rounded border-border-custom bg-surface text-success focus:ring-0 cursor-pointer" />
+            <label htmlFor="skipQty" className="text-xs font-medium text-text-secondary select-none cursor-pointer">Pomiń wybór ilości</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <ControlInput type="checkbox" id="reverseLogic" checked={reverseLogic} onChange={e => setReverseLogic(e.target.checked)}
+              className="rounded border-border-custom bg-surface text-success focus:ring-0 cursor-pointer" />
+            <label htmlFor="reverseLogic" className="text-xs font-medium text-text-secondary select-none cursor-pointer">Odwrócona logika (pomijanie)</label>
+          </div>
         </div>
       </div>
       <div className="border-t border-border-custom/50 pt-3 space-y-2.5">

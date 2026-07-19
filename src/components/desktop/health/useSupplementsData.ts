@@ -17,6 +17,7 @@ export function useSupplementsData(userId: string) {
   const [emoji, setEmoji] = useState('💊');
   const [unit, setUnit] = useState('porcja');
   const [skipQty, setSkipQty] = useState(false);
+  const [reverseLogic, setReverseLogic] = useState(false);
   const [hasCycle, setHasCycle] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -84,7 +85,7 @@ export function useSupplementsData(userId: string) {
           name: name.trim(),
           emoji: emoji.trim() || '💊',
           unit: unit.trim() || 'kapsułka',
-          dose_per_unit: {},
+          dose_per_unit: { reverse_logic: reverseLogic },
           sort_order: supplements.length + 1,
           active: true,
           start_date: hasCycle && startDate ? startDate : null,
@@ -93,7 +94,7 @@ export function useSupplementsData(userId: string) {
           skip_qty: skipQty,
         },
       });
-      setName(''); setEmoji('💊'); setUnit('porcja'); setSkipQty(false);
+      setName(''); setEmoji('💊'); setUnit('porcja'); setSkipQty(false); setReverseLogic(false);
       setHasCycle(false); setStartDate(''); setEndDate('');
       setHasReminder(false); setReminderTime('08:00'); setShowAddForm(false);
     } catch (err: unknown) {
@@ -112,6 +113,7 @@ export function useSupplementsData(userId: string) {
     supplements, logs, loading, error, activeSups,
     showAddForm, setShowAddForm,
     name, setName, emoji, setEmoji, unit, setUnit, skipQty, setSkipQty,
+    reverseLogic, setReverseLogic,
     hasCycle, setHasCycle, startDate, setStartDate, endDate, setEndDate,
     hasReminder, setHasReminder, reminderTime, setReminderTime,
     submitting, today, last7Days,

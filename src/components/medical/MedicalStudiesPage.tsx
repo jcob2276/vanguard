@@ -1,84 +1,118 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import EmptyState from '../ui/EmptyState';
-import Skeleton from '../ui/Skeleton';
-import { Card } from '../ui/Card';
+import { useState, useMemo } from 'react';
+import { useUserId } from '../../store/useStore';
 import { useMedicalData } from './hooks/useMedicalData';
 import { useRetestSuggestions } from './hooks/useMedicalRetestContext';
-import {
-  buildMarkerSeries,
-  categoryLabel,
-  diffDaysFromToday,
-  formatMedicalDate,
-  freshnessLabel,
-  groupRowsByDate,
-  groupSeriesByCategory,
-  labFreshness,
-  PRIORITY_CHART_MARKERS,
-} from '../../lib/health/medicalAnalytics';
-import { findLatestFullPanel } from '../../lib/health/medicalRetestContext';
+import { buildMarkerSeries, diffDaysFromToday, labFreshness } from '../../lib/health/medicalAnalytics';
 import { computeBiologyScoresLite } from '../../lib/getBased/biologyScoresLite';
-import MedicalBiologyScores from './MedicalBiologyScores';
-import MedicalRetestPanel from './MedicalRetestPanel';
-import MedicalTrendCharts from './MedicalTrendCharts';
-import {
-  BodyCompositionSection,
-  CategorySection,
-  KeyMarkerCards,
-  PanelTimeline,
-  Scale,
-  SectionShell,
-} from './MedicalLabSections';
-import { useUserId } from '../../store/useStore';
+import { supabase } from '../../lib/supabase';
+import { notify } from '../../lib/notify';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import type { Database } from '../../lib/database.types';
+import { getTodayWarsaw } from '../../lib/date';
 
-const SUBSECTIONS = [
-  { id: 'przeglad', label: 'Przegląd' },
-  { id: 'retest', label: 'Co warto' },
-  { id: 'scores', label: 'Biology Scores' },
-  { id: 'trendy', label: 'Trendy' },
-  { id: 'kategorie', label: 'Kategorie' },
-  { id: 'panele', label: 'Panele' },
-  { id: 'cialo', label: 'Skład ciała' },
-] as const;
+// Subsections Components
+import MedicalHeader from './sections/MedicalHeader';
+import MedicalOverview from './sections/MedicalOverview';
+import MedicalResultsTable from './sections/MedicalResultsTable';
+import MedicalTrends from './sections/MedicalTrends';
+import MedicalDocHistory from './sections/MedicalDocHistory';
+import MedicalBiologyScoresSection from './sections/MedicalBiologyScoresSection';
+import MedicalSuggestions from './sections/MedicalSuggestions';
+import MedicalBodyComposition from './sections/MedicalBodyComposition';
+
+// Modals / Overlays
+import MedicalMarkerInspector from './sections/MedicalMarkerInspector';
+import MedicalImport from './sections/MedicalImport';
 
 export default function MedicalStudiesPage() {
   const userId = useUserId();
-  const { labs, bodyComposition, loading, error } = useMedicalData(userId!);
+  const { labs, bodyComposition, documents, loading, error, refresh } = useMedicalData(userId!);
 
+  const [selectedMarkerKey, setSelectedMarkerKey] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+
+  // Derive series & calculations
   const series = useMemo(() => buildMarkerSeries(labs), [labs]);
-  const byCategory = useMemo(() => groupSeriesByCategory(series), [series]);
-  const byDate = useMemo(() => groupRowsByDate(labs), [labs]);
-  const fullPanel = useMemo(() => findLatestFullPanel(byDate), [byDate]);
-  const { suggestions, userContext, loading: retestLoading } = useRetestSuggestions(
+  const biologyScores = useMemo(() => computeBiologyScoresLite(series), [series]);
+  
+  const { suggestions, loading: retestLoading } = useRetestSuggestions(
     userId!,
     series,
     labs,
   );
 
-  const prioritySeries = useMemo(() => {
-    const order = new Map(PRIORITY_CHART_MARKERS.map((k, i) => [k, i]));
-    return [...series].sort((a, b) => {
-      const ai = order.get(a.marker_key as (typeof PRIORITY_CHART_MARKERS)[number]) ?? 999;
-      const bi = order.get(b.marker_key as (typeof PRIORITY_CHART_MARKERS)[number]) ?? 999;
-      return ai - bi;
-    });
-  }, [series]);
+  const handleConfirmImport = async (results: any[], docName: string) => {
+    if (!userId) return;
 
-  const latestPanelDate = labs[0]?.result_date ?? null;
-  const latestAge = latestPanelDate ? diffDaysFromToday(latestPanelDate) : null;
-  const latestFresh = labFreshness(latestAge);
-  const categoryOrder = [...byCategory.keys()].sort((a, b) =>
-    categoryLabel(a).localeCompare(categoryLabel(b), 'pl'),
-  );
-  const biologyScores = useMemo(() => computeBiologyScoresLite(series), [series]);
+    // 1. Create medical document record
+    const docRow: Database['public']['Tables']['medical_documents']['Insert'] = {
+      user_id: userId,
+      document_date: getTodayWarsaw(),
+      document_type: 'processed',
+      source_name: docName,
+      provider: 'Diagnostyka',
+      clinical_validity: 'clinical'
+    };
 
-  if (!userId) return null;
+    const { data: doc, error: docErr } = await supabase
+      .from('medical_documents')
+      .insert(docRow)
+      .select()
+      .maybeSingle();
+
+    if (docErr) {
+      console.error(docErr);
+      throw docErr;
+    }
+
+    // 2. Map & insert lab results
+    const labRows: Database['public']['Tables']['medical_lab_results']['Insert'][] = results.map(r => ({
+      user_id: userId,
+      result_date: getTodayWarsaw(),
+      marker_key: r.marker_key,
+      marker_name: r.marker_name,
+      value: Number(r.value),
+      unit: r.unit,
+      ref_low: r.ref_low,
+      ref_high: r.ref_high,
+      flag: r.flag,
+      category: r.category,
+      source_name: docName,
+      provider: 'Diagnostyka'
+    }));
+
+    const { error: labErr } = await supabase
+      .from('medical_lab_results')
+      .insert(labRows);
+
+    if (labErr) {
+      console.error(labErr);
+      throw labErr;
+    }
+
+    await refresh();
+  };
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">
       <header className="sticky top-0 z-[var(--z-sticky)] w-full border-b border-border-custom bg-background/95 backdrop-blur-[var(--blur-md)]">
-        <div className="w-full max-w-[var(--ds-maxw-1600px)] mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center gap-4">
+        <div className="w-full max-w-[var(--ds-maxw-1600px)] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center gap-4">
           <Link
             to="/"
             aria-label="Wróć do widoku głównego"
@@ -87,151 +121,80 @@ export default function MedicalStudiesPage() {
             <ArrowLeft size={18} />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black font-display uppercase tracking-tight">Badania</h1>
-            <p className="text-xs text-text-muted mt-0.5 truncate">
-              {fullPanel
-                ? `Ostatni pełny panel: ${formatMedicalDate(fullPanel.date)} · ${fullPanel.ageDays ?? '?'} dni temu`
-                : 'Laboratoryjne wyniki · biology scores · trendy'}
-            </p>
+            <h1 className="text-xl font-black font-display uppercase tracking-tight">Dokumentacja Medyczna</h1>
           </div>
         </div>
-        {!loading && !error && labs.length > 0 && (
-          <nav className="w-full max-w-[var(--ds-maxw-1600px)] mx-auto px-4 sm:px-6 lg:px-10 pb-3 flex gap-1.5 overflow-x-auto no-scrollbar">
-            {SUBSECTIONS.map(({ id, label }) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                className="shrink-0 rounded-full border border-border-custom px-3 py-1.5 text-2xs font-black uppercase text-text-muted hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
-        )}
       </header>
 
       <div className="flex-1 w-full max-w-[var(--ds-maxw-1600px)] mx-auto px-4 sm:px-6 lg:px-10 py-6 pb-16 space-y-10">
-        {loading ? (
-          <Skeleton variant="card" className="h-64 rounded-2xl" />
-        ) : error ? (
-          <Card variant="danger" padding="0.75rem 1rem" className="text-sm text-danger dark:text-danger">
-            Nie udało się wczytać badań: {error}
-          </Card>
-        ) : labs.length === 0 && bodyComposition.length === 0 ? (
-          <EmptyState
-            icon="🧪"
-            label="Brak danych badań. Wyniki pojawią się tu po imporcie z PDF."
+        {/* Header block (Completeness, attention and import trigger) */}
+        <MedicalHeader
+          labs={labs}
+          documents={documents}
+          onImportClick={() => setImportOpen(true)}
+          onViewResults={() => scrollToSection('wyniki')}
+          onPlanRetest={() => scrollToSection('sugestie')}
+        />
+
+        {/* Level 1: Przegląd */}
+        <div id="przeglad">
+          <MedicalOverview
+            labs={labs}
+            documents={documents}
+            onActionClick={scrollToSection}
           />
-        ) : (
-          <>
-            <Card variant="notice" padding="0.75rem 1rem" className="text-xs text-text-secondary leading-relaxed">
-              Kontekst z datą — nie diagnoza. Stary wynik nie opisuje automatycznie dzisiejszego stanu.
-            </Card>
+        </div>
 
-            <SectionShell id="przeglad" title="Przegląd" subtitle="Ostatni panel i kluczowe markery">
-              {(latestPanelDate || series.length > 0) && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-                  {fullPanel && (
-                    <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5 col-span-2 sm:col-span-1">
-                      <p className="text-2xs font-black uppercase text-text-muted">Ostatni pełny panel</p>
-                      <p className="text-sm font-bold text-text-primary mt-0.5">
-                        {formatMedicalDate(fullPanel.date)}
-                      </p>
-                      <p className="text-2xs text-text-muted">
-                        {fullPanel.markerCount} markerów · {fullPanel.ageDays ?? '?'} dni temu
-                      </p>
-                    </div>
-                  )}
-                  {latestPanelDate && (
-                    <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5">
-                      <p className="text-2xs font-black uppercase text-text-muted">Ostatni wpis</p>
-                      <p className="text-sm font-bold text-text-primary mt-0.5">
-                        {formatMedicalDate(latestPanelDate)}
-                      </p>
-                      <p className="text-2xs text-text-muted">
-                        {freshnessLabel(latestFresh)} · {latestAge ?? '?'} dni temu
-                      </p>
-                    </div>
-                  )}
-                  <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5">
-                    <p className="text-2xs font-black uppercase text-text-muted">Markery</p>
-                    <p className="text-sm font-bold text-text-primary mt-0.5">{series.length}</p>
-                    <p className="text-2xs text-text-muted">{labs.length} wpisów</p>
-                  </div>
-                  <div className="rounded-xl border border-border-custom bg-surface/40 px-3 py-2.5 col-span-2 sm:col-span-1">
-                    <p className="text-2xs font-black uppercase text-text-muted">Skład ciała</p>
-                    <p className="text-sm font-bold text-text-primary mt-0.5">{bodyComposition.length}</p>
-                    <p className="text-2xs text-text-muted">pomiarów BIA</p>
-                  </div>
-                </div>
-              )}
-              <KeyMarkerCards series={prioritySeries} limit={6} />
-            </SectionShell>
+        {/* Level 2: Wyniki Table */}
+        <div id="wyniki">
+          <MedicalResultsTable
+            labs={labs}
+            onSelectMarker={setSelectedMarkerKey}
+          />
+        </div>
 
-            {labs.length > 0 && (
-              <SectionShell
-                id="retest"
-                title="Co warto badać / odświeżyć"
-                subtitle="Reguły + Oracle z kontekstem (wiek, trening, projekty)"
-              >
-                <MedicalRetestPanel
-                  suggestions={suggestions}
-                  userContext={userContext}
-                  fullPanel={fullPanel}
-                  loading={retestLoading}
-                />
-              </SectionShell>
-            )}
+        {/* Level 3: Trendy */}
+        <div id="trendy">
+          <MedicalTrends labs={labs} />
+        </div>
 
-            {biologyScores.length > 0 && (
-              <SectionShell
-                id="scores"
-                title="Biology Scores"
-                subtitle="Wzorce z liczb (getbased) — nie diagnoza"
-              >
-                <MedicalBiologyScores scores={biologyScores} />
-              </SectionShell>
-            )}
+        {/* Level 4: Dokumenty history */}
+        <div id="dokumenty">
+          <MedicalDocHistory documents={documents} />
+        </div>
 
-            {series.some((s) => s.history.length >= 2) && (
-              <SectionShell
-                id="trendy"
-                title="Trendy"
-                subtitle="≥2 pomiary · zielony pas = zakres optymalny getbased (gdy znany)"
-              >
-                <MedicalTrendCharts series={series} />
-              </SectionShell>
-            )}
+        {/* Co warto badać section */}
+        <div id="sugestie">
+          <MedicalSuggestions
+            suggestions={suggestions}
+            loading={retestLoading}
+          />
+        </div>
 
-            {categoryOrder.length > 0 && (
-              <SectionShell id="kategorie" title="Kategorie" subtitle="Tabela z normą lab + optymalnym (getbased)">
-                <div className="space-y-3">
-                  {categoryOrder.map((cat) => (
-                    <CategorySection key={cat} catKey={cat} series={byCategory.get(cat)!} />
-                  ))}
-                </div>
-              </SectionShell>
-            )}
+        {/* Eksperymentalne wskaźniki (Biology Scores) */}
+        <div id="scores">
+          <MedicalBiologyScoresSection scores={biologyScores} />
+        </div>
 
-            {byDate.size > 0 && (
-              <SectionShell id="panele" title="Historia paneli" subtitle="Zestawy wyników wg daty pobrania">
-                <PanelTimeline byDate={byDate} />
-              </SectionShell>
-            )}
-
-            {bodyComposition.length > 0 && (
-              <SectionShell
-                id="cialo"
-                title="Skład ciała"
-                subtitle="BIA / Tanita — szacunek, nie diagnostyka"
-                icon={<Scale size={14} className="text-text-muted mt-0.5 shrink-0" />}
-              >
-                <BodyCompositionSection rows={bodyComposition} />
-              </SectionShell>
-            )}
-          </>
-        )}
+        {/* Body compositions section */}
+        <div id="cialo">
+          <MedicalBodyComposition rows={bodyComposition} />
+        </div>
       </div>
+
+      {/* Marker side drawer details */}
+      <MedicalMarkerInspector
+        markerKey={selectedMarkerKey}
+        labs={labs}
+        onClose={() => setSelectedMarkerKey(null)}
+      />
+
+      {/* Import results wizard */}
+      <MedicalImport
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onConfirmImport={handleConfirmImport}
+      />
     </div>
   );
 }

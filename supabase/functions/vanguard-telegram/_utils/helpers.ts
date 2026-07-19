@@ -59,11 +59,6 @@ export async function safeSendTelegram(
     for (let i = 0; i < chunks.length; i++) {
       const isLast = isLastPart && (i === chunks.length - 1);
 
-      // Simulate human pacing delay for subsequent messages
-      if (pIdx > 0 || i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
       const result = await sendMessageParsed(token, chatId, chunks[i], {
         parseMode: options.parse_mode,
         disableNotification: options.disable_notification,

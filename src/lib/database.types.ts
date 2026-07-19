@@ -3850,6 +3850,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "todo_items_recurrence_origin_id_fkey"
+            columns: ["recurrence_origin_id"]
+            isOneToOne: false
+            referencedRelation: "todo_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "todo_items_section_id_fkey"
             columns: ["section_id"]
             isOneToOne: false
@@ -4149,9 +4156,12 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          description: string | null
           end_time: string | null
           event_id: string | null
           id: string
+          recurrence: string[] | null
+          series_id: string | null
           start_time: string | null
           summary: string | null
           user_id: string | null
@@ -4159,9 +4169,12 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          description?: string | null
           end_time?: string | null
           event_id?: string | null
           id?: string
+          recurrence?: string[] | null
+          series_id?: string | null
           start_time?: string | null
           summary?: string | null
           user_id?: string | null
@@ -4169,9 +4182,12 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          description?: string | null
           end_time?: string | null
           event_id?: string | null
           id?: string
+          recurrence?: string[] | null
+          series_id?: string | null
           start_time?: string | null
           summary?: string | null
           user_id?: string | null
@@ -4627,28 +4643,61 @@ export type Database = {
       }
       vanguard_identity: {
         Row: {
+          active_path: Json | null
           avoidance_triggers: Json | null
           behavioral_baseline: Json | null
+          confirming_behaviors: Json | null
+          conflicting_behaviors: Json | null
+          current_role: string | null
+          developed_role: string | null
+          development_gap: string | null
+          development_review: Json | null
+          development_theme: string | null
+          library_items: Json | null
           long_term_mission: string | null
           pillars: Json | null
+          practice_evidences: Json | null
           updated_at: string | null
           user_id: string
+          values_standards: Json | null
         }
         Insert: {
+          active_path?: Json | null
           avoidance_triggers?: Json | null
           behavioral_baseline?: Json | null
+          confirming_behaviors?: Json | null
+          conflicting_behaviors?: Json | null
+          current_role?: string | null
+          developed_role?: string | null
+          development_gap?: string | null
+          development_review?: Json | null
+          development_theme?: string | null
+          library_items?: Json | null
           long_term_mission?: string | null
           pillars?: Json | null
+          practice_evidences?: Json | null
           updated_at?: string | null
           user_id: string
+          values_standards?: Json | null
         }
         Update: {
+          active_path?: Json | null
           avoidance_triggers?: Json | null
           behavioral_baseline?: Json | null
+          confirming_behaviors?: Json | null
+          conflicting_behaviors?: Json | null
+          current_role?: string | null
+          developed_role?: string | null
+          development_gap?: string | null
+          development_review?: Json | null
+          development_theme?: string | null
+          library_items?: Json | null
           long_term_mission?: string | null
           pillars?: Json | null
+          practice_evidences?: Json | null
           updated_at?: string | null
           user_id?: string
+          values_standards?: Json | null
         }
         Relationships: []
       }

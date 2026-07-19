@@ -173,12 +173,13 @@ Tekst: "${cleanText}"`;
   // Save proposed claims
   if (data?.claims && Array.isArray(data.claims) && data.claims.length > 0) {
     const pendingClaimsList: { id: string; text: string }[] = [];
+    const messageId = (ctx as any).messageId || null;
     for (const claim of data.claims) {
       if (claim && claim.text) {
         const { data: auditEvent, error: auditError } = await supabase.from("audit_events").insert({
           event_type: "pending_claim_proposal", severity: "info",
           message: `Proposed claim: "${claim.text}"`, user_id: vanguardUserId,
-          metadata: { claim, status: "pending" }
+          metadata: { claim, status: "pending", telegram_message_id: messageId }
         }).select("id").single();
         if (!auditError && auditEvent?.id) pendingClaimsList.push({ id: auditEvent.id, text: claim.text });
       }

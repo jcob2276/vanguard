@@ -43,7 +43,10 @@ Deno.serve(serveJson(async (req, ctx) => {
     console.log(`[telegram-worker] started processing inbox id: ${recordId}`);
 
     const innerPayload = record.payload;
-    const telegramCtx = createTelegramContext();
+    const telegramCtx = {
+      ...createTelegramContext(),
+      inboxRecordId: record.id
+    };
 
     if (innerPayload.callback_query) {
       await handleCallbackQuery(innerPayload.callback_query as never, telegramCtx);

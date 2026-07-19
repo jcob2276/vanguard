@@ -1,5 +1,6 @@
 import type { SeriesPoint } from './correlationEngine.ts'
 import type { CorrelationCategory } from './correlationCatalog.ts'
+import { isAllowedInput, ALLOWED_OUTCOMES, areMetricsRedundant } from '@vanguard/domain'
 
 const DISCOVERY_MIN_COVERAGE = 5
 export const DISCOVERY_LAGS = [0, 1, 2] as const
@@ -128,16 +129,22 @@ export function inferMetricCategory(metric: string): CorrelationCategory {
 
 export function shouldSkipDiscoveryPair(x: string, y: string, lagDays: number): boolean {
   if (x === y) return true
-  if (lagDays === 0 && SLEEP_COMPOSITIONAL.has(x) && SLEEP_COMPOSITIONAL.has(y)) return true
+  if (!isAllowedInput(x) || !ALLOWED_OUTCOMES.has(y)) return true
+  if (areMetricsRedundant(x, y)) return true
+
+  const isSleepOrRecovery = y.startsWith('sleep_') || y === 'readiness' || y === 'recovery' || y === 'hrv' || y === 'rhr';
+  if (isSleepOrRecovery) {
+    if (lagDays !== 1) return true;
+  } else {
+    if (lagDays !== 0) return true;
+  }
   return false
 }
 
 /** Passes initial compute gate — interest filter applied later. */
 export function passesDiscoveryGate(r_abs: number, n: number, p: number): boolean {
-  if (n < 6) return false
-  if (p < 0.05 && n >= 8) return true
-  if (r_abs >= 0.32 && n >= 8) return true
-  if (r_abs >= 0.42 && n >= 6 && p < 0.12) return true
+  if (n < 8) return false
+  if (p < 0.15 && r_abs >= 0.15) return true
   return false
 }
 

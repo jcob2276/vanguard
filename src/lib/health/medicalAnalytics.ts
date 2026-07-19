@@ -153,7 +153,7 @@ export function buildMarkerSeries(rows: MedicalLabRow[]): MarkerSeries[] {
   });
 }
 
-export function groupSeriesByCategory(series: MarkerSeries[]): Map<string, MarkerSeries[]> {
+function groupSeriesByCategory(series: MarkerSeries[]): Map<string, MarkerSeries[]> {
   const map = new Map<string, MarkerSeries[]>();
   for (const s of series) {
     const cat = s.category ?? 'other';
@@ -190,13 +190,13 @@ export const PRIORITY_CHART_MARKERS = [
   'triglycerides',
 ] as const;
 
-export type TrendChartPoint = {
+type TrendChartPoint = {
   label: string;
   value: number;
   date: string;
 };
 
-export function pickChartSeries(series: MarkerSeries[], limit = 8): MarkerSeries[] {
+function pickChartSeries(series: MarkerSeries[], limit = 8): MarkerSeries[] {
   const withHistory = series.filter((s) => s.history.length >= 2);
   const picked: MarkerSeries[] = [];
   const seen = new Set<string>();
@@ -219,7 +219,7 @@ export function pickChartSeries(series: MarkerSeries[], limit = 8): MarkerSeries
   return picked.slice(0, limit);
 }
 
-export function buildTrendChartPoints(s: MarkerSeries): TrendChartPoint[] {
+function buildTrendChartPoints(s: MarkerSeries): TrendChartPoint[] {
   return [...s.history]
     .reverse()
     .map((h) => ({

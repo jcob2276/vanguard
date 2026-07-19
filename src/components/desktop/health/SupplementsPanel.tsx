@@ -46,6 +46,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
         <SupplementAddForm
           name={data.name} setName={data.setName} emoji={data.emoji} setEmoji={data.setEmoji}
           unit={data.unit} setUnit={data.setUnit} skipQty={data.skipQty} setSkipQty={data.setSkipQty}
+          reverseLogic={data.reverseLogic} setReverseLogic={data.setReverseLogic}
           hasCycle={data.hasCycle} setHasCycle={data.setHasCycle}
           startDate={data.startDate} setStartDate={data.setStartDate}
           endDate={data.endDate} setEndDate={data.setEndDate}
@@ -60,13 +61,17 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
         <EmptyState icon="💊" label='Brak aktywnych suplementów. Kliknij "Dodaj Cykl" powyżej.' />
       ) : (
         <div className="space-y-3">
-          {data.activeSups.map(sup => (
-            <SupplementCard key={sup.id} sup={sup} takenToday={data.isLogged(sup.id, data.today)}
-              last7Days={data.last7Days} today={data.today}
-              onToggle={() => void data.handleToggle(sup)}
-              onDeactivate={() => void data.handleDeactivate(sup)}
-              isLogged={data.isLogged} />
-          ))}
+          {data.activeSups.map(sup => {
+            const isReverse = sup.name.toLowerCase().includes('pyłek') || sup.name.toLowerCase().includes('pollen') || sup.dose_per_unit?.['reverse_logic'] === true;
+            const takenToday = isReverse ? !data.isLogged(sup.id, data.today) : data.isLogged(sup.id, data.today);
+            return (
+              <SupplementCard key={sup.id} sup={sup} takenToday={takenToday}
+                last7Days={data.last7Days} today={data.today}
+                onToggle={() => void data.handleToggle(sup)}
+                onDeactivate={() => void data.handleDeactivate(sup)}
+                isLogged={data.isLogged} />
+            );
+          })}
         </div>
       )}
     </Card>

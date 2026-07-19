@@ -73,8 +73,8 @@ export async function handleSupplementCallback(
         await answerCallbackQuery(telegramToken, callbackId, { text: '❌ Błąd zapisu' });
         return;
       }
-      await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zalogowano!' });
-      await editMessageText(telegramToken, chatId, messageId, `✅ ${supl.emoji || '💊'} ${supl.name} — 1 ${supl.unit || 'porcja'}`);
+      await answerCallbackQuery(telegramToken, callbackId, { text: 'Zalogowano!' });
+      await editMessageText(telegramToken, chatId, messageId, `✓ Zapisano suplement\n\n${supl.name}\n1 ${supl.unit || 'porcja'}`);
       return;
     }
 
@@ -113,8 +113,8 @@ export async function handleSupplementCallback(
       await answerCallbackQuery(telegramToken, callbackId, { text: '❌ Błąd zapisu' });
       return;
     }
-    await answerCallbackQuery(telegramToken, callbackId, { text: '✅ Zalogowano!' });
-    await editMessageText(telegramToken, chatId, messageId, `✅ ${supl.emoji || '💊'} ${supl.name} — ${qty}x ${supl.unit || 'szt'}`);
+    await answerCallbackQuery(telegramToken, callbackId, { text: 'Zalogowano!' });
+    await editMessageText(telegramToken, chatId, messageId, `✓ Zapisano suplement\n\n${supl.name}\n${qty}x ${supl.unit || 'szt'}`);
   }
 }
 

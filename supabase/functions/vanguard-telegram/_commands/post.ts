@@ -43,6 +43,6 @@ export async function handlePostCommand(
     await safeSendTelegram(chatId, `🔵 Post zapisany (${dateStr})${note ? `\nOpis: ${note}` : ''}`, telegramToken, { reply_markup: DEFAULT_REPLY_KEYBOARD });
   } catch (err) {
     console.error('[commands] /post failed:', err);
-    await safeSendTelegram(chatId, '❌ Błąd zapisu postu: ' + (err as Error).message, telegramToken);
+    await safeSendTelegram(chatId, '! Nie udało się zapisać postu.', telegramToken);
   }
 }

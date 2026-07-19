@@ -47,7 +47,7 @@ export async function handleForceReplyReply(
     await handleTodoCommand(text, chatId, telegramToken, supabase, vanguardUserId, deepseekApiKey);
     return true;
   }
-  if (promptText.includes("Vanguard Keep")) {
+  if (promptText.includes("Notatka") || promptText.includes("Vanguard Keep")) {
     await handleKeepCommand(text, chatId, telegramToken, supabase, vanguardUserId, false);
     return true;
   }
@@ -119,12 +119,32 @@ export async function insertStreamRecord(
   const { supabase, openAiKey, deepseekApiKey, vanguardUserId } = ctx;
   const skipStreamEnrichment = mode === 'daily_reconciliation_response' || !!pendingReconciliation;
 
-  let streamEmbedding = null;
-  let emotionData: { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null = null;
-  let streamSaveFailed = false;
   let streamRecordId: string | null = null;
+  let streamSaveFailed = false;
 
-  if (!skipStreamEnrichment && cleanText.trim()) {
+  // 1. Insert the raw record first
+  try {
+    const streamInserted = await insertStreamRow(supabase, {
+      user_id: vanguardUserId,
+      source: 'telegram',
+      content: cleanText,
+      metadata: {
+        telegram_chat_id: chatId,
+        telegram_message_id: messageId,
+        mode,
+        ...(pendingReconciliation ? { reconciliation_id: pendingReconciliation.id, reconciliation_date: pendingReconciliation.date } : {}),
+        ...(isVoice && voiceDurationSec > 0 ? { voice_duration_seconds: voiceDurationSec, voice_wpm: voiceWpm } : {}),
+      }
+    });
+    streamRecordId = streamInserted.id;
+  } catch (streamInsertError) {
+    console.error("[telegram] stream insert failed:", streamInsertError);
+    streamSaveFailed = true;
+    return { streamRecordId: null, streamSaveFailed: true };
+  }
+
+  // 2. Perform enrichment and update the record
+  if (streamRecordId && !skipStreamEnrichment && cleanText.trim()) {
     try {
       const [embedRes, emotionRes] = await Promise.all([
         getEmbedding(cleanText, openAiKey),
@@ -142,48 +162,53 @@ export async function insertStreamRecord(
         })
       ]);
 
+      let streamEmbedding = null;
       if (Array.isArray(embedRes) && typeof embedRes[0] === 'number') {
         streamEmbedding = embedRes;
       } else {
         console.warn('[telegram] OpenAI embedding returned empty result');
       }
 
+      let emotionData = null;
       if (emotionRes && 'content' in emotionRes) {
         emotionData = parseJsonFromContent(emotionRes.content || '{}') as { valence: number; arousal: number; state: string; energy_level?: number; stress_level?: number } | null;
       }
+
+      if (streamEmbedding || emotionData) {
+        const { data: currentRec } = await supabase
+          .from("vanguard_stream")
+          .select("metadata")
+          .eq("id", streamRecordId)
+          .single();
+
+        const currentMetadata = (currentRec?.metadata as Record<string, unknown>) || {};
+        const updatedMetadata = {
+          ...currentMetadata,
+          ...(emotionData ? { emotion: { ...emotionData, from_voice: isVoice } } : {})
+        };
+
+        const { error: updateError } = await supabase
+          .from("vanguard_stream")
+          .update({
+            embedding: streamEmbedding,
+            metadata: updatedMetadata,
+          })
+          .eq("id", streamRecordId);
+
+        if (updateError) {
+          console.error('[telegram] Failed to update stream record with enrichment:', updateError.message);
+        } else if (emotionData) {
+          console.log(`[telegram] emotion: ${emotionData.state} (v=${emotionData.valence?.toFixed(2)}, a=${emotionData.arousal?.toFixed(2)}) voice=${isVoice}`);
+        }
+      }
     } catch (err) {
       await logCriticalError({
-        area: 'telegram-messages',
+        area: 'telegram-messages-enrichment',
         error: err,
-        message: 'Stream embedding or emotion extraction failed',
+        message: 'Stream embedding or emotion extraction failed after insert',
       });
     }
   }
 
-  try {
-    const streamInserted = await insertStreamRow(supabase, {
-      user_id: vanguardUserId,
-      source: 'telegram',
-      content: cleanText,
-      embedding: streamEmbedding,
-      metadata: {
-        telegram_chat_id: chatId,
-        telegram_message_id: messageId,
-        mode,
-        ...(pendingReconciliation ? { reconciliation_id: pendingReconciliation.id, reconciliation_date: pendingReconciliation.date } : {}),
-        ...(isVoice && voiceDurationSec > 0 ? { voice_duration_seconds: voiceDurationSec, voice_wpm: voiceWpm } : {}),
-        ...(emotionData ? { emotion: { ...emotionData, from_voice: isVoice } } : {})
-      }
-    });
-    streamRecordId = streamInserted.id;
-  } catch (streamInsertError) {
-    console.error("[telegram] stream insert failed:", streamInsertError);
-    streamSaveFailed = true;
-  }
-
-  if (emotionData) {
-    console.log(`[telegram] emotion: ${emotionData.state} (v=${emotionData.valence?.toFixed(2)}, a=${emotionData.arousal?.toFixed(2)}) voice=${isVoice}`);
-  }
-
-  return { streamRecordId, streamSaveFailed };
+  return { streamRecordId, streamSaveFailed: false };
 }

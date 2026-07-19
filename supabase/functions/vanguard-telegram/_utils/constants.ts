@@ -6,17 +6,13 @@
 export const DEFAULT_REPLY_KEYBOARD = {
   keyboard: [
     [
-      { text: "🛋️ Lenie" }
+      { text: "＋ Zadanie" },
+      { text: "🍽 Posiłek" },
+      { text: "📝 Notatka" }
     ],
     [
-      { text: "📝 Todo" },
-      { text: "📒 Keep" }
-    ],
-    [
-      { text: "🍴 Posiłek" }
-    ],
-    [
-      { text: "💊 Suple" }
+      { text: "💊 Suplement" },
+      { text: "••• Więcej" }
     ]
   ],
   resize_keyboard: true,

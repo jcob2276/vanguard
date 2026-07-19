@@ -9,15 +9,27 @@ export class OracleResponseInterceptor implements MessageInterceptor {
   name = "OracleResponseInterceptor";
   async handle(ctx: MessageContext): Promise<boolean> {
     let responseText = "";
+    let inlineKeyboard: any[][] = [];
+    let showReceiptButtons = false;
+
     if (!ctx.shouldRespond) {
-      responseText =
-        ctx.mode === "knowledge"
-          ? "📖 Zapisano w wiedzy (przez kontrolowany ingest)."
-          : ctx.mode === "daily_reconciliation_response"
-          ? "✅ Refleksja zapisana."
-          : ctx.streamSaveFailed
-          ? "❌ Błąd zapisu — wiadomość nie została zachowana. Spróbuj ponownie."
-          : ""; // No filler — silence means success
+      if (ctx.isVoice && ctx.streamRecordId && !ctx.streamSaveFailed) {
+        const durationSec = ctx.voiceAttachment?.duration || 0;
+        const minutes = Math.floor(durationSec / 60);
+        const seconds = durationSec % 60;
+        const durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        responseText = `✓ Zapisano głosówkę · ${durationStr}`;
+        showReceiptButtons = true;
+      } else {
+        responseText =
+          ctx.mode === "knowledge"
+            ? "📖 Zapisano w wiedzy (przez kontrolowany ingest)."
+            : ctx.mode === "daily_reconciliation_response"
+            ? "✅ Refleksja zapisana."
+            : ctx.streamSaveFailed
+            ? "❌ Błąd zapisu — wiadomość nie została zachowana. Spróbuj ponownie."
+            : ""; // No filler — silence means success
+      }
 
       // Nothing to say and no error — exit silently
       if (!responseText) return true;
@@ -31,27 +43,26 @@ export class OracleResponseInterceptor implements MessageInterceptor {
     }
 
     const hasButtons = ctx.shouldRespond && !responseText.startsWith("⚠️");
-    const inlineKeyboard: any[][] = [];
     if (hasButtons) {
-      inlineKeyboard.push([
-        { text: "👍 Dobra odpowiedź", callback_data: `fb_ok_${Date.now()}` },
-        { text: "👎 Popraw mnie", callback_data: `fb_err_${Date.now()}` },
-      ]);
+      const row: any[] = [];
       if (ctx.resolvedClaims && ctx.resolvedClaims.length > 0) {
-        for (const claim of ctx.resolvedClaims) {
-          const cleanText = claim.text.length > 35 ? claim.text.substring(0, 32) + "..." : claim.text;
-          inlineKeyboard.push([
-            { text: `💾 Zapisz: "${cleanText}"`, callback_data: `save_claim_${claim.id}` }
-          ]);
-        }
+        row.push({ text: "Zastosuj", callback_data: `save_claim_${ctx.resolvedClaims[0].id}` });
       }
+      row.push({ text: "Dopytaj", callback_data: `oracle_clarify:${ctx.messageId}` });
+      row.push({ text: "•••", callback_data: `oracle_more:${ctx.messageId}` });
+      inlineKeyboard.push(row);
+    } else if (showReceiptButtons) {
+      inlineKeyboard.push([
+        { text: "Pokaż tekst", callback_data: `show_text:stream:${ctx.streamRecordId}` },
+        { text: "Cofnij", callback_data: `undo:stream:${ctx.streamRecordId}` }
+      ]);
     }
 
     const telegramPayload = {
       chat_id: ctx.chatId,
       text: responseText,
       disable_notification: !ctx.shouldRespond,
-      reply_markup: hasButtons
+      reply_markup: (hasButtons || showReceiptButtons)
         ? { inline_keyboard: inlineKeyboard }
         : DEFAULT_REPLY_KEYBOARD,
     };

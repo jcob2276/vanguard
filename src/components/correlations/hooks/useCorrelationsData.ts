@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { CorrelationCategory, CorrelationResult } from '@vanguard/domain';
-import { isInterestingCorrelationClient, isSleepStageDriver } from '@vanguard/domain';
+import type { CorrelationCategory, ImpactFactor } from '@vanguard/domain';
+import { classifyImpactFactors } from '@vanguard/domain';
 import { useUserId } from '../../../store/useStore';
 import { useCorrelationsQuery } from '../../../lib/correlationsApi';
 
@@ -24,10 +24,6 @@ const COVERAGE_HINTS: Record<string, string> = {
   insulin_load: 'Insulin load z logów posiłków',
 };
 
-function scorePair(c: CorrelationResult) {
-  return c.r_abs * 100 + (c.significant ? 40 : 0) + Math.min(c.n, 30) * 0.5 + (c.cross_domain ? 18 : 0);
-}
-
 export function useCorrelationsData() {
   const userId = useUserId();
   const [filter, setFilter] = useState<CorrelationCategory | 'all'>('all');
@@ -35,7 +31,6 @@ export function useCorrelationsData() {
 
   const query = useCorrelationsQuery(userId, includeWeak);
   const correlations = useMemo(() => query.data?.correlations ?? [], [query.data]);
-  const behaviors = query.data?.behaviors ?? [];
   const coverage = useMemo(() => query.data?.coverage ?? {}, [query.data]);
   const stats = query.data?.stats ?? null;
   const loading = query.isLoading;
@@ -44,66 +39,61 @@ export function useCorrelationsData() {
     : null;
   const load = query.refetch;
 
-  const visibleCorrelations = useMemo(() => {
-    if (includeWeak) return correlations;
-    return correlations.filter(isInterestingCorrelationClient);
-  }, [correlations, includeWeak]);
+  // Run the strict statistical classification
+  const impactFactors = useMemo(() => classifyImpactFactors(correlations), [correlations]);
 
-  const filtered = useMemo(() => {
-    let list = visibleCorrelations;
-    if (filter !== 'all') list = list.filter(c => c.category === filter);
+  const filteredFactors = useMemo(() => {
+    let list = impactFactors;
+    if (filter !== 'all') {
+      list = list.filter(f => f.category === filter);
+    }
     return list;
-  }, [visibleCorrelations, filter]);
+  }, [impactFactors, filter]);
 
-  const highlights = useMemo(
-    () => visibleCorrelations.filter(c => c.significant && c.has_enough_data).slice(0, 3),
-    [visibleCorrelations]
+  // Surf top factors for UI sections
+  const confirmedFactors = useMemo(
+    () => impactFactors.filter(f => f.evidence_level === 'confirmed').slice(0, 3),
+    [impactFactors]
   );
 
-  const deepSleepDrivers = useMemo(
-    () => visibleCorrelations
-      .filter(c => c.y_metric === 'deep_sleep_h')
-      .sort((a, b) => scorePair(b) - scorePair(a))
-      .slice(0, 6),
-    [visibleCorrelations],
+  const probableFactors = useMemo(
+    () => impactFactors.filter(f => f.evidence_level === 'probable').slice(0, 3),
+    [impactFactors]
   );
 
-  const remSleepDrivers = useMemo(
-    () => visibleCorrelations
-      .filter(c => c.y_metric === 'rem_sleep_h')
-      .sort((a, b) => scorePair(b) - scorePair(a))
-      .slice(0, 6),
-    [visibleCorrelations],
+  const hypotheses = useMemo(
+    () => impactFactors.filter(f => f.evidence_level === 'hypothesis').slice(0, 3),
+    [impactFactors]
   );
 
-  const filteredWithoutSleepStages = useMemo(() => {
-    if (filter !== 'all' && filter !== 'sen') return filtered;
-    return filtered.filter(c => !isSleepStageDriver(c));
-  }, [filtered, filter]);
+  const noEvidenceFactors = useMemo(
+    () => impactFactors.filter(f => f.evidence_level === 'no_evidence').slice(0, 5),
+    [impactFactors]
+  );
 
   const sparseMetrics = useMemo(() =>
     Object.entries(coverage)
-      .filter(([k, n]) => n > 0 && n < 7 && COVERAGE_HINTS[k])
-      .map(([k, n]) => ({ key: k, n, hint: COVERAGE_HINTS[k] })),
+      .filter(([k, n]) => n > 0 && n < 15 && COVERAGE_HINTS[k])
+      .map(([k, n]) => ({ key: k, n, hint: COVERAGE_HINTS[k], needed: 25 - n })),
   [coverage]);
 
   return {
     userId,
-    correlations,
-    behaviors,
+    impactFactors,
+    filteredFactors,
+    confirmedFactors,
+    probableFactors,
+    hypotheses,
+    noEvidenceFactors,
     coverage,
     stats,
     loading,
     error,
-    filter, setFilter,
-    includeWeak, setIncludeWeak,
+    filter,
+    setFilter,
+    includeWeak,
+    setIncludeWeak,
     load,
-    visibleCorrelations,
-    filtered,
-    highlights,
-    deepSleepDrivers,
-    remSleepDrivers,
-    filteredWithoutSleepStages,
     sparseMetrics,
   };
 }

@@ -8,9 +8,9 @@ export function useMedicalData(userId: string | undefined) {
     queryKey: ['medical-data', userId],
     queryFn: async () => {
       if (!userId) {
-        return { labs: [], bodyComposition: [] };
+        return { labs: [], bodyComposition: [], documents: [] };
       }
-      const [labRes, bodyRes] = await Promise.all([
+      const [labRes, bodyRes, docRes] = await Promise.all([
         supabase
           .from('medical_lab_results')
           .select(
@@ -28,10 +28,19 @@ export function useMedicalData(userId: string | undefined) {
           .eq('user_id', userId)
           .order('measured_at', { ascending: false })
           .limit(20),
+        supabase
+          .from('medical_documents')
+          .select(
+            'id, document_date, document_type, source_name, source_path, provider, clinical_validity, summary, notes, created_at'
+          )
+          .eq('user_id', userId)
+          .order('document_date', { ascending: false })
+          .limit(50),
       ]);
 
       if (labRes.error) throw new Error(labRes.error.message);
       if (bodyRes.error) throw new Error(bodyRes.error.message);
+      if (docRes.error) throw new Error(docRes.error.message);
 
       const labs = (labRes.data ?? []).map((r) => ({
         ...r,
@@ -51,13 +60,16 @@ export function useMedicalData(userId: string | undefined) {
         bmr_kcal: r.bmr_kcal == null ? null : Number(r.bmr_kcal),
       })) as BodyCompositionRow[];
 
-      return { labs, bodyComposition };
+      const documents = docRes.data ?? [];
+
+      return { labs, bodyComposition, documents };
     },
     enabled: !!userId,
   });
 
   const labs = query.data?.labs ?? [];
   const bodyComposition = query.data?.bodyComposition ?? [];
+  const documents = query.data?.documents ?? [];
   const loading = query.isLoading;
   const error = query.error instanceof Error ? query.error.message : null;
 
@@ -65,6 +77,6 @@ export function useMedicalData(userId: string | undefined) {
     await query.refetch();
   }, [query]);
 
-  return { labs, bodyComposition, loading, error, refresh };
+  return { labs, bodyComposition, documents, loading, error, refresh };
 }
 

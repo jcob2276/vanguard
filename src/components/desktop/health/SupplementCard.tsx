@@ -26,6 +26,8 @@ interface SupplementCardProps {
 }
 
 export default function SupplementCard({ sup, takenToday, last7Days, today, onToggle, onDeactivate, isLogged }: SupplementCardProps) {
+  const isReverse = sup.name.toLowerCase().includes('pyłek') || sup.name.toLowerCase().includes('pollen') || sup.dose_per_unit?.['reverse_logic'] === true;
+
   let cycleProgress = null;
   let cycleDaysText = null;
   if (sup.start_date) {
@@ -62,7 +64,7 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${takenToday ? 'border-success/40 bg-success/10 text-success hover:bg-success/20' : 'border-border-custom bg-surface hover:text-text-primary hover:border-border-custom/80'}`}
             icon={<Check size={11} className={takenToday ? 'stroke-[var(--ds-arbitrary-3px)]' : 'opacity-[var(--opacity-30)]'} />}
           >
-            <span>{takenToday ? 'Zalogowano' : 'Zaloguj'}</span>
+            <span>{isReverse ? (takenToday ? 'Wzięty' : 'Pominięty') : (takenToday ? 'Zalogowano' : 'Zaloguj')}</span>
           </Button>
           <Button variant="ghost" size="sm" type="button" onClick={onDeactivate}
             className="p-2 text-text-muted hover:text-danger border border-transparent hover:border-danger/20 hover:bg-danger/5 rounded-lg transition-all cursor-pointer" title="Zarchiwizuj"
@@ -90,10 +92,11 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
             const logged = isLogged(sup.id, date);
             const isToday = date === today;
             const inCycle = isWithinCycle(sup, date);
+            const taken = isReverse ? (inCycle ? !logged : false) : logged;
             return (
               <div key={date} className="flex flex-col items-center gap-0.5" title={`${date}${!inCycle ? ' (poza cyklem)' : ''}`}>
-                <div className={`h-4.5 w-4.5 rounded-md flex items-center justify-center text-2xs transition-all border ${logged ? 'bg-success/20 border-success/50 text-success font-bold' : !inCycle ? 'bg-surface/20 border-border-custom/20 text-text-muted/30 line-through' : isToday ? 'bg-surface border-primary/40 text-primary' : 'bg-surface/40 border-border-custom/50 text-text-muted'}`}>
-                  {logged ? '✓' : ''}
+                <div className={`h-4.5 w-4.5 rounded-md flex items-center justify-center text-2xs transition-all border ${taken ? 'bg-success/20 border-success/50 text-success font-bold' : !inCycle ? 'bg-surface/20 border-border-custom/20 text-text-muted/30 line-through' : isToday ? 'bg-surface border-primary/40 text-primary' : 'bg-surface/40 border-border-custom/50 text-text-muted'}`}>
+                  {taken ? '✓' : ''}
                 </div>
                 <span className={`text-3xs font-mono leading-none ${isToday ? 'text-primary font-bold' : 'text-text-muted'}`}>{formatShortDate(date).split('.')[0]}</span>
               </div>

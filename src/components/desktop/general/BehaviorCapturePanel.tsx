@@ -1,13 +1,11 @@
 import { Pressable } from '../../ui/ControlPrimitives';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import { ToggleChip } from '../../ui/ToggleChip';
 import {
-  BEHAVIOR_CAPTURE_ENTRIES,
   BEHAVIOR_CONFOUNDERS,
-  storeLabel,
   type BehaviorConfounderKey,
 } from '../../../lib/behavior/behaviorCapture';
 import { fetchBehaviorLogsSince, setBehaviorConfounder } from '../../../lib/behavior/behaviorLogClient';
@@ -53,15 +51,13 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
     }
   }
 
-  const visibleEntries = BEHAVIOR_CAPTURE_ENTRIES.filter((e) => !e.deprecated);
-
   return (
     <Card padding="1rem 1.25rem" className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <MapPin size={12} className="text-primary shrink-0" />
+          <Activity size={12} className="text-primary shrink-0" />
           <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-25em)] text-text-muted">
-            Gdzie co logować
+            Sygnały dnia ({today})
           </p>
         </div>
         <Pressable
@@ -73,61 +69,26 @@ export default function BehaviorCapturePanel({ userId }: BehaviorCapturePanelPro
         />
       </div>
 
-      <p className="text-xs text-text-secondary leading-relaxed">
-        Jedna mapa pamięci behawioralnej — unikaj duplikatów w złych tabelach. Lenie, sauna i stream mają osobne,
-        kanoniczne ścieżki.
+      <p className="text-2xs text-text-secondary leading-relaxed">
+        Codzienne confoundery rejestrowane bezpośrednio w <code className="text-2xs">behavior_log</code> (np. alkohol, stres, choroba, podróż).
       </p>
 
-      <div className="space-y-2">
-        {visibleEntries.map((entry) => (
-          <div
-            key={entry.id}
-            className="rounded-xl border border-border-custom/80 bg-surface/40 px-3 py-2.5"
-          >
-            <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-              <p className="text-xs font-black uppercase text-text-primary">{entry.label}</p>
-              <span className="text-2xs font-bold uppercase tracking-wider text-primary/80">
-                {storeLabel(entry.store)}
-              </span>
-            </div>
-            <p className="mt-1 text-2xs text-text-secondary">
-              <span className="font-bold text-text-muted">Loguj:</span> {entry.logVia}
-            </p>
-            <p className="text-2xs text-text-muted">
-              <span className="font-bold">Używa:</span> {entry.usedBy}
-            </p>
-            {entry.note ? (
-              <p className="mt-1 text-2xs text-warning/90 leading-snug">{entry.note}</p>
-            ) : null}
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-xl border border-primary/15 bg-primary/[0.04] p-3 space-y-2">
-        <p className="text-2xs font-black uppercase tracking-widest text-text-primary">
-          Sygnały dnia ({today})
-        </p>
-        <p className="text-2xs text-text-muted leading-relaxed">
-          Confoundery na dziś — trafiają do <code className="text-2xs">behavior_log</code> (illness, strain,
-          korelacje). Nie mylić z nawykami ani sauną.
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {BEHAVIOR_CONFOUNDERS.map(({ key, label, icon }) => {
-            const on = activeKeys.has(key);
-            return (
-              <ToggleChip
-                key={key}
-                active={on}
-                onClick={() => void toggleConfounder(key)}
-                disabled={savingKey === key}
-                className="text-left justify-start py-2"
-              >
-                <span className="text-xs mr-1">{icon}</span>
-                <span className="text-2xs font-black uppercase tracking-wide">{label}</span>
-              </ToggleChip>
-            );
-          })}
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        {BEHAVIOR_CONFOUNDERS.map(({ key, label, icon }) => {
+          const on = activeKeys.has(key);
+          return (
+            <ToggleChip
+              key={key}
+              active={on}
+              onClick={() => void toggleConfounder(key)}
+              disabled={savingKey === key}
+              className="text-left justify-start py-2"
+            >
+              <span className="text-xs mr-1">{icon}</span>
+              <span className="text-2xs font-black uppercase tracking-wide">{label}</span>
+            </ToggleChip>
+          );
+        })}
       </div>
     </Card>
   );
