@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { getTodayWarsaw, shiftDateStr } from './date';
 import { biometricsKeys } from './queryKeys';
+import { buildWeeklyBodyPulse, weeklyBodyPulseWindow, type WeeklyBodyPulseData } from './weeklyBodyPulse';
+
+export type { WeeklyBodyPulseData };
 
 // ── QUERIES ──
 
@@ -55,11 +58,11 @@ export function useDailyStrainOura(userId: string) {
 }
 
 export function useWeeklyBodyPulse(userId: string) {
-  const since = shiftDateStr(getTodayWarsaw(), -6);
+  const { since, fromISO, toISO } = weeklyBodyPulseWindow();
   return useQuery({
     queryKey: biometricsKeys.weeklyPulse(userId, since),
-    queryFn: async () => {
-      const [strainResult, workoutResult] = await Promise.all([
+    queryFn: async (): Promise<WeeklyBodyPulseData> => {
+      const [strainResult, workoutResult, stravaResult, ouraResult] = await Promise.all([
         supabase
           .from('daily_strain')
           .select('date, recovery_score, strain_score, daily_status')
@@ -68,23 +71,34 @@ export function useWeeklyBodyPulse(userId: string) {
           .order('date', { ascending: true }),
         supabase
           .from('workout_sessions')
-          .select('id, date')
+          .select('date, workout_day, exercise_logs(exercise_name, muscle_tags, reps)')
           .eq('user_id', userId)
-          .gte('date', since),
+          .or(`date.gte.${since},workout_day.gte.${since}`),
+        supabase
+          .from('strava_activities_clean')
+          .select('start_date, sport_type, distance')
+          .eq('user_id', userId)
+          .gte('start_date', fromISO)
+          .lte('start_date', toISO),
+        supabase
+          .from('oura_daily_summary')
+          .select('date, total_sleep_hours, sleep_score, bedtime_timestamp, bedtime_end_timestamp, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, hrv_avg, latency_minutes, readiness_score')
+          .eq('user_id', userId)
+          .gte('date', since)
+          .order('date', { ascending: true }),
       ]);
       if (strainResult.error) throw new Error(strainResult.error.message);
       if (workoutResult.error) throw new Error(workoutResult.error.message);
-      const strain = strainResult.data ?? [];
-      const recoveryValues = strain.flatMap((row) => row.recovery_score == null ? [] : [row.recovery_score]);
-      const averageRecovery = recoveryValues.length
-        ? Math.round(recoveryValues.reduce((sum, value) => sum + value, 0) / recoveryValues.length)
-        : null;
-      return {
-        measuredDays: strain.length,
-        averageRecovery,
-        workoutCount: workoutResult.data?.length ?? 0,
-        warningDays: strain.filter((row) => row.daily_status === 'red' || row.daily_status === 'yellow').length,
-      };
+      if (stravaResult.error) throw new Error(stravaResult.error.message);
+      if (ouraResult.error) throw new Error(ouraResult.error.message);
+
+      return buildWeeklyBodyPulse({
+        since,
+        sessions: workoutResult.data ?? [],
+        strava: stravaResult.data ?? [],
+        oura: ouraResult.data ?? [],
+        strain: strainResult.data ?? [],
+      });
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 30,

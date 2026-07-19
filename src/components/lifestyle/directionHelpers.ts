@@ -41,29 +41,3 @@ export function calculateStats(history: DailyWinRow[]) {
   }
   return { streak, weeklyP: weeks[0]?.pCount || 0, monthlyWin: weeks.filter((w) => w.isWeekWin).length >= 3, weeks };
 }
-
-export function calculateWeekFacts(
-  weekDoneTasks: { title: string; status: string }[],
-  weekOura: { total_sleep_hours: number | null; readiness_score: number | null }[],
-  weekRuns: { distance: number | null }[],
-  weekNutrition: { calories: number | null }[],
-  nutritionTarget: number | null
-) {
-  const done = weekDoneTasks.filter((t) => t.status === 'done').map((t) => t.title);
-  const dropped = weekDoneTasks.filter((t) => t.status === 'dropped').map((t) => t.title);
-  const sleepArr = weekOura.map((o) => o.total_sleep_hours).filter((v): v is number => v != null);
-  const readArr = weekOura.map((o) => o.readiness_score).filter((v): v is number => v != null);
-  const kcalArr = weekNutrition.map((n) => n.calories).filter((v): v is number => v != null);
-  const totalKm = weekRuns.reduce((s, r) => s + (r.distance || 0), 0) / 1000;
-  return {
-    doneCount: done.length,
-    totalCount: done.length + dropped.length,
-    doneTasks: done.slice(0, 10),
-    droppedTasks: dropped.slice(0, 5),
-    sleepHrs: sleepArr.length ? sleepArr.reduce((a, b) => a + b, 0) / sleepArr.length : null,
-    readiness: readArr.length ? readArr.reduce((a, b) => a + b, 0) / readArr.length : null,
-    totalKm: totalKm > 0 ? totalKm : null,
-    avgKcal: kcalArr.length ? kcalArr.reduce((a, b) => a + b, 0) / kcalArr.length : null,
-    targetKcal: nutritionTarget,
-  };
-}

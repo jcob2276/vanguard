@@ -52,7 +52,7 @@ export function useNutritionData({ weeklyCalories, refreshSignal }: UseNutrition
           .maybeSingle(),
         supabase
           .from('daily_nutrition')
-          .select('date, protein, calories, food_quality_analysis, insulin_load, avg_food_quality')
+          .select('date, protein, calories, carbs, fat, fiber, sugar, food_quality_analysis, insulin_load, avg_food_quality')
           .eq('user_id', userId)
           .gte('date', since)
           .order('date', { ascending: true }),

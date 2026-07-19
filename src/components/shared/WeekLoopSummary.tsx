@@ -1,10 +1,22 @@
-import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ListChecks, Target, TrendingUp } from 'lucide-react';
 import type { DirectionContextData } from '../../lib/dailyPlanProposal';
-import { formatSprintWeekBridge } from '../../lib/goal/goalSpine';
-import { formatSprintFromLongTerm } from '../../lib/goal/longTermBridge';
 import { Card } from '../ui/Card';
+
+function norm(text: string | null | undefined): string {
+  return (text ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  const na = norm(a);
+  const nb = norm(b);
+  return na.length > 0 && na === nb;
+}
+
+function truncate(text: string, max = 110): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
+}
 
 export default function WeekLoopSummary({
   ctx,
@@ -14,92 +26,68 @@ export default function WeekLoopSummary({
     DirectionContextData,
     | 'weekGoals'
     | 'weekGoalsMeta'
-    | 'powerListStats'
-    | 'mustPins'
-    | 'openMustPins'
     | 'focus'
-    | 'weekCheckpointsDone'
-    | 'weekCheckpointsDue'
     | 'sprintGoal'
-    | 'sprintLabel'
     | 'monthTheme'
     | 'monthLabel'
     | 'bhagLine'
   >;
   compact?: boolean;
 }) {
-  const mustDone = ctx.mustPins.filter((p) => p.slot === 'must' && p.done).length;
-  const mustTotal = ctx.mustPins.filter((p) => p.slot === 'must').length;
-  const intention = ctx.weekGoals.intention || ctx.weekGoals.commitment;
-  const sprintBridge = formatSprintWeekBridge(ctx.sprintGoal, intention);
-  const longTermBridge = formatSprintFromLongTerm(ctx.bhagLine ?? null, ctx.sprintGoal);
+  const intention = (ctx.weekGoals.intention || ctx.weekGoals.commitment)?.trim() || null;
+  const bhag = ctx.bhagLine?.trim() || null;
+  const month = ctx.monthTheme?.trim() || null;
+  const sprint = ctx.sprintGoal?.trim() || null;
+
+  const showSprint = Boolean(sprint && !sameText(sprint, month) && !sameText(sprint, bhag));
+  const showWeek = Boolean(
+    intention && !sameText(intention, month) && !sameText(intention, sprint) && !sameText(intention, bhag),
+  );
 
   return (
     <Card className={compact ? 'space-y-2' : 'space-y-3'} padding={compact ? '0.875rem' : '1.25rem'}>
       <p className="text-2xs font-black uppercase tracking-[var(--ds-arbitrary-0-2em)] text-text-muted">Pętla tygodnia</p>
 
-      {longTermBridge && (
-        <p className={`text-text-secondary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>
-          {longTermBridge}
-        </p>
-      )}
+      <div className="space-y-2">
+        {bhag && (
+          <Layer label="Rok" text={truncate(bhag)} muted />
+        )}
 
-      {ctx.monthTheme && (
-        <p className={`text-text-secondary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>
-          <span className="font-black uppercase tracking-wider text-primary">
-            Temat miesiąca{ctx.monthLabel ? ` · ${ctx.monthLabel}` : ''}:{' '}
-          </span>
-          {ctx.monthTheme}
-        </p>
-      )}
+        {month && (
+          <Layer
+            label={`Miesiąc${ctx.monthLabel ? ` · ${ctx.monthLabel}` : ''}`}
+            text={month}
+            accent
+          />
+        )}
 
-      {sprintBridge && (
-        <p className={`font-semibold text-text-primary leading-snug ${compact ? 'text-xs' : 'text-xs'}`}>
-          {sprintBridge}
-        </p>
-      )}
-      {intention ? (
-        <div className="space-y-1">
-          <p className={`font-bold text-text-primary leading-snug ${compact ? 'text-sm' : 'text-sm'}`}>{intention}</p>
-          {ctx.weekGoalsMeta?.source === 'fallback' && (
+        {showSprint && (
+          <Layer label="Sprint" text={sprint!} />
+        )}
+
+        {showWeek ? (
+          <div className="space-y-1">
+            <Layer label="Ten tydzień" text={intention!} strong />
+            {ctx.weekGoalsMeta?.source === 'fallback' && (
+              <p className="text-xs font-semibold text-warning">
+                Plan z poprzedniego tygodnia — uzupełnij w niedzielnym przeglądzie.
+              </p>
+            )}
+          </div>
+        ) : intention ? (
+          ctx.weekGoalsMeta?.source === 'fallback' ? (
             <p className="text-xs font-semibold text-warning">
               Plan z poprzedniego tygodnia — uzupełnij w niedzielnym przeglądzie.
             </p>
-          )}
-        </div>
-      ) : (
-        <p className="text-xs text-text-muted">
-          Brak intencji —{' '}
-          <Link to="/?view=tydzien" className="text-primary font-bold hover:underline">
-            uzupełnij w Tydzień
-          </Link>
-        </p>
-      )}
-
-      <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
-        <MiniStat
-          icon={<ListChecks size={10} />}
-          label="5 zwycięstw"
-          value={`${ctx.powerListStats.tasksDone}/${ctx.powerListStats.tasksSet || '?'}`}
-          sub={`${ctx.powerListStats.daysWithWins}d aktywnych`}
-        />
-        <MiniStat
-          icon={<Target size={10} />}
-          label="MUST"
-          value={`${mustDone}/${mustTotal || 3}`}
-          sub={mustTotal ? undefined : 'Ustaw w Rozwoju'}
-        />
-        <MiniStat
-          icon={<CalendarDays size={10} />}
-          label="Checkpointy"
-          value={`${ctx.weekCheckpointsDone}/${ctx.weekCheckpointsDone + ctx.weekCheckpointsDue}`}
-          sub="zamknięte / otwarte w tyg."
-        />
-        <MiniStat
-          icon={<TrendingUp size={10} />}
-          label={ctx.sprintLabel ?? 'Sprint'}
-          value={`tyg. ${ctx.sprintLabel?.replace('Sprint ', '') ?? '—'}`}
-        />
+          ) : null
+        ) : (
+          <p className="text-xs text-text-muted">
+            Brak intencji tygodnia —{' '}
+            <Link to="/?view=tydzien" className="text-primary font-bold hover:underline">
+              uzupełnij w Tydzień
+            </Link>
+          </p>
+        )}
       </div>
 
       {ctx.focus.skillLabel && (
@@ -122,27 +110,26 @@ export default function WeekLoopSummary({
   );
 }
 
-function MiniStat({
-  icon,
+function Layer({
   label,
-  value,
-  sub,
+  text,
+  muted,
+  accent,
+  strong,
 }: {
-  icon: ReactNode;
   label: string;
-  value: string;
-  sub?: string;
+  text: string;
+  muted?: boolean;
+  accent?: boolean;
+  strong?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border-custom bg-background/50 px-2.5 py-2 min-w-0">
-      <p className="flex items-center gap-1 text-3xs font-black uppercase text-text-muted truncate">
-        {icon} {label}
-      </p>
-      <p className="text-xs font-black text-text-primary mt-0.5 truncate" title={value}>
-        {value}
-      </p>
-      {sub && <p className="text-2xs text-text-muted truncate">{sub}</p>}
-    </div>
+    <p className={`leading-snug ${strong ? 'text-sm font-bold text-text-primary' : muted ? 'text-xs text-text-secondary' : 'text-xs text-text-primary'}`}>
+      <span className={`font-black uppercase tracking-wider ${accent ? 'text-primary' : 'text-text-muted'}`}>
+        {label}:{' '}
+      </span>
+      {text}
+    </p>
   );
 }
 

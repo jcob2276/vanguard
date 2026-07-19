@@ -1,14 +1,14 @@
 /**
  * @component DirectionPlanningMode
  * @role Tryb planowania tygodnia w Direction (recap + refleksja + pogłębienie + plan tygodnia).
- * @folders directionPlan/ = DirectionPlanBlocks (Block1Narrative/Block2WeekStats), DirectionPlanReflection,
+ * @folders directionPlan/ = DirectionPlanBlocks (Block1Narrative), DirectionPlanReflection,
  *          DirectionPlanDeepening, DirectionPlanWeekPlan
  * @usedBy Direction
  */
 import type { Session } from "@supabase/supabase-js";
 import { useDirectionContext } from "./direction/hooks/useDirectionContext";
 import WeekPlanningRecap from "./WeekPlanningRecap";
-import { Block1Narrative, Block2WeekStats } from "./directionPlan/DirectionPlanBlocks";
+import { Block1Narrative } from "./directionPlan/DirectionPlanBlocks";
 import DirectionPlanReflection from "./directionPlan/DirectionPlanReflection";
 import DirectionPlanDeepening from "./directionPlan/DirectionPlanDeepening";
 import DirectionPlanWeekPlan from "./directionPlan/DirectionPlanWeekPlan";
@@ -19,23 +19,11 @@ type Phase2Recap = {
   deepening_questions?: string[];
   block5_material?: { cialo: string; duch: string; konto: string };
 };
-type WeekFacts = {
-  doneCount: number;
-  totalCount: number;
-  doneTasks: string[];
-  droppedTasks: string[];
-  sleepHrs: number | null;
-  readiness: number | null;
-  totalKm: number | null;
-  avgKcal: number | null;
-  targetKcal: number | null;
-};
 
 interface Props {
   session: Session;
   weekStart: string;
   planWeekStart: string;
-  weekFacts: WeekFacts;
   phase1: Phase1Recap | null;
   phase1Loading: boolean;
   phase2: Phase2Recap | null;
@@ -45,10 +33,8 @@ interface Props {
   setPillarScores: (s: { cialo: number | null; duch: number | null; konto: number | null }) => void;
   obligation: string; setObligation: (v: string) => void;
   doDifferently: string; setDoDifferently: (v: string) => void;
-  proudOf: string; setProudOf: (v: string) => void;
   sabotage: string; setSabotage: (v: string) => void;
   weekHighlight: string; setWeekHighlight: (v: string) => void;
-  weekRegret: string; setWeekRegret: (v: string) => void;
   newBelief: string; setNewBelief: (v: string) => void;
   deepeningAnswers: Record<string, string>;
   setDeepeningAnswers: (v: Record<string, string>) => void;
@@ -62,24 +48,23 @@ interface Props {
   onComplete: () => void;
   completing: boolean;
   reflectionSaved: boolean;
-  activeProjects: { id: string; name: string }[];
   intentionFromMonth?: boolean;
   planCarriedFromMonth?: boolean;
 }
 
 export default function DirectionPlanningMode({
-  session, weekStart, planWeekStart, weekFacts,
+  session, weekStart, planWeekStart,
   phase1, phase1Loading, phase2, phase2Loading,
   prevWeekScores, pillarScores, setPillarScores,
   obligation, setObligation, doDifferently, setDoDifferently,
-  proudOf, setProudOf, sabotage, setSabotage,
-  weekHighlight, setWeekHighlight, weekRegret, setWeekRegret,
+  sabotage, setSabotage,
+  weekHighlight, setWeekHighlight,
   newBelief, setNewBelief, deepeningAnswers, setDeepeningAnswers,
   weekIntention, setWeekIntention, weekCommitment, setWeekCommitment,
   weekGoalCialo, setWeekGoalCialo, weekGoalDuch, setWeekGoalDuch,
   weekGoalKonto, setWeekGoalKonto,
   saveReflection, savingReflection, onComplete, completing,
-  reflectionSaved, activeProjects,
+  reflectionSaved,
   intentionFromMonth = false, planCarriedFromMonth = false,
 }: Props) {
   const direction = useDirectionContext(session.user.id, weekStart);
@@ -94,15 +79,12 @@ export default function DirectionPlanningMode({
     <div className="space-y-6 pb-8">
       <WeekPlanningRecap userId={session.user.id} weekStart={weekStart} />
       <Block1Narrative phase1={phase1} phase1Loading={phase1Loading} />
-      <Block2WeekStats weekFacts={weekFacts} activeProjects={activeProjects} userId={session.user.id} weekStart={weekStart} sprintFocusProjectIds={direction.sprintFocusProjectIds} />
 
       <DirectionPlanReflection
         obligation={obligation} setObligation={setObligation}
         doDifferently={doDifferently} setDoDifferently={setDoDifferently}
-        proudOf={proudOf} setProudOf={setProudOf}
         sabotage={sabotage} setSabotage={setSabotage}
         weekHighlight={weekHighlight} setWeekHighlight={setWeekHighlight}
-        weekRegret={weekRegret} setWeekRegret={setWeekRegret}
         newBelief={newBelief} setNewBelief={setNewBelief}
         pillarScores={pillarScores} setPillarScores={setPillarScores}
         prevWeekScores={prevWeekScores}

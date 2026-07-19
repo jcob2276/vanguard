@@ -7,7 +7,7 @@ import { getSprintInfo } from '../../../../lib/growth/sprintUtils';
 import { useHaptics } from '../../../../hooks/useHaptics';
 import { usePersistentDraft } from '../../../../hooks/usePersistentDraft';
 import { useWarsawDayChange } from '../../../../hooks/useWarsawDayChange';
-import { calculateStats, calculateWeekFacts } from '../../directionHelpers';
+import { calculateStats } from '../../directionHelpers';
 import { fetchDirectionData } from './directionFetcher';
 import { createDirectionActions } from './directionActions';
 import { computeDirectionDateContext, directionDraftKeys } from './directionKeys';
@@ -56,12 +56,6 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
   const [currentReview, setCurrentReview] = useState<WeeklyReviewRow | null>(null);
   const [allCalEvents, setAllCalEvents] = useState<CalendarEventRow[]>([]);
   const [prevWeekReview, setPrevWeekReview] = useState<WeeklyReviewRow | null>(null);
-  const [weekDoneTasks, setWeekDoneTasks] = useState<{ title: string; status: string }[]>([]);
-  const [weekOura, setWeekOura] = useState<{ total_sleep_hours: number | null; readiness_score: number | null }[]>([]);
-  const [weekRuns, setWeekRuns] = useState<{ distance: number | null }[]>([]);
-  const [weekNutrition, setWeekNutrition] = useState<{ calories: number | null }[]>([]);
-  const [nutritionTarget, setNutritionTarget] = useState<number | null>(null);
-  const [activeProjects, setActiveProjects] = useState<{ id: string; name: string }[]>([]);
 
   // ── Reflection / plan drafts ────────────────────────────────────────────
   const [proudOf, setProudOf]             = usePersistentDraft(reflKey('proudOf'), '');
@@ -125,12 +119,6 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
       setHistory(raw.historyData ?? []);
       setAllCalEvents(raw.calData ?? []);
       setPrevWeekReview(raw.prevReviewData ?? null);
-      setWeekOura(raw.ouraData ?? []);
-      setWeekRuns(raw.runsData ?? []);
-      setWeekNutrition(raw.nutritionData ?? []);
-      setNutritionTarget((raw.nutritionTargetData as { target_kcal?: number | null } | null)?.target_kcal ?? null);
-      setWeekDoneTasks((raw.doneTasksData ?? []).map((t: { title: string; status: string }) => ({ title: t.title, status: t.status })));
-      setActiveProjects((raw.projectsData ?? []).map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
 
       if (raw.monthReviewData) {
         setMonthReview(raw.monthReviewData);
@@ -276,7 +264,6 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
     if (!ps || typeof ps !== 'object' || Array.isArray(ps)) return null;
     return ps as { cialo?: number; duch?: number; konto?: number };
   }, [prevWeekReview]);
-  const weekFacts = useMemo(() => calculateWeekFacts(weekDoneTasks, weekOura, weekRuns, weekNutrition, nutritionTarget), [weekDoneTasks, weekOura, weekRuns, weekNutrition, nutritionTarget]);
 
   return {
     loading, history, currentReview, allCalEvents,
@@ -300,7 +287,7 @@ export function useDirection(session: Session, _onOpenActionCenter?: () => void)
     projectDecisions, setProjectDecisions,
     intentionFromMonth, planCarriedFromMonth,
     showSprintMode, showMonthlyMode, monthlyComplete, showWeeklyPlanning,
-    stats, prevWeekScores, weekFacts, activeProjects,
+    stats, prevWeekScores,
     closingMonthStart, planTargetWeekStart, currentWeekStart,
     // actions — zero-arg API matching Direction.tsx expectations
     saveReflection: () => actions.saveReflection({

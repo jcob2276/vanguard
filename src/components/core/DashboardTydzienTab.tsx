@@ -10,6 +10,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import HorizonHeader from './HorizonHeader';
 import WeeklyNutritionPulse from './WeeklyNutritionPulse';
 import WeeklyBodyPulse from './WeeklyBodyPulse';
+import WeeklyWinsMap from './WeeklyWinsMap';
 
 const Direction = lazy(() => import('../lifestyle/Direction'));
 
@@ -43,6 +44,7 @@ export function DashboardTydzienTab({ weeklyCalories, nutritionKey, onOpenAction
           <WeeklyBodyPulse />
           <WeeklyNutritionPulse weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />
         </div>
+        <WeeklyWinsMap />
       </div>
       <Suspense fallback={<ViewFallback />}>
         <Direction session={session} onOpenActionCenter={onOpenActionCenter} />

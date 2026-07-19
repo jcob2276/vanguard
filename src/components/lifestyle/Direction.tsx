@@ -1,8 +1,7 @@
 /**
  * @component Direction
  * @role Zunifikowany widok TYDZIEŃ — review/refleksja, KPI, sprint, plan miesiąca (4 tryby + WeekHub).
- * @composes DirectionMonthlyMode, DirectionSprintMode, DirectionPlanningMode (patrz jego @folders),
- *           DirectionRadarMode, WeekHub
+ * @composes DirectionMonthlyMode, DirectionSprintMode, DirectionPlanningMode (patrz jego @folders), WeekHub
  * @folders direction/hooks/ = useDirection (fetch+akcje, wraps directionFetcher/Actions/Keys),
  *          useDirectionContext (stan współdzielony przez tryby)
  * @usedBy DashboardTydzienTab (lazy)
@@ -11,11 +10,9 @@ import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Calendar } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Card } from '../ui/Card';
 import DirectionMonthlyMode from './DirectionMonthlyMode';
 import DirectionSprintMode from './DirectionSprintMode';
 import DirectionPlanningMode from './DirectionPlanningMode';
-import DirectionRadarMode from './DirectionRadarMode';
 import WeekHub from './WeekHub';
 import { useDirection } from './direction/hooks/useDirection';
 
@@ -42,13 +39,8 @@ export default function Direction({
 }) {
   const {
     loading,
-    history,
     currentReview,
-    allCalEvents,
     planWeekLabel,
-    planWeekStart,
-    proudOf,
-    setProudOf,
     doDifferently,
     setDoDifferently,
     sabotage,
@@ -57,8 +49,6 @@ export default function Direction({
     setObligation,
     weekHighlight,
     setWeekHighlight,
-    weekRegret,
-    setWeekRegret,
     newBelief,
     setNewBelief,
     weekIntention,
@@ -73,7 +63,6 @@ export default function Direction({
     setWeekGoalKonto,
     pillarScores,
     setPillarScores,
-    prevWeekReview,
     phase1,
     phase1Loading,
     phase2,
@@ -110,15 +99,11 @@ export default function Direction({
     showMonthlyMode,
     monthlyComplete,
     showWeeklyPlanning,
-    stats,
     prevWeekScores,
-    weekFacts,
-    activeProjects,
     saveReflection,
     completeMonthly,
     completeSprint,
     completeReview,
-    togglePowerListTask,
     closingMonthStart,
     planTargetWeekStart,
     currentWeekStart,
@@ -129,10 +114,12 @@ export default function Direction({
   }
 
   const reflectionSaved = ritualClosed || !!currentReview?.review_completed_at || Boolean(
-    currentReview?.proud_of?.trim() ||
     currentReview?.obligation?.trim() ||
     currentReview?.do_differently?.trim() ||
-    currentReview?.sabotage?.trim()
+    currentReview?.sabotage?.trim() ||
+    currentReview?.week_highlight?.trim() ||
+    currentReview?.new_belief?.trim() ||
+    currentReview?.proud_of?.trim()
   );
 
   return (
@@ -211,7 +198,6 @@ export default function Direction({
             session={session}
             weekStart={currentWeekStart}
             planWeekStart={planTargetWeekStart}
-            weekFacts={weekFacts}
             phase1={phase1}
             phase1Loading={phase1Loading}
             phase2={phase2}
@@ -223,14 +209,10 @@ export default function Direction({
             setObligation={setObligation}
             doDifferently={doDifferently}
             setDoDifferently={setDoDifferently}
-            proudOf={proudOf}
-            setProudOf={setProudOf}
             sabotage={sabotage}
             setSabotage={setSabotage}
             weekHighlight={weekHighlight}
             setWeekHighlight={setWeekHighlight}
-            weekRegret={weekRegret}
-            setWeekRegret={setWeekRegret}
             newBelief={newBelief}
             setNewBelief={setNewBelief}
             deepeningAnswers={deepeningAnswers}
@@ -252,32 +234,13 @@ export default function Direction({
             onComplete={completeReview}
             completing={completing}
             reflectionSaved={reflectionSaved}
-            activeProjects={activeProjects}
           />
         ) : (!showMonthlyMode || monthlyComplete) ? (
-          <div className="space-y-6">
-            <WeekHub
-              session={session}
-              onOpenActionCenter={onOpenActionCenter}
-              onStartWeeklyReview={() => setForceWeeklyReview(true)}
-            />
-            <Card padding="0" style={{ background: 'var(--color-theme-hex-ba11152503)' }}>
-              <p className="px-4 py-3 text-xs font-black uppercase tracking-widest text-text-muted">
-                Radar szczegóły
-              </p>
-              <div className="px-1 pb-4 pt-1">
-                <DirectionRadarMode
-                  stats={stats}
-                  history={history}
-                  prevWeekReview={prevWeekReview}
-                  planWeekStart={planWeekStart}
-                  allCalEvents={allCalEvents}
-                  togglePowerListTask={togglePowerListTask}
-                  currentReview={currentReview}
-                />
-              </div>
-            </Card>
-          </div>
+          <WeekHub
+            session={session}
+            onOpenActionCenter={onOpenActionCenter}
+            onStartWeeklyReview={() => setForceWeeklyReview(true)}
+          />
         ) : null}
       </section>
 

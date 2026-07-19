@@ -59,10 +59,8 @@ function PillarScoreRow({ label, current, prev, onChange }: { label: string; cur
 interface DirectionPlanReflectionProps {
   obligation: string; setObligation: (v: string) => void;
   doDifferently: string; setDoDifferently: (v: string) => void;
-  proudOf: string; setProudOf: (v: string) => void;
   sabotage: string; setSabotage: (v: string) => void;
   weekHighlight: string; setWeekHighlight: (v: string) => void;
-  weekRegret: string; setWeekRegret: (v: string) => void;
   newBelief: string; setNewBelief: (v: string) => void;
   pillarScores: { cialo: number | null; duch: number | null; konto: number | null };
   setPillarScores: (s: { cialo: number | null; duch: number | null; konto: number | null }) => void;
@@ -78,12 +76,10 @@ export default function DirectionPlanReflection(props: DirectionPlanReflectionPr
     <div className="space-y-4">
       <Divider title="Refleksja" />
       <Q num={1} label="Co musi zejść z głowy — zanim zacznę nowy tydzień?" value={props.obligation} onChange={props.setObligation} placeholder="Coś co ciągnie mnie w dół, wisi niedomknięte…" />
-      <Q num={2} label="Gdzie zawiodłem siebie — kiedy poszedłem na łatwiznę?" value={props.doDifferently} onChange={props.setDoDifferently} placeholder="Konkretna sytuacja, moment…" />
-      <Q num={3} label="Czego mi brakowało — kompetencji, zasobów, odwagi?" value={props.proudOf} onChange={props.setProudOf} placeholder="Co mi utrudniało życie w tym tygodniu…" />
-      <Q num={4} label="Co unikałem — i co tak naprawdę za tym stoi?" value={props.sabotage} onChange={props.setSabotage} placeholder="Co odkładałem, od czego uciekałem…" />
-      <Q num={5} label="Co dało mi energię / co zabrało?" value={props.weekHighlight} onChange={props.setWeekHighlight} placeholder="Momenty szczytowe i dolne tego tygodnia…" />
-      <Q num={6} label="Czego żałuję — co bym cofnął?" value={props.weekRegret} onChange={props.setWeekRegret} placeholder="Decyzja, słowo, zaniechanie…" />
-      <Q num={7} label="Co myślę inaczej niż tydzień temu?" value={props.newBelief} onChange={props.setNewBelief} placeholder="Nowe przekonanie, zmiana perspektywy…" />
+      <Q num={2} label="Gdzie plan i wykonanie się rozjechały?" value={props.doDifferently} onChange={props.setDoDifferently} placeholder="Konkret: co było w planie vs co zrobiłeś…" />
+      <Q num={3} label="Co odkładałem / unikałem?" value={props.sabotage} onChange={props.setSabotage} placeholder="Co odkładałem, od czego uciekałem…" />
+      <Q num={4} label="Co dało mi energię / co zabrało?" value={props.weekHighlight} onChange={props.setWeekHighlight} placeholder="Momenty szczytowe i dolne tego tygodnia…" />
+      <Q num={5} label="Co myślę inaczej niż tydzień temu?" value={props.newBelief} onChange={props.setNewBelief} placeholder="Nowe przekonanie, zmiana perspektywy…" />
       <div className="pt-3 space-y-4 border-t border-border-custom">
         <p className="text-2xs font-black uppercase tracking-widest text-text-muted">Oceny tygodnia (1–10)</p>
         <PillarScoreRow label="Ciało" current={props.pillarScores.cialo} prev={props.prevWeekScores?.cialo} onChange={(v) => props.setPillarScores({ ...props.pillarScores, cialo: v })} />
