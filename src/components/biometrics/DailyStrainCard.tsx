@@ -92,7 +92,7 @@ export default function DailyStrainCard({
     );
   }
 
-  const { row, oura } = dbData;
+  const { row, oura, enhanced } = dbData;
   const strainScore = row.strain_score ?? 0;
   const recoveryScore = row.recovery_score ?? 0;
   const strainTone = strainScore >= 15 ? 'text-warning dark:text-warning' : strainScore >= 8 ? 'text-text-primary' : 'text-text-secondary';
@@ -169,7 +169,7 @@ export default function DailyStrainCard({
 
       {/* Oura vitals */}
       {oura && (
-        <DailyStrainVitalsRow oura={oura} hrvZ={hrvZ} rhrZ={rhrZ} sleepZ={sleepZ} sleepScoreToday={sleepScoreToday} />
+        <DailyStrainVitalsRow oura={oura} enhanced={enhanced} hrvZ={hrvZ} rhrZ={rhrZ} sleepZ={sleepZ} sleepScoreToday={sleepScoreToday} />
       )}
 
       {missingSignals.length > 0 && (

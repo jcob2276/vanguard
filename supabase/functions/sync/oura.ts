@@ -55,11 +55,12 @@ export async function runOuraSync(req: Request): Promise<unknown> {
       try {
         // 2. Fetch Data
         console.log(`[OURA DEBUG] Fetching for range: ${batchStart} to ${batchEnd}`);
-        const [readinessRes, sleepRes, sleepStagesRes, activityRes] = await Promise.all([
+        const [readinessRes, sleepRes, sleepStagesRes, activityRes, sleepTimeRes] = await Promise.all([
           fetch(`${OURA_BASE_URL}/daily_readiness?start_date=${batchStart}&end_date=${batchEnd}`, { signal: AbortSignal.timeout(30000), headers }),
           fetch(`${OURA_BASE_URL}/daily_sleep?start_date=${batchStart}&end_date=${batchEnd}`, { signal: AbortSignal.timeout(30000), headers }),
           fetch(`${OURA_BASE_URL}/sleep?start_date=${batchStart}&end_date=${batchEnd}`, { signal: AbortSignal.timeout(30000), headers }),
-          fetch(`${OURA_BASE_URL}/daily_activity?start_date=${batchStart}&end_date=${batchEnd}`, { signal: AbortSignal.timeout(30000), headers })
+          fetch(`${OURA_BASE_URL}/daily_activity?start_date=${batchStart}&end_date=${batchEnd}`, { signal: AbortSignal.timeout(30000), headers }),
+          fetch(`${OURA_BASE_URL}/sleep_time?start_date=${batchStart}&end_date=${batchEnd}`, { signal: AbortSignal.timeout(30000), headers })
         ])
 
         if (!readinessRes.ok) throw new Error(`Oura readiness API error: ${readinessRes.status}`);
@@ -71,6 +72,13 @@ export async function runOuraSync(req: Request): Promise<unknown> {
         const sleepData = await sleepRes.json();
         const sleepStagesData = await sleepStagesRes.json();
         const activityData = await activityRes.json();
+
+        let sleepTimeData = { data: [] };
+        if (sleepTimeRes.ok) {
+          sleepTimeData = await sleepTimeRes.json();
+        } else {
+          console.warn(`[OURA] sleep_time API warning: ${sleepTimeRes.status}`);
+        }
 
         // 3. Process
         const summaries: Record<string, any> = {}
@@ -107,6 +115,17 @@ export async function runOuraSync(req: Request): Promise<unknown> {
           summaries[item.day] = { ...summaries[item.day], steps: item.steps, active_calories: item.active_calories, total_calories: item.total_calories, date: item.day }
         })
 
+        sleepTimeData.data?.forEach((item: any) => {
+          summaries[item.day] = {
+            ...summaries[item.day],
+            optimal_bedtime_start_offset: item.optimal_bedtime?.start_offset ?? null,
+            optimal_bedtime_end_offset: item.optimal_bedtime?.end_offset ?? null,
+            sleep_time_recommendation: item.recommendation ?? null,
+            sleep_time_status: item.status ?? null,
+            date: item.day
+          }
+        })
+
         const upsertData = Object.values(summaries).map(s => {
           let isDisciplined = false
           if (s.bedtime_timestamp) {
@@ -134,7 +153,11 @@ export async function runOuraSync(req: Request): Promise<unknown> {
             total_calories: s.total_calories ?? null,
             bedtime_timestamp: s.bedtime_timestamp ?? null,
             bedtime_end_timestamp: s.bedtime_end_timestamp ?? null,
-            is_disciplined: isDisciplined
+            is_disciplined: isDisciplined,
+            optimal_bedtime_start_offset: s.optimal_bedtime_start_offset ?? null,
+            optimal_bedtime_end_offset: s.optimal_bedtime_end_offset ?? null,
+            sleep_time_recommendation: s.sleep_time_recommendation ?? null,
+            sleep_time_status: s.sleep_time_status ?? null
           }
         })
 

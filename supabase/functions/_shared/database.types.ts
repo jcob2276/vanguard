@@ -2750,11 +2750,15 @@ export type Database = {
           id: string
           is_disciplined: boolean | null
           latency_minutes: number | null
+          optimal_bedtime_end_offset: number | null
+          optimal_bedtime_start_offset: number | null
           readiness_score: number | null
           rem_sleep_hours: number | null
           rhr_avg: number | null
           sleep_efficiency: number | null
           sleep_score: number | null
+          sleep_time_recommendation: string | null
+          sleep_time_status: string | null
           steps: number | null
           stress_score: number | null
           temp_deviation: number | null
@@ -2773,11 +2777,15 @@ export type Database = {
           id?: string
           is_disciplined?: boolean | null
           latency_minutes?: number | null
+          optimal_bedtime_end_offset?: number | null
+          optimal_bedtime_start_offset?: number | null
           readiness_score?: number | null
           rem_sleep_hours?: number | null
           rhr_avg?: number | null
           sleep_efficiency?: number | null
           sleep_score?: number | null
+          sleep_time_recommendation?: string | null
+          sleep_time_status?: string | null
           steps?: number | null
           stress_score?: number | null
           temp_deviation?: number | null
@@ -2796,11 +2804,15 @@ export type Database = {
           id?: string
           is_disciplined?: boolean | null
           latency_minutes?: number | null
+          optimal_bedtime_end_offset?: number | null
+          optimal_bedtime_start_offset?: number | null
           readiness_score?: number | null
           rem_sleep_hours?: number | null
           rhr_avg?: number | null
           sleep_efficiency?: number | null
           sleep_score?: number | null
+          sleep_time_recommendation?: string | null
+          sleep_time_status?: string | null
           steps?: number | null
           stress_score?: number | null
           temp_deviation?: number | null
