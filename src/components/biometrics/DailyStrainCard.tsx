@@ -156,6 +156,11 @@ export default function DailyStrainCard({
         <DataStateNotice title="Niepełne dane" detail={missingSignals.join(' | ')} />
       )}
 
+      {/* Diagnostic debug */}
+      <div className="text-3xs text-text-muted/40 text-center select-none">
+        Debug: O={oura ? 'Y' : 'N'} OY={ouraYesterday ? 'Y' : 'N'} E={enhanced ? 'Y' : 'N'} EY={enhancedYesterday ? 'Y' : 'N'}
+      </div>
+
       {/* Correlations link */}
       <Link
         to="/korelacje"
