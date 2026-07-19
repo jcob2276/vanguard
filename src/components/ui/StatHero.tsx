@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 
 export interface StatHeroProps {
   /** The main numeric/text value displayed large */
-  value: string | number;
+  value: React.ReactNode;
   /** Small label above or below the value */
   label: string;
   /** Unit suffix next to the value (e.g. "kcal", "/21", "pts") */

@@ -36,21 +36,39 @@ export function useDailyStrainOura(userId: string) {
       if (e3) throw new Error(e3.message);
 
       let ouraRow = null;
+      let ouraYesterdayRow = null;
       if (ouraRows?.length) {
         const todayStr = getTodayWarsaw();
-        ouraRow = ouraRows.find((s) => s.date === todayStr) || ouraRows[0];
+        const todayIdx = ouraRows.findIndex((s) => s.date === todayStr);
+        if (todayIdx !== -1) {
+          ouraRow = ouraRows[todayIdx];
+          ouraYesterdayRow = ouraRows.find((s, idx) => idx !== todayIdx) || null;
+        } else {
+          ouraRow = ouraRows[0];
+          ouraYesterdayRow = ouraRows[1] || null;
+        }
       }
 
       let enhancedRow = null;
+      let enhancedYesterdayRow = null;
       if (enhancedRows?.length) {
         const todayStr = getTodayWarsaw();
-        enhancedRow = enhancedRows.find((s) => s.date === todayStr) || enhancedRows[0];
+        const todayIdx = enhancedRows.findIndex((s) => s.date === todayStr);
+        if (todayIdx !== -1) {
+          enhancedRow = enhancedRows[todayIdx];
+          enhancedYesterdayRow = enhancedRows.find((s, idx) => idx !== todayIdx) || null;
+        } else {
+          enhancedRow = enhancedRows[0];
+          enhancedYesterdayRow = enhancedRows[1] || null;
+        }
       }
 
       return {
         row: strainRows,
         oura: ouraRow,
+        ouraYesterday: ouraYesterdayRow,
         enhanced: enhancedRow,
+        enhancedYesterday: enhancedYesterdayRow,
       };
     },
     staleTime: 1000 * 60 * 30, // 30 mins cache

@@ -57,42 +57,11 @@ export default function DailyStrainCard({
 
   if (!userId) return null;
 
-  if (loading) {
-    return (
-      <div className="card p-4">
-        <DataStateNotice
-          tone="loading"
-          title="Obciążenie dnia się liczy"
-          detail="Ładuje ostatni wynik obciążenia i regeneracji."
-        />
-      </div>
-    );
-  }
+  if (loading) return <div className="card p-4"><DataStateNotice tone="loading" title="Obciążenie dnia się liczy" detail="Ładuje ostatni wynik obciążenia i regeneracji." /></div>;
+  if (queryError) return <div className="card border-danger/20 p-4"><DataStateNotice tone="warning" title="Obciążenie niedostępne" detail={`Nie mogę odczytać danych: ${queryError.message}`} /></div>;
+  if (!dbData?.row) return <div className="card p-4"><DataStateNotice title="Brak danych obciążenia" detail="Uruchom sync Oura/Strava i przelicz strain." /></div>;
 
-  if (queryError) {
-    return (
-      <div className="card border-danger/20 p-4">
-        <DataStateNotice
-          tone="warning"
-          title="Obciążenie niedostępne"
-          detail={`Nie mogę odczytać danych: ${queryError.message}`}
-        />
-      </div>
-    );
-  }
-
-  if (!dbData?.row) {
-    return (
-      <div className="card p-4">
-        <DataStateNotice
-          title="Brak danych obciążenia"
-          detail="Uruchom sync Oura/Strava i przelicz strain."
-        />
-      </div>
-    );
-  }
-
-  const { row, oura, enhanced } = dbData;
+  const { row, oura, ouraYesterday, enhanced, enhancedYesterday } = dbData;
   const strainScore = row.strain_score ?? 0;
   const recoveryScore = row.recovery_score ?? 0;
   const strainTone = strainScore >= 15 ? 'text-warning dark:text-warning' : strainScore >= 8 ? 'text-text-primary' : 'text-text-secondary';
@@ -105,18 +74,20 @@ export default function DailyStrainCard({
   const statusKey = (row.daily_status || 'green') as keyof typeof STATUS_RING;
   const isStale = row.date !== getTodayWarsaw();
   const comp: StrainComponents = parseStrainComponents(row.components) ?? {};
-  const recConf         = comp.recovery_confidence;
-  const strConf         = comp.strain_confidence;
-  const sleepDebtH      = comp.sleep_debt_h;
-  const hrvZ            = comp.hrv_z;
-  const rhrZ            = comp.rhr_z;
-  const sleepScoreToday = comp.sleep_score_today;
-  const sleepZ          = comp.sleep_z;
-  const fuelingScore      = comp.fueling_score;
-  const readinessSignals = comp.readiness_signals;
-  const wellnessLoad      = comp.wellness_load;
-  const strainExplanation = comp.explanation;
-  const readinessLevel  = row.readiness_level;
+  const {
+    recovery_confidence: recConf,
+    strain_confidence: strConf,
+    sleep_debt_h: sleepDebtH,
+    hrv_z: hrvZ,
+    rhr_z: rhrZ,
+    sleep_score_today: sleepScoreToday,
+    sleep_z: sleepZ,
+    fueling_score: fuelingScore,
+    readiness_signals: readinessSignals,
+    wellness_load: wellnessLoad,
+    explanation: strainExplanation,
+  } = comp;
+  const readinessLevel = row.readiness_level;
 
   return (
     <div className={`animate-fadeIn relative overflow-hidden card ${STATUS_RING[statusKey] || STATUS_RING.green} p-3.5 space-y-3`}>
@@ -169,7 +140,16 @@ export default function DailyStrainCard({
 
       {/* Oura vitals */}
       {oura && (
-        <DailyStrainVitalsRow oura={oura} enhanced={enhanced} hrvZ={hrvZ} rhrZ={rhrZ} sleepZ={sleepZ} sleepScoreToday={sleepScoreToday} />
+        <DailyStrainVitalsRow
+          oura={oura}
+          ouraYesterday={ouraYesterday}
+          enhanced={enhanced}
+          enhancedYesterday={enhancedYesterday}
+          hrvZ={hrvZ}
+          rhrZ={rhrZ}
+          sleepZ={sleepZ}
+          sleepScoreToday={sleepScoreToday}
+        />
       )}
 
       {missingSignals.length > 0 && (
