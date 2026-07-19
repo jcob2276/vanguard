@@ -28,6 +28,13 @@ function getBedtimeRecommendationLabel(rec: string | null): string | null {
   }
 }
 
+function formatHours(h: number | null): string {
+  if (h == null || h <= 0) return '--';
+  const hrs = Math.floor(h);
+  const mins = Math.round((h % 1) * 60);
+  return `${hrs}h ${mins}m`;
+}
+
 export default function DailyStrainVitalsRow({ oura, enhanced, hrvZ, rhrZ, sleepZ, sleepScoreToday }: DailyStrainVitalsRowProps) {
   const vitals = [
     { icon: Zap, label: 'HRV', value: oura.hrv_avg ? `${oura.hrv_avg}ms` : '--', color: zToVitalColor(hrvZ, 'text-dayA') },
@@ -76,6 +83,33 @@ export default function DailyStrainVitalsRow({ oura, enhanced, hrvZ, rhrZ, sleep
           </div>
         ))}
       </div>
+
+      {/* Sleep Stages Row */}
+      {(oura.deep_sleep_hours != null || oura.rem_sleep_hours != null) && (
+        <>
+          <div className="h-px bg-border-custom/30" />
+          <div className="flex items-center justify-between text-2xs px-1">
+            <div className="flex-1 text-center">
+              <span className="text-3xs text-text-muted uppercase tracking-wider block font-bold mb-0.5">Sen Głęboki</span>
+              <span className="text-xs font-black text-dayB">{formatHours(oura.deep_sleep_hours)}</span>
+            </div>
+            <div className="w-px h-6 bg-border-custom/30" />
+            <div className="flex-1 text-center">
+              <span className="text-3xs text-text-muted uppercase tracking-wider block mb-0.5 font-bold">Faza REM</span>
+              <span className="text-xs font-black text-dayA">{formatHours(oura.rem_sleep_hours)}</span>
+            </div>
+            {enhanced?.light_sleep_hours != null && (
+              <>
+                <div className="w-px h-6 bg-border-custom/30" />
+                <div className="flex-1 text-center">
+                  <span className="text-3xs text-text-muted uppercase tracking-wider block mb-0.5 font-bold">Sen Lekki</span>
+                  <span className="text-xs font-black text-text-secondary">{formatHours(enhanced.light_sleep_hours)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Bedtime Advice Banner */}
       {bedtimeAdvice && (
