@@ -40,10 +40,29 @@ try {
   process.exit(1);
 }
 
-const rows = output
-  .split("\n")
-  .map((line) => line.match(/^\s*(\S*)\s*\|\s*(\S*)\s*\|\s*(.*)$/))
-  .filter((m) => m && /^\d{14}$/.test(m[1] || m[2] || ""));
+let rows = [];
+if (output.trim().startsWith("{") || output.includes('"migrations"')) {
+  try {
+    const jsonStart = output.indexOf("{");
+    const jsonEnd = output.lastIndexOf("}");
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      const parsed = JSON.parse(output.slice(jsonStart, jsonEnd + 1));
+      if (parsed && Array.isArray(parsed.migrations)) {
+        rows = parsed.migrations.map((m) => [null, m.local || "", m.remote || "", m.time || ""]);
+      }
+    }
+  } catch (e) {
+    // fallback
+  }
+}
+
+if (rows.length === 0) {
+  rows = output
+    .split("\n")
+    .map((line) => line.match(/^\s*(\S*)\s*\|\s*(\S*)\s*\|\s*(.*)$/))
+    .filter((m) => m && /^\d{14}$/.test(m[1] || m[2] || ""))
+    .map((m) => [null, m[1], m[2], m[3]]);
+}
 
 const mismatched = rows.filter(([, local, remote]) => !local || !remote);
 

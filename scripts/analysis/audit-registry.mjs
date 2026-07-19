@@ -42,33 +42,57 @@ const functionFolders = sorted(
     .map((entry) => entry.name),
 );
 
-const readme = read(readmePath);
+const configTomlPath = path.join(root, "supabase", "config.toml");
+const configToml = fs.readFileSync(configTomlPath, "utf8");
+const jwtMap = new Map();
+let currentFunction = null;
+for (const line of configToml.split(/\r?\n/)) {
+  const funcHeaderMatch = line.match(/^\[functions\.([^\]]+)\]/);
+  if (funcHeaderMatch) {
+    currentFunction = funcHeaderMatch[1].trim();
+    jwtMap.set(currentFunction, "true");
+  } else if (currentFunction) {
+    const jwtMatch = line.match(/^\s*verify_jwt\s*=\s*(true|false)/);
+    if (jwtMatch) {
+      jwtMap.set(currentFunction, jwtMatch[1].trim());
+    }
+  }
+}
+
+const functionsMdPath = path.join(functionsDir, "FUNCTIONS.md");
+const functionsMd = read(functionsMdPath);
 const registryRows = new Map();
-for (const line of readme.split(/\r?\n/)) {
-  const match = line.match(/^\|\s*`([^`]+)`\s*\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|/);
+for (const line of functionsMd.split(/\r?\n/)) {
+  const match = line.match(/^\|\s*\[`([^`]+)`\]\(\.\/([^/]+)\/index\.ts\)\s*\|\s*([^|]+)\|\s*([^|]+)\|/);
   if (!match) continue;
-  const [, name, status, trigger, jwt] = match;
+  const [, name, , status, trigger] = match;
   if (!fs.existsSync(path.join(functionsDir, name))) continue;
+  
+  let verifyJwt = "true";
+  if (jwtMap.has(name)) {
+    verifyJwt = jwtMap.get(name);
+  }
+  
   registryRows.set(name, {
     status: status.replace(/\*\*/g, "").trim().toLowerCase(),
     trigger: trigger.trim(),
-    jwt: jwt.replace(/\*\*/g, "").trim().toLowerCase(),
+    jwt: verifyJwt,
   });
 }
 
 const registered = sorted([...registryRows.keys()]);
 const missingFromReadme = diff(functionFolders, registered);
 const staleReadmeRows = diff(registered, functionFolders);
-if (missingFromReadme.length) fail(`Missing README registry rows: ${missingFromReadme.join(", ")}`);
-if (staleReadmeRows.length) fail(`README rows without function folders: ${staleReadmeRows.join(", ")}`);
+if (missingFromReadme.length) fail(`Missing FUNCTIONS.md registry rows: ${missingFromReadme.join(", ")}`);
+if (staleReadmeRows.length) fail(`FUNCTIONS.md rows without function folders: ${staleReadmeRows.join(", ")}`);
 
-const inventoryMatch = readme.match(/\*\*Inventory:\*\*\s*(\d+)\s+function folders/);
+const inventoryMatch = functionsMd.match(/\*\*(\d+)\s+aktywnych\s+Edge\s+Functions\*\*/i);
 if (!inventoryMatch) {
-  fail("README inventory line is missing or unparsable");
+  fail("FUNCTIONS.md inventory line is missing or unparsable");
 } else {
   const inventoryCount = Number(inventoryMatch[1]);
   if (inventoryCount !== functionFolders.length) {
-    fail(`README inventory says ${inventoryCount}, actual function folders = ${functionFolders.length}`);
+    fail(`FUNCTIONS.md inventory says ${inventoryCount}, actual function folders = ${functionFolders.length}`);
   }
 }
 
@@ -118,7 +142,7 @@ for (const name of deprecatedNoJwtRegistry) {
 }
 
 for (const cron of migrationCrons) {
-  if (!registryRows.has(cron.target.split(" ")[0])) {
+  if (!registryRows.has(cron.target.split(/[ ?]/)[0])) {
     fail(`CRON_FROM_MIGRATIONS target is not a registered function: ${cron.jobname} -> ${cron.target}`);
   }
   if (removedCrons.has(cron.jobname)) {

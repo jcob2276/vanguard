@@ -133,6 +133,21 @@ export const runDetectPatterns = async (
     updated++;
   }
 
+  // Archive stale patterns (not seen/detected in the last 14 days)
+  const fourteenDaysAgo = getWarsawDateString(new Date(Date.now() - 14 * 24 * 3600 * 1000));
+  const { error: decayErr } = await supabase
+    .from("vanguard_behavioral_patterns")
+    .update({ status: "archived" })
+    .eq("user_id", userId)
+    .neq("status", "archived")
+    .lt("last_seen", fourteenDaysAgo);
+
+  if (decayErr) {
+    console.warn(`[detect-patterns] failed to decay old patterns: ${decayErr.message}`);
+  } else {
+    console.log(`[detect-patterns] successfully decayed/archived patterns older than ${fourteenDaysAgo}`);
+  }
+
   return {
     patterns_found: all.length,
     patterns_inserted: inserted,

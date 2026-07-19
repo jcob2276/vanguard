@@ -165,6 +165,30 @@ export async function runOracleQuery(
         }
         continue;
       }
+
+      // Check for DSML XML tool call in content
+      const dsmlRegex = /<\s*\|\s*\|\s*DSML\s*\|\s*\|\s*parameter\s+name\s*=\s*['"]sql['"]\s+string\s*=\s*['"]true['"]\s*>(.*?)<\s*\/\s*\|\s*\|\s*DSML\s*\|\s*\|\s*parameter\s*>/is;
+      const dsmlMatch = chatRes.content?.match(dsmlRegex);
+      if (offerTools && dsmlMatch) {
+        iterations++;
+        const sql = dsmlMatch[1].trim();
+        toolMessages.push({ role: "assistant", content: chatRes.content || "" });
+        
+        const result = sql
+          ? await runOracleReadonlyQuery(supabase, user_id, sql)
+          : { ok: false as const, error: 'Missing or invalid "sql" argument' };
+        
+        console.log(
+          `[oracle] dsml sql tool call #${iterations}:`, sql.slice(0, 200),
+          "->", result.ok ? `${result.rows.length} rows` : `error: ${result.error}`,
+        );
+        
+        const responseXml = `< | | DSML | | tool_responses>\n< | | DSML | | response name="query_database">\n${JSON.stringify(result.ok ? result.rows : { error: result.error })}\n</ | | DSML | | response>\n</ | | DSML | | tool_responses>`;
+        
+        toolMessages.push({ role: "user", content: responseXml });
+        continue;
+      }
+
       break;
     }
 

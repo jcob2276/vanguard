@@ -15,7 +15,7 @@ function normalizePriority(value: unknown): TodoPriority {
     : 'normal';
 }
 
-export function deterministicTodoParse(raw: string, todayStr: string): {
+function deterministicTodoParse(raw: string, todayStr: string): {
   title: string;
   due_date: string | null;
   due_time: string | null;

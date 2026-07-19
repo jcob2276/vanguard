@@ -30,6 +30,12 @@ export const NO_VERIFY_JWT_FUNCTIONS = [
   "vanguard-outbox-sender",
   "vanguard-metabolism",
   "analyze-food-quality",
+  "calendar-write",
+  "compute-behavior-effects",
+  "parse-food-nl",
+  "parse-workout-nl",
+  "vanguard-kpi-suggest",
+  "vanguard-mcp-server",
 ];
 
 
@@ -62,6 +68,12 @@ export const SMOKE_TARGETS = [
   { name: "vanguard-outbox-sender", post: "skip", sideEffects: "Sends Telegram messages from outbox queue asynchronously" },
   { name: "vanguard-metabolism", post: "skip", sideEffects: "Calls DeepSeek + condenses/writes daily aggregates — OPTIONS only" },
   { name: "analyze-food-quality", post: "skip", sideEffects: "Calls DeepSeek + writes food quality scores — manual/user trigger only" },
+  { name: "calendar-write", post: "skip", sideEffects: "Google Calendar integration — OPTIONS only" },
+  { name: "compute-behavior-effects", post: "skip", sideEffects: "Statistical effects calculation — OPTIONS only" },
+  { name: "parse-food-nl", post: "skip", sideEffects: "Natural language food parser — OPTIONS only" },
+  { name: "parse-workout-nl", post: "skip", sideEffects: "Natural language workout parser — OPTIONS only" },
+  { name: "vanguard-kpi-suggest", post: "skip", sideEffects: "AI KPI suggestions — OPTIONS only" },
+  { name: "vanguard-mcp-server", post: "skip", sideEffects: "MCP server — OPTIONS only" },
 ];
 
 /** pg_cron jobs defined in repo migrations (verify live DB matches). */
