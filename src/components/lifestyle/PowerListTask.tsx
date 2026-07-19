@@ -1,5 +1,6 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import { Check, Link2 } from 'lucide-react';
+import { TIMEZONE } from '../../lib/date';
 
 type SphereIconType = React.ComponentType<{ size?: number | string; className?: string }>;
 
@@ -78,7 +79,7 @@ export default function PowerListTask({
           </div>
           {done && completedAt && (
             <p className="mt-0.5 text-2xs font-semibold text-dayC/80">
-              Zrobione o {new Date(completedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+              Zrobione o {new Date(completedAt).toLocaleTimeString('pl-PL', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>

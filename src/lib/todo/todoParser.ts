@@ -1,4 +1,5 @@
 import { addDays, addHours, addMinutes, addMonths, addWeeks, format, startOfDay } from 'date-fns';
+import { TIMEZONE } from '../date';
 
 const PRIORITIES = {
   p1: { value: 'urgent', label: 'P1' },
@@ -65,7 +66,7 @@ function nextWeekday(now: Date, weekday: number): Date {
 }
 
 function dateLabel(date: Date): string {
-  return new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short' }).format(date);
+  return new Intl.DateTimeFormat('pl-PL', { timeZone: TIMEZONE, day: 'numeric', month: 'short' }).format(date);
 }
 
 export function parseTodoQuickInput(input: string | null | undefined, now: Date = new Date()) {

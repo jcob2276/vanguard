@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { formatWarsawDate, getTodayWarsaw } from '../../lib/date';
+import { formatWarsawDate, getTodayWarsaw, TIMEZONE } from '../../lib/date';
 
 export function relativeDate(iso: string): string {
   const d = new Date(iso);
@@ -7,11 +7,11 @@ export function relativeDate(iso: string): string {
   if (diffDays === 0) return 'dziś';
   if (diffDays === 1) return 'wczoraj';
   if (diffDays < 7) return `${diffDays} dni temu`;
-  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('pl-PL', { timeZone: TIMEZONE, day: 'numeric', month: 'short' });
 }
 
 export function formatNoteDate(iso: string): string {
-  return new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+  return new Intl.DateTimeFormat('pl-PL', { timeZone: TIMEZONE, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
 }
 
 /** Strips HTML tags — shared by NoteRow, InlineEditor, EditNoteModal for snippet/AI text. */
