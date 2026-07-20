@@ -1,13 +1,14 @@
 import type { Session } from '@supabase/supabase-js';
 import { getWarsawHour } from '../../../lib/date';
-import { supabase } from '../../../lib/supabase';
 import { useHaptics } from '../../../hooks/useHaptics';
 import { notify } from '../../../lib/notify';
 import { markCheckpointDone } from '../../../lib/checkpoints';
 import { gatherDailyWinsContext } from '../../../lib/aiContext';
-import { updateTodoItem } from '../../../lib/todo/todo';
 import { materializeDailyWinTodos } from '../../../lib/todo/dailyWinTodoBridge';
 import type { TablesUpdate } from '../../../lib/database.types';
+import { appendStreamEntry } from '../../../lib/streamApi';
+import { invokeEdge } from '../../../lib/supabase';
+import { deleteDailyWinTasks, insertDailyWinTasks } from '../../../lib/morningPlanApi';
 import {
   applyKpiRollup,
   currentWeekStart,
@@ -15,6 +16,7 @@ import {
   insertDailyWin,
   rollupTaskCompletion,
   updateDailyWin,
+  updateDailyWinTaskDone,
 } from '../../../lib/goal/goalSpine';
 import {
   type TaskSlot,
@@ -134,7 +136,7 @@ Wskaż bezlitośnie wszelkie próby ucieczki (np. robienie bezpiecznych "ćwicze
 Nie sugeruj mi gotowych zadań. Zadaj mi tylko pytania, które zmuszą mnie do myślenia i zdefiniowania konkretnych, mierzalnych zwycięstw.
 Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", bez żadnego wstępu, powitań czy komentarzy.`;
 
-    const { data, error } = await supabase.functions.invoke('vanguard-oracle', {
+    const data = await invokeEdge('vanguard-oracle', {
       body: {
         state_vector: stateVector,
         history: [],
@@ -143,9 +145,7 @@ Odpowiedz wyłącznie w postaci wypunktowanej listy 3-4 pytań w polu "answer", 
         mode: 'chat',
       },
     });
-
-    if (error) throw error;
-    const reply = data?.text ?? data?.answer ?? '';
+    const reply = String(data?.text ?? data?.answer ?? '');
     args.setAiQuestions(reply);
   } catch (err: unknown) {
     console.error('generateQuestions failed', err);
@@ -161,8 +161,8 @@ async function saveEveningCloseHelper(args: UsePowerListActionsArgs, todayWin: D
   try {
     const note = args.eveningNote.trim();
     const data = await updateDailyWin(args.userId, todayWin.id, { day_note: note });
-    void supabase.from('vanguard_stream').insert({
-      user_id: args.userId,
+    void appendStreamEntry({
+      userId: args.userId,
       source: 'powerlist',
       content: `Domknięcie dnia: ${note}`,
       metadata: { kind: 'day_close', date: args.today },
@@ -180,36 +180,62 @@ async function saveEveningCloseHelper(args: UsePowerListActionsArgs, todayWin: D
 async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, todayWinInput: DailyWinWithTasks | null, haptics: ReturnType<typeof useHaptics>) {
   if (!todayWinInput) return;
   const todayWin = todayWinInput as DailyWinRecord;
-  const field = `done_${index + 1}`;
-  const timeField = `completed_at_${index + 1}`;
-  const todoIdField = `task_${index + 1}_todo_id`;
-  const checkpointIdField = `task_${index + 1}_checkpoint_id`;
+  const slot = index + 1;
+  const field = `done_${slot}`;
+  const timeField = `completed_at_${slot}`;
+  const todoIdField = `task_${slot}_todo_id`;
+  const checkpointIdField = `task_${slot}_checkpoint_id`;
   const newValue = !todayWin[field];
   const timestamp = newValue ? new Date().toISOString() : null;
 
   const allDone = [1, 2, 3, 4, 5].every((i) => {
     if (!todayWin[`task_${i}`]) return true;
-    if (i === index + 1) return newValue;
+    if (i === slot) return newValue;
     return todayWin[`done_${i}`];
   });
 
-  const updates = { [field]: newValue, [timeField]: timestamp } as TablesUpdate<'daily_wins'>;
-  if (allDone) updates.result = 'Z';
+  const resultPatch: TablesUpdate<'daily_wins'> = {};
+  if (allDone) resultPatch.result = 'Z';
   else {
-    if (todayWin.result === 'Z') updates.result = null;
+    if (todayWin.result === 'Z') resultPatch.result = null;
     const warsawHour = getWarsawHour();
-    if (warsawHour >= 23 && !allDone) updates.result = 'P';
+    if (warsawHour >= 23 && !allDone) resultPatch.result = 'P';
   }
 
   try {
-    const data = await updateDailyWin(args.userId, todayWin.id, updates);
+    const taskRow = (todayWin.daily_win_tasks ?? []).find((t) => t.slot === slot);
+    let data: Awaited<ReturnType<typeof updateDailyWin>>;
+
+    if (taskRow) {
+      await updateDailyWinTaskDone(args.userId, taskRow.id, newValue, timestamp);
+      data = Object.keys(resultPatch).length > 0
+        ? await updateDailyWin(args.userId, todayWin.id, resultPatch)
+        : { ...todayWin, [field]: newValue, [timeField]: timestamp } as Awaited<ReturnType<typeof updateDailyWin>>;
+    } else {
+      // Legacy rows without daily_win_tasks — write wide columns directly.
+      data = await updateDailyWin(args.userId, todayWin.id, {
+        ...resultPatch,
+        [field]: newValue,
+        [timeField]: timestamp,
+      } as TablesUpdate<'daily_wins'>);
+    }
+
+    // Prefer wide-column mirror after trigger fan-out; merge local done state for UI.
+    const merged = {
+      ...data,
+      [field]: newValue,
+      [timeField]: timestamp,
+      daily_win_tasks: (todayWin.daily_win_tasks ?? []).map((t) =>
+        t.slot === slot ? { ...t, done: newValue, completed_at: timestamp } : t,
+      ),
+    };
 
     if (newValue) haptics.success(); else haptics.light();
-    if (args.onUpdate) args.onUpdate(data);
+    if (args.onUpdate) args.onUpdate(merged as typeof data);
 
     if (newValue) {
-      const taskText = todayWin[`task_${index + 1}`] as string | null;
-      const category = (todayWin[`category_${index + 1}`] as string | null) ?? 'general';
+      const taskText = todayWin[`task_${slot}`] as string | null;
+      const category = (todayWin[`category_${slot}`] as string | null) ?? 'general';
       const checkpointId = todayWin[checkpointIdField] as string | null;
       if (checkpointId) {
         args.setCheckpointPrompt({
@@ -219,16 +245,16 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
         });
       }
       if (taskText) {
-        void supabase.from('vanguard_stream').insert({
-          user_id: args.userId,
+        void appendStreamEntry({
+          userId: args.userId,
           source: 'powerlist',
           content: `Powerlist ✓ [${category}]: ${taskText}`,
           metadata: {
             category,
-            index: index + 1,
+            index: slot,
             todo_id: (todayWin[todoIdField] as string | null) ?? null,
             checkpoint_id: checkpointId ?? null,
-            project_id: (todayWin[`task_${index + 1}_project_id`] as string | null) ?? null,
+            project_id: (todayWin[`task_${slot}_project_id`] as string | null) ?? null,
           },
         });
       }
@@ -236,8 +262,8 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
       args.setCheckpointPrompt((p) => (p?.index === index ? null : p));
     }
 
-    const projectId = todayWin[`task_${index + 1}_project_id`] as string | null;
-    const targetValue = todayWin[`task_${index + 1}_target_value`] as string | null;
+    const projectId = todayWin[`task_${slot}_project_id`] as string | null;
+    const targetValue = todayWin[`task_${slot}_target_value`] as string | null;
     if (projectId && targetValue) {
       (async () => {
         try {
@@ -259,17 +285,7 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
         }
       })();
     }
-
-    const linkedTodoId = todayWin[todoIdField] as string | null;
-    if (linkedTodoId) {
-      updateTodoItem(linkedTodoId, {
-        status: newValue ? 'done' : 'open',
-        completed_at: newValue ? new Date().toISOString() : null,
-      }).catch((e: Error) => {
-        console.error('[PowerList] todo sync failed for', linkedTodoId, (e as Error).message);
-        notify('Błąd synchronizacji z Todo — odśwież stronę.', 'error');
-      });
-    }
+    // todo_items sync: DB trigger sync_daily_win_tasks_to_todo (when todo_id set)
   } catch (err: unknown) {
     console.error('[PowerList] toggleTask failed', err);
     notify('Nie udało się zapisać zadania.', 'error');
@@ -308,6 +324,9 @@ async function startNewDayHelper(args: UsePowerListActionsArgs, haptics: ReturnT
       result: null,
     });
 
+    // Clear stale rows from upsert trigger fan-out before inserting today's slots.
+    await deleteDailyWinTasks(args.userId, parentWin.id);
+
     const taskEntries = args.newTaskForm.map((slot, idx) => ({
       day_win_id: parentWin.id,
       slot: idx + 1,
@@ -323,16 +342,16 @@ async function startNewDayHelper(args: UsePowerListActionsArgs, haptics: ReturnT
       done: false,
     }));
 
-    const { data: insertedTasks, error: tasksErr } = await supabase
-      .from('daily_win_tasks')
-      .insert(taskEntries)
-      .select();
-
-    if (tasksErr) throw tasksErr;
+    await insertDailyWinTasks(args.userId, taskEntries);
 
     const data = {
       ...parentWin,
-      daily_win_tasks: insertedTasks,
+      daily_win_tasks: taskEntries.map((t, i) => ({
+        ...t,
+        id: `local-${i}`,
+        completed_at: null,
+        created_at: null,
+      })),
     };
 
     try {

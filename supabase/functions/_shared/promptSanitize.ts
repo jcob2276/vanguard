@@ -20,10 +20,8 @@ export function sanitizeUserQuery(raw: unknown): string {
 }
 
 const STATE_VECTOR_KEYS = new Set([
-  'state', 'stability_score', 'confidence', 'now', 'metrics', 'last_14_days',
-  'goal_alignment', 'today_plan', 'open_todos', 'upcoming_checkpoints', 'readiness',
-  'goal_spine', 'strategic_gaps', 'weekly_protocol', 'active_signature',
-  'desktop_footprint', 'lag_correlations', 'identity_vault',
+  'timestamp', 'date', 'user_id',
+  'biometrics', 'execution', 'system', 'training', 'nutrition',
 ]);
 
 export function sanitizeStateVector(raw: unknown): Record<string, unknown> {
@@ -33,4 +31,23 @@ export function sanitizeStateVector(raw: unknown): Record<string, unknown> {
     if (STATE_VECTOR_KEYS.has(k)) out[k] = v;
   }
   return out;
+}
+
+/** Build todayPlan shape expected by systemPrompt from WorldState.execution.today_win. */
+export function todayPlanFromWorldState(safeStateVector: Record<string, unknown>): Record<string, unknown> | null {
+  const execution = safeStateVector.execution;
+  if (!execution || typeof execution !== 'object' || Array.isArray(execution)) return null;
+  const win = (execution as Record<string, unknown>).today_win;
+  if (!win || typeof win !== 'object' || Array.isArray(win)) return null;
+  const w = win as Record<string, unknown>;
+  const top3 = [w.task_1, w.task_2, w.task_3].filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+  if (top3.length === 0) return null;
+  return {
+    top3,
+    first_move_morning: typeof w.task_1 === 'string' ? w.task_1 : null,
+    minimum_viable_day: [w.task_1, w.task_2].filter((t): t is string => typeof t === 'string' && t.trim().length > 0).join(' + ') || null,
+    biggest_risk: null,
+    counterplan: null,
+    open_loops: [w.task_4, w.task_5].filter((t): t is string => typeof t === 'string' && t.trim().length > 0),
+  };
 }

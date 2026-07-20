@@ -2,7 +2,6 @@ import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { getTodayWarsaw } from '../../lib/date';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
 import { Trash2, Camera } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import exifr from 'exifr';
@@ -11,6 +10,13 @@ import { generateThumbnail } from '../../lib/imageThumbnail';
 import { useUserId } from '../../store/useStore';
 import Spinner from '../ui/Spinner';
 import { Card } from '../ui/Card';
+import {
+  deleteProgressPhoto,
+  insertProgressPhoto,
+  listProgressPhotos,
+  removeProgressPhotoFiles,
+  uploadProgressPhotoFile,
+} from '../../lib/photosApi';
 
 export default function Photos() {
   const userId = useUserId();
@@ -23,14 +29,7 @@ export default function Photos() {
 
   const photosQuery = useQuery({
     queryKey: ['progress-photos', userId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('progress_photos')
-        .select('*')
-        .eq('user_id', userId!)
-        .order('date', { ascending: true });
-      return data ?? [];
-    },
+    queryFn: () => listProgressPhotos(userId!),
     enabled: !!userId,
   });
 
@@ -84,26 +83,23 @@ export default function Photos() {
 
       const stamp = Date.now();
       const fileName = `${userId}/${stamp}.${file.name.split('.').pop()}`;
-      await supabase.storage.from('progress-photos').upload(fileName, file);
-      const { data: { publicUrl } } = supabase.storage.from('progress-photos').getPublicUrl(fileName);
+      const publicUrl = await uploadProgressPhotoFile(userId!, fileName, file);
 
       let thumbnailUrl: string | null = null;
       try {
         const thumbBlob = await generateThumbnail(file);
         const thumbName = `${userId}/${stamp}_thumb.jpg`;
-        await supabase.storage.from('progress-photos').upload(thumbName, thumbBlob);
-        thumbnailUrl = supabase.storage.from('progress-photos').getPublicUrl(thumbName).data.publicUrl;
+        thumbnailUrl = await uploadProgressPhotoFile(userId!, thumbName, thumbBlob);
       } catch (thumbErr: unknown) {
         console.warn('[Photos] thumbnail generation failed, gallery will use the original', thumbErr);
       }
 
-      const { error: insertErr } = await supabase.from('progress_photos').insert({
-         user_id: userId,
-         image_url: publicUrl,
-         thumbnail_url: thumbnailUrl,
-         date: occurredDate
+      await insertProgressPhoto({
+        userId: userId!,
+        imageUrl: publicUrl,
+        thumbnailUrl,
+        date: occurredDate,
       });
-      if (insertErr) throw insertErr;
       void photosQuery.refetch();
     } catch (error: unknown) {
       notify('Błąd: ' + (error instanceof Error ? (error as Error).message : String(error)), 'error');
@@ -115,10 +111,13 @@ export default function Photos() {
     const fileName = `${userId}/${url.split('/').pop()}`;
     const paths = [fileName];
     if (thumbnailUrl) paths.push(`${userId}/${thumbnailUrl.split('/').pop()}`);
-    await supabase.storage.from('progress-photos').remove(paths);
-    const { error: delErr } = await supabase.from('progress_photos').delete().eq('id', id).eq('user_id', userId!);
-    if (delErr) { notify(delErr.message, 'error'); return; }
-    void photosQuery.refetch();
+    try {
+      await removeProgressPhotoFiles(paths);
+      await deleteProgressPhoto(userId!, id);
+      void photosQuery.refetch();
+    } catch (err: unknown) {
+      notify(err instanceof Error ? err.message : 'Nie udało się usunąć zdjęcia', 'error');
+    }
   }
 
   if (loading) return <div className="p-8 text-center text-text-muted uppercase font-black animate-pulse">Wczytywanie Analizy Wizualnej...</div>;

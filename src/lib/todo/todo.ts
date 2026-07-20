@@ -3,7 +3,7 @@ import type { Database } from '../database.types';
 import { unwrap, unwrapList, unwrapMaybe } from '../supabaseUtils';
 import { getTodayWarsaw } from '../date';
 import { isOfflineError, queueOfflineWrite } from '../offlineQueue';
-import { normalizeTodoSchedule } from './todoIntegrity';
+import { buildTodoInsertRow, normalizeTodoSchedule } from '@vanguard/domain';
 
 export type TodoItemRow = Database['public']['Tables']['todo_items']['Row'];
 export type TodoItemUpdate = Database['public']['Tables']['todo_items']['Update'];
@@ -65,77 +65,77 @@ interface CreateTodoItemFields {
   sort_order?: number | null;
 }
 
-export async function createTodoItem(userId: string, fields: CreateTodoItemFields): Promise<TodoItemRow> {
-  if (fields.recurrence && !fields.due_date && !fields.scheduled_time) {
-    throw new Error('Powtarzające się zadanie wymaga daty.');
-  }
-  const safeFields = normalizeTodoSchedule(fields);
-  const tags = String(fields.tagsText || '')
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean);
+/** Find any todo occupying (user_id, section_id, title) — unique constraint includes done/dropped. */
+export async function findTodoInSection(
+  userId: string,
+  sectionId: string,
+  title: string,
+): Promise<string | null> {
+  const trimmed = title.trim();
+  if (!trimmed) return null;
 
-  const payload = {
+  const row = await unwrapMaybe<{ id: string }>(
+    await supabase
+      .from('todo_items')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('section_id', sectionId)
+      .eq('title', trimmed)
+      .maybeSingle(),
+  );
+  return row?.id ?? null;
+}
+
+export function isUniqueTodoTitleError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('todo_items_user_id_section_id_title_key');
+}
+
+export async function createTodoItem(userId: string, fields: CreateTodoItemFields): Promise<TodoItemRow> {
+  const payload = buildTodoInsertRow({
     user_id: userId,
-    section_id: fields.section_id || null,
-    title: safeFields.title,
-    notes: fields.notes?.trim() || null,
-    priority: fields.priority || 'normal',
-    tags,
-    due_date: safeFields.due_date || null,
-    deadline_date: safeFields.deadline_date || null,
-    recurrence: safeFields.recurrence || null,
-    duration_minutes: safeFields.duration_minutes ?? null,
-    scheduled_time: safeFields.scheduled_time ?? null,
-    reminder_at: fields.reminder_at ?? null,
-    is_important: fields.is_important ?? false,
-    parent_task_id: fields.parent_task_id ?? null,
-    category: fields.category ?? null,
-    project_id: fields.project_id ?? null,
-    is_milestone: fields.is_milestone ?? false,
-    sort_order: fields.sort_order ?? undefined,
-  };
+    title: fields.title,
+    notes: fields.notes,
+    priority: fields.priority,
+    tagsText: fields.tagsText,
+    due_date: fields.due_date,
+    deadline_date: fields.deadline_date,
+    recurrence: fields.recurrence,
+    section_id: fields.section_id,
+    duration_minutes: fields.duration_minutes,
+    scheduled_time: fields.scheduled_time,
+    reminder_at: fields.reminder_at,
+    is_important: fields.is_important,
+    parent_task_id: fields.parent_task_id,
+    category: fields.category,
+    project_id: fields.project_id,
+    is_milestone: fields.is_milestone,
+    sort_order: fields.sort_order,
+  });
 
   try {
     return unwrap(
       await supabase
         .from('todo_items')
-        .insert(payload)
+        .insert(payload as never)
         .select()
         .single(),
     );
   } catch (err: unknown) {
     if (isOfflineError(err)) {
-      const id = crypto.randomUUID(); // optimistic ID
-      const fullPayload: TodoItemRow = {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const fullPayload = {
         id,
-        user_id: userId,
-        section_id: fields.section_id || null,
-        project_id: fields.project_id || null,
-        title: fields.title.trim(),
-        notes: fields.notes?.trim() || null,
-        priority: fields.priority || 'normal',
-        tags,
-        due_date: fields.due_date || null,
-        deadline_date: fields.deadline_date || null,
-        recurrence: fields.recurrence || null,
+        ...payload,
         recurrence_origin_id: null,
-        duration_minutes: fields.duration_minutes ?? null,
-        scheduled_time: fields.scheduled_time ?? null,
-        reminder_at: fields.reminder_at ?? null,
-        is_important: fields.is_important ?? false,
-        parent_task_id: fields.parent_task_id ?? null,
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        category: fields.category ?? null,
+        created_at: now,
+        updated_at: now,
         completed_at: null,
-        is_milestone: fields.is_milestone ?? false,
-        reminder_sent: false,
-        sort_order: fields.sort_order ?? 999,
         ai_bucket: null,
         ai_classified_at: null,
-      };
+        sort_order: fields.sort_order ?? 999,
+      } as TodoItemRow;
       await queueOfflineWrite('table:insert:todo_items', { payload: fullPayload }, 'Dodanie zadania');
       return fullPayload;
     }

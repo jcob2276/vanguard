@@ -155,7 +155,7 @@ export async function gatherMonthFacts(userId: string, monthStart: string): Prom
       .in('week_start', weeks.length ? weeks : ['1970-01-01']),
     supabase
       .from('daily_wins')
-      .select('date, result, task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5')
+      .select('date, result, task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5, daily_win_tasks(slot, title, done)')
       .eq('user_id', userId)
       .gte('date', monthStart)
       .lte('date', monthEnd),
@@ -191,11 +191,20 @@ export async function gatherMonthFacts(userId: string, monthStart: string): Prom
   for (const row of wins ?? []) {
     if (row.result === 'Z') powerListZ++;
     if (row.result === 'P') powerListP++;
-    for (let i = 1; i <= 5; i++) {
-      const task = row[`task_${i}` as keyof typeof row];
-      if (typeof task === 'string' && task.trim()) {
+    const tasks = (row as { daily_win_tasks?: Array<{ title: string | null; done: boolean | null }> }).daily_win_tasks;
+    if (tasks?.length) {
+      for (const t of tasks) {
+        if (!t.title?.trim()) continue;
         powerListPlanned++;
-        if (row[`done_${i}` as keyof typeof row]) powerListDone++;
+        if (t.done) powerListDone++;
+      }
+    } else {
+      for (let i = 1; i <= 5; i++) {
+        const task = row[`task_${i}` as keyof typeof row];
+        if (typeof task === 'string' && task.trim()) {
+          powerListPlanned++;
+          if (row[`done_${i}` as keyof typeof row]) powerListDone++;
+        }
       }
     }
   }

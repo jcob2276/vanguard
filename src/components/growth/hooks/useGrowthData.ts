@@ -174,7 +174,7 @@ export function useGrowthData(userId: string | undefined, weekStart: string) {
           .limit(20),
         supabase
           .from('daily_wins')
-          .select('task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5, date')
+          .select('task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5, date, daily_win_tasks(slot, title, done)')
           .eq('user_id', userId)
           .gte('date', weekStart)
           .lt('date', weekEnd),

@@ -54,6 +54,7 @@ Płaska lista ~20 katalogów bez nadrzędnego `features/`. To świadomy kompromi
 | `core/` | Rdzeń appki: dashboard, autoryzacja, nawigacja, poranny plan, odżywianie, statystyki, error boundary. |
 | `correlations/` | Analiza korelacji między nawykami/zdarzeniami (np. sen a inne czynniki), filtry, podsumowanie. |
 | `desktop/` | Osobny "pulpit"/kokpit desktopowy: sekcje fitness/zdrowia, hero-banner, shell nawigacyjny. |
+| `finance/` | Finanse osobiste: FIRE calculator, decyzje zakupowe, konta, cele, wishlist, subskrypcje, rachunki, wydatki/dochód. |
 | `growth/` | Kokpit rozwoju osobistego: cele, umiejętności (radar/drzewo), projekty, plan tygodniowy, media do nauki. |
 | `identity/` | Skarbiec tożsamości (fundament, dane osobiste użytkownika) oraz galeria zdjęć. |
 | `insights/` | Dashboard wniosków/wzorców i statystyk zadań generowanych z danych użytkownika. |

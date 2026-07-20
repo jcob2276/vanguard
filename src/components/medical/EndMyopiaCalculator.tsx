@@ -1,7 +1,7 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useFaceDistance } from './hooks/useFaceDistance';
-import { supabase } from '../../lib/supabase';
+import { insertEndmyopiaMeasurement } from '../../lib/endmyopiaApi';
 import { Check, ArrowLeft, Ruler, ZoomIn, ZoomOut, AlertCircle, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import VisionJournal from './VisionJournal';
@@ -120,13 +120,12 @@ export default function EndMyopiaCalculator() {
     setSaveError(false);
     try {
       if (!userId) throw new Error('Brak zalogowanego użytkownika');
-      const { error } = await supabase.from('endmyopia_measurements').insert({
-        user_id: userId,
-        eye_measured: selectedEye,
-        blur_distance_cm: parseFloat(capturedDistance.toFixed(2)),
+      await insertEndmyopiaMeasurement({
+        userId,
+        eyeMeasured: selectedEye,
+        blurDistanceCm: parseFloat(capturedDistance.toFixed(2)),
         diopters: parseFloat(capturedDiopters.toFixed(2)),
       });
-      if (error) throw error;
       setRefreshTrigger(prev => prev + 1);
 
       const currentEye = selectedEye;

@@ -1444,6 +1444,318 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_accounts: {
+        Row: {
+          account_type: string
+          balance: number
+          coingecko_id: string | null
+          created_at: string
+          crypto_amount: number | null
+          id: string
+          is_liquid: boolean
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          account_type?: string
+          balance?: number
+          coingecko_id?: string | null
+          created_at?: string
+          crypto_amount?: number | null
+          id?: string
+          is_liquid?: boolean
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          account_type?: string
+          balance?: number
+          coingecko_id?: string | null
+          created_at?: string
+          crypto_amount?: number | null
+          id?: string
+          is_liquid?: boolean
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_bills: {
+        Row: {
+          amount: number
+          created_at: string
+          due_day: number
+          id: string
+          is_active: boolean
+          name: string
+          reminder_days: number
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          due_day?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          reminder_days?: number
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_day?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          reminder_days?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_goals: {
+        Row: {
+          auto_save_monthly: number
+          created_at: string
+          current_amount: number
+          deadline: string | null
+          id: string
+          name: string
+          priority: number
+          target_amount: number
+          user_id: string
+        }
+        Insert: {
+          auto_save_monthly?: number
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          name: string
+          priority?: number
+          target_amount?: number
+          user_id: string
+        }
+        Update: {
+          auto_save_monthly?: number
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          name?: string
+          priority?: number
+          target_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_income_sources: {
+        Row: {
+          amount_monthly: number
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_monthly?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          source_type?: string
+          user_id: string
+        }
+        Update: {
+          amount_monthly?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_profile: {
+        Row: {
+          emergency_target_months: number
+          expected_return_pct: number
+          inflation_pct: number
+          monthly_expenses: number
+          monthly_income: number
+          safe_withdrawal_rate_pct: number
+          updated_at: string
+          user_id: string
+          years_to_retirement: number
+        }
+        Insert: {
+          emergency_target_months?: number
+          expected_return_pct?: number
+          inflation_pct?: number
+          monthly_expenses?: number
+          monthly_income?: number
+          safe_withdrawal_rate_pct?: number
+          updated_at?: string
+          user_id: string
+          years_to_retirement?: number
+        }
+        Update: {
+          emergency_target_months?: number
+          expected_return_pct?: number
+          inflation_pct?: number
+          monthly_expenses?: number
+          monthly_income?: number
+          safe_withdrawal_rate_pct?: number
+          updated_at?: string
+          user_id?: string
+          years_to_retirement?: number
+        }
+        Relationships: []
+      }
+      finance_snapshots: {
+        Row: {
+          created_at: string
+          debts: number
+          id: string
+          investments: number
+          liquid_cash: number
+          net_worth: number
+          snapshot_month: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          debts?: number
+          id?: string
+          investments?: number
+          liquid_cash?: number
+          net_worth?: number
+          snapshot_month: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          debts?: number
+          id?: string
+          investments?: number
+          liquid_cash?: number
+          net_worth?: number
+          snapshot_month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_subscriptions: {
+        Row: {
+          amount_monthly: number
+          created_at: string
+          id: string
+          is_active: boolean
+          is_unused: boolean
+          name: string
+          renewal_date: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_monthly?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_unused?: boolean
+          name: string
+          renewal_date?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_monthly?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_unused?: boolean
+          name?: string
+          renewal_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          transaction_date: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          transaction_date?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          transaction_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      finance_wishlist: {
+        Row: {
+          cool_off_until: string | null
+          created_at: string
+          id: string
+          is_impulse: boolean
+          name: string
+          notes: string | null
+          price: number
+          still_want: boolean
+          user_id: string
+          value_score: number
+        }
+        Insert: {
+          cool_off_until?: string | null
+          created_at?: string
+          id?: string
+          is_impulse?: boolean
+          name: string
+          notes?: string | null
+          price?: number
+          still_want?: boolean
+          user_id: string
+          value_score?: number
+        }
+        Update: {
+          cool_off_until?: string | null
+          created_at?: string
+          id?: string
+          is_impulse?: boolean
+          name?: string
+          notes?: string | null
+          price?: number
+          still_want?: boolean
+          user_id?: string
+          value_score?: number
+        }
+        Relationships: []
+      }
       food_corrections: {
         Row: {
           corrected_grams: number
@@ -6248,6 +6560,15 @@ export type Database = {
           sprint_number: number
           week_in_sprint: number
         }[]
+      }
+      submit_morning_plan: {
+        Args: {
+          p_date: string
+          p_schedules?: Json
+          p_slots?: Json
+          p_user_id: string
+        }
+        Returns: string
       }
       sync_friction_proposals: { Args: { p_user_id: string }; Returns: number }
       update_food_entry: {

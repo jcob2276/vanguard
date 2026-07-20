@@ -12,7 +12,7 @@ import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen } from 'lucide-react';
+import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen, WalletCards } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardNavBar } from './DashboardNavBar';
@@ -142,6 +142,7 @@ export default function Dashboard({ session }: { session: Session }) {
     { label: 'Zadania', icon: ListTodo, action: () => s.navigate('/todo') },
     { label: 'Kalendarz', icon: Calendar, action: () => s.navigate('/kalendarz') },
     { label: 'Pocket', icon: BookOpen, action: () => s.navigate('/links') },
+    { label: 'Finanse', icon: WalletCards, action: () => s.navigate('/finanse') },
   ];
 
   return (

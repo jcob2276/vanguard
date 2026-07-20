@@ -235,17 +235,6 @@ Data: ${lastEveningReflection.date}
 ${lastEveningReflection.biggest_cost ? `Największy koszt (użytkownik): ${lastEveningReflection.biggest_cost}\n` : ''}${lastEveningReflection.best_move ? `Najlepszy ruch (użytkownik): ${lastEveningReflection.best_move}\n` : ''}${lastEveningReflection.blocker_candidates?.length ? `Blokery, które użytkownik sam nazwał: ${lastEveningReflection.blocker_candidates.join('; ')}\n` : ''}${lastEveningReflection.day_score ? `Ocena dnia (użytkownik): ${lastEveningReflection.day_score}/5\n` : ''}To są słowa użytkownika, nie interpretacja systemu. Używaj tylko jako kontekst tego, co sam zauważył wieczorem. Jeśli needs_manual_review — traktuj z rezerwą.
 ` : ''}
 
-${ironRulesContext ? `
-[ŻELAZNE ZASADY — fakty statyczne o Jakubie, zawsze aktualne]:
-${ironRulesContext}
-` : ''}
-
-${behavioralPatternsContext ? `
-[POWTARZALNE WZORCE BEHAWIORALNE ORAZ ICH SKUTKI — TWARDE FAKTY]:
-${behavioralPatternsContext}
-Zasada: To są powtarzalne obserwacje. System oblicza automatycznie ich SKUTKI dla kolejnych 9 dni. Tekst dowodów (evidence_text) to TWARDY, STATYSTYCZNY ZAPIS. Zawsze cytuj te liczby. Zawsze wyraźnie odróżniaj te statystyki od miękkiego kontekstu z grafu. Traktuj je jako absolutną prawdę bez interpretacji i prób wyjaśniania dlaczego tak się dzieje.
-` : ''}
-
 [STATUS WIEDZY — używaj przy każdej tezie]:
 - current: potwierdzone danymi <14 dni
 - historical: kiedyś prawda, może nieaktualne
@@ -254,10 +243,22 @@ Zasada: To są powtarzalne obserwacje. System oblicza automatycznie ich SKUTKI d
 - stale: stare dane wymagające odświeżenia
 - unknown: brak proweniencji
 
-[KONTEKST SYSTEMOWY]:
-${JSON.stringify(safeStateVector, null, 2)}
-
-${clarificationsContext ? `[ODPOWIEDZI NA WCZEŚNIEJSZE PYTANIA ORACLE]:\n${clarificationsContext}\n` : ''}
+=== WARSTWA 1 — BIOMETRIA (deterministyczna, liczby) ===
+[KONTEKST SYSTEMOWY — world_state dziś]:
+${JSON.stringify({
+  date: safeStateVector?.date,
+  biometrics: safeStateVector?.biometrics,
+  execution: safeStateVector?.execution
+    ? {
+        tasks_done: (safeStateVector.execution as Record<string, unknown>).tasks_done,
+        journal_present: (safeStateVector.execution as Record<string, unknown>).journal_present,
+        _meta: (safeStateVector.execution as Record<string, unknown>)._meta,
+      }
+    : null,
+  training: safeStateVector?.training,
+  nutrition: safeStateVector?.nutrition,
+  system: safeStateVector?.system,
+}, null, 2)}
 
 ${healthSummaryText}
 
@@ -265,10 +266,19 @@ ${strainText}
 
 ${medicalContextText}
 
-PAMIĘĆ SEMANTYCZNA I GRAF:
-${semanticContext}
+=== WARSTWA 2 — SKOMPILOWANA PAMIĘĆ (fakty / hipotezy / wiki / żelazne zasady) ===
+${ironRulesContext ? `[ŻELAZNE ZASADY]:\n${ironRulesContext}\n` : ''}
 ${graphContext}
 ${wikiContext}
+
+=== WARSTWA 3 — NARRACJA BIEŻĄCA (stream / friction / wzorce / clarifications) ===
+${semanticContext}
+${behavioralPatternsContext ? `
+[POWTARZALNE WZORCE BEHAWIORALNE ORAZ ICH SKUTKI — TWARDE FAKTY]:
+${behavioralPatternsContext}
+Zasada: To są powtarzalne obserwacje. System oblicza automatycznie ich SKUTKI dla kolejnych 9 dni. Tekst dowodów (evidence_text) to TWARDY, STATYSTYCZNY ZAPIS. Zawsze cytuj te liczby. Zawsze wyraźnie odróżniaj te statystyki od miękkiego kontekstu z grafu. Traktuj je jako absolutną prawdę bez interpretacji i prób wyjaśniania dlaczego tak się dzieje.
+` : ''}
+${clarificationsContext ? `[ODPOWIEDZI NA WCZEŚNIEJSZE PYTANIA ORACLE]:\n${clarificationsContext}\n` : ''}
 
 [PRIORYTETY WIEDZY — CURRENT-FIRST]:
 1. TERAŹNIEJSZOŚĆ (ostatnie 72h) — źródło prawdy. Zawsze ma pierwszeństwo.
@@ -279,8 +289,8 @@ ${wikiContext}
 - Każda mocna teza = konkretny wpis ze Strumienia lub biometrii + jego data.
 - Dane z [ARCHIWUM] → "Wcześniej X, ale nie wiem czy to nadal aktualne."
 - Brak danych z 7 dni → "Nie mam świeżych danych o X."
-- Pytania o kroki/kalorie odpowiadaj z sekcji [ZDROWIE/JEDZENIE - OSTATNIE 14 DNI]. Jeśli średnia nie jest null, nie wolno twierdzić, że nie masz danych.
-- Pytania o badania krwi/laby odpowiadaj z sekcji [BADANIA / KONTEKST MEDYCZNY - Z DATAMI]. Zawsze podaj datę i age_days/freshness. Stary wynik = kontekst historyczny, nie diagnoza aktualnego stanu.
+- Pytania o kroki/kalorie odpowiadaj z sekcji WARSTWA 1 (ZDROWIE/JEDZENIE). Jeśli średnia nie jest null, nie wolno twierdzić, że nie masz danych.
+- Pytania o badania krwi/laby odpowiadaj z sekcji [BADANIA / KONTEKST MEDYCZNY - Z DATAMI] gdy obecna. Zawsze podaj datę i age_days/freshness. Stary wynik = kontekst historyczny, nie diagnoza aktualnego stanu.
 - Nie mieszaj historii z teraźniejszością.
 - Bez evidence → tylko: "Hipoteza: ..."
 

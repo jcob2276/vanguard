@@ -16,6 +16,7 @@ const GrowthView = lazy(() => import('./components/growth/GrowthView'));
 const MedicalStudiesPage = lazy(() => import('./components/medical/MedicalStudiesPage'));
 const CorrelationsPage = lazy(() => import('./components/correlations/CorrelationsPage'));
 const EndMyopiaCalculator = lazy(() => import('./components/medical/EndMyopiaCalculator'));
+const FinancePage = lazy(() => import('./components/finance'));
 const DesignSystemPage = lazy(() => import('./components/dev/DesignSystemPage'));
 
 const FALLBACK_SPINNER = (
@@ -93,6 +94,11 @@ function AppRoutes() {
         </Suspense>
       } />
       <Route path="/settings" element={<Screen kind="list"><SettingsView session={session} /></Screen>} />
+      <Route path="/finanse" element={
+        <Suspense fallback={FALLBACK_SPINNER}>
+          <Screen kind="dashboard"><FinancePage /></Screen>
+        </Suspense>
+      } />
       <Route path="/rozwoj" element={
         <Suspense fallback={FALLBACK_SPINNER}>
           <Screen kind="dashboard"><GrowthView session={session} /></Screen>

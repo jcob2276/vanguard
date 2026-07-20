@@ -50,8 +50,19 @@ export async function retrieveRagContext(
     }
   }
 
+  // Intent first — gates medical fetch, raw window size, clarifications
+  const intent = classifyIntentSafe(current_query || '');
+  const wantsFullBiometrics = intent === 'biometric';
+  const wantsMedical = wantsFullBiometrics ||
+    /\b(badani|krew|lab|marker|cholesterol|ferrytyn|witamin|morpholog|glukoz|hemoglob)\w*/i.test(current_query || '');
+  const wantsClarifications = intent === 'identity' ||
+    /\b(pamiętasz|pamietasz|mówiłeś|mowiles|odpowiadałeś|pytałeś|preferenc)\w*/i.test(current_query || '');
+
   // STATIC CONTEXT
-  const [fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes, strainRes, dailyWinsRes, proposalsRes] = await Promise.all([
+  const [
+    fundamentRes, preferencesRes, oura14dRes, nutrition14dRes, foodEntries14dRes,
+    strainRes, dailyWinsRes, proposalsRes, medicalContext,
+  ] = await Promise.all([
     supabase.from('user_fundament')
       .select('identity, philosophy, vision')
       .eq('user_id', user_id)
@@ -89,7 +100,10 @@ export async function retrieveRagContext(
       .select('title, description, category')
       .eq('user_id', user_id)
       .eq('status', 'pending')
-      .limit(5)
+      .limit(5),
+    wantsMedical
+      ? fetchMedicalContext(supabase, user_id, todayDate)
+      : Promise.resolve(null),
   ]);
 
   if (fundamentRes.error) console.error('[oracle] user_fundament query error:', fundamentRes.error);
@@ -105,8 +119,13 @@ export async function retrieveRagContext(
   const oura14d = oura14dRes.data || [];
   const nutrition14d = nutrition14dRes.data || [];
   const foodEntries14d = foodEntries14dRes.data || [];
+  const rawDayLimit = wantsFullBiometrics ? 14 : 5;
+  const ouraRaw = oura14d.slice(0, rawDayLimit);
+  const nutritionRaw = nutrition14d.slice(0, rawDayLimit);
   const foodByDate: Record<string, any[]> = {};
+  const rawDates = new Set(ouraRaw.map((d: { date: string }) => d.date).concat(nutritionRaw.map((d: { date: string }) => d.date)));
   for (const e of foodEntries14d) {
+    if (!wantsFullBiometrics && !rawDates.has(e.date)) continue;
     if (!foodByDate[e.date]) foodByDate[e.date] = [];
     foodByDate[e.date].push({ meal: e.meal_type, name: e.name, kcal: e.calories, B: e.protein, W: e.carbs, T: e.fat, Bl: e.fiber ?? undefined, Cuk: e.sugar ?? undefined, q: e.food_quality_score ?? undefined });
   }
@@ -128,34 +147,36 @@ export async function retrieveRagContext(
     avg_sleep_hours: avg(oura14d, 'total_sleep_hours'),
     avg_hrv: avg(oura14d, 'hrv_avg'),
     avg_readiness: avg(oura14d, 'readiness_score'),
-    oura_daily: oura14d,
-    nutrition_daily: nutrition14d
+    oura_daily: ouraRaw,
+    nutrition_daily: nutritionRaw,
   };
 
-  const healthSummaryText = `[ZDROWIE/JEDZENIE - OSTATNIE 14 DNI, DANE DETERMINISTYCZNE]:
+  const healthSummaryText = `[ZDROWIE/JEDZENIE - AGREGAT 14D + SUROWE OSTATNIE ${rawDayLimit}D, DANE DETERMINISTYCZNE]:
 Zakres: ${healthSummary14d.date_from} - ${healthSummary14d.date_to}
 Dni Oura: ${healthSummary14d.oura_days_logged}/14; srednie kroki: ${healthSummary14d.avg_steps ?? 'brak danych'}; srednie active kcal: ${healthSummary14d.avg_active_calories ?? 'brak danych'}; srednie total burned kcal: ${healthSummary14d.avg_total_calories_burned ?? 'brak danych'}
 Sen (Oura sensor): srednie godziny snu: ${healthSummary14d.avg_sleep_hours ?? 'brak danych'}h; srednie HRV: ${healthSummary14d.avg_hrv ?? 'brak danych'}; sredni readiness: ${healthSummary14d.avg_readiness ?? 'brak danych'}
 Dni logu posilkow/daily_nutrition: ${healthSummary14d.nutrition_days_logged}/14; srednio zjedzone kcal: ${healthSummary14d.avg_food_calories ?? 'brak danych'}; srednie bialko: ${healthSummary14d.avg_protein ?? 'brak danych'}; srednie wegle: ${healthSummary14d.avg_carbs ?? 'brak danych'}; sredni tluszcz: ${healthSummary14d.avg_fat ?? 'brak danych'}; sredni blonnik: ${healthSummary14d.avg_fiber ?? 'brak danych'}; sredni cukier: ${healthSummary14d.avg_sugar ?? 'brak danych'}
 Jakosc jedzenia: avg_food_quality to srednia wazona kalorycznie (0-100, real-food dietitian scale) — jesli null, analiza nie zostala jeszcze uruchomiona dla tego dnia. Pole q przy produkcie = jego food_quality_score.
-Oura dzien po dniu (SUROWE DANE — zawiera bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, latency_minutes): ${JSON.stringify(healthSummary14d.oura_daily)}
-Jedzenie dzien po dniu (agregat, zawiera avg_food_quality i food_quality_analysis jesli analiza byla wykonana): ${JSON.stringify(healthSummary14d.nutrition_daily)}
-Jedzenie dzien po dniu (produkty, pole q = food_quality_score jesli analiza byla wykonana): ${JSON.stringify(foodByDate)}`;
+Oura dzien po dniu (ostatnie ${rawDayLimit}d — bedtime_timestamp, total_sleep_hours, hrv_avg, rhr_avg, readiness_score, deep/rem, efficiency, latency): ${JSON.stringify(healthSummary14d.oura_daily)}
+Jedzenie dzien po dniu (agregat, ostatnie ${rawDayLimit}d): ${JSON.stringify(healthSummary14d.nutrition_daily)}
+Jedzenie produkty (ostatnie ${rawDayLimit}d, pole q = food_quality_score): ${JSON.stringify(foodByDate)}`;
 
   // DAILY STRAIN
-  const strain14d = strainRes.data || [];
-  const strainToday = strain14d[0] || null;
-  const strainText = strain14d.length > 0 ? `[TRENING/OBCIĄŻENIE — DAILY STRAIN, DANE DETERMINISTYCZNE]:
+  const strain14dAll = strainRes.data || [];
+  const strain14d = wantsFullBiometrics ? strain14dAll : strain14dAll.slice(0, 5);
+  const strainToday = strain14dAll[0] || null;
+  const strainText = strain14dAll.length > 0 ? `[TRENING/OBCIĄŻENIE — DAILY STRAIN, DANE DETERMINISTYCZNE]:
 To jest zintegrowany wskaźnik łączący bieg (Strava HR), siłownię, kroki, odżywianie (log posiłków) i regenerację (Oura).
 - strain_score: 0–21 (koszt fizjologiczny dnia). recovery_score: 0–100. fueling_score: 0–100. daily_status: green/yellow/red.
 - main_limiter: co dziś najbardziej ogranicza (sleep/calories/carbs/cardio_load/strength_load/mental_load/recovery_ok).
 - fueling_provisional: gdy true, fueling/kcal dla TEGO dnia są TYMCZASOWE — dzień jeszcze trwa, log posiłków niedomknięty (cron liczy ~11:15). NIE twierdź o deficycie kalorycznym ani o "za mało jedzenia" na podstawie tymczasowego fuelingu; potraktuj go jako niepełny i powiedz, że doszacuje się po domknięciu dnia.
 DZIŚ (${strainToday?.date}): Strain ${strainToday?.strain_score ?? '—'}/21, Recovery ${strainToday?.recovery_score ?? '—'}/100, Fueling ${strainToday?.fueling_score ?? '—'}/100${strainToday?.fueling_provisional ? ' (TYMCZASOWY — dzień niezamknięty, nie wnioskuj o deficycie)' : ''}, Status ${strainToday?.daily_status ?? '—'}, Limiter: ${strainToday?.main_limiter ?? '—'}. ${strainToday?.explanation ?? ''}
 Gdy pytanie brzmi "czy mogę dziś cisnąć / jak forma / co mnie ogranicza" — odpowiadaj NA TYCH LICZBACH: green=można obciążać, yellow=ostrożnie/easy, red=regeneracja. Wskaż konkretny limiter. Jeśli fueling_provisional=true, fueling dziś nie jest finalnym limiterem.
-Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: brak danych (jeszcze nie policzono).';
+Strain dzień po dniu (ostatnie ${strain14d.length}d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: brak danych (jeszcze nie policzono).';
 
-  const medicalContext = await fetchMedicalContext(supabase, user_id, todayDate);
-  const medicalContextText = formatMedicalContextBlock(medicalContext);
+  const medicalContextText = medicalContext
+    ? formatMedicalContextBlock(medicalContext)
+    : '';
   // DYNAMIC CONTEXT (RAG) - DETERMINISTIC 3-STEP PIPELINE
   let semanticContext = "";
   let graphContext = "";
@@ -163,7 +184,6 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
   let retrievedSources: any[] = [];
   let matchesRes: any = { data: [] };
   let graphRes: any = { data: [] };
-  const intent = classifyIntentSafe(current_query || '');
 
   if (current_query) {
     const ragResult = await runRagPipeline(supabase, user_id, current_query, intent, cutoff72h, proposalsRes);
@@ -192,7 +212,7 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
       .in('status', ['active', 'user_confirmed', 'hypothesis', 'needs_review'])
       .order('confidence', { ascending: false })
       .order('last_compiled_at', { ascending: false })
-      .limit(6);
+      .limit(4);
 
     if (wikiErr) throw wikiErr;
     if (wikiPages?.length) {
@@ -201,14 +221,14 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
           const refs = Array.isArray(p.source_refs)
             ? p.source_refs.slice(0, 3).map((r: any) => `${r.table}:${r.id}`).join(', ')
             : '';
-          const detail = p.status === 'needs_review' && p.content_md
+          const detail = p.status === 'needs_review' && intent === 'recent_pattern' && p.content_md
             ? ` | evidence: ${String(p.content_md).replace(/\s+/g, ' ').slice(0, 520)}`
             : '';
           return `- ${p.title} (${p.page_type}, ${p.status}, conf=${Math.round(Number(p.confidence || 0) * 100)}%): ${p.summary}${detail}${refs ? ` | refs: ${refs}` : ''}`;
         }).join('\n') +
         "\nZasada: wiki jest synteza pochodna. Status needs_review = indeks/nawigacja, nie mocna teza. Gdy swiezy stream 72h przeczy wiki, priorytet ma swiezy stream albo oznacz konflikt.";
 
-      retrievedSources.push(...wikiPages.slice(0, 6).map((p: any) => ({
+      retrievedSources.push(...wikiPages.slice(0, 4).map((p: any) => ({
         table: 'vanguard_wiki_pages',
         id: p.id,
         date: p.last_compiled_at,
@@ -249,7 +269,7 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
       .eq('user_id', user_id)
       .eq('active', true)
       .order('sort_order', { ascending: true })
-      .limit(10);
+      .limit(5);
     if (ironRules && ironRules.length > 0) {
       ironRulesContext = ironRules.map((r: { rule_text: string }) => `- ${r.rule_text}`).join('\n');
     }
@@ -257,23 +277,25 @@ Strain dzień po dniu (14d): ${JSON.stringify(strain14d)}` : '[DAILY STRAIN]: br
     console.warn('[oracle] iron_rules fetch failed (non-fatal):', e);
   }
 
-  // CLARIFICATIONS CONTEXT
+  // CLARIFICATIONS CONTEXT — gated
   let clarificationsContext = '';
-  try {
-    const { data: answeredClarifications } = await supabase
-      .from('oracle_clarification_requests')
-      .select('question, answer, proposed_memory, answered_at')
-      .eq('user_id', user_id)
-      .eq('status', 'answered')
-      .order('answered_at', { ascending: false })
-      .limit(8);
-    if (answeredClarifications?.length) {
-      clarificationsContext = answeredClarifications.map((c: { question: string; answer: unknown; proposed_memory?: string }) =>
-        `P: ${c.question}\nO: ${JSON.stringify(c.answer)}${c.proposed_memory ? `\nPamięć: ${c.proposed_memory}` : ''}`
-      ).join('\n\n');
+  if (wantsClarifications) {
+    try {
+      const { data: answeredClarifications } = await supabase
+        .from('oracle_clarification_requests')
+        .select('question, answer, proposed_memory, answered_at')
+        .eq('user_id', user_id)
+        .eq('status', 'answered')
+        .order('answered_at', { ascending: false })
+        .limit(8);
+      if (answeredClarifications?.length) {
+        clarificationsContext = answeredClarifications.map((c: { question: string; answer: unknown; proposed_memory?: string }) =>
+          `P: ${c.question}\nO: ${JSON.stringify(c.answer)}${c.proposed_memory ? `\nPamięć: ${c.proposed_memory}` : ''}`
+        ).join('\n\n');
+      }
+    } catch (e) {
+      console.warn('[oracle] clarifications fetch failed (non-fatal):', e);
     }
-  } catch (e) {
-    console.warn('[oracle] clarifications fetch failed (non-fatal):', e);
   }
 
   return {

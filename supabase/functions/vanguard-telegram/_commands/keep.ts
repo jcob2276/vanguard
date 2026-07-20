@@ -2,6 +2,7 @@ import { safeSendTelegram } from "../_utils/helpers.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
 import { getWarsawDateString } from "../../_shared/time.ts";
 import { fetchWorldState } from "../../_shared/worldState.ts";
+import { buildNoteInsertRow } from "@vanguard/domain";
 
 export async function handleKeepCommand(
   text: string,
@@ -18,15 +19,14 @@ export async function handleKeepCommand(
       return;
     }
 
-    const firstLine = content.split('\n')[0].slice(0, 80);
     const tags = fromVoice ? ['telegram', 'voice'] : ['telegram'];
-
-    const { data: note, error } = await supabase.from('vanguard_notes').insert({
+    const payload = buildNoteInsertRow({
       user_id: vanguardUserId,
-      title: firstLine,
       content,
       tags,
-    }).select('id').single();
+    });
+
+    const { data: note, error } = await supabase.from('vanguard_notes').insert(payload).select('id').single();
     if (error) throw error;
 
     const todayStr = getWarsawDateString();
@@ -34,10 +34,11 @@ export async function handleKeepCommand(
       console.error("[telegram] fetchWorldState forceRefresh failed:", e);
     });
 
+    const title = String(payload.title);
     const statusLine = fromVoice ? '✓ Zapisano notatkę (głosowo)' : '✓ Zapisano notatkę';
-    const messageText = `${statusLine}\n\n${firstLine}`;
+    const messageText = `${statusLine}\n\n${title}`;
 
-    const inlineKeyboard = fromVoice 
+    const inlineKeyboard = fromVoice
       ? [[
           { text: "Pokaż tekst", callback_data: `show_text:note:${note.id}` },
           { text: "Cofnij", callback_data: `undo:note:${note.id}` }

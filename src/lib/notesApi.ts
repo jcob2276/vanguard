@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { buildNoteInsertRow } from '@vanguard/domain';
 import { supabase } from './supabase';
+import { isOfflineError, queueOfflineWrite } from './offlineQueue';
+import { notesKeys } from './queryKeys';
 
 export interface Note {
   id: string;
@@ -18,8 +21,6 @@ interface ApiError {
   code?: string;
   message: string;
 }
-
-import { notesKeys } from './queryKeys';
 
 // ── QUERIES ──
 
@@ -44,32 +45,80 @@ export function useNotes(userId: string) {
 // ── MUTATIONS ──
 
 export async function createNoteApi(userId: string, partial: Partial<Note>): Promise<Note> {
-  const { data, error } = await supabase
-    .from('vanguard_notes')
-    .insert({ user_id: userId, ...partial })
-    .select()
-    .single();
+  const payload = buildNoteInsertRow({
+    user_id: userId,
+    content: partial.content ?? '',
+    title: partial.title,
+    tags: partial.tags,
+    is_pinned: partial.is_pinned,
+    is_archived: partial.is_archived,
+    color: partial.color,
+  });
 
-  if (error) throw error;
-  return data as Note;
+  try {
+    const { data, error } = await supabase
+      .from('vanguard_notes')
+      .insert(payload as never)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Note;
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const local: Note = {
+        id,
+        user_id: userId,
+        title: String(payload.title),
+        content: String(payload.content),
+        tags: (payload.tags as string[]) ?? [],
+        is_pinned: Boolean(payload.is_pinned ?? false),
+        is_archived: Boolean(payload.is_archived ?? false),
+        color: String(payload.color ?? 'default'),
+        created_at: now,
+        updated_at: now,
+      };
+      await queueOfflineWrite('table:insert:vanguard_notes', { payload: local }, 'Dodanie notatki');
+      return local;
+    }
+    throw err;
+  }
 }
 
 export async function updateNoteApi(id: string, patch: Partial<Note>): Promise<void> {
-  const { error } = await supabase
-    .from('vanguard_notes')
-    .update(patch)
-    .eq('id', id);
+  try {
+    const { error } = await supabase
+      .from('vanguard_notes')
+      .update(patch)
+      .eq('id', id);
 
-  if (error) throw error;
+    if (error) throw error;
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      await queueOfflineWrite('table:update:vanguard_notes', { match: { id }, payload: patch }, 'Edycja notatki');
+      return;
+    }
+    throw err;
+  }
 }
 
 export async function deleteNoteApi(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('vanguard_notes')
-    .delete()
-    .eq('id', id);
+  try {
+    const { error } = await supabase
+      .from('vanguard_notes')
+      .delete()
+      .eq('id', id);
 
-  if (error) throw error;
+    if (error) throw error;
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      await queueOfflineWrite('table:delete:vanguard_notes', { match: { id } }, 'Usunięcie notatki');
+      return;
+    }
+    throw err;
+  }
 }
 
 // ── DOMAIN HELPERS ──

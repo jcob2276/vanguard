@@ -1,7 +1,49 @@
 import { supabase } from './supabase';
 import { shiftDateStr } from './date';
 import { getWeekStartWarsaw, shiftWeekStart } from './growth/growth';
-import type { Tables, TablesInsert } from './database.types';
+import type { Json, Tables, TablesInsert } from './database.types';
+import { invalidateGoalSpineCache } from './goal/goalSpine.queries';
+import { isOfflineError, queueOfflineWrite } from './offlineQueue';
+
+export interface MorningPlanSlotInput {
+  slot: number;
+  title: string;
+  category: string;
+  todo_id: string;
+}
+
+export interface MorningPlanScheduleInput {
+  todo_id: string;
+  scheduled_time: string;
+  duration_minutes: number;
+}
+
+/** Atomic DB write for morning plan (wins + slots + todo schedules). Calendar stays separate. */
+export async function submitMorningPlanRpc(
+  userId: string,
+  date: string,
+  slots: MorningPlanSlotInput[],
+  schedules: MorningPlanScheduleInput[],
+): Promise<string> {
+  const args = {
+    p_user_id: userId,
+    p_date: date,
+    p_slots: slots as unknown as Json,
+    p_schedules: schedules as unknown as Json,
+  };
+  try {
+    const { data, error } = await supabase.rpc('submit_morning_plan', args);
+    if (error) throw error;
+    invalidateGoalSpineCache(userId);
+    return data as string;
+  } catch (err: unknown) {
+    if (isOfflineError(err)) {
+      await queueOfflineWrite('submit_morning_plan', args, 'Plan poranny');
+      return crypto.randomUUID();
+    }
+    throw err;
+  }
+}
 
 interface MorningPlanTodo {
   id: string;
@@ -148,7 +190,7 @@ export async function updateTodoDueDate(
   }
 }
 
-export async function deleteDailyWinTasks(dayWinId: string): Promise<void> {
+export async function deleteDailyWinTasks(userId: string, dayWinId: string): Promise<void> {
   const { error } = await supabase
     .from('daily_win_tasks')
     .delete()
@@ -157,9 +199,13 @@ export async function deleteDailyWinTasks(dayWinId: string): Promise<void> {
   if (error) {
     throw error;
   }
+  invalidateGoalSpineCache(userId);
 }
 
-export async function insertDailyWinTasks(entries: TablesInsert<'daily_win_tasks'>[]): Promise<void> {
+export async function insertDailyWinTasks(
+  userId: string,
+  entries: TablesInsert<'daily_win_tasks'>[],
+): Promise<void> {
   const { error } = await supabase
     .from('daily_win_tasks')
     .insert(entries);
@@ -167,22 +213,5 @@ export async function insertDailyWinTasks(entries: TablesInsert<'daily_win_tasks
   if (error) {
     throw error;
   }
-}
-
-export async function updateTodoScheduledTime(
-  taskId: string,
-  scheduledTime: string,
-  durationMinutes: number
-): Promise<void> {
-  const { error } = await supabase
-    .from('todo_items')
-    .update({
-      scheduled_time: scheduledTime,
-      duration_minutes: durationMinutes,
-    })
-    .eq('id', taskId);
-
-  if (error) {
-    throw error;
-  }
+  invalidateGoalSpineCache(userId);
 }

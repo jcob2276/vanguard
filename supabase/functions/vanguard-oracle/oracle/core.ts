@@ -14,7 +14,7 @@ import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import type { DeepSeekMessage } from "../../_shared/deepseek.ts";
 import { z } from "npm:zod";
 import { runOracleReadonlyQuery } from "../../_shared/oracleSql.ts";
-import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery } from "../../_shared/promptSanitize.ts";
+import { sanitizeStateVector, sanitizeUserConf, sanitizeUserQuery, todayPlanFromWorldState } from "../../_shared/promptSanitize.ts";
 import { getStreamCutoffs, getWarsawDateString } from "../../_shared/time.ts";
 import { compressHistoryIfNeeded } from "../../_shared/contextCompression.ts";
 import { mintRecordFactId } from "../../_shared/mintRecordFactId.ts";
@@ -84,6 +84,7 @@ export async function runOracleQuery(
 
   const actualStateVector = await fetchWorldState(supabase, user_id, todayDate, now.getTime());
   const safeStateVector = sanitizeStateVector(actualStateVector);
+  const todayPlan = todayPlanFromWorldState(safeStateVector);
   const safeUserConf = sanitizeUserConf(user_conf);
   console.log(`[oracle] start | user: ${user_id} | query: "${current_query?.substring(0, 50)}..."`);
 
@@ -91,7 +92,7 @@ export async function runOracleQuery(
 
   const systemPrompt = buildSystemPrompt({
     agent_run_mode, mode, fundament: rag.fundament, responsePrefs: rag.responsePrefs,
-    todayPlan: safeStateVector.today_plan as Record<string, unknown> | undefined,
+    todayPlan,
     recentPlanQuality: rag.recentPlanQuality, lastEveningReflection: rag.lastEveningReflection,
     ironRulesContext: rag.ironRulesContext, behavioralPatternsContext: rag.behavioralPatternsContext,
     intent: rag.intent, clarificationsContext: rag.clarificationsContext,

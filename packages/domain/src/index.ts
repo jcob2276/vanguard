@@ -4,3 +4,18 @@ export * from './fitness.ts';
 export * from './stats.ts';
 export * from './health/thresholds.ts';
 export * from './epistemic/thresholds.ts';
+export * from './todoSchedule.ts';
+export * from './todoKeywords.ts';
+export * from './todoInsert.ts';
+export * from './notes.ts';
+export * from './noteInsert.ts';
+export * from './finance/constants.ts';
+export * from './finance/fireCalculator.ts';
+export * from './finance/monteCarlo.ts';
+export * from './finance/safeToSpend.ts';
+export * from './finance/mortgageCalc.ts';
+export * from './finance/allocation.ts';
+export * from './finance/crypto.ts';
+export * from './finance/incomeModel.ts';
+export * from './finance/cashflowCalendar.ts';
+

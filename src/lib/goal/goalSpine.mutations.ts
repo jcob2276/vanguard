@@ -145,6 +145,35 @@ export async function updateDailyWin(
   return data;
 }
 
+/** Toggle a Power List slot via daily_win_tasks (source of truth for task done state). */
+export async function updateDailyWinTaskDone(
+  userId: string,
+  taskId: string,
+  done: boolean,
+  completedAt: string | null,
+): Promise<void> {
+  const payload = { done, completed_at: completedAt };
+  try {
+    const { error } = await supabase
+      .from('daily_win_tasks')
+      .update(payload)
+      .eq('id', taskId);
+    if (error) throw new Error(error.message);
+  } catch (err: unknown) {
+    const { isOfflineError, queueOfflineWrite } = await import('../offlineQueue');
+    if (isOfflineError(err)) {
+      await queueOfflineWrite(
+        'table:update:daily_win_tasks',
+        { match: { id: taskId }, payload },
+        'Odznaczenie zadania dnia',
+      );
+    } else {
+      throw err;
+    }
+  }
+  invalidateGoalSpineCache(userId);
+}
+
 export async function insertDailyWin(
   userId: string,
   entry: DailyWinInsert,

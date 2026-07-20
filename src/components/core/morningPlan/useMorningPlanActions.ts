@@ -1,13 +1,10 @@
 import { useMemo, useState } from 'react';
 import {
   updateTodoDueDate,
-  deleteDailyWinTasks,
-  insertDailyWinTasks,
-  updateTodoScheduledTime,
+  submitMorningPlanRpc,
 } from '../../../lib/morningPlanApi';
 import { useCalendarWrite } from '../../calendar/hooks/useCalendarWrite';
 import { combineDateTimeWarsawISO } from '../../../lib/date';
-import { insertDailyWin } from '../../../lib/goal/goalSpine.mutations';
 import { notify } from '../../../lib/notify';
 import { addMinutes, isoDateStr, isoDurationMin, isoMinutesOfDay } from './morningPlanHelpers';
 import { TodoSlot, CalEvent } from './types';
@@ -42,7 +39,7 @@ export function useMorningPlanActions({
   setInboxTasks,
   powerList,
   setPowerList,
-  todayWinId,
+  todayWinId: _todayWinId,
   times,
   durations,
   weekCalendarEvents,
@@ -155,63 +152,60 @@ export function useMorningPlanActions({
     if (!userId) return;
     setSending(true);
     try {
-      let currentWinId = todayWinId;
-      if (!currentWinId) {
-        const parentWin = await insertDailyWin(userId, {
-          user_id: userId,
-          date: planningDate,
-          result: null,
-        });
-        currentWinId = parentWin.id;
-      }
-
-      await deleteDailyWinTasks(currentWinId);
-
-      const taskEntries = [];
-      for (let idx = 0; idx < powerList.length; idx++) {
-        const task = powerList[idx];
-        if (task) {
-          taskEntries.push({
-            day_win_id: currentWinId,
-            slot: idx + 1,
-            user_id: userId,
-            title: task.title,
-            category: idx === 0 ? 'cialo' : idx === 1 ? 'duch' : idx === 2 ? 'konto' : 'general',
-            todo_id: task.id,
-            done: false,
-          });
-        }
-      }
-
-      if (taskEntries.length > 0) {
-        await insertDailyWinTasks(taskEntries);
-      }
+      const slots = powerList
+        .map((task, idx) =>
+          task
+            ? {
+                slot: idx + 1,
+                title: task.title,
+                category: idx === 0 ? 'cialo' : idx === 1 ? 'duch' : idx === 2 ? 'konto' : 'general',
+                todo_id: task.id,
+              }
+            : null,
+        )
+        .filter((s): s is NonNullable<typeof s> => s != null);
 
       const allSchedulable = [...todayTasks, ...powerList.filter(Boolean)] as TodoSlot[];
       const uniqueTasksMap = new Map<string, TodoSlot>();
       allSchedulable.forEach((t) => uniqueTasksMap.set(t.id, t));
 
+      const schedules = [...uniqueTasksMap.entries()]
+        .filter(([taskId]) => Boolean(times[taskId]))
+        .map(([taskId]) => ({
+          todo_id: taskId,
+          scheduled_time: combineDateTimeWarsawISO(planningDate, times[taskId]),
+          duration_minutes: durations[taskId] || 30,
+        }));
+
+      // Atomic: wins + slots + todo schedules (todayWinId unused — RPC upserts by date)
+      await submitMorningPlanRpc(userId, planningDate, slots, schedules);
+
+      // Best-effort calendar sync (external I/O — not in DB transaction)
+      let calendarErrors = 0;
       for (const [taskId, task] of uniqueTasksMap.entries()) {
         const startTime = times[taskId];
-        if (startTime) {
-          const dur = durations[taskId] || 30;
-          const endTime = addMinutes(startTime, dur);
-
+        if (!startTime) continue;
+        const dur = durations[taskId] || 30;
+        const endTime = addMinutes(startTime, dur);
+        try {
           await createEvent({
             summary: task.title,
             start: combineDateTimeWarsawISO(planningDate, startTime),
             end: combineDateTimeWarsawISO(planningDate, endTime),
             category: 'praca',
           });
-
-          await updateTodoScheduledTime(
-            taskId,
-            combineDateTimeWarsawISO(planningDate, startTime),
-            dur
-          );
+        } catch (calErr: unknown) {
+          calendarErrors++;
+          console.warn('[morningPlan] calendar sync failed:', calErr);
         }
       }
 
+      if (calendarErrors > 0) {
+        notify(
+          `Plan zapisany. Kalendarz: ${calendarErrors} wydarzeń nie zsynchronizowano — spróbuj ponownie później.`,
+          'error',
+        );
+      }
       onClose();
     } catch (err: unknown) {
       console.error('[Action Error]', err);

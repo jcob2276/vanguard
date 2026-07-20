@@ -150,3 +150,9 @@ export const userStatsKeys = {
   all: ['userStats'] as const,
   snapshot: (userId: string) => [...userStatsKeys.all, 'snapshot', userId] as const,
 };
+
+// ── FINANCE KEYS ──
+export const financeKeys = {
+  all: ['finance'] as const,
+  bundle: (userId: string) => [...financeKeys.all, 'bundle', userId] as const,
+};

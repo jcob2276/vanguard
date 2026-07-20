@@ -140,6 +140,11 @@ const NO_SUPABASE_IN_COMPONENTS_EXCEPTIONS = [
 const NO_BUTTON_GUARD_EXCEPTIONS = [
   // Color picker swatches — raw <button> is correct for small circular interactive widgets
   'src/components/notes/InlineEditor.tsx',
+  // Quick capture category pills — small chip buttons inside a form widget
+  'src/components/finance/FinanceQuickCapture.tsx',
+  // CSV import — "select all" toggle and drag-drop zone are complex widgets
+  'src/components/finance/FinanceCsvImportPanel.tsx',
+  'src/components/finance/FinanceCsvPreview.tsx',
 ]
 
 const NO_COLOR_GUARD_EXCEPTIONS = [

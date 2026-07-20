@@ -1,25 +1,9 @@
 import { addDays, addHours, addMinutes, addMonths, addWeeks, format, startOfDay } from 'date-fns';
 import { TIMEZONE } from '../date';
+import { TODO_PRIORITY_ALIASES, TODO_WEEKDAY_ALIASES } from '@vanguard/domain';
 
-const PRIORITIES = {
-  p1: { value: 'urgent', label: 'P1' },
-  p2: { value: 'high', label: 'P2' },
-  p3: { value: 'normal', label: 'P3' },
-  p4: { value: 'low', label: 'P4' },
-  pilne: { value: 'urgent', label: 'Pilne' },
-  ważne: { value: 'high', label: 'Ważne' },
-  wazne: { value: 'high', label: 'Ważne' },
-} as const;
-
-const WEEKDAYS = [
-  ['nd', 'niedz', 'niedziela'],
-  ['pon', 'poniedzialek', 'poniedziałek'],
-  ['wt', 'wtorek'],
-  ['sr', 'sro', 'sroda', 'śr', 'śro', 'środa'],
-  ['czw', 'czwartek'],
-  ['pt', 'piatek', 'piątek'],
-  ['sob', 'sobota'],
-];
+const PRIORITIES = TODO_PRIORITY_ALIASES;
+const WEEKDAYS = TODO_WEEKDAY_ALIASES;
 
 const MONTHS = [
   ['sty', 'stycznia'], ['lut', 'lutego'], ['mar', 'marca'], ['kwi', 'kwietnia'],

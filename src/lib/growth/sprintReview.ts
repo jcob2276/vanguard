@@ -95,7 +95,7 @@ export async function gatherSprintFacts(userId: string): Promise<SprintFacts> {
       .in('week_start', weeks),
     supabase
       .from('daily_wins')
-      .select('date, result, task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5')
+      .select('date, result, task_1, task_2, task_3, task_4, task_5, done_1, done_2, done_3, done_4, done_5, daily_win_tasks(slot, title, done)')
       .eq('user_id', userId)
       .gte('date', sprint.sprintStart)
       .lte('date', sprint.sprintEnd),
@@ -126,11 +126,20 @@ export async function gatherSprintFacts(userId: string): Promise<SprintFacts> {
   for (const row of wins) {
     if (row.result === 'Z') powerListZ++;
     if (row.result === 'P') powerListP++;
-    for (let i = 1; i <= 5; i++) {
-      const task = row[`task_${i}` as keyof typeof row];
-      if (!task) continue;
-      powerListPlanned++;
-      if (row[`done_${i}` as keyof typeof row]) powerListDone++;
+    const tasks = (row as { daily_win_tasks?: Array<{ title: string | null; done: boolean | null }> }).daily_win_tasks;
+    if (tasks?.length) {
+      for (const t of tasks) {
+        if (!t.title?.trim()) continue;
+        powerListPlanned++;
+        if (t.done) powerListDone++;
+      }
+    } else {
+      for (let i = 1; i <= 5; i++) {
+        const task = row[`task_${i}` as keyof typeof row];
+        if (!task) continue;
+        powerListPlanned++;
+        if (row[`done_${i}` as keyof typeof row]) powerListDone++;
+      }
     }
   }
 

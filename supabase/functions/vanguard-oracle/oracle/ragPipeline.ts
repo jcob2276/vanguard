@@ -81,7 +81,10 @@ export async function runRagPipeline(
 
     const proposalsList = proposalsRes?.data || [];
     if (proposalsList.length > 0) {
-      graphContext += "\n\n" + "[AKTYWNE PROPOZYCJE SYSTEMOWE]:\n" + proposalsList.map((p: any) => `- [${p.category}] ${p.title}: ${p.description}`).join('\n');
+      graphContext += "\n\n" + truncateToBudget(
+        "[AKTYWNE PROPOZYCJE SYSTEMOWE]:\n" + proposalsList.map((p: any) => `- [${p.category}] ${p.title}: ${p.description}`).join('\n'),
+        1200,
+      );
     }
 
     // Step 3: Narrative & Stream Layer

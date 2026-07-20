@@ -8,6 +8,7 @@ import type {
 } from './goalSpine.types';
 import { isMonthlyHardGate, isMonthlySoftCue, monthLabel } from '../growth/monthReview';
 import { longTermDeclarationsOk, primaryBhagLine } from './longTermBridge';
+import { slotDone, slotTitle } from '../daySlots';
 
 export type SpineGuideTarget = 'dzis' | 'tydzien' | 'projekty' | 'dashboard';
 
@@ -69,23 +70,19 @@ export function dayWinStateFromRow(
   let nextTask: string | null = null;
 
   for (let i = 1; i <= 5; i++) {
-    const task = todayWin[`task_${i}`];
-    const text = typeof task === 'string' ? task.trim() : '';
+    const text = slotTitle(todayWin, i)?.trim() ?? '';
     if (!text) continue;
     plannedCount++;
-    if (todayWin[`done_${i}`]) {
+    if (slotDone(todayWin, i)) {
       doneCount++;
     } else if (!nextTask) {
       nextTask = text;
     }
   }
 
-  const activeSlots = [1, 2, 3, 4, 5].filter((i) => {
-    const t = todayWin[`task_${i}`];
-    return typeof t === 'string' && t.trim().length > 0;
-  });
+  const activeSlots = [1, 2, 3, 4, 5].filter((i) => Boolean(slotTitle(todayWin, i)?.trim()));
   const dayComplete =
-    activeSlots.length > 0 && activeSlots.every((i) => Boolean(todayWin[`done_${i}`]));
+    activeSlots.length > 0 && activeSlots.every((i) => slotDone(todayWin, i));
 
   return {
     hasPlan: plannedCount > 0,

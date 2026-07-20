@@ -33,6 +33,7 @@ Supabase project: configured per deployment through environment variables.
 |---|---|
 | `components/cards/` | Atomic timeline/Memex building blocks — `entities/` (person, place, link), `quantifiable/` (metric, mood, progress), `temporal/` (event, routine, task), `textual/` (article, insight_summary), `visual/` (canvas, video, snapshot). Type Registry pattern, see `FRONTEND_GUIDE.md` §10 Wzorzec B. |
 | `components/desktop/` | Multi-column cockpit dashboard (`DesktopDashboard`, `SprintMetricsGrid`, `SmartAlerts`, `MarathonPanel`). |
+| `components/finance/` | Moduł finansów: FIRE, runway, financial score, portfel, przepływy (`finance_*` tabele). |
 | `components/growth/` | Skill tree, interventional learning, life experiments (`GrowthVault`, `SkillTreePanel`). |
 | `components/lifestyle/` | PowerList, direction radar, goal tracking. |
 | `components/medical/` | Lab results, biology scores, trend charts. |

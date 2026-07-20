@@ -1,18 +1,29 @@
 import { safeSendTelegram } from "../_utils/helpers.ts";
-import { getWarsawDateString } from "../../_shared/time.ts";
+import { getWarsawDateString, combineDateTimeWarsawISO } from "../../_shared/time.ts";
 import { deepseekChat, parseJsonFromContent } from "../../_shared/deepseek.ts";
 import { LLM_TASKS } from "../../_shared/llm/tasks.ts";
 import { DEFAULT_REPLY_KEYBOARD } from "../_utils/constants.ts";
 import { fetchWorldState } from "../../_shared/worldState.ts";
 import { sendChatAction } from "../../_shared/telegram.ts";
-
-type TodoPriority = 'urgent' | 'high' | 'normal' | 'low';
+import {
+  buildTodoInsertRow,
+  TODO_TODAY_ALIASES,
+  TODO_TOMORROW_ALIASES,
+  TODO_DAY_AFTER_ALIASES,
+  TODO_WEEKDAY_ALIASES,
+  resolvePriorityAlias,
+  type TodoPriority,
+} from "@vanguard/domain";
 
 function normalizePriority(value: unknown): TodoPriority {
   if (value === 'medium') return 'normal';
   return value === 'urgent' || value === 'high' || value === 'normal' || value === 'low'
     ? value
     : 'normal';
+}
+
+function escapeRegex(word: string): string {
+  return word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function deterministicTodoParse(raw: string, todayStr: string): {
@@ -25,7 +36,6 @@ function deterministicTodoParse(raw: string, todayStr: string): {
   let text = raw.trim();
   if (!text) return null;
 
-  // If contains words like "jeśli", "jeżeli", "zanim", "przed", "po", "gdy", "kiedy", "chyba że", "ale" -> fall back to LLM
   if (/\b(jeśli|jeżeli|zanim|przed|po|gdy|kiedy|chyba|ale|wcześniej|pozniej|później|potem|wtedy)\b/i.test(text)) {
     return null;
   }
@@ -33,29 +43,17 @@ function deterministicTodoParse(raw: string, todayStr: string): {
   let priority: TodoPriority = 'normal';
   let dueDate: string | null = null;
   let dueTime: string | null = null;
-  let notes = '';
+  const notes = '';
 
-  // 1. Priority parsing
-  const p1Regex = /\b(p1|!high|pilne)\b/i;
-  const p2Regex = /\b(p2)\b/i;
-  const p3Regex = /\b(p3)\b/i;
-  const p4Regex = /\b(p4|!low|niski)\b/i;
-
-  if (p1Regex.test(text)) {
-    priority = 'urgent';
-    text = text.replace(p1Regex, '');
-  } else if (p2Regex.test(text)) {
-    priority = 'high';
-    text = text.replace(p2Regex, '');
-  } else if (p3Regex.test(text)) {
-    priority = 'normal';
-    text = text.replace(p3Regex, '');
-  } else if (p4Regex.test(text)) {
-    priority = 'low';
-    text = text.replace(p4Regex, '');
+  const priorityMatch = text.match(/\b(p[1-4]|!high|!low|pilne|niski)\b/i);
+  if (priorityMatch) {
+    const resolved = resolvePriorityAlias(priorityMatch[1]);
+    if (resolved) {
+      priority = resolved.value;
+      text = text.replace(priorityMatch[0], '');
+    }
   }
 
-  // 2. Date helper
   const getNextDayOfWeek = (dayIndex: number): string => {
     const today = new Date(todayStr + 'T12:00:00Z');
     let diff = dayIndex - today.getUTCDay();
@@ -76,9 +74,7 @@ function deterministicTodoParse(raw: string, todayStr: string): {
     return d.toISOString().split('T')[0];
   })();
 
-  // 3. Match relative dates and expressions
-  // "za N minut/godzin/dni"
-  const relativeRegex = /\bza\s+(\d+)\s*(minut|min|godzin|h|dni|dniach|dni)\b/i;
+  const relativeRegex = /\bza\s+(\d+)\s*(minut|min|godzin|h|dni|dniach)\b/i;
   const relMatch = text.match(relativeRegex);
   if (relMatch) {
     const num = parseInt(relMatch[1], 10);
@@ -97,47 +93,38 @@ function deterministicTodoParse(raw: string, todayStr: string): {
     text = text.replace(relativeRegex, '');
   }
 
-  // "dziś", "dzisiaj", "dzis"
-  const todayRegex = /\b(dziś|dzisiaj|dzis)\b/i;
+  const todayPattern = TODO_TODAY_ALIASES.map(escapeRegex).join('|');
+  const todayRegex = new RegExp(`\\b(${todayPattern})\\b`, 'i');
   if (todayRegex.test(text)) {
     dueDate = todayStr;
     text = text.replace(todayRegex, '');
   }
 
-  // "jutro"
-  const tomorrowRegex = /\bjutro\b/i;
+  const tomorrowPattern = TODO_TOMORROW_ALIASES.map(escapeRegex).join('|');
+  const tomorrowRegex = new RegExp(`\\b(${tomorrowPattern})\\b`, 'i');
   if (tomorrowRegex.test(text)) {
     dueDate = tomorrowStr;
     text = text.replace(tomorrowRegex, '');
   }
 
-  // "pojutrze"
-  const pojutrzeRegex = /\bpojutrze\b/i;
+  const dayAfterPattern = TODO_DAY_AFTER_ALIASES.map(escapeRegex).join('|');
+  const pojutrzeRegex = new RegExp(`\\b(${dayAfterPattern})\\b`, 'i');
   if (pojutrzeRegex.test(text)) {
     dueDate = pojutrzeStr;
     text = text.replace(pojutrzeRegex, '');
   }
 
-  // Days of week
-  const daysMap: Record<string, number> = {
-    'niedziel': 0, 'niedziela': 0, 'niedzielę': 0, 'niedziele': 0,
-    'poniedzia': 1, 'poniedziałek': 1, 'poniedzialek': 1,
-    'wtorek': 2, 'wtore': 2,
-    'środa': 3, 'sroda': 3, 'środę': 3,
-    'czwartek': 4, 'czwarte': 4,
-    'piątek': 5, 'piatek': 5, 'piąt': 5,
-    'sobota': 6, 'sobotę': 6, 'sobot': 6,
-  };
-  for (const [key, val] of Object.entries(daysMap)) {
-    const dayRegex = new RegExp(`\\bw\\s+${key}\\w*\\b|\\b${key}\\w*\\b`, 'i');
-    if (dayRegex.test(text)) {
-      dueDate = getNextDayOfWeek(val);
-      text = text.replace(dayRegex, '');
+  for (let dayIndex = 0; dayIndex < TODO_WEEKDAY_ALIASES.length; dayIndex++) {
+    const aliases = TODO_WEEKDAY_ALIASES[dayIndex];
+    const anyAlias = aliases.map(escapeRegex).join('|');
+    const groupRegex = new RegExp(`\\bw\\s+(?:${anyAlias})\\w*|\\b(?:${anyAlias})\\w*`, 'i');
+    if (groupRegex.test(text)) {
+      dueDate = getNextDayOfWeek(dayIndex);
+      text = text.replace(groupRegex, '');
       break;
     }
   }
 
-  // 4. Time parsing: "o 12", "o 12:30", "12:30"
   const timeRegex = /\b(o\s+)?(\d{1,2}):(\d{2})\b/i;
   const timeMatch = text.match(timeRegex);
   if (timeMatch) {
@@ -259,20 +246,21 @@ Zwróć TYLKO czysty obiekt JSON.`;
     }
 
     const scheduledTime = dueDate && dueTime
-      ? `${dueDate}T${dueTime}:00${warsawOffsetForDate(dueDate)}`
+      ? combineDateTimeWarsawISO(dueDate, dueTime)
       : null;
-    const { data: inserted, error } = await supabase.from('todo_items').insert({
+
+    const payload = buildTodoInsertRow({
       user_id: vanguardUserId,
       title,
-      status: 'open',
+      notes,
       priority,
       due_date: dueDate,
       scheduled_time: scheduledTime,
       reminder_at: scheduledTime,
-      reminder_sent: false,
-      notes,
       tags: ['telegram', ...(scheduledTime ? ['reminder'] : [])],
-    }).select('id').single();
+    });
+
+    const { data: inserted, error } = await supabase.from('todo_items').insert(payload).select('id').single();
     if (error) throw error;
 
     fetchWorldState(supabase, vanguardUserId, todayStr, undefined, true).catch((e) => {
@@ -300,7 +288,7 @@ Zwróć TYLKO czysty obiekt JSON.`;
     }
     const contextLine = contextParts.join(' · ');
 
-    const messageText = `✓ Dodano zadanie\n\n${title}${contextLine ? `\n${contextLine}` : ''}`;
+    const messageText = `✓ Dodano zadanie\n\n${String(payload.title)}${contextLine ? `\n${contextLine}` : ''}`;
 
     await safeSendTelegram(chatId, messageText, telegramToken, {
       reply_markup: {
@@ -319,14 +307,4 @@ Zwróć TYLKO czysty obiekt JSON.`;
       reply_markup: inlineKeyboard ? { inline_keyboard: inlineKeyboard } : undefined
     });
   }
-}
-
-function warsawOffsetForDate(date: string): string {
-  const probe = new Date(`${date}T12:00:00Z`);
-  const offset = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Warsaw',
-    timeZoneName: 'longOffset',
-  }).formatToParts(probe).find((part) => part.type === 'timeZoneName')?.value.replace('GMT', '') || '+01:00';
-  if (offset.includes(':')) return offset;
-  return `${offset[0]}${offset.slice(1).padStart(2, '0')}:00`;
 }

@@ -17,14 +17,18 @@ import {
   fetchSprintReview,
   saveWeeklyReviewReflection,
   updateDailyWin,
+  updateDailyWinTaskDone,
 } from '../../../../lib/goal/goalSpine';
 import { supabase, invokeEdge } from '../../../../lib/supabase';
 import type { RecapResponse, RecapWeeklyRecapPhase2 } from '../../../../lib/edgeTypes';
 import { useHaptics } from '../../../../hooks/useHaptics';
 import { notify } from '../../../../lib/notify';
 import { TIMEOUTS } from '../../../../lib/constants';
+import { slotDone, slotTitle } from '../../../../lib/daySlots';
 
-type DailyWinRow = Tables<'daily_wins'>;
+type DailyWinRow = Tables<'daily_wins'> & {
+  daily_win_tasks?: Tables<'daily_win_tasks'>[];
+};
 
 export interface ReflectionPayload {
   proudOf: string;
@@ -117,33 +121,54 @@ export function createDirectionActions(params: {
 
   async function togglePowerListTask(dayWinStale: DailyWinRow, index: number) {
     haptics.light();
-    const { data: fresh } = await supabase.from('daily_wins').select('*').eq('id', dayWinStale.id).single();
-    const dayWin = fresh ?? dayWinStale;
-    const dayWinAny = dayWin as never;
-    const field = `done_${index + 1}`;
-    const timeField = `completed_at_${index + 1}`;
-    const newValue = !dayWinAny[field];
+    const slot = index + 1;
+    const { data: fresh } = await supabase
+      .from('daily_wins')
+      .select('*, daily_win_tasks(*)')
+      .eq('id', dayWinStale.id)
+      .single();
+    const dayWin = (fresh as DailyWinRow | null) ?? dayWinStale;
+    const newValue = !slotDone(dayWin, slot);
     const timestamp = newValue ? new Date().toISOString() : null;
 
-    const allDone = [1, 2, 3, 4, 5].every(i => {
-      if (!dayWinAny[`task_${i}`]) return true;
-      if (i === index + 1) return newValue;
-      return dayWinAny[`done_${i}`];
+    const allDone = [1, 2, 3, 4, 5].every((i) => {
+      if (!slotTitle(dayWin, i)) return true;
+      if (i === slot) return newValue;
+      return slotDone(dayWin, i);
     });
 
-    const updates: TablesUpdate<'daily_wins'> = { [field]: newValue, [timeField]: timestamp };
-    if (allDone) updates.result = 'Z';
+    const resultPatch: TablesUpdate<'daily_wins'> = {};
+    if (allDone) resultPatch.result = 'Z';
     else {
-      if (dayWin.result === 'Z') updates.result = null;
+      if (dayWin.result === 'Z') resultPatch.result = null;
       const isPastDeadline = getWarsawHour() >= 23;
-      if (isPastDeadline && !allDone) updates.result = 'P';
+      if (isPastDeadline && !allDone) resultPatch.result = 'P';
     }
 
     try {
-      const data = await updateDailyWin(userId, dayWin.id, updates);
-      setHistory(prev => prev.map(d => d.id === data.id ? data : d));
+      const taskRow = (dayWin.daily_win_tasks ?? []).find((t) => t.slot === slot);
+      if (taskRow) {
+        await updateDailyWinTaskDone(userId, taskRow.id, newValue, timestamp);
+        const data = Object.keys(resultPatch).length > 0
+          ? await updateDailyWin(userId, dayWin.id, resultPatch)
+          : dayWin;
+        setHistory((prev) => prev.map((d) => (d.id === data.id
+          ? { ...data, [`done_${slot}`]: newValue, [`completed_at_${slot}`]: timestamp } as DailyWinRow
+          : d)));
+      } else {
+        // Legacy wide-only row
+        const data = await updateDailyWin(userId, dayWin.id, {
+          ...resultPatch,
+          [`done_${slot}`]: newValue,
+          [`completed_at_${slot}`]: timestamp,
+        } as TablesUpdate<'daily_wins'>);
+        setHistory((prev) => prev.map((d) => (d.id === data.id ? data : d)));
+      }
       if (allDone) haptics.success();
-    } catch (e: unknown) { notify('Nie udało się zapisać wygranej dnia.', 'error'); console.warn('[directionActions] Failed to update daily win:', e); }
+    } catch (e: unknown) {
+      notify('Nie udało się zapisać wygranej dnia.', 'error');
+      console.warn('[directionActions] Failed to update daily win:', e);
+    }
   }
 
   async function saveReflection(payload: ReflectionPayload) {
