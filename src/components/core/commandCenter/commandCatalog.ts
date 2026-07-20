@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Bell,
   Calendar,
   CheckSquare,
   FileText,
@@ -37,6 +38,7 @@ export function createCommandCatalog({ navigate, close }: CommandCatalogOptions)
     { id: 'tasks', title: 'Otwórz Zadania', subtitle: 'Skrzynka, Dzisiaj i zaplanowane', keywords: 'todo zadania lista skrzynka', icon: CheckSquare, run: go('/todo') },
     { id: 'notes', title: 'Otwórz Notatki', subtitle: 'Notatki, materiały i powiązania', keywords: 'keep notes notatki wiedza', icon: FileText, run: go('/keep') },
     { id: 'calendar', title: 'Otwórz Kalendarz', subtitle: 'Dzień, tydzień i agenda', keywords: 'kalendarz wydarzenia event plan', icon: Calendar, run: go('/kalendarz') },
+    { id: 'terminy', title: 'Otwórz Terminy', subtitle: 'Urodziny, przeglądy, polisy', keywords: 'terminy urodziny przegląd polisa ubezpieczenie przypomnienia', icon: Bell, run: go('/terminy') },
     { id: 'inbox', title: 'Otwórz Pocket', subtitle: 'Materiały oczekujące na decyzję', keywords: 'pocket inbox linki skrzynka materiały', icon: Inbox, run: go('/links') },
     { id: 'history', title: 'Otwórz Historię', subtitle: 'Refleksje i wcześniejsze dni', keywords: 'historia refleksje dni', icon: History, run: go('/historia') },
     { id: 'undo', title: 'Cofnij ostatnią zmianę', subtitle: 'Ostatnia odwracalna czynność', keywords: 'undo cofnij wróć zmiana', icon: Undo2, shortcut: '⌘ Z', run: undoLastAction },

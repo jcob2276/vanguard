@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { BookOpen, Calendar, LayoutGrid, ListTodo, Sparkles, StickyNote, X } from 'lucide-react';
+import { BookOpen, Calendar, LayoutGrid, ListTodo, Bell, Sparkles, StickyNote, X } from 'lucide-react';
 import { Pressable } from '../ui/ControlPrimitives';
 import './workspaceToolsLauncher.css';
 
@@ -9,6 +9,7 @@ const TOOLS = [
   { id: 'keep', label: 'Notatki', icon: StickyNote },
   { id: 'todo', label: 'Zadania', icon: ListTodo },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
+  { id: 'terminy', label: 'Terminy', icon: Bell },
   { id: 'links', label: 'Pocket', icon: BookOpen },
 ] as const;
 

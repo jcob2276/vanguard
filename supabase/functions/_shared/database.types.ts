@@ -1689,6 +1689,7 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          dedup_hash: string | null
           id: string
           kind: string
           note: string | null
@@ -1699,6 +1700,7 @@ export type Database = {
           amount: number
           category?: string
           created_at?: string
+          dedup_hash?: string | null
           id?: string
           kind?: string
           note?: string | null
@@ -1709,6 +1711,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          dedup_hash?: string | null
           id?: string
           kind?: string
           note?: string | null
@@ -2526,6 +2529,54 @@ export type Database = {
           id?: string
           user_id?: string | null
           vault_content?: string | null
+        }
+        Relationships: []
+      }
+      life_obligations: {
+        Row: {
+          anchor_date: string
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          lead_offsets: number[]
+          notes: string | null
+          recurrence: string
+          related_name: string | null
+          sent_reminders: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_date: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind: string
+          lead_offsets?: number[]
+          notes?: string | null
+          recurrence?: string
+          related_name?: string | null
+          sent_reminders?: Json
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_date?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          lead_offsets?: number[]
+          notes?: string | null
+          recurrence?: string
+          related_name?: string | null
+          sent_reminders?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

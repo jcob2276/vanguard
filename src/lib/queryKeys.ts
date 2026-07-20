@@ -152,6 +152,11 @@ export const userStatsKeys = {
 };
 
 // ── FINANCE KEYS ──
+export const lifeObligationKeys = {
+  all: ['life-obligations'] as const,
+  list: (userId: string) => [...lifeObligationKeys.all, 'list', userId] as const,
+};
+
 export const financeKeys = {
   all: ['finance'] as const,
   bundle: (userId: string) => [...financeKeys.all, 'bundle', userId] as const,

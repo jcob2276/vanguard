@@ -12,7 +12,7 @@ import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen, WalletCards } from 'lucide-react';
+import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen, WalletCards, Bell } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardNavBar } from './DashboardNavBar';
@@ -32,6 +32,7 @@ const Keep            = lazy(() => import('../notes/Keep'));
 const Todo            = lazy(() => import('../todo/Todo'));
 const LinksInbox      = lazy(() => import('../lifestyle/LinksInbox'));
 const CalendarView    = lazy(() => import('../calendar/CalendarView'));
+const TerminyPage     = lazy(() => import('../terminy/TerminyPage'));
 
 const DashboardDzisTab = lazy(() => import('./DashboardDzisTab').then(m => ({ default: m.DashboardDzisTab })));
 const DashboardTydzienTab = lazy(() => import('./DashboardTydzienTab').then(m => ({ default: m.DashboardTydzienTab })));
@@ -83,6 +84,11 @@ export default function Dashboard({ session }: { session: Session }) {
   if (s.view === 'kalendarz') return (
     <Suspense fallback={<ViewFallback />}>
       <CalendarView session={session} onBack={s.goBack} onSyncCalendar={s.startGoogleAuth} onResyncCalendar={s.syncCalendar} isSyncing={s.isSyncing} onNavigateTo={dest => s.navigate('/' + dest)} />
+    </Suspense>
+  );
+  if (s.view === 'terminy') return (
+    <Suspense fallback={<ViewFallback />}>
+      <TerminyPage onBack={s.goBack} onNavigateTo={dest => s.navigate('/' + dest)} />
     </Suspense>
   );
   if (s.view === 'sauna') return (
@@ -141,6 +147,7 @@ export default function Dashboard({ session }: { session: Session }) {
     { label: 'Notatki', icon: StickyNote, action: () => s.navigate('/keep') },
     { label: 'Zadania', icon: ListTodo, action: () => s.navigate('/todo') },
     { label: 'Kalendarz', icon: Calendar, action: () => s.navigate('/kalendarz') },
+    { label: 'Terminy', icon: Bell, action: () => s.navigate('/terminy') },
     { label: 'Pocket', icon: BookOpen, action: () => s.navigate('/links') },
     { label: 'Finanse', icon: WalletCards, action: () => s.navigate('/finanse') },
   ];

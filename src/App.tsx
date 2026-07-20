@@ -83,6 +83,7 @@ function AppRoutes() {
       <Route path="/keep" element={<Screen kind="grid"><Dashboard session={session} /></Screen>} />
       <Route path="/todo" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
       <Route path="/kalendarz" element={<Screen kind="timeline"><Dashboard session={session} /></Screen>} />
+      <Route path="/terminy" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
       <Route path="/links" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
       <Route path="/fundament" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
       <Route path="/trening" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />

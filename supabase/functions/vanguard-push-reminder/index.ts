@@ -2,16 +2,24 @@
  * @function vanguard-push-reminder
  * @trigger pg_cron co minutę
  * @role Niezawodne, serwerowe przypomnienia Web Push działające przy zamkniętej aplikacji.
- * @reads todo_items, supplements, push_subscriptions
- * @writes todo_items, supplements, push_subscriptions
+ * @reads todo_items, supplements, life_obligations, push_subscriptions
+ * @writes todo_items, supplements, life_obligations, push_subscriptions
  * @consumer Service Worker aplikacji Vanguard
  * @status active
  */
 import { serveJson } from "../_shared/http.ts";
 import webpush from "npm:web-push@3.6.7";
-import { getWarsawDateString } from "../_shared/time.ts";
+import {
+  dueLeadOffsetsToday,
+  getWarsawDateString,
+  leadLabel,
+  parseSentReminders,
+  type LifeObligationKind,
+} from "@vanguard/domain";
 
 const CONTACT_EMAIL = "mailto:newsletter.jakub@gmail.com";
+/** Morning window start (Warsaw) for life-admin obligation pushes. */
+const OBLIGATION_REMINDER_AFTER_MINUTES = 9 * 60;
 
 interface PushSubscriptionRow {
   user_id: string;
@@ -25,6 +33,18 @@ interface PushPayload {
   body: string;
   url: string;
   tag: string;
+}
+
+interface LifeObligationRow {
+  id: string;
+  user_id: string;
+  title: string;
+  kind: LifeObligationKind;
+  related_name: string | null;
+  anchor_date: string;
+  recurrence: string;
+  lead_offsets: number[] | null;
+  sent_reminders: unknown;
 }
 
 Deno.serve(serveJson(async (_req, ctx) => {
@@ -48,8 +68,12 @@ Deno.serve(serveJson(async (_req, ctx) => {
   const warsawMinute = Number(warsawParts.find((part) => part.type === "minute")?.value ?? 0);
   const warsawMinutes = warsawHour * 60 + warsawMinute;
 
-  const [{ data: subscriptions, error: subsError }, { data: dueTodos, error: todoError },
-    { data: supplements, error: supplementError }] = await Promise.all([
+  const [
+    { data: subscriptions, error: subsError },
+    { data: dueTodos, error: todoError },
+    { data: supplements, error: supplementError },
+    { data: obligations, error: obligationError },
+  ] = await Promise.all([
     supabase.from("push_subscriptions").select("user_id, endpoint, keys_p256dh, keys_auth"),
     supabase.from("todo_items")
       .select("id, user_id, title")
@@ -61,11 +85,16 @@ Deno.serve(serveJson(async (_req, ctx) => {
       .select("id, user_id, name, emoji, reminder_time, start_date, end_date, reminder_sent_date")
       .eq("active", true)
       .not("reminder_time", "is", null),
+    supabase.from("life_obligations")
+      .select("id, user_id, title, kind, related_name, anchor_date, recurrence, lead_offsets, sent_reminders")
+      .eq("is_active", true)
+      .limit(200),
   ]);
 
   if (subsError) throw new Error(`Push subscriptions fetch failed: ${subsError.message}`);
   if (todoError) throw new Error(`Todo reminders fetch failed: ${todoError.message}`);
   if (supplementError) throw new Error(`Supplement reminders fetch failed: ${supplementError.message}`);
+  if (obligationError) throw new Error(`Life obligations fetch failed: ${obligationError.message}`);
 
   const subsByUser = new Map<string, PushSubscriptionRow[]>();
   for (const sub of subscriptions ?? []) {
@@ -147,8 +176,41 @@ Deno.serve(serveJson(async (_req, ctx) => {
     else sentSupplements++;
   }
 
+  let sentObligations = 0;
+  if (warsawMinutes >= OBLIGATION_REMINDER_AFTER_MINUTES) {
+    for (const raw of (obligations ?? []) as LifeObligationRow[]) {
+      const due = dueLeadOffsetsToday({
+        anchor_date: raw.anchor_date,
+        recurrence: raw.recurrence,
+        lead_offsets: raw.lead_offsets ?? [],
+        sent_reminders: raw.sent_reminders,
+      }, warsawDate);
+      if (due.length === 0) continue;
+
+      const who = raw.related_name ? ` (${raw.related_name})` : "";
+      for (const hit of due) {
+        const result = await sendToUser(raw.user_id, {
+          title: "📅 Termin",
+          body: `${raw.title}${who} — ${leadLabel(hit.offset)} (${hit.occurrence})`,
+          url: "/terminy",
+          tag: `obligation-${raw.id}-${hit.key}`,
+        });
+        if (!result.delivered) continue;
+
+        const nextSent = [...parseSentReminders(raw.sent_reminders), hit.key];
+        raw.sent_reminders = nextSent;
+        const { error } = await supabase.from("life_obligations")
+          .update({ sent_reminders: nextSent, updated_at: nowIso })
+          .eq("id", raw.id);
+        if (error) console.error("[push-reminder] obligation mark sent failed", raw.id, error);
+        else sentObligations++;
+      }
+    }
+  }
+
   return {
     sent_todos: sentTodos,
     sent_supplements: sentSupplements,
+    sent_obligations: sentObligations,
   };
 }, { auth: "service" }));

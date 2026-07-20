@@ -18,4 +18,5 @@ export * from './finance/allocation.ts';
 export * from './finance/crypto.ts';
 export * from './finance/incomeModel.ts';
 export * from './finance/cashflowCalendar.ts';
+export * from './lifeObligations.ts';
 

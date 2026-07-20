@@ -1,13 +1,14 @@
 import { Pressable } from '../ui/ControlPrimitives';
-import { BookOpen, Calendar, ListTodo, StickyNote } from 'lucide-react';
+import { Bell, BookOpen, Calendar, ListTodo, StickyNote } from 'lucide-react';
 import WorkspaceToolsLauncher from './WorkspaceToolsLauncher';
 
-export type WorkspaceDestination = 'keep' | 'todo' | 'kalendarz' | 'links' | 'projekty';
+export type WorkspaceDestination = 'keep' | 'todo' | 'kalendarz' | 'links' | 'projekty' | 'terminy';
 
 const ITEMS = [
   { id: 'keep', label: 'Notatki', icon: StickyNote },
   { id: 'todo', label: 'Zadania', icon: ListTodo },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
+  { id: 'terminy', label: 'Terminy', icon: Bell },
   { id: 'links', label: 'Pocket', icon: BookOpen },
 ] satisfies { id: WorkspaceDestination; label: string; icon: typeof StickyNote }[];
 

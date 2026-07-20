@@ -14,6 +14,7 @@ Supabase project: configured per deployment through environment variables.
 | **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
 | **Integrations** | Oura, Calendar, Strava, derived analysis | `supabase/functions/sync-*`, `supabase/functions/analyze-*`, `compute-daily-strain` |
 | **Projects & Todo** | Native projects and separate task surfaces | `src/components/projects`, `src/components/todo`, `projects`, `todo_*` tables |
+| **Life admin** | Birthdays, vehicle, documents with lead reminders | `src/components/terminy`, `life_obligations` |
 | Legacy workout | Existing workout UI/data model | `src/`, `workout_*` tables |
 | **Behavior capture map** | Where each behavior type is logged (SSOT: `src/lib/behaviorCapture.ts`) | Desktop `BehaviorCapturePanel`, Telegram commands |
 
@@ -34,6 +35,7 @@ Supabase project: configured per deployment through environment variables.
 | `components/cards/` | Atomic timeline/Memex building blocks — `entities/` (person, place, link), `quantifiable/` (metric, mood, progress), `temporal/` (event, routine, task), `textual/` (article, insight_summary), `visual/` (canvas, video, snapshot). Type Registry pattern, see `FRONTEND_GUIDE.md` §10 Wzorzec B. |
 | `components/desktop/` | Multi-column cockpit dashboard (`DesktopDashboard`, `SprintMetricsGrid`, `SmartAlerts`, `MarathonPanel`). |
 | `components/finance/` | Moduł finansów: FIRE, runway, financial score, portfel, przepływy (`finance_*` tabele). |
+| `components/terminy/` | Life admin: urodziny / przeglądy / polisy (`life_obligations`). |
 | `components/growth/` | Skill tree, interventional learning, life experiments (`GrowthVault`, `SkillTreePanel`). |
 | `components/lifestyle/` | PowerList, direction radar, goal tracking. |
 | `components/medical/` | Lab results, biology scores, trend charts. |
@@ -163,6 +165,7 @@ Removed crons: `vanguard-morning-brief`, `vanguard-morning-ping`, `vanguard-midd
 | `user_fundament` | Identity / philosophy (context, not live truth) |
 | `projects` | Canonical project model for the Projekty section |
 | `todo_sections`, `todo_items` | Separate task model; `todo_sections.project_id` is only an optional project bridge; milestones = `is_milestone=true` |
+| `life_obligations` | Life admin dates (birthdays, vehicle, documents) + lead-offset reminders |
 | `kpi_entries` | KPI per project per week (auto-rollup from daily_wins via RPC) |
 | `sprint_goals`, `sprint_reviews` | Sprint planning and reviews |
 | `monthly_reviews` | Monthly close-outs (pattern, leverage, correction) |
