@@ -1,5 +1,5 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getWarsawDateString } from "./time.ts";
+import { getWarsawDateString, warsawDayBoundsISO } from "./time.ts";
 import { getAggregateByDate } from "./repos/aggregatesRepo.ts";
 
 interface WorldStateMeta {
@@ -146,22 +146,36 @@ export async function fetchWorldState(
 
   const strainFreshness = calculateFreshness(strain?.updated_at);
 
-  // 5. Workout sessions today & last training date
-  const { data: workoutToday } = await supabase
-    .from('workout_sessions')
-    .select('id, updated_at')
-    .eq('user_id', userId)
-    .eq('date', date)
-    .limit(1)
-    .maybeSingle();
+  // 5. Workout today (gym sessions OR Strava/Garmin) & last gym training date
+  const { fromISO: dayFromISO, toISO: dayToISO } = warsawDayBoundsISO(date);
 
-  const { data: lastWorkout } = await supabase
-    .from('workout_sessions')
-    .select('date')
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: gymToday }, { data: stravaToday }, { data: lastWorkout }] = await Promise.all([
+    supabase
+      .from('workout_sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .or(`date.eq.${date},workout_day.eq.${date}`)
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('strava_activities_clean')
+      .select('strava_id')
+      .eq('user_id', userId)
+      .eq('is_oura', false)
+      .gte('start_date', dayFromISO)
+      .lte('start_date', dayToISO)
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('workout_sessions')
+      .select('date')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const workoutToday = gymToday || stravaToday;
 
   // 6. Nutrition details (Today + Weekly Calories)
   const { data: nutritionToday } = await supabase
