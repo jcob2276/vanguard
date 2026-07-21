@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="todo"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_todo"
+        android:shortcutShortLabel="@string/shortcut_todo"
+        android:shortcutLongLabel="@string/shortcut_todo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.vanguard.os"
+            android:targetClass="app.vanguard.os.MainActivity"
+            android:data="https://localhost/todo" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="links"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_links"
+        android:shortcutShortLabel="@string/shortcut_links"
+        android:shortcutLongLabel="@string/shortcut_links">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.vanguard.os"
+            android:targetClass="app.vanguard.os.MainActivity"
+            android:data="https://localhost/links" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="keep"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_keep"
+        android:shortcutShortLabel="@string/shortcut_keep"
+        android:shortcutLongLabel="@string/shortcut_keep">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.vanguard.os"
+            android:targetClass="app.vanguard.os.MainActivity"
+            android:data="https://localhost/keep" />
+    </shortcut>
+</shortcuts>

@@ -4,4 +4,9 @@
     <string name="title_activity_main">Vanguard</string>
     <string name="package_name">app.vanguard.os</string>
     <string name="custom_url_scheme">app.vanguard.os</string>
+    <string name="shortcut_todo">Zadania</string>
+    <string name="shortcut_links">Linki</string>
+    <string name="shortcut_keep">Notatki</string>
+    <string name="widget_demo_name">Vanguard Demo</string>
+    <string name="widget_demo_description">Demo: tap na widgetcie zmienia tryb w apce</string>
 </resources>
