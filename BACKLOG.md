@@ -508,9 +508,11 @@ grep -cE "onTouch|onDrag|execCommand|getSelection|onPointerDown" plik.tsx  # ges
 > PWA na Vercel zostaje PWA. APK = ten sam `src/` + shell w `android/`. SSOT sesji: `docs/agent/ACTIVE_WORK.md`.
 
 - [x] **Faza 1 — bootstrap:** Capacitor + `mobile:*` scripts + `isNativePlatform` (2026-07-21)
-- [ ] **Faza 2 — FCM push:** token w DB + dual-send w `vanguard-push-reminder` (Web Push PWA + FCM APK)
+- [ ] **Faza 2 — FCM push:** kod dual-send gotowy; blokuje Firebase `google-services.json` + secrets + migracja `push_fcm_tokens` + redeploy APK
 - [ ] **Faza 3 — Usage Stats → `phone_usage_daily`:** live ingest zamiast ręcznego AW phone import
 - [ ] **Faza 4 — lokalizacja:** foreground context → opcjonalnie background
+- [ ] **Faza 5 — sync w tle:** foreground service + battery/autostart wizard (Xiaomi)
+- [ ] **Faza 6 — polish APK:** ikona, share target, skróty startowe
 
 ---
 

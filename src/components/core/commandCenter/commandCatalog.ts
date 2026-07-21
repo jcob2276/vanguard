@@ -8,6 +8,7 @@ import {
   Inbox,
   LayoutDashboard,
   Redo2,
+  Settings,
   Undo2,
 } from 'lucide-react';
 import { redoLastAction, undoLastAction } from '../../../lib/actionHistory';
@@ -41,6 +42,7 @@ export function createCommandCatalog({ navigate, close }: CommandCatalogOptions)
     { id: 'terminy', title: 'Otwórz Terminy', subtitle: 'Urodziny, przeglądy, polisy', keywords: 'terminy urodziny przegląd polisa ubezpieczenie przypomnienia', icon: Bell, run: go('/terminy') },
     { id: 'inbox', title: 'Otwórz Pocket', subtitle: 'Materiały oczekujące na decyzję', keywords: 'pocket inbox linki skrzynka materiały', icon: Inbox, run: go('/links') },
     { id: 'history', title: 'Otwórz Historię', subtitle: 'Refleksje i wcześniejsze dni', keywords: 'historia refleksje dni', icon: History, run: go('/historia') },
+    { id: 'settings', title: 'Otwórz Ustawienia', subtitle: 'Oura, telefon APK, kalendarz', keywords: 'ustawienia settings oura apk telefon uprawnienia', icon: Settings, run: go('/settings') },
     { id: 'undo', title: 'Cofnij ostatnią zmianę', subtitle: 'Ostatnia odwracalna czynność', keywords: 'undo cofnij wróć zmiana', icon: Undo2, shortcut: '⌘ Z', run: undoLastAction },
     { id: 'redo', title: 'Ponów ostatnią zmianę', subtitle: 'Ponownie wykonaj cofniętą czynność', keywords: 'redo ponów powtórz', icon: Redo2, shortcut: '⇧⌘ Z', run: redoLastAction },
   ];

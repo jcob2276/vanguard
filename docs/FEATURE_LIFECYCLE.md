@@ -27,7 +27,7 @@ This file is the repository-level status map for integrations, subsystems, and l
 | Career module | Dropped | `career_projects`, `career_moves`, `career_evidence`, and `career_decisions` (legacy from the removed Kariera section) dropped 2026-06-30 (migration `20260630164658_drop_dead_career_and_goals_schema`). |
 | Todoist sync | Dropped | Removed 2026-06-13. Vanguard owns tasks/projects natively through `todo_*` and `projects` instead of importing an external todo model. |
 | ActivityWatch local import | Active local | Local/manual data import path; not a replacement for dropped StayFree signals. |
-| Capacitor Android APK | Active (bootstrap) | Same `src/` as Vercel PWA; shell in `android/`. Build: `npm run mobile:sync`. PWA path unchanged. Native telemetry (FCM, Usage Stats, location) not wired yet — see `docs/agent/ACTIVE_WORK.md`. |
+| Capacitor Android APK | Active (bootstrap + FCM wiring) | Same `src/` as Vercel PWA; shell in `android/`. Build: `npm run mobile:sync`. FCM dual-send coded; requires Firebase `google-services.json` + edge secrets. See `docs/agent/ACTIVE_WORK.md`. |
 | StayFree | Dropped | No active reads/writes/mocks. Digital metrics derived from it must remain `null` until a new declared source exists. Tables `screen_time_logs` / `screen_time_details` dropped 2026-06-11 (migration `20260611213502`); `phone_usage_daily` is NOT StayFree — it belongs to the active ActivityWatch local import path. |
 | Observation-only mode | Dropped | Do not reintroduce as an active product mode. |
 | Legacy workout UI/tables | Legacy | Existing UI can be stabilized, but new Vanguard Core behavior should use current subsystems. |

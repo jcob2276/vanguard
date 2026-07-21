@@ -1,8 +1,13 @@
-import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, lazy, Suspense, type ReactNode, useCallback } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
+import { isNativePlatform } from './lib/native/platform';
+import { initUsageStatsSync } from './lib/native/usageStatsSync';
+import { initLocationSync } from './lib/native/locationSync';
+import { initBackgroundSync } from './lib/native/backgroundSync';
+import { initNativeIntents, registerNativeNavigate } from './lib/native/initNativeIntents';
 import Auth from './components/core/Auth';
 import Dashboard from './components/core/Dashboard';
 import { ErrorBoundary } from './components/core/ErrorBoundary';
@@ -37,6 +42,11 @@ function AppRoutes() {
   const { session, setSession } = useStore();
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleNativeNavigate = useCallback((path: string) => {
+    navigate(path, { replace: true });
+  }, [navigate]);
 
 
   useEffect(() => {
@@ -57,6 +67,24 @@ function AppRoutes() {
         .catch((err) => console.error('[sw] Registration failed:', err));
     }
   }, []);
+
+  useEffect(() => {
+    registerNativeNavigate(handleNativeNavigate);
+    void initNativeIntents();
+    return () => registerNativeNavigate(null);
+  }, [handleNativeNavigate]);
+
+  useEffect(() => {
+    if (!session?.user.id || !isNativePlatform()) return;
+    const stopUsage = initUsageStatsSync(session.user.id);
+    const stopLocation = initLocationSync(session.user.id);
+    const stopBackground = initBackgroundSync(session.user.id);
+    return () => {
+      stopUsage();
+      stopLocation();
+      stopBackground();
+    };
+  }, [session?.user.id]);
 
   if (loading) {
     return FALLBACK_SPINNER;

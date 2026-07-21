@@ -6,7 +6,9 @@ import {
   Sun,
   LayoutDashboard,
   Search,
+  Settings,
 } from 'lucide-react';
+import { isNativePlatform } from '../../lib/native/platform';
 import { BrandTitle } from '../ui/BrandTitle';
 import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
 import WorkspaceToolsLauncher from '../shared/WorkspaceToolsLauncher';
@@ -91,6 +93,16 @@ export function DashboardHeader({
             >
               <Search size={15} />
             </Pressable>
+
+            {isNativePlatform() && (
+              <Link
+                to="/settings"
+                className="shrink-0 rounded-full border border-border-custom bg-surface-solid/5 p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-solid/15 transition-all duration-[var(--motion-slow)] active:scale-95 cursor-pointer flex items-center justify-center"
+                title="Ustawienia APK"
+              >
+                <Settings size={15} />
+              </Link>
+            )}
 
             <Link
               to="/dashboard"

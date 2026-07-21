@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import { Save, MapPin, Watch, Calendar, ArrowLeft, User } from 'lucide-react';
+import { isNativePlatform } from '../../lib/native/platform';
+import NativePermissionsCard from './NativePermissionsCard';
+import WidgetDemoCard from './WidgetDemoCard';
+import BleDemoCard from './BleDemoCard';
 import {
   fetchNutritionProfile,
   upsertNutritionProfile,
@@ -132,6 +136,10 @@ export default function SettingsView({ session }: { session: Session }) {
       <NutritionProfileSettings profile={profile} onChange={setProfile} />
 
       <AiContextSettings userId={session.user.id} />
+
+      {isNativePlatform() && <NativePermissionsCard userId={session.user.id} />}
+      {isNativePlatform() && <WidgetDemoCard />}
+      {isNativePlatform() && <BleDemoCard />}
 
       <Card padding="1rem" className="space-y-3">
         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-text-muted">
