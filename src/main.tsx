@@ -5,9 +5,13 @@ import './index.css'
 import App from './App'
 import { initOfflineSync } from './lib/offlineQueue'
 import { queryClient } from './lib/queryClient'
+import { initNativeShell } from './lib/native/initNativeShell'
 
 // Flush anything queued while offline and retry automatically on reconnect.
 initOfflineSync()
+
+// Capacitor APK shell (no-op on Vercel PWA).
+void initNativeShell()
 
 // Auto-unregister service workers in development mode to prevent stale cache issues on localhost
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {

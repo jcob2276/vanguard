@@ -38,7 +38,7 @@ kolejność czytania albo listę odnośników, powinien zamiast tego cytować te
 | Plik | Kiedy czytać |
 |---|---|
 | [`../lessons.md`](../lessons.md) | Przed każdą sesją — sprawdź czy problem już był |
-| [`agent/ACTIVE_WORK.md`](./agent/ACTIVE_WORK.md) | Co jest w toku teraz (wieloetapowe sesje) |
+| [`agent/ACTIVE_WORK.md`](./agent/ACTIVE_WORK.md) | Co jest w toku teraz (wieloetapowe sesje); też Capacitor/APK checklist |
 | [`direction/KIERUNEK.md`](./direction/KIERUNEK.md) | North Star / Wersja 10/10 — ocena, czy zmiana przybliża czy oddala od kierunku |
 | [`direction/FEATURE_INSPIRATIONS.md`](./direction/FEATURE_INSPIRATIONS.md) | Bank pomysłów funkcjonalnych, posortowany wg dźwigni |
 | [`../supabase/migrations/README.md`](../supabase/migrations/README.md) | Przed dodaniem nowej migracji |

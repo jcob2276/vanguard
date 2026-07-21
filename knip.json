@@ -23,6 +23,7 @@
     "supabase/functions/_shared/repos/**"
   ],
   "ignoreIssues": {
+    "src/lib/native/platform.ts": ["exports"],
     "src/lib/todo/todo.ts": ["exports"],
     "src/lib/projects/projects.ts": ["exports"],
     "src/components/projects/projectUtils.ts": ["exports", "types"],

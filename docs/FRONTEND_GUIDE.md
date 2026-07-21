@@ -37,7 +37,17 @@ src/components/     UI. Nie woła supabase.from() bezpośrednio (patrz reguła 6
 ├── ui/             shared design primitives (przycisk, modal, spinner, badge, tabs, toast)
 ├── shared/         cross-feature komponenty strukturalne (max 6-8 elementów)
 └── <feature>/      moduły domenowe (kod UI i specyficzny CSS)
+
+src/lib/native/     Capacitor runtime guards + shell init. Native APIs tylko za `isNativePlatform()`.
+android/            Capacitor Android project (APK). Nie dotyczy Vercel PWA.
 ```
+
+**Dwa runtime’y, jeden `src/`:**
+- PWA (Vercel): `npm run build` — service worker, Web Push, share target.
+- APK (Capacitor): `npm run mobile:sync` — relative `base`, bez SW; FCM / Usage Stats / location później.
+- Nigdy nie wołaj native API w ścieżce PWA bez guarda z `src/lib/native/platform.ts`.
+
+Stan i checklist: [`agent/ACTIVE_WORK.md`](./agent/ACTIVE_WORK.md).
 
 Import w złą stronę (`lib` → `components`, `packages/domain` → cokolwiek z Reacta) to sygnał, że coś jest źle zaklasyfikowane — przenieś plik, nie dodawaj wyjątku.
 

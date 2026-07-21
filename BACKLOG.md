@@ -503,6 +503,17 @@ grep -cE "onTouch|onDrag|execCommand|getSelection|onPointerDown" plik.tsx  # ges
 
 ---
 
+# Część VI — Capacitor Android (APK)
+
+> PWA na Vercel zostaje PWA. APK = ten sam `src/` + shell w `android/`. SSOT sesji: `docs/agent/ACTIVE_WORK.md`.
+
+- [x] **Faza 1 — bootstrap:** Capacitor + `mobile:*` scripts + `isNativePlatform` (2026-07-21)
+- [ ] **Faza 2 — FCM push:** token w DB + dual-send w `vanguard-push-reminder` (Web Push PWA + FCM APK)
+- [ ] **Faza 3 — Usage Stats → `phone_usage_daily`:** live ingest zamiast ręcznego AW phone import
+- [ ] **Faza 4 — lokalizacja:** foreground context → opcjonalnie background
+
+---
+
 # Część V — Resolution Layer / Partner Mode
 
 > Hard Freeze na `vanguard-auto-classify` i kod produkcyjny zdjęty 2026-07-10.

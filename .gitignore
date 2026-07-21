@@ -61,6 +61,12 @@ dump_data.sql
 keep_archive.md
 docs/GARMIN_COACH_REPORT_GUIDE.md
 
+# Capacitor / Android signing & local secrets (never commit)
+*.jks
+*.keystore
+android/key.properties
+android/app/google-services.json
+
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
