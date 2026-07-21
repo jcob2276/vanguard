@@ -35,5 +35,6 @@ export const STORAGE_KEYS = {
   LAST_REMINDER_DATE: 'last_reminder_date',
   ENDMYOPIA_CALIBRATION: 'endmyopia_calibration',
   ENDMYOPIA_AUTO_CAPTURE: 'endmyopia_auto_capture',
+  BACKGROUND_SYNC_ENABLED: 'vanguard_background_sync_enabled',
 } as const;
 

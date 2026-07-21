@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { todoKeys } from '../../../lib/queryKeys';
@@ -17,6 +17,8 @@ interface UseTodoLifecycleEffectsProps {
 export function useTodoLifecycleEffects({
   userId, queryClient, push, setPushSubscribed, setExpandedId, setContextMenu,
 }: UseTodoLifecycleEffectsProps) {
+  const nativePushTried = useRef(false);
+
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
@@ -46,6 +48,15 @@ export function useTodoLifecycleEffects({
     }
   }, [isSubscribed, setPushSubscribed]);
 
+  // Capacitor APK: one-shot FCM register when Todo opens and not yet subscribed.
+  useEffect(() => {
+    if (!userId || isSubscribed !== false || !push.isSupported || nativePushTried.current) return;
+    nativePushTried.current = true;
+    void (async () => {
+      const ok = await push.subscribe();
+      if (ok) setPushSubscribed(true);
+    })();
+  }, [userId, isSubscribed, push, setPushSubscribed]);
+
   useTodoKeyboard({ setExpandedId, setContextMenu });
 }
-

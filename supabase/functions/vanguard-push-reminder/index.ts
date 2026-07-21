@@ -1,14 +1,15 @@
 /**
  * @function vanguard-push-reminder
  * @trigger pg_cron co minutę
- * @role Niezawodne, serwerowe przypomnienia Web Push działające przy zamkniętej aplikacji.
- * @reads todo_items, supplements, life_obligations, push_subscriptions
- * @writes todo_items, supplements, life_obligations, push_subscriptions
- * @consumer Service Worker aplikacji Vanguard
+ * @role Niezawodne, serwerowe przypomnienia: Web Push (PWA) + FCM (Capacitor APK).
+ * @reads todo_items, supplements, life_obligations, push_subscriptions, push_fcm_tokens
+ * @writes todo_items, supplements, life_obligations, push_subscriptions, push_fcm_tokens
+ * @consumer Service Worker (PWA) / FCM (Android APK)
  * @status active
  */
 import { serveJson } from "../_shared/http.ts";
 import webpush from "npm:web-push@3.6.7";
+import { isFcmConfigured, sendFcmToToken } from "../_shared/fcmPush.ts";
 import {
   dueLeadOffsetsToday,
   getWarsawDateString,
@@ -26,6 +27,11 @@ interface PushSubscriptionRow {
   endpoint: string;
   keys_p256dh: string;
   keys_auth: string;
+}
+
+interface FcmTokenRow {
+  user_id: string;
+  token: string;
 }
 
 interface PushPayload {
@@ -54,6 +60,7 @@ Deno.serve(serveJson(async (_req, ctx) => {
 
   if (!vapidPublic || !vapidPrivate) throw new Error("VAPID keys not configured");
   webpush.setVapidDetails(CONTACT_EMAIL, vapidPublic, vapidPrivate);
+  const fcmReady = isFcmConfigured();
 
   const now = new Date();
   const nowIso = now.toISOString();
@@ -70,11 +77,13 @@ Deno.serve(serveJson(async (_req, ctx) => {
 
   const [
     { data: subscriptions, error: subsError },
+    { data: fcmTokens, error: fcmError },
     { data: dueTodos, error: todoError },
     { data: supplements, error: supplementError },
     { data: obligations, error: obligationError },
   ] = await Promise.all([
     supabase.from("push_subscriptions").select("user_id, endpoint, keys_p256dh, keys_auth"),
+    supabase.from("push_fcm_tokens").select("user_id, token"),
     supabase.from("todo_items")
       .select("id, user_id, title")
       .lte("reminder_at", nowIso)
@@ -92,6 +101,7 @@ Deno.serve(serveJson(async (_req, ctx) => {
   ]);
 
   if (subsError) throw new Error(`Push subscriptions fetch failed: ${subsError.message}`);
+  if (fcmError) throw new Error(`FCM tokens fetch failed: ${fcmError.message}`);
   if (todoError) throw new Error(`Todo reminders fetch failed: ${todoError.message}`);
   if (supplementError) throw new Error(`Supplement reminders fetch failed: ${supplementError.message}`);
   if (obligationError) throw new Error(`Life obligations fetch failed: ${obligationError.message}`);
@@ -103,34 +113,62 @@ Deno.serve(serveJson(async (_req, ctx) => {
     subsByUser.set(sub.user_id, list);
   }
 
+  const fcmByUser = new Map<string, FcmTokenRow[]>();
+  for (const row of fcmTokens ?? []) {
+    const list = fcmByUser.get(row.user_id) ?? [];
+    list.push(row);
+    fcmByUser.set(row.user_id, list);
+  }
+
   const sendToUser = async (userId: string, payload: PushPayload) => {
     const userSubs = subsByUser.get(userId) ?? [];
-    if (userSubs.length === 0) return { delivered: false, error: "no_active_subscription" };
+    const userFcm = fcmByUser.get(userId) ?? [];
+    if (userSubs.length === 0 && userFcm.length === 0) {
+      return { delivered: false, error: "no_active_subscription" };
+    }
 
     let delivered = false;
     const errors: string[] = [];
     const staleEndpoints: string[] = [];
+    const staleTokens: string[] = [];
 
-    await Promise.all(userSubs.map(async (sub) => {
-      try {
-        await webpush.sendNotification({
-          endpoint: sub.endpoint,
-          keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
-        }, JSON.stringify(payload), { TTL: 60 * 60 * 24 });
-        delivered = true;
-      } catch (error: unknown) {
-        const pushError = error as { statusCode?: number; message?: string };
-        if (pushError.statusCode === 404 || pushError.statusCode === 410) {
-          staleEndpoints.push(sub.endpoint);
+    await Promise.all([
+      ...userSubs.map(async (sub) => {
+        try {
+          await webpush.sendNotification({
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
+          }, JSON.stringify(payload), { TTL: 60 * 60 * 24 });
+          delivered = true;
+        } catch (error: unknown) {
+          const pushError = error as { statusCode?: number; message?: string };
+          if (pushError.statusCode === 404 || pushError.statusCode === 410) {
+            staleEndpoints.push(sub.endpoint);
+          }
+          errors.push(pushError.message ?? `push_${pushError.statusCode ?? "unknown"}`);
         }
-        errors.push(pushError.message ?? `push_${pushError.statusCode ?? "unknown"}`);
-      }
-    }));
+      }),
+      ...userFcm.map(async (row) => {
+        if (!fcmReady) return;
+        try {
+          const result = await sendFcmToToken(row.token, payload);
+          if (result === "ok") delivered = true;
+          else if (result === "unregistered") staleTokens.push(row.token);
+        } catch (error: unknown) {
+          errors.push(error instanceof Error ? error.message : "fcm_unknown");
+        }
+      }),
+    ]);
 
     if (staleEndpoints.length > 0) {
       const { error } = await supabase.from("push_subscriptions")
         .delete().eq("user_id", userId).in("endpoint", staleEndpoints);
       if (error) console.error("[push-reminder] stale subscription cleanup failed", error);
+    }
+    if (staleTokens.length > 0) {
+      const { error } = await supabase.from("push_fcm_tokens")
+        .delete().eq("user_id", userId).in("token", staleTokens);
+      if (error) console.error("[push-reminder] stale FCM cleanup failed", error);
     }
 
     return { delivered, error: errors.join("; ") || null };
@@ -212,5 +250,6 @@ Deno.serve(serveJson(async (_req, ctx) => {
     sent_todos: sentTodos,
     sent_supplements: sentSupplements,
     sent_obligations: sentObligations,
+    fcm_configured: fcmReady,
   };
 }, { auth: "service" }));
