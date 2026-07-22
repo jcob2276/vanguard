@@ -14,6 +14,9 @@ import { FinanceMonteCarloSection } from './FinanceMonteCarloSection';
 import { FinanceTimelinePanel } from './FinanceTimelinePanel';
 import { AllocationPanel } from './AllocationPanel';
 import { FinanceCsvImportPanel } from './FinanceCsvImportPanel';
+import DividendCalendarPanel from './DividendCalendarPanel';
+import PortfolioRebalancePanel from './PortfolioRebalancePanel';
+import EtfXrayPanel from './EtfXrayPanel';
 import { formatYears } from '../../lib/finance/formatMoney';
 import type { FinanceMetrics } from './useFinanceMetrics';
 import type { CoinPriceMap } from '../../lib/coingeckoApi';
@@ -111,7 +114,10 @@ export function FinanceTabContent(props: FinanceTabContentProps) {
             onRemove={(id) => void run(async () => { await mutations.removeGoal.mutateAsync(id); })}
           />
           <AllocationPanel slices={metrics.allocation} />
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
+            <DividendCalendarPanel />
+            <PortfolioRebalancePanel />
+            <EtfXrayPanel />
             <FinanceWishlistPanel
               items={data.wishlist}
               freedomDaysForAmount={metrics.fire.freedomDaysForAmount}
