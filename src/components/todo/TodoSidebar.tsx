@@ -87,7 +87,6 @@ export default function TodoSidebar({
       </div>
       {/* Workspace Section */}
       <div className="flex flex-col gap-0.5">
-        <p className="px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60">Workspace</p>
         <WorkspaceNavigation
           active="todo"
           onNavigate={(destination) => {

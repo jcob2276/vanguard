@@ -81,7 +81,6 @@ export default function LinksInbox({ onBack, onNavigateTo }: { onBack: () => voi
 
       {/* Sidebar */}
       <WorkspaceSidebar>
-        <p className="keep-sidebar-section-label">Workspace</p>
         <WorkspaceNavigation active="links" onNavigate={onNavigateTo} />
 
         {CATEGORIES.length > 0 && (
