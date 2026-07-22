@@ -1,13 +1,13 @@
 /**
- * Complete clean-room Oura Ring Gen 3 (Heritage/Horizon) BLE GATT Protocol & Decoders Engine.
- * Fully adapted from reverse-engineered clean-room facts in noop specs (OURA_PROTOCOL.md).
+ * Complete clean-room Oura Ring Gen 3 (Heritage/Horizon) BLE GATT Protocol & Driver Engine.
+ * Fully adapted from reverse-engineered clean-room facts in noop specs (OURA_PROTOCOL.md / OuraDriver.swift).
  *
  * Provides:
  * 1. GATT & Opcode Constants
  * 2. Pure Wire Command Builders (Auth, Time Sync, Fetch, Live-HR)
- * 3. AES-128 Auth Proof Generator logic
- * 4. Outer/Inner Framing Parsers (TLV + Secure Session)
- * 5. Full Biometric Event Decoders (HRV, Sleep Phases, Temp, SpO2, Live HR)
+ * 3. Outer/Inner Framing Parsers (TLV + Secure Session)
+ * 4. Full Biometric Event Decoders (HRV, Sleep Phases, Temp, SpO2, Live HR)
+ * 5. Full OuraDriver State Machine & UTC Anchor Calculator
  */
 
 export const OURA_GATT = {
@@ -157,12 +157,10 @@ export const OuraCommandBuilder = {
     return { label: 'flush_buffer', bytes: new Uint8Array([0x28, 0x01, 0x00]) };
   },
 
-  /** Auth Challenge Handshake Step 1: Request Nonce */
   requestAuthNonce(): OuraCommandPayload {
     return { label: 'request_auth_nonce', bytes: new Uint8Array([0x2f, 0x01, 0x2b]) };
   },
 
-  /** Auth Challenge Handshake Step 2: Submit Proof */
   submitAuthProof(proof16Bytes: Uint8Array): OuraCommandPayload {
     const bytes = new Uint8Array(19);
     bytes[0] = 0x2f;
@@ -172,22 +170,18 @@ export const OuraCommandBuilder = {
     return { label: 'submit_auth_proof', bytes };
   },
 
-  /** Live-HR Triplet Step 1: Read Daytime HR Feature Status */
   liveHRReadStatus(): OuraCommandPayload {
     return { label: 'live_hr_read', bytes: new Uint8Array([0x2f, 0x02, 0x20, 0x02]) };
   },
 
-  /** Live-HR Triplet Step 2: Enable Feature */
   liveHREnable(): OuraCommandPayload {
     return { label: 'live_hr_enable', bytes: new Uint8Array([0x2f, 0x03, 0x22, 0x02, 0x03]) };
   },
 
-  /** Live-HR Triplet Step 3: Subscribe Feature */
   liveHRSubscribe(): OuraCommandPayload {
     return { label: 'live_hr_subscribe', bytes: new Uint8Array([0x2f, 0x03, 0x26, 0x02, 0x02]) };
   },
 
-  /** Disable Live-HR Stream */
   liveHRDisable(): OuraCommandPayload {
     return { label: 'live_hr_disable', bytes: new Uint8Array([0x2f, 0x03, 0x22, 0x02, 0x01]) };
   },
@@ -210,9 +204,6 @@ export function parseBatteryResponse(body: Uint8Array): OuraDecodedBattery | nul
   return { levelPercent, voltageMv, isCharging };
 }
 
-/**
- * Parses TLV inner event record stream (type >= 0x41).
- */
 export function parseTlvRecords(bytes: Uint8Array): OuraTlvRecord[] {
   const records: OuraTlvRecord[] = [];
   let i = 0;
@@ -264,7 +255,6 @@ export function decodeSleepPhase(payload: Uint8Array, ringTimestamp: number): Ou
 
   for (let i = 0; i < payload.length; i++) {
     const b = payload[i];
-    // 4 packed 2-bit phase codes per byte
     for (let shift = 0; shift < 8; shift += 2) {
       const code = (b >> shift) & 0x03;
       let phaseName: 'awake' | 'rem' | 'light' | 'deep' = 'light';
@@ -299,4 +289,109 @@ export function decodeOuraTemp(payload: Uint8Array, ringTimestamp: number): Oura
     ringTimestamp,
     tempDeltaCelsius: raw16 / 100.0,
   };
+}
+
+// --- Transport-Agnostic Driver State Machine & UTC Anchor Calculator ---
+
+export type OuraDriverPhase =
+  | 'idle'
+  | 'authenticating'
+  | 'enablingLiveHR'
+  | 'streaming'
+  | 'fetchingHistory'
+  | 'needsKeyInstall'
+  | 'authFailed'
+  | 'stopped';
+
+export interface OuraDriverTransition {
+  kind: 'ready' | 'nonceReceived' | 'authCompleted' | 'enableAckReceived' | 'startHistoryFetch' | 'historyCursorAdvanced';
+  nonce?: Uint8Array;
+  authSuccess?: boolean;
+  cursor?: number;
+  moreData?: boolean;
+}
+
+export class OuraDriverStateMachine {
+  public phase: OuraDriverPhase = 'idle';
+  private liveHREnableStep = 0;
+  private anchorUtcMs: number | null = null;
+  private anchorRingTime: number | null = null;
+
+  private static MIN_PLAUSIBLE_EPOCH = 1_577_836_800; // 2020-01-01
+  private static MAX_PLAUSIBLE_EPOCH = 2_051_222_400; // 2035-01-01
+
+  public setAnchor(ringTime: number, unixSeconds: number): void {
+    if (unixSeconds >= OuraDriverStateMachine.MIN_PLAUSIBLE_EPOCH && unixSeconds <= OuraDriverStateMachine.MAX_PLAUSIBLE_EPOCH) {
+      this.anchorRingTime = ringTime;
+      this.anchorUtcMs = unixSeconds * 1000;
+    }
+  }
+
+  public ringTimeToUnixSeconds(ringTimestamp: number): number | null {
+    if (this.anchorUtcMs === null || this.anchorRingTime === null) return null;
+    const deltaTicks = ringTimestamp - this.anchorRingTime;
+    const targetMs = this.anchorUtcMs + deltaTicks * 100; // 100ms per tick
+    const targetSeconds = Math.floor(targetMs / 1000);
+
+    if (targetSeconds >= OuraDriverStateMachine.MIN_PLAUSIBLE_EPOCH && targetSeconds <= OuraDriverStateMachine.MAX_PLAUSIBLE_EPOCH) {
+      return targetSeconds;
+    }
+    return null;
+  }
+
+  public nextStep(transition: OuraDriverTransition): OuraCommandPayload[] {
+    switch (transition.kind) {
+      case 'ready':
+        this.phase = 'authenticating';
+        return [
+          OuraCommandBuilder.enableAllNotifications(),
+          OuraCommandBuilder.requestAuthNonce(),
+        ];
+
+      case 'authCompleted':
+        if (transition.authSuccess) {
+          this.phase = 'enablingLiveHR';
+          this.liveHREnableStep = 1;
+          return [OuraCommandBuilder.liveHRReadStatus()];
+        } else {
+          this.phase = 'authFailed';
+          return [];
+        }
+
+      case 'enableAckReceived':
+        if (this.phase !== 'enablingLiveHR') return [];
+        this.liveHREnableStep++;
+        if (this.liveHREnableStep === 2) {
+          return [OuraCommandBuilder.liveHREnable()];
+        } else if (this.liveHREnableStep === 3) {
+          return [OuraCommandBuilder.liveHRSubscribe()];
+        }
+        this.phase = 'streaming';
+        return [];
+
+      case 'startHistoryFetch':
+        this.phase = 'fetchingHistory';
+        return [
+          OuraCommandBuilder.flushBuffer(),
+          OuraCommandBuilder.getEvents(transition.cursor ?? 0, 255),
+        ];
+
+      case 'historyCursorAdvanced':
+        if (!transition.moreData) {
+          this.phase = 'streaming';
+          return [];
+        }
+        return [OuraCommandBuilder.getEvents(transition.cursor ?? 0, 0)];
+
+      default:
+        return [];
+    }
+  }
+
+  public stop(): void {
+    this.phase = 'stopped';
+    this.liveHREnableStep = 0;
+    this.anchorUtcMs = null;
+    this.anchorRingTime = null;
+  }
 }
