@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarRail } from '../ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarTrigger, SidebarRail } from '../ui/sidebar';
 
 export interface WorkspaceSidebarProps {
   children: ReactNode;
@@ -32,11 +32,14 @@ export default function WorkspaceSidebar({
       variant={variant}
     >
       <Sidebar className={className}>
-        {onCollapse && (
-          <div className="absolute right-2 top-2 z-[var(--z-raised)] flex h-8 items-center justify-end">
-            <SidebarTrigger onClick={onCollapse} />
-          </div>
-        )}
+        <SidebarHeader className={`flex items-center py-2 px-3 border-b border-border-custom/20 mb-1.5 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+          {!collapsed && (
+            <span className="pixel-label text-text-muted/60 tracking-wider">Workspace</span>
+          )}
+          {onCollapse && (
+            <SidebarTrigger onClick={onCollapse} className="hover:bg-surface-2 rounded-lg" />
+          )}
+        </SidebarHeader>
         {children}
         <SidebarRail />
       </Sidebar>

@@ -29,9 +29,6 @@ export default function KeepSidebar({
 }: KeepSidebarProps) {
   return (
     <WorkspaceSidebar>
-      <div className="px-2.5 py-1 text-xs font-black uppercase tracking-wider text-text-muted/60 font-display">
-        Workspace
-      </div>
       <WorkspaceNavigation active="keep" onNavigate={goTo} />
       <div className="keep-sidebar-separator" />
 
