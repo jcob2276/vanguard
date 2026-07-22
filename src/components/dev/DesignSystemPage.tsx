@@ -21,7 +21,10 @@ import {
 } from './DesignSystemGalleries';
 import { ControlPrimitivesGallery, LayoutPrimitivesGallery } from './CentralControlGalleries';
 
+import { BorderBeamGallery, ThinkingOrbGallery } from './AntalikEffectsGalleries';
+
 function DesignSystemHeader({ onBack, dark, onToggleTheme }: { onBack: () => void; dark: boolean; onToggleTheme: () => void }) {
+
   return (
     <div className="sticky top-0 z-[var(--z-modal)] backdrop-blur-[var(--blur-xl)] bg-background/80 border-b border-border-custom/30">
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -77,6 +80,10 @@ export default function DesignSystemPage() {
         <ModalGallery />
         <Divider />
         <SpinnerGallery />
+        <Divider />
+        <ThinkingOrbGallery />
+        <Divider />
+        <BorderBeamGallery />
         <Divider />
         <SkeletonGallery />
         <Divider />

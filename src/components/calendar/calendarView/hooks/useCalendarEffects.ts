@@ -12,7 +12,7 @@ interface UseCalendarEffectsOptions {
   setSelectedEvent: (v: CalRow | null) => void;
   showBudgetConfig: boolean;
   setShowBudgetConfig: (v: boolean) => void;
-  setCalView: (v: 'dzien' | 'tydzien' | 'agenda') => void;
+  setCalView: (v: 'dzien' | '3dni' | 'tydzien' | 'miesiac') => void;
   toastMessage: string | null;
   setToastMessage: (v: string | null) => void;
 }

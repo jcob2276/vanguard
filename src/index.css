@@ -1605,3 +1605,10 @@
   --keep-tag-bg-pink: rgba(255, 255, 255, 0.08);
   --keep-tag-text-pink: #f8fafc;
 }
+
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+

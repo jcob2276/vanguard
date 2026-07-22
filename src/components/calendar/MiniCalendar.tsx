@@ -8,9 +8,10 @@ import { Card } from '../ui/Card';
 interface MiniCalendarProps {
   selectedDay: string;
   onSelectDay: (day: string) => void;
+  eventDatesSet?: Set<string>;
 }
 
-export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarProps) {
+export default function MiniCalendar({ selectedDay, onSelectDay, eventDatesSet }: MiniCalendarProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     const [y, m] = selectedDay.split('-').map(Number);
     return new Date(y, m - 1, 1);
@@ -112,6 +113,7 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
         {daysGrid.map((item, idx) => {
           const isSelected = item.dayStr === selectedDay;
           const isToday = item.dayStr === today;
+          const hasEvents = eventDatesSet?.has(item.dayStr);
           const moon = getMoonPhase(item.dayStr);
           // Pokazujemy emoji tylko dla 4 głównych faz i tylko dla dni bieżącego miesiąca
           const showMoon = moon.isMajor && item.isCurrentMonth;
@@ -133,15 +135,17 @@ export default function MiniCalendar({ selectedDay, onSelectDay }: MiniCalendarP
               >
                 {item.dayNum}
               </Pressable>
-              {/* Ikona fazy księżyca — tylko główne fazy */}
-              {showMoon && (
+              {/* Ikona fazy księżyca lub kropka wydarzeń */}
+              {showMoon ? (
                 <span
                   className="text-3xs leading-none mt-[var(--ds-arbitrary-1px)] opacity-[var(--opacity-80)]"
                   title={moon.name}
                 >
                   {moon.emoji}
                 </span>
-              )}
+              ) : hasEvents ? (
+                <span className="h-1 w-1 rounded-full bg-primary mt-0.5" />
+              ) : null}
             </div>
           );
         })}

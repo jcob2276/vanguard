@@ -1,11 +1,14 @@
 import { Pressable } from '../../ui/ControlPrimitives';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Calendar as CalendarIcon, Search, X } from 'lucide-react';
 import { useCalendar } from '../context/CalendarContext';
 import { WorkspaceHeader } from '../../shared/WorkspaceHeader';
+import { formatRangeLabel, weekMon } from '../calendarHelpers';
 
 const CALENDAR_TABS = [
   { key: 'dzien', label: 'Dzień' },
+  { key: '3dni', label: '3 Dni' },
   { key: 'tydzien', label: 'Tydzień' },
+  { key: 'miesiac', label: 'Miesiąc' },
 ];
 
 interface CalendarHeaderProps {
@@ -13,14 +16,64 @@ interface CalendarHeaderProps {
 }
 
 export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
-  const { calData: { calView, setCalView }, isSyncing, onSyncCalendar } = useCalendar();
+  const {
+    today,
+    calData: {
+      calView,
+      setCalView,
+      selectedDay,
+      setSelectedDay,
+      weekStart,
+      setWeekStart,
+      searchQuery,
+      setSearchQuery,
+    },
+    isSyncing,
+    onSyncCalendar,
+  } = useCalendar();
+
+  const currentRangeLabel = formatRangeLabel(calView, selectedDay, weekStart);
+
+  const handleTodayClick = () => {
+    setSelectedDay(today);
+    setWeekStart(weekMon(today));
+  };
 
   return (
-    <>
-      <WorkspaceHeader
-        title="Kalendarz"
-        onBack={onBack}
-        actions={
+    <WorkspaceHeader
+      title={currentRangeLabel || 'Kalendarz'}
+      onBack={onBack}
+      actions={
+        <div className="flex items-center gap-2">
+          {/* Live Search Input */}
+          <div className="relative flex items-center">
+            <Search size={14} className="absolute left-2.5 text-text-muted pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Szukaj wydarzeń…"
+              className="h-8 w-36 sm:w-48 pl-8 pr-7 text-xs rounded-lg border border-border-custom/40 bg-surface-solid/30 text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-primary focus:bg-background transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 text-text-muted hover:text-text-primary"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          <Pressable
+            onClick={handleTodayClick}
+            variant="secondary"
+            size="sm"
+            icon={<CalendarIcon size={14} />}
+            className="calendar-today-button font-bold text-xs"
+          >
+            Dzisiaj
+          </Pressable>
           <Pressable
             onClick={onSyncCalendar}
             variant="secondary"
@@ -30,9 +83,13 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
           >
             {isSyncing ? 'Synchronizuję…' : 'Sync'}
           </Pressable>
-        }
-        tabs={{ items: CALENDAR_TABS, active: calView, onChange: (key) => setCalView(key as typeof calView) }}
-      />
-    </>
+        </div>
+      }
+      tabs={{
+        items: CALENDAR_TABS,
+        active: calView,
+        onChange: (key) => setCalView(key as typeof calView),
+      }}
+    />
   );
 }

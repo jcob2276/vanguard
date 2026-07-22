@@ -1,5 +1,5 @@
 import Button from '../../ui/Button';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useCalendar } from '../context/CalendarContext';
 import MiniCalendar from '../MiniCalendar';
@@ -24,6 +24,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo, collapsed, onTog
       selectedDay,
       setSelectedDay,
       setWeekStart,
+      events,
       setBudgetMinInputs,
       setBudgetMaxInputs,
       setFrameDaysInputs,
@@ -48,22 +49,18 @@ export default function CalendarSidebar({ onBack, onNavigateTo, collapsed, onTog
     categoryPrevWeeklyTotals,
   } = useCalendar();
 
+  const eventDatesSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const ev of events) {
+      if (ev.start_time) {
+        set.add(ev.start_time.split('T')[0]);
+      }
+    }
+    return set;
+  }, [events]);
+
   return (
     <WorkspaceSidebar className="select-none" collapsed={collapsed} onCollapse={onToggleCollapse}>
-      {/* Back Navigation header */}
-      <div className="hidden">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          icon={<ChevronLeft size={16} />}
-          className="text-xs font-black uppercase tracking-wider text-text-muted hover:text-text-primary shrink-0"
-        >
-          Powrót
-        </Button>
-
-      </div>
-
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-6">
         <div>
           <p className="pixel-label mb-1.5 px-2.5 text-text-muted/60">Workspace</p>
@@ -72,6 +69,7 @@ export default function CalendarSidebar({ onBack, onNavigateTo, collapsed, onTog
 
         <MiniCalendar
           selectedDay={selectedDay}
+          eventDatesSet={eventDatesSet}
           onSelectDay={(day) => {
             setSelectedDay(day);
             setWeekStart(weekMon(day));

@@ -36,6 +36,9 @@ export interface CalRow {
   end_time: string | null;
   category: string | null;
   description?: string | null;
+  location?: string | null;
+  is_all_day?: boolean | null;
+  reminder_minutes?: number | null;
   recurrence?: string[] | null;
   series_id?: string | null;
 }
@@ -184,7 +187,6 @@ export function computeBudgetBarState(
   return { pct: 0, statusText: `${spent.toFixed(1)}h`, barColor: baseColor };
 }
 
-
 export function eventColor(ev: CalRow) {
   const summaryLower = ev.summary?.toLowerCase() || '';
   const isFocusTime = ev.summary?.includes('Focus Time') || ev.summary?.includes('🛡️');
@@ -225,6 +227,79 @@ export function eventColor(ev: CalRow) {
   }
 
   return 'bg-primary/22 dark:bg-primary/25 text-primary-hover dark:text-primary-hover font-bold border border-primary/50';
+}
+
+export interface MonthDayInfo {
+  dateStr: string;
+  dayNumber: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+}
+
+export function getMonthGridDays(dateStr: string): MonthDayInfo[] {
+  const [y, m] = dateStr.split('-').map(Number);
+  const firstOfMonth = new Date(y, m - 1, 1);
+  const lastOfMonth = new Date(y, m, 0);
+
+  const firstDayOfWeek = (firstOfMonth.getDay() + 6) % 7; // Mon=0
+  const startDate = new Date(firstOfMonth);
+  startDate.setDate(startDate.getDate() - firstDayOfWeek);
+
+  const days: MonthDayInfo[] = [];
+  const today = todayStr();
+
+  const totalDays = (firstDayOfWeek + lastOfMonth.getDate()) > 35 ? 42 : 35;
+
+  for (let i = 0; i < totalDays; i++) {
+    const cur = new Date(startDate);
+    cur.setDate(cur.getDate() + i);
+    const yStr = cur.getFullYear();
+    const mStr = String(cur.getMonth() + 1).padStart(2, '0');
+    const dStr = String(cur.getDate()).padStart(2, '0');
+    const curDateStr = `${yStr}-${mStr}-${dStr}`;
+
+    days.push({
+      dateStr: curDateStr,
+      dayNumber: cur.getDate(),
+      isCurrentMonth: cur.getMonth() === m - 1,
+      isToday: curDateStr === today,
+    });
+  }
+
+  return days;
+}
+
+export function formatRangeLabel(calView: string, selectedDay: string, weekStart: string): string {
+  const [y, m, d] = selectedDay.split('-').map(Number);
+  const selDate = new Date(y, m - 1, d);
+
+  if (calView === 'dzien') {
+    return selDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  if (calView === '3dni') {
+    const endStr = addDays(selectedDay, 2);
+    const [ey, em, ed] = endStr.split('-').map(Number);
+    const endDate = new Date(ey, em - 1, ed);
+    if (m === em) {
+      return `${d}–${ed} ${selDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}`;
+    }
+    return `${d} ${selDate.toLocaleDateString('pl-PL', { month: 'short' })} – ${ed} ${endDate.toLocaleDateString('pl-PL', { month: 'short', year: 'numeric' })}`;
+  }
+  if (calView === 'tydzien') {
+    const weekEnd = addDays(weekStart, 6);
+    const [sy, sm, sd] = weekStart.split('-').map(Number);
+    const [ey, em, ed] = weekEnd.split('-').map(Number);
+    const sDate = new Date(sy, sm - 1, sd);
+    const eDate = new Date(ey, em - 1, ed);
+    if (sm === em) {
+      return `${sd}–${ed} ${sDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}`;
+    }
+    return `${sd} ${sDate.toLocaleDateString('pl-PL', { month: 'short' })} – ${ed} ${eDate.toLocaleDateString('pl-PL', { month: 'short', year: 'numeric' })}`;
+  }
+  if (calView === 'miesiac') {
+    return selDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+  }
+  return selDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
 }
 
 export function layoutDayEvents(dayEvents: CalRow[]) {

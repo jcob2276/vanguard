@@ -1,7 +1,7 @@
 /**
  * @component CalendarGrid
- * @role Dispatcher renderowania siatki — wybiera day/week/agenda z grid/.
- * @composes grid/CalendarDayView, grid/CalendarWeekView, grid/CalendarAgendaView, grid/useCalendarDragSelect
+ * @role Dispatcher renderowania siatki — wybiera day/3-day/week/month/agenda.
+ * @composes grid/CalendarDayView, grid/Calendar3DayView, grid/CalendarWeekView, grid/CalendarMonthView, grid/CalendarAgendaView
  * @usedBy CalendarView
  */
 import React, { useRef, useEffect, useMemo } from 'react';
@@ -12,11 +12,13 @@ import {
   todayStr,
   dateOfISO,
   getWarsawOffset,
+  weekMon,
 } from './calendarHelpers';
 import { useCalendarDragSelect } from './grid/useCalendarDragSelect';
 import { CalendarDayView } from './grid/CalendarDayView';
+import { Calendar3DayView } from './grid/Calendar3DayView';
 import { CalendarWeekView } from './grid/CalendarWeekView';
-import { CalendarAgendaView } from './grid/CalendarAgendaView';
+import { CalendarMonthView } from './grid/CalendarMonthView';
 import type { CalRow } from './calendarHelpers';
 import type { CalendarTodo } from './hooks/useCalendarTodos';
 import type { GoalChip } from './grid/types';
@@ -45,9 +47,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   scheduleTodoAt,
 }) => {
   const gridRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const {
     calView,
+    setCalView,
     selectedDay,
     setSelectedDay,
     weekStart,
@@ -103,76 +107,147 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
 
   const getEventsForDay = (day: string) => eventsByDay[day] || [];
 
-  switch (calView) {
-    case 'dzien':
-      return (
-        <CalendarDayView
-          selectedDay={selectedDay}
-          setSelectedDay={setSelectedDay}
-          setWeekStart={setWeekStart}
-          weather={weather}
-          today={today}
-          nowMin={nowMin}
-          dragSelect={dragSelect}
-          goalChipFor={goalChipFor}
-          completedTodoIds={completedTodoIds}
-          getEventsForDay={getEventsForDay}
-          todosForDay={todosForDay}
-          handleColumnMouseDown={handleColumnMouseDown}
-          handleColumnMouseMove={handleColumnMouseMove}
-          handleEventMouseDown={handleEventMouseDown}
-          handleToggleTodo={handleToggleTodo}
-          setEditingTodo={setEditingTodo}
-          setEditingTodoTitle={setEditingTodoTitle}
-          setToastMessage={setToastMessage}
-          setSaving={setSaving}
-          scheduleTodoAt={scheduleTodoAt}
-          gridRef={gridRef}
-        />
-      );
-    case 'tydzien':
-      return (
-        <CalendarWeekView
-          weekStart={weekStart}
-          setWeekStart={setWeekStart}
-          setSelectedDay={setSelectedDay}
-          weather={weather}
-          today={today}
-          nowMin={nowMin}
-          weekDays={weekDays}
-          dragSelect={dragSelect}
-          goalChipFor={goalChipFor}
-          completedTodoIds={completedTodoIds}
-          getEventsForDay={getEventsForDay}
-          todosForDay={todosForDay}
-          handleColumnMouseDown={handleColumnMouseDown}
-          handleColumnMouseMove={handleColumnMouseMove}
-          handleEventMouseDown={handleEventMouseDown}
-          handleToggleTodo={handleToggleTodo}
-          setEditingTodo={setEditingTodo}
-          setEditingTodoTitle={setEditingTodoTitle}
-          setToastMessage={setToastMessage}
-          setSaving={setSaving}
-          scheduleTodoAt={scheduleTodoAt}
-          gridRef={gridRef}
-        />
-      );
-    case 'agenda':
-      return (
-        <CalendarAgendaView
-          today={today}
-          events={events}
-          loading={loading}
-          getEventsForDay={getEventsForDay}
-          todosForDay={todosForDay}
-          goalChipFor={goalChipFor}
-          completedTodoIds={completedTodoIds}
-          handleEventClick={handleEventClick}
-          handleToggleTodo={handleToggleTodo}
-          setToastMessage={setToastMessage}
-          onSyncCalendar={onSyncCalendar}
-          isSyncing={isSyncing}
-        />
-      );
-  }
+  // Horizontal touch swipe navigation for mobile screens
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || e.changedTouches.length !== 1) return;
+    const diffX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const diffY = e.changedTouches[0].clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    if (Math.abs(diffX) > 60 && Math.abs(diffY) < 45) {
+      const direction = diffX < 0 ? 1 : -1;
+      if (calView === 'dzien') {
+        const next = addDays(selectedDay, direction);
+        setSelectedDay(next);
+        setWeekStart(weekMon(next));
+      } else if (calView === '3dni') {
+        const next = addDays(selectedDay, direction * 3);
+        setSelectedDay(next);
+        setWeekStart(next);
+      } else if (calView === 'tydzien') {
+        const next = addDays(weekStart, direction * 7);
+        setSelectedDay(next);
+        setWeekStart(next);
+      } else if (calView === 'miesiac') {
+        const [y, m] = selectedDay.split('-').map(Number);
+        const d = new Date(y, m - 1 + direction, 1);
+        const newY = d.getFullYear();
+        const newM = String(d.getMonth() + 1).padStart(2, '0');
+        setSelectedDay(`${newY}-${newM}-01`);
+      }
+    }
+  };
+
+  const renderContent = () => {
+    switch (calView) {
+      case 'dzien':
+        return (
+          <CalendarDayView
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+            setWeekStart={setWeekStart}
+            weather={weather}
+            today={today}
+            nowMin={nowMin}
+            dragSelect={dragSelect}
+            goalChipFor={goalChipFor}
+            completedTodoIds={completedTodoIds}
+            getEventsForDay={getEventsForDay}
+            todosForDay={todosForDay}
+            handleColumnMouseDown={handleColumnMouseDown}
+            handleColumnMouseMove={handleColumnMouseMove}
+            handleEventMouseDown={handleEventMouseDown}
+            handleToggleTodo={handleToggleTodo}
+            setEditingTodo={setEditingTodo}
+            setEditingTodoTitle={setEditingTodoTitle}
+            setToastMessage={setToastMessage}
+            setSaving={setSaving}
+            scheduleTodoAt={scheduleTodoAt}
+            gridRef={gridRef}
+          />
+        );
+      case '3dni':
+        return (
+          <Calendar3DayView
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+            setWeekStart={setWeekStart}
+            weather={weather}
+            today={today}
+            nowMin={nowMin}
+            dragSelect={dragSelect}
+            goalChipFor={goalChipFor}
+            completedTodoIds={completedTodoIds}
+            getEventsForDay={getEventsForDay}
+            todosForDay={todosForDay}
+            handleColumnMouseDown={handleColumnMouseDown}
+            handleColumnMouseMove={handleColumnMouseMove}
+            handleEventMouseDown={handleEventMouseDown}
+            handleToggleTodo={handleToggleTodo}
+            setEditingTodo={setEditingTodo}
+            setEditingTodoTitle={setEditingTodoTitle}
+            setToastMessage={setToastMessage}
+            setSaving={setSaving}
+            scheduleTodoAt={scheduleTodoAt}
+            gridRef={gridRef}
+          />
+        );
+      case 'tydzien':
+        return (
+          <CalendarWeekView
+            weekStart={weekStart}
+            setWeekStart={setWeekStart}
+            setSelectedDay={setSelectedDay}
+            weather={weather}
+            today={today}
+            nowMin={nowMin}
+            weekDays={weekDays}
+            dragSelect={dragSelect}
+            goalChipFor={goalChipFor}
+            completedTodoIds={completedTodoIds}
+            getEventsForDay={getEventsForDay}
+            todosForDay={todosForDay}
+            handleColumnMouseDown={handleColumnMouseDown}
+            handleColumnMouseMove={handleColumnMouseMove}
+            handleEventMouseDown={handleEventMouseDown}
+            handleToggleTodo={handleToggleTodo}
+            setEditingTodo={setEditingTodo}
+            setEditingTodoTitle={setEditingTodoTitle}
+            setToastMessage={setToastMessage}
+            setSaving={setSaving}
+            scheduleTodoAt={scheduleTodoAt}
+            gridRef={gridRef}
+          />
+        );
+      case 'miesiac':
+        return (
+          <CalendarMonthView
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+            setCalView={setCalView}
+            getEventsForDay={getEventsForDay}
+            todosForDay={todosForDay}
+            handleEventClick={handleEventClick}
+            setQuickCreate={setQuickCreate}
+            today={today}
+          />
+        );
+    }
+  };
+
+  return (
+    <div
+      className="flex-1 flex flex-col min-h-0 overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {renderContent()}
+    </div>
+  );
 };

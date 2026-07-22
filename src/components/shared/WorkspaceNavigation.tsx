@@ -1,6 +1,7 @@
 import { Pressable } from '../ui/ControlPrimitives';
 import { Bell, BookOpen, Calendar, ListTodo, StickyNote } from 'lucide-react';
 import WorkspaceToolsLauncher from './WorkspaceToolsLauncher';
+import { useSidebar } from '../ui/sidebar';
 
 export type WorkspaceDestination = 'keep' | 'todo' | 'kalendarz' | 'links' | 'projekty' | 'terminy';
 
@@ -29,6 +30,14 @@ export default function WorkspaceNavigation({
 }: WorkspaceNavigationProps) {
   const horizontal = orientation === 'horizontal';
 
+  let isCollapsedIcon = false;
+  try {
+    const sidebar = useSidebar();
+    isCollapsedIcon = sidebar.state === 'collapsed' && sidebar.collapsible === 'icon';
+  } catch {
+    // Fallback if outside SidebarProvider
+  }
+
   if (horizontal) {
     return (
       <nav aria-label="Narzędzia" className={`workspace-tools-nav flex ${className}`}>
@@ -42,16 +51,39 @@ export default function WorkspaceNavigation({
             {primaryAction.label}
           </Pressable>
         )}
-        <WorkspaceToolsLauncher active={active} onNavigate={destination => onNavigate?.(destination as WorkspaceDestination)} />
+        <WorkspaceToolsLauncher active={active} onNavigate={(destination) => onNavigate?.(destination as WorkspaceDestination)} />
+      </nav>
+    );
+  }
+
+  if (isCollapsedIcon) {
+    return (
+      <nav aria-label="Workspace" className={`flex flex-col items-center gap-1.5 ${className}`}>
+        {ITEMS.map(({ id, label, icon: Icon }) => {
+          const isActive = active === id;
+          return (
+            <Pressable
+              key={id}
+              onClick={() => onNavigate?.(id)}
+              aria-current={isActive ? 'page' : undefined}
+              title={label}
+              aria-label={label}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
+                isActive
+                  ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                  : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+              }`}
+            >
+              <Icon size={16} className={isActive ? 'text-primary' : 'text-text-muted/95'} />
+            </Pressable>
+          );
+        })}
       </nav>
     );
   }
 
   return (
-    <nav
-      aria-label="Workspace"
-      className={`${horizontal ? 'flex w-full' : 'flex flex-col gap-0.5'} ${className}`}
-    >
+    <nav aria-label="Workspace" className={`flex flex-col gap-0.5 ${className}`}>
       {ITEMS.map(({ id, label, icon: Icon }) => {
         const isActive = active === id;
         return (
@@ -61,14 +93,11 @@ export default function WorkspaceNavigation({
             size="sm"
             onClick={() => onNavigate?.(id)}
             aria-current={isActive ? 'page' : undefined}
-            className={horizontal
-              ? `min-h-12 flex-1 flex-col gap-0.5 rounded-none px-1 py-1.5 text-xs font-medium tracking-tight ${isActive ? 'text-primary font-medium' : 'text-text-secondary'}`
-              : `w-full justify-start gap-2.5 slate-nav px-3 py-2 text-xs font-medium tracking-tight ${
-                  isActive
-                    ? 'nav-pill-active text-primary font-medium'
-                    : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
-                }`
-            }
+            className={`w-full justify-start gap-2.5 slate-nav px-3 py-2 text-xs font-medium tracking-tight ${
+              isActive
+                ? 'nav-pill-active text-primary font-medium'
+                : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+            }`}
             icon={<Icon size={14} className={isActive ? 'text-primary' : 'text-text-muted/95'} />}
           >
             {label}

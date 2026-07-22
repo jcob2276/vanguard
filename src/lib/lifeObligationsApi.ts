@@ -5,7 +5,7 @@ import {
   type LifeObligationRecurrence,
 } from '@vanguard/domain';
 import { supabase } from './supabase';
-import { lifeObligationKeys } from './queryKeys';
+import { lifeObligationKeys, calendarKeys } from './queryKeys';
 
 export interface LifeObligation {
   id: string;
@@ -79,7 +79,10 @@ export function useLifeObligations(userId: string | undefined) {
 export function useLifeObligationMutations(userId: string | undefined) {
   const qc = useQueryClient();
   const invalidate = () => {
-    if (userId) void qc.invalidateQueries({ queryKey: lifeObligationKeys.list(userId) });
+    if (userId) {
+      void qc.invalidateQueries({ queryKey: lifeObligationKeys.list(userId) });
+      void qc.invalidateQueries({ queryKey: calendarKeys.all });
+    }
   };
 
   const add = useMutation({

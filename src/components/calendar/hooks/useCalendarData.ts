@@ -25,6 +25,9 @@ import { useCalendarWeather } from './useCalendarWeather';
 import { useCalendarEventDrag } from './useCalendarEventDrag';
 import { parseRecurrenceRule } from '../calendarView/calendarViewHelpers';
 
+import { useLifeObligations } from '../../../lib/lifeObligationsApi';
+import { deriveAll } from '../../terminy/terminyDerived';
+
 export interface QuickCreateState {
   date: string;
   startMin: number;
@@ -33,17 +36,23 @@ export interface QuickCreateState {
 export function useCalendarData(userId: string | undefined, accessToken: string | undefined) {
   const queryClient = useQueryClient();
   const today = todayStr();
-  const [calView, setCalView] = useState<'dzien' | 'tydzien' | 'agenda'>('dzien');
+  const [calView, setCalView] = useState<'dzien' | '3dni' | 'tydzien' | 'miesiac'>('tydzien');
   const [selectedDay, setSelectedDay] = useState(today);
   const [weekStart, setWeekStart] = useState(() => weekMon(today));
 
   // Visible date range
   const visibleRange = useMemo(() => {
-    if (calView === 'dzien' || calView === 'tydzien') {
-      return { rangeStart: addDays(weekStart, -7), rangeEnd: addDays(weekStart, 7) };
+    if (calView === 'dzien') {
+      return { rangeStart: addDays(selectedDay, -1), rangeEnd: addDays(selectedDay, 1) };
     }
-    return { rangeStart: addDays(today, -7), rangeEnd: addDays(today, 14) };
-  }, [calView, weekStart, today]);
+    if (calView === '3dni') {
+      return { rangeStart: addDays(selectedDay, -1), rangeEnd: addDays(selectedDay, 4) };
+    }
+    if (calView === 'tydzien') {
+      return { rangeStart: addDays(weekStart, -7), rangeEnd: addDays(weekStart, 14) };
+    }
+    return { rangeStart: addDays(selectedDay, -15), rangeEnd: addDays(selectedDay, 45) };
+  }, [calView, weekStart, selectedDay]);
 
   // Query events using our react-query DAL
   const { data: rawEvents = [], isLoading: loading } = useCalendarEvents(
@@ -52,18 +61,84 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     visibleRange.rangeEnd
   );
 
-  // Cast events to CalRow[] safely
-  const events = useMemo(() => rawEvents as CalRow[], [rawEvents]);
+  // Query Terminy (Life Obligations) and project them onto the Calendar
+  const { data: obligations = [] } = useLifeObligations(userId);
+
+  const obligationEvents = useMemo(() => {
+    if (!obligations.length) return [];
+    const derived = deriveAll(obligations, today);
+    const result: CalRow[] = [];
+
+    for (const d of derived) {
+      const item = d.item;
+      const date = d.nextDate;
+      if (!date) continue;
+
+      let prefix = '📌';
+      let category = 'finanse';
+      if (item.kind === 'people') {
+        prefix = '🎈';
+        category = 'relacje_rodzina';
+      } else if (item.kind === 'vehicle') {
+        prefix = '🚗';
+        category = 'praca';
+      } else if (item.kind === 'document') {
+        prefix = '📄';
+        category = 'finanse';
+      }
+
+      result.push({
+        id: `obligation-${item.id}-${date}`,
+        event_id: `obligation-${item.id}`,
+        summary: `${prefix} ${item.title}${item.related_name ? ` (${item.related_name})` : ''}`,
+        start_time: `${date}T09:00:00+02:00`,
+        end_time: `${date}T10:00:00+02:00`,
+        is_all_day: true,
+        category,
+        description: item.notes || `Ważny termin z zakładki Terminy (${item.title})`,
+      });
+    }
+
+    return result;
+  }, [obligations, today]);
+
+  // Cast events to CalRow[] safely and merge obligation events
+  const events = useMemo(() => {
+    const raw = rawEvents as CalRow[];
+    return [...raw, ...obligationEvents];
+  }, [rawEvents, obligationEvents]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [disabledCategories, setDisabledCategories] = useState<Set<string>>(() => new Set());
+
+  const toggleCategory = useCallback((cat: string) => {
+    setDisabledCategories((prev) => {
+      const next = new Set(prev);
+      const key = cat.toLowerCase();
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
   const displayEvents = useMemo(() => {
+    let result = events;
+    if (disabledCategories.size > 0) {
+      result = result.filter((event) => {
+        const cat = (event.category || 'uncategorized').toLowerCase();
+        return !disabledCategories.has(cat);
+      });
+    }
     const query = searchQuery.trim().toLocaleLowerCase('pl-PL');
-    if (!query) return events;
-    return events.filter((event) =>
-      [event.summary, event.category]
+    if (!query) return result;
+    return result.filter((event) =>
+      [event.summary, event.category, event.description, event.location]
         .filter(Boolean)
         .some((value) => String(value).toLocaleLowerCase('pl-PL').includes(query))
     );
-  }, [events, searchQuery]);
+  }, [events, searchQuery, disabledCategories]);
 
   // Mutations
   const createEventMutation = useCreateCalendarEvent();
@@ -77,6 +152,9 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   const [quickCategory, setQuickCategory] = useState<string | null>(null);
   const [quickType, setQuickType] = useState<'event' | 'task'>('event');
   const [quickDescription, setQuickDescription] = useState('');
+  const [quickLocation, setQuickLocation] = useState('');
+  const [quickAllDay, setQuickAllDay] = useState(false);
+  const [quickReminder, setQuickReminder] = useState<number | null>(null);
   const [quickRecurrence, setQuickRecurrence] = useState<'' | 'daily' | 'weekly' | 'monthly' | 'custom'>('');
   const [quickCustomDays, setQuickCustomDays] = useState<string[]>([]);
   const [quickRecurrenceEndDate, setQuickRecurrenceEndDate] = useState('');
@@ -89,6 +167,9 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     setQuickCategory(null);
     setQuickType('event');
     setQuickDescription('');
+    setQuickLocation('');
+    setQuickAllDay(false);
+    setQuickReminder(null);
     setQuickRecurrence('');
     setQuickCustomDays([]);
     setQuickRecurrenceEndDate('');
@@ -104,6 +185,9 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
   const [editEnd, setEditEnd] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editAllDay, setEditAllDay] = useState(false);
+  const [editReminder, setEditReminder] = useState<number | null>(null);
   const [editRecurrence, setEditRecurrence] = useState<'' | 'daily' | 'weekly' | 'monthly' | 'custom'>('');
   const [editCustomDays, setEditCustomDays] = useState<string[]>([]);
   const [editRecurrenceEndDate, setEditRecurrenceEndDate] = useState('');
@@ -195,11 +279,17 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     return `${parts[0]}:${parts[1]}`;
   };
 
-  const handleEventClick = (ev: CalRow) => {
+  const [viewingEvent, setViewingEvent] = useState<CalRow | null>(null);
+
+  const openEditFromPreview = (ev: CalRow) => {
+    setViewingEvent(null);
     setSelectedEvent(ev);
     setEditTitle(ev.summary || '');
     setEditCategory(ev.category || null);
     setEditDescription(ev.description || '');
+    setEditLocation(ev.location || '');
+    setEditAllDay(!!ev.is_all_day);
+    setEditReminder(ev.reminder_minutes ?? null);
     const recurrenceState = parseRecurrenceRule(ev.recurrence);
     setEditRecurrence(recurrenceState.recurrence);
     setEditCustomDays(recurrenceState.customDays);
@@ -211,6 +301,10 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     if (ev.end_time) {
       setEditEnd(formatTimeOfISO(ev.end_time));
     }
+  };
+
+  const handleEventClick = (ev: CalRow) => {
+    setViewingEvent(ev);
   };
 
   const { handleEventMouseDown } = useCalendarEventDrag({
@@ -259,6 +353,7 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     visibleRange,
     events, displayEvents,
     searchQuery, setSearchQuery,
+    disabledCategories, toggleCategory,
     loading,
     quickCreate, setQuickCreate, closeQuickCreate,
     quickTitle, setQuickTitle,
@@ -266,12 +361,16 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     quickCategory, setQuickCategory,
     quickType, setQuickType,
     quickDescription, setQuickDescription,
+    quickLocation, setQuickLocation,
+    quickAllDay, setQuickAllDay,
+    quickReminder, setQuickReminder,
     quickRecurrence, setQuickRecurrence,
     quickCustomDays, setQuickCustomDays,
     quickRecurrenceEndDate, setQuickRecurrenceEndDate,
     saving, setSaving,
     editingTodo, setEditingTodo,
     editingTodoTitle, setEditingTodoTitle,
+    viewingEvent, setViewingEvent, openEditFromPreview,
     selectedEvent, setSelectedEvent,
     editTitle, setEditTitle,
     editCategory, setEditCategory,
@@ -279,6 +378,9 @@ export function useCalendarData(userId: string | undefined, accessToken: string 
     editEnd, setEditEnd,
     editDate, setEditDate,
     editDescription, setEditDescription,
+    editLocation, setEditLocation,
+    editAllDay, setEditAllDay,
+    editReminder, setEditReminder,
     editRecurrence, setEditRecurrence,
     editCustomDays, setEditCustomDays,
     editRecurrenceEndDate, setEditRecurrenceEndDate,

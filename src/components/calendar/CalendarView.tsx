@@ -3,7 +3,7 @@
  * @role Top-level orchestrator widoku kalendarza.
  * @folders hooks/ = fetch+mutacje danych | calendarView/ = logika wydzielona z tego pliku pod limit 300 linii
  *          (actions/integrations/effects) | components/ = modale + header/sidebar | grid/ = warianty
- *          renderowania day/week/agenda (patrz CalendarGrid) | context/ = CalendarContext
+ *          renderowania day/3-day/week/month/agenda (patrz CalendarGrid) | context/ = CalendarContext
  * @composes CalendarGrid (renderowanie siatki, patrz grid/)
  * @usedBy Dashboard, WeeklyBalanceHexagon
  */
@@ -102,10 +102,9 @@ export default function CalendarView({
     setToastMessage: calData.setToastMessage,
   });
 
-  // Global keyboard navigation listener for left/right arrow keys
+  // Global keyboard navigation listener for shortcuts & arrows
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip navigation if typing in an input element or editable area
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
@@ -116,16 +115,28 @@ export default function CalendarView({
         return;
       }
 
+      const key = e.key.toLowerCase();
+
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         if (calData.calView === 'dzien') {
           const prev = addDays(calData.selectedDay, -1);
           calData.setSelectedDay(prev);
           calData.setWeekStart(weekMon(prev));
+        } else if (calData.calView === '3dni') {
+          const prev = addDays(calData.selectedDay, -3);
+          calData.setSelectedDay(prev);
+          calData.setWeekStart(weekMon(prev));
         } else if (calData.calView === 'tydzien') {
           const prev = addDays(calData.weekStart, -7);
           calData.setSelectedDay(prev);
           calData.setWeekStart(prev);
+        } else if (calData.calView === 'miesiac') {
+          const [y, m] = calData.selectedDay.split('-').map(Number);
+          const d = new Date(y, m - 2, 1);
+          const newY = d.getFullYear();
+          const newM = String(d.getMonth() + 1).padStart(2, '0');
+          calData.setSelectedDay(`${newY}-${newM}-01`);
         }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
@@ -133,11 +144,34 @@ export default function CalendarView({
           const next = addDays(calData.selectedDay, 1);
           calData.setSelectedDay(next);
           calData.setWeekStart(weekMon(next));
+        } else if (calData.calView === '3dni') {
+          const next = addDays(calData.selectedDay, 3);
+          calData.setSelectedDay(next);
+          calData.setWeekStart(weekMon(next));
         } else if (calData.calView === 'tydzien') {
           const next = addDays(calData.weekStart, 7);
           calData.setSelectedDay(next);
           calData.setWeekStart(next);
+        } else if (calData.calView === 'miesiac') {
+          const [y, m] = calData.selectedDay.split('-').map(Number);
+          const d = new Date(y, m, 1);
+          const newY = d.getFullYear();
+          const newM = String(d.getMonth() + 1).padStart(2, '0');
+          calData.setSelectedDay(`${newY}-${newM}-01`);
         }
+      } else if (key === 'd' || key === '1') {
+        calData.setCalView('dzien');
+      } else if (key === '3') {
+        calData.setCalView('3dni');
+      } else if (key === 'w' || key === '7') {
+        calData.setCalView('tydzien');
+      } else if (key === 'm') {
+        calData.setCalView('miesiac');
+      } else if (key === 't') {
+        calData.setSelectedDay(today);
+        calData.setWeekStart(weekMon(today));
+      } else if (key === 'c') {
+        calData.setQuickCreate({ date: calData.selectedDay, startMin: 540 });
       }
     };
 
@@ -145,9 +179,8 @@ export default function CalendarView({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  // The hook returns an object rebuilt on render; only the fields used above are dependencies.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calData.calView, calData.selectedDay, calData.weekStart, calData.setSelectedDay, calData.setWeekStart]);
+  }, [calData.calView, calData.selectedDay, calData.weekStart, today]);
 
   const contextValue: CalendarContextType = {
     userId,
@@ -197,6 +230,16 @@ export default function CalendarView({
             scheduleTodoAt={calTodos.scheduleTodoAt}
           />
         </div>
+
+        {/* Mobile Quick Create Floating Action Button (FAB) */}
+        <button
+          onClick={() => calData.setQuickCreate({ date: calData.selectedDay, startMin: 540 })}
+          className="fixed right-5 bottom-20 z-[var(--z-sticky)] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-accent shadow-2xl transition-transform active:scale-95 md:hidden"
+          title="Dodaj nowe wydarzenie"
+        >
+          <span className="text-2xl font-bold">+</span>
+        </button>
+
         <CalendarEventModal
           calData={calData}
           handleQuickSave={actions.handleQuickSave}

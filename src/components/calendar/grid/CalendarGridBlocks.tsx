@@ -98,6 +98,12 @@ export const renderTodoBlock = ({
       key={`todo-${todo.id}`}
       title={`${todo.title}${chip?.dreamTitle ? ` · ${chip.dreamTitle}` : ''}`}
       draggable
+      onMouseDown={(e) => {
+        e.stopPropagation();
+      }}
+      onTouchStart={(e) => {
+        e.stopPropagation();
+      }}
       onDragStart={(e) => {
         e.stopPropagation();
         e.dataTransfer.setData('text/plain', JSON.stringify({ id: todo.id, title: todo.title, duration_minutes: todo.duration_minutes }));
@@ -108,7 +114,7 @@ export const renderTodoBlock = ({
         setEditingTodo(todo);
         setEditingTodoTitle(todo.title);
       }}
-      className={`absolute rounded-lg border border-primary/25 bg-primary/10 hover:bg-primary/15 hover:shadow-sm px-2 py-1 overflow-hidden transition-[background-color,box-shadow] duration-[var(--motion-fast)] z-[var(--z-raised)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
+      className={`absolute rounded-lg border border-primary/40 bg-background/95 shadow-md hover:bg-surface-solid px-2 py-1 overflow-hidden transition-all duration-[var(--motion-fast)] z-[25] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
       style={{ top, height, left: 'var(--ds-inline-style-75)', width: 'var(--ds-inline-style-24)' }}
     >
       <div className="flex items-start gap-0.5">
