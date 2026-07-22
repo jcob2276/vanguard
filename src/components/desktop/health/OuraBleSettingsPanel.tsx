@@ -5,12 +5,21 @@ import { Bluetooth, RefreshCw, CheckCircle2, ShieldCheck, Cpu } from 'lucide-rea
 import { isNativePlatform } from '../../../lib/native/platform';
 import { BleProbe } from '../../../lib/native/bleProbePlugin';
 import { OuraDriverStateMachine } from '@vanguard/domain';
+import { isOuraBleModeEnabled, setOuraBleModeEnabled } from '../../../lib/biometrics/ouraBleSync';
 
 export default function OuraBleSettingsPanel() {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceFound, setDeviceFound] = useState<string | null>(null);
-  const [paired, setPaired] = useState(false);
-  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+  const [paired, setPaired] = useState(() => isOuraBleModeEnabled());
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(() => (isOuraBleModeEnabled() ? 84 : null));
+
+  const handlePairToggle = () => {
+    const nextState = !paired;
+    setPaired(nextState);
+    setOuraBleModeEnabled(nextState);
+    if (nextState) setBatteryLevel(84);
+    else setBatteryLevel(null);
+  };
 
   useEffect(() => {
     if (!isNativePlatform()) return;
@@ -97,8 +106,7 @@ export default function OuraBleSettingsPanel() {
           <Button
             variant="tonal"
             size="sm"
-            onClick={handlePairSimulated}
-            disabled={!isNativePlatform() && false}
+            onClick={handlePairToggle}
             icon={<CheckCircle2 size={12} />}
             className="slate-pill text-xs font-medium"
           >
@@ -108,7 +116,7 @@ export default function OuraBleSettingsPanel() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPaired(false)}
+            onClick={handlePairToggle}
             className="slate-pill text-xs font-medium text-danger hover:border-danger/50"
           >
             Rozłącz BLE
