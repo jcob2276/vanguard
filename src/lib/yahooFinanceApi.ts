@@ -40,10 +40,10 @@ async function fetchYahooQuote(ticker: string): Promise<YahooQuoteData | null> {
     const eventsDiv = result.events?.dividends;
     const dividends: { exDate: string; amount: number }[] = [];
 
-    if (eventsDiv) {
-      Object.values(eventsDiv).forEach((divItem: Record<string, unknown>) => {
-        const amt = typeof divItem.amount === 'number' ? divItem.amount : 0;
-        const date = typeof divItem.date === 'number' ? divItem.date : 0;
+    if (eventsDiv && typeof eventsDiv === 'object') {
+      Object.values(eventsDiv as Record<string, { amount?: number; date?: number }>).forEach((divItem) => {
+        const amt = typeof divItem?.amount === 'number' ? divItem.amount : 0;
+        const date = typeof divItem?.date === 'number' ? divItem.date : 0;
         if (amt && date) {
           const dateStr = formatWarsawDate(new Date(date * 1000));
           dividends.push({ exDate: dateStr, amount: amt });
