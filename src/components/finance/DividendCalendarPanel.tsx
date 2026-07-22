@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import { Calendar, DollarSign, TrendingUp, Plus, ShieldCheck, Percent } from 'lucide-react';
 import { calculate12MonthDividendForecast, evaluateDividendSafety, type DividendRecord } from '@vanguard/domain';
 import { DividendAddForm } from './DividendAddForm';
+import { useYahooQuotes } from '../../lib/yahooFinanceApi';
 
 export default function DividendCalendarPanel() {
   const [dividends, setDividends] = useState<DividendRecord[]>([
@@ -51,6 +52,9 @@ export default function DividendCalendarPanel() {
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [showNet, setShowNet] = useState(true);
+
+  const tickers = dividends.map((d) => d.ticker);
+  useYahooQuotes(tickers);
 
   const forecast = calculate12MonthDividendForecast(dividends, { applyBelkaTax: showNet, w8BenRatePct: 15 });
   const safetyRatings = evaluateDividendSafety(dividends);

@@ -34,6 +34,7 @@
     "src/components/lifestyle/direction/hooks/useDirection.ts": ["exports"],
     "src/components/growth/hooks/useGrowthData.ts": ["exports", "types"],
     "src/lib/biometrics/ouraBleSync.ts": ["exports", "types"],
+    "src/lib/yahooFinanceApi.ts": ["exports", "types"],
     "src/lib/systemApi.ts": ["exports", "types"],
     "src/components/core/useNutritionData.ts": ["exports", "types"],
     "supabase/functions/_shared/foodParseCore.ts": ["exports"],
