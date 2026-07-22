@@ -205,13 +205,15 @@ export async function deleteDailyWinTasks(userId: string, dayWinId: string): Pro
 export async function insertDailyWinTasks(
   userId: string,
   entries: TablesInsert<'daily_win_tasks'>[],
-): Promise<void> {
-  const { error } = await supabase
+): Promise<Tables<'daily_win_tasks'>[]> {
+  const { data, error } = await supabase
     .from('daily_win_tasks')
-    .insert(entries);
+    .insert(entries)
+    .select();
 
   if (error) {
     throw error;
   }
   invalidateGoalSpineCache(userId);
+  return data ?? [];
 }

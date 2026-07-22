@@ -185,7 +185,8 @@ async function toggleTaskHelper(args: UsePowerListActionsArgs, index: number, to
   const timeField = `completed_at_${slot}`;
   const todoIdField = `task_${slot}_todo_id`;
   const checkpointIdField = `task_${slot}_checkpoint_id`;
-  const newValue = !todayWin[field];
+  const taskRow = (todayWin.daily_win_tasks ?? []).find((t) => t.slot === slot);
+  const newValue = taskRow ? !taskRow.done : !todayWin[field];
   const timestamp = newValue ? new Date().toISOString() : null;
 
   const allDone = [1, 2, 3, 4, 5].every((i) => {
@@ -342,11 +343,11 @@ async function startNewDayHelper(args: UsePowerListActionsArgs, haptics: ReturnT
       done: false,
     }));
 
-    await insertDailyWinTasks(args.userId, taskEntries);
+    const insertedTasks = await insertDailyWinTasks(args.userId, taskEntries);
 
     const data = {
       ...parentWin,
-      daily_win_tasks: taskEntries.map((t, i) => ({
+      daily_win_tasks: insertedTasks.length > 0 ? insertedTasks : taskEntries.map((t, i) => ({
         ...t,
         id: `local-${i}`,
         completed_at: null,

@@ -78,3 +78,5 @@ screen-*.png
 screeny/
 test-results/
 coverage/
+tmp/
+
