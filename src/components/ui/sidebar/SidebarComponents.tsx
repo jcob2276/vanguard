@@ -11,7 +11,7 @@ export function SidebarHeader({ children, className = '', ...props }: SidebarHea
   return (
     <div
       data-sidebar="header"
-      className={`flex flex-col gap-2 p-[var(--space-3)] shrink-0 border-b border-border-custom/20 ${className}`}
+      className={`flex shrink-0 border-b border-border-custom/20 ${className}`}
       {...props}
     >
       {children}
