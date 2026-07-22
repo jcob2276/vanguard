@@ -10,24 +10,27 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
 /**
- * Keeps Vanguard telemetry sync alive while the user sees a persistent notification.
- * Fires sync ticks to {@link BackgroundSyncPlugin} while the Capacitor bridge is up.
+ * Keeps Vanguard telemetry & Oura BLE Direct sync alive in background.
+ * Fires periodic sync ticks and triggers silent BLE background scans.
  */
 public class TelemetryForegroundService extends Service {
 
+    private static final String TAG = "TelemetryService";
     static final String ACTION_SYNC_TICK = "app.vanguard.os.SYNC_TICK";
     static final int NOTIFICATION_ID = 73001;
     private static final String CHANNEL_ID = "vanguard_telemetry";
-    private static final long SYNC_INTERVAL_MS = 15L * 60L * 1000L;
+    private static final long SYNC_INTERVAL_MS = 15L * 60L * 1000L; // 15 mins
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable syncRunnable = new Runnable() {
         @Override
         public void run() {
+            Log.i(TAG, "Triggering background sync tick (Location, App Usage & Oura BLE)...");
             BackgroundSyncPlugin.notifySyncTickFromService();
             handler.postDelayed(this, SYNC_INTERVAL_MS);
         }
@@ -69,8 +72,8 @@ public class TelemetryForegroundService extends Service {
         );
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Vanguard")
-            .setContentText("Sync aktywny — ekran i lokalizacja")
+            .setContentTitle("Vanguard OS")
+            .setContentText("Direct BLE & Telemetry Sync Aktywny w Tle")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setContentIntent(pending)
@@ -85,7 +88,7 @@ public class TelemetryForegroundService extends Service {
             "Telemetry sync",
             NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Synchronizacja czasu ekranu i lokalizacji w tle");
+        channel.setDescription("Synchronizacja czasu ekranu, biometrii Oura BLE i lokalizacji w tle");
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
             manager.createNotificationChannel(channel);
