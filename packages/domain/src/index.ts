@@ -21,4 +21,5 @@ export * from './finance/cashflowCalendar.ts';
 export * from './lifeObligations.ts';
 export * from './phoneUsage.ts';
 export * from './location.ts';
+export * from './ouraBleProtocol.ts';
 
