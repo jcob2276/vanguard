@@ -48,8 +48,10 @@ export default function WorkspaceSidebar({
     <SidebarProvider
       defaultOpen={collapsed !== undefined ? !collapsed : true}
       open={collapsed !== undefined ? !collapsed : undefined}
-      onOpenChange={() => {
-        onCollapse?.();
+      onOpenChange={(openState) => {
+        if (collapsed !== undefined && openState === collapsed && onCollapse) {
+          onCollapse();
+        }
       }}
       collapsible={collapsible}
       variant={variant}

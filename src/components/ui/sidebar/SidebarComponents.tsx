@@ -63,17 +63,18 @@ export function SidebarTrigger({ className = '', icon, onClick, ...props }: Side
       variant="ghost"
       size="sm"
       aria-label="Przełącz panel boczny (Ctrl+B)"
-      title="Przełącz panel boczny (Ctrl+B)"
+      title={state === 'collapsed' ? 'Rozwiń panel boczny' : 'Zwiń panel boczny'}
       onClick={(e) => {
-        onClick?.(e);
-        if (!e.defaultPrevented) {
+        if (onClick) {
+          onClick(e);
+        } else {
           toggleSidebar();
         }
       }}
-      className={`h-8 w-8 p-0 text-text-muted hover:text-text-primary transition-colors ${className}`}
+      className={`h-8 w-8 p-0 text-text-muted hover:text-text-primary hover:bg-surface-2 rounded-lg flex items-center justify-center transition-all ${className}`}
       {...props}
     >
-      {icon || <PanelLeft size={16} className={`transition-transform duration-200 ${state === 'collapsed' ? 'rotate-180' : ''}`} />}
+      {icon || <PanelLeft size={16} className={`transition-transform duration-200 ${state === 'collapsed' ? 'rotate-180 text-primary font-bold' : ''}`} />}
     </Pressable>
   );
 }
