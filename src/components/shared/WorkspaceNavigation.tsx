@@ -35,10 +35,10 @@ export default function WorkspaceNavigation({
         {primaryAction && (
           <Pressable
             onClick={primaryAction.onClick}
-            className="workspace-primary-action min-h-12 rounded-full px-5 text-sm font-bold"
+            className="workspace-primary-action min-h-11 slate-pill px-4 text-xs font-medium tracking-tight"
             aria-label={primaryAction.label}
           >
-            <span className="text-lg leading-none">+</span>
+            <span className="text-sm leading-none">+</span>
             {primaryAction.label}
           </Pressable>
         )}
@@ -62,14 +62,14 @@ export default function WorkspaceNavigation({
             onClick={() => onNavigate?.(id)}
             aria-current={isActive ? 'page' : undefined}
             className={horizontal
-              ? `min-h-14 flex-1 flex-col gap-0.5 rounded-none px-1 py-2 text-xs ${isActive ? 'text-primary' : 'text-text-secondary'}`
-              : `w-full justify-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm font-semibold ${
+              ? `min-h-12 flex-1 flex-col gap-0.5 rounded-none px-1 py-1.5 text-xs font-medium tracking-tight ${isActive ? 'text-primary font-medium' : 'text-text-secondary'}`
+              : `w-full justify-start gap-2.5 slate-nav px-3 py-2 text-xs font-medium tracking-tight ${
                   isActive
-                    ? 'nav-pill-active text-primary'
+                    ? 'nav-pill-active text-primary font-medium'
                     : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
                 }`
             }
-            icon={<Icon size={horizontal ? 20 : 14} className={isActive ? 'text-primary' : 'text-text-muted/95'} />}
+            icon={<Icon size={14} className={isActive ? 'text-primary' : 'text-text-muted/95'} />}
           >
             {label}
           </Pressable>

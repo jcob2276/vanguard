@@ -12,8 +12,10 @@ import webpush from "npm:web-push@3.6.7";
 import { isFcmConfigured, sendFcmToToken } from "../_shared/fcmPush.ts";
 import {
   dueLeadOffsetsToday,
+  getWarsawClockMinutes,
   getWarsawDateString,
   leadLabel,
+  parseReminderClockMinutes,
   parseSentReminders,
   type LifeObligationKind,
 } from "@vanguard/domain";
@@ -65,15 +67,7 @@ Deno.serve(serveJson(async (_req, ctx) => {
   const now = new Date();
   const nowIso = now.toISOString();
   const warsawDate = getWarsawDateString(now);
-  const warsawParts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Warsaw",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-  const warsawHour = Number(warsawParts.find((part) => part.type === "hour")?.value ?? 0);
-  const warsawMinute = Number(warsawParts.find((part) => part.type === "minute")?.value ?? 0);
-  const warsawMinutes = warsawHour * 60 + warsawMinute;
+  const warsawMinutes = getWarsawClockMinutes(now);
 
   const [
     { data: subscriptions, error: subsError },
@@ -194,8 +188,9 @@ Deno.serve(serveJson(async (_req, ctx) => {
     if (supplement.start_date && supplement.start_date > warsawDate) return false;
     if (supplement.end_date && supplement.end_date < warsawDate) return false;
     if (supplement.reminder_sent_date === warsawDate || !supplement.reminder_time) return false;
-    const [hour, minute] = supplement.reminder_time.split(":").map(Number);
-    return warsawMinutes >= hour * 60 + minute;
+    const dueAt = parseReminderClockMinutes(supplement.reminder_time);
+    if (dueAt === null) return false;
+    return warsawMinutes >= dueAt;
   });
 
   let sentSupplements = 0;

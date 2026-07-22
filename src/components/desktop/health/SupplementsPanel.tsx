@@ -69,6 +69,7 @@ export default function SupplementsPanel({ userId }: SupplementsPanelProps) {
                 last7Days={data.last7Days} today={data.today}
                 onToggle={() => void data.handleToggle(sup)}
                 onDeactivate={() => void data.handleDeactivate(sup)}
+                onUpdateReminder={(reminderTime) => void data.handleUpdateReminder(sup, reminderTime)}
                 isLogged={data.isLogged} />
             );
           })}

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import Button from '../../ui/Button';
+import { ControlInput, Pressable } from '../../ui/ControlPrimitives';
 import { Calendar, Bell, Check, Trash2 } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import type { Supplement } from '../../../lib/health/supplementsClient';
@@ -15,6 +17,13 @@ function isWithinCycle(sup: Supplement, dateStr: string): boolean {
   return true;
 }
 
+function formatReminderInputValue(raw: string | null): string {
+  if (!raw) return '21:30';
+  const match = raw.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return '21:30';
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
 interface SupplementCardProps {
   sup: Supplement;
   takenToday: boolean;
@@ -22,10 +31,15 @@ interface SupplementCardProps {
   today: string;
   onToggle: () => void;
   onDeactivate: () => void;
+  onUpdateReminder: (reminderTime: string | null) => void;
   isLogged: (id: string, date: string) => boolean;
 }
 
-export default function SupplementCard({ sup, takenToday, last7Days, today, onToggle, onDeactivate, isLogged }: SupplementCardProps) {
+export default function SupplementCard({
+  sup, takenToday, last7Days, today, onToggle, onDeactivate, onUpdateReminder, isLogged,
+}: SupplementCardProps) {
+  const [editingReminder, setEditingReminder] = useState(false);
+  const [draftReminder, setDraftReminder] = useState(formatReminderInputValue(sup.reminder_time));
   const isReverse = sup.name.toLowerCase().includes('pyłek') || sup.name.toLowerCase().includes('pollen') || sup.dose_per_unit?.['reverse_logic'] === true;
 
   let cycleProgress = null;
@@ -54,7 +68,24 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
             <p className="text-xs font-black uppercase text-text-primary leading-tight truncate">{sup.name}</p>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-2xs text-text-muted">
               <span>1x {sup.unit}</span>
-              {sup.reminder_time && <span className="flex items-center gap-0.5 text-primary"><Bell size={10} /> {sup.reminder_time.slice(0, 5)}</span>}
+              {sup.reminder_time && !editingReminder && (
+                <Pressable
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-0.5 p-0 h-auto text-primary hover:underline"
+                  onClick={() => {
+                    setDraftReminder(formatReminderInputValue(sup.reminder_time));
+                    setEditingReminder(true);
+                  }}
+                >
+                  <Bell size={10} /> {sup.reminder_time.slice(0, 5)}
+                </Pressable>
+              )}
+              {!sup.reminder_time && !editingReminder && (
+                <Pressable variant="ghost" size="sm" className="flex items-center gap-0.5 p-0 h-auto text-text-muted hover:text-primary" onClick={() => setEditingReminder(true)}>
+                  <Bell size={10} /> Ustaw przypomnienie
+                </Pressable>
+              )}
               {cycleDaysText && <span className="flex items-center gap-0.5 text-warning font-bold uppercase tracking-wider"><Calendar size={10} /> {cycleDaysText}</span>}
             </div>
           </div>
@@ -72,6 +103,45 @@ export default function SupplementCard({ sup, takenToday, last7Days, today, onTo
           />
         </div>
       </div>
+
+      {editingReminder && (
+        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border-custom/50 bg-surface-solid/30 p-2.5">
+          <div className="space-y-1">
+            <label className="text-2xs font-bold uppercase tracking-wider text-text-muted">Push o godz.</label>
+            <ControlInput
+              type="time"
+              value={draftReminder}
+              onChange={(e) => setDraftReminder(e.target.value)}
+              className="rounded-lg border border-border-custom bg-surface px-2 py-1 text-xs"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onUpdateReminder(draftReminder || null);
+              setEditingReminder(false);
+            }}
+          >
+            Zapisz
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              onUpdateReminder(null);
+              setEditingReminder(false);
+            }}
+          >
+            Wyłącz
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditingReminder(false)}>
+            Anuluj
+          </Button>
+        </div>
+      )}
 
       {cycleProgress !== null && (
         <div className="space-y-1">

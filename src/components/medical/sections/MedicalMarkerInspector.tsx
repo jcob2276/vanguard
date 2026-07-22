@@ -1,7 +1,7 @@
 import Sheet from '../../ui/Sheet';
 import type { MedicalLabRow } from '../../../lib/health/medicalAnalytics';
 import { Card } from '../../ui/Card';
-import { AlertTriangle, Calendar, Info, FlaskConical } from 'lucide-react';
+import { AlertTriangle, Calendar, FlaskConical } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface MedicalMarkerInspectorProps {

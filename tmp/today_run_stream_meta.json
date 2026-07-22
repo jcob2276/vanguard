@@ -1,0 +1,22 @@
+{
+  "gc_id": 23668624368,
+  "samples": 935,
+  "desc_map": {
+    "0": "directTimestamp",
+    "1": "directHeartRate",
+    "2": "directLatitude",
+    "3": "directElevation",
+    "4": "directDoubleCadence",
+    "5": "sumElapsedDuration",
+    "6": "directUncorrectedElevation",
+    "7": "sumDistance",
+    "8": "directSpeed",
+    "9": "sumMovingDuration",
+    "10": "directFractionalCadence",
+    "11": "sumDuration",
+    "12": "directRunCadence",
+    "13": "directLongitude",
+    "14": "directCorrectedElevation",
+    "15": "directVerticalSpeed"
+  }
+}

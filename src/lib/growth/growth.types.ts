@@ -88,9 +88,9 @@ interface ActivePath {
 
 export interface VanguardIdentityData {
   long_term_mission: string | null;
-  pillars: any | null;
-  avoidance_triggers: any | null;
-  behavioral_baseline: any | null;
+  pillars: unknown | null;
+  avoidance_triggers: unknown | null;
+  behavioral_baseline: unknown | null;
   updated_at: string | null;
   user_id: string;
 
@@ -105,6 +105,6 @@ export interface VanguardIdentityData {
   active_path: ActivePath | null;
   library_items: LibraryItem[] | null;
   practice_evidences: PracticeEvidence[] | null;
-  development_review: any | null;
+  development_review: unknown | null;
 }
 

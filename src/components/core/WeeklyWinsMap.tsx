@@ -36,7 +36,7 @@ export default function WeeklyWinsMap() {
         {(data ?? Array.from({ length: 7 }, (_, i) => ({
           date: `p-${i}`,
           label: '·',
-          result: null as const,
+          result: null,
           doneCount: 0,
           plannedCount: 0,
           status: 'open' as const,

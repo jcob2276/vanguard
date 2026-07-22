@@ -163,6 +163,30 @@ export type StreamCutoffs = {
   cut21d: string;
 };
 
+/** Minutes since midnight on the Warsaw wall clock. */
+export function getWarsawClockMinutes(now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: WARSAW_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? 0);
+  return hour * 60 + minute;
+}
+
+/** Parse Postgres `time` or HTML `<input type="time">` → minutes since midnight. */
+export function parseReminderClockMinutes(raw: string | null | undefined): number | null {
+  if (!raw) return null;
+  const match = raw.match(/(?:^|T)(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (Number.isNaN(hour) || Number.isNaN(minute) || hour > 23 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
 export function getStreamCutoffs(baseDate: Date = new Date()): StreamCutoffs {
   const cut24hMs = baseDate.getTime() - 24 * 60 * 60 * 1000;
   const cut72hMs = baseDate.getTime() - 72 * 60 * 60 * 1000;

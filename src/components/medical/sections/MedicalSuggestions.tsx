@@ -77,7 +77,7 @@ export default function MedicalSuggestions({ suggestions, loading }: MedicalSugg
               {/* Physician questions field if discuss category */}
               {title === 'Do omówienia ze specjalistą' && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Notatka do omówienia / Pytanie</label>
+                  <label className="text-2xs font-black uppercase text-text-muted">Notatka do omówienia / Pytanie</label>
                   <input
                     type="text"
                     placeholder="Wpisz o co zapytać lekarza..."

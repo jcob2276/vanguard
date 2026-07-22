@@ -11,6 +11,13 @@ import {
 import { getTodayWarsaw, shiftDateStr } from '../../../lib/date';
 import { confirmDialog, notify } from '../../../lib/notify';
 
+const MORNING_REMINDER_DEFAULT = '08:00';
+const EVENING_REMINDER_DEFAULT = '21:30';
+
+function isEveningSupplementName(name: string): boolean {
+  return /pyłek|pylek|pollen/i.test(name);
+}
+
 export function useSupplementsData(userId: string) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
@@ -21,8 +28,10 @@ export function useSupplementsData(userId: string) {
   const [hasCycle, setHasCycle] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [hasReminder, setHasReminder] = useState(false);
-  const [reminderTime, setReminderTime] = useState('08:00');
+  const defaultHasReminder = reverseLogic || isEveningSupplementName(name);
+  const defaultReminderTime = defaultHasReminder ? EVENING_REMINDER_DEFAULT : MORNING_REMINDER_DEFAULT;
+  const [hasReminder, setHasReminder] = useState(defaultHasReminder);
+  const [reminderTime, setReminderTime] = useState(defaultReminderTime);
   const [submitting, setSubmitting] = useState(false);
 
   const today = getTodayWarsaw();
@@ -96,7 +105,7 @@ export function useSupplementsData(userId: string) {
       });
       setName(''); setEmoji('💊'); setUnit('porcja'); setSkipQty(false); setReverseLogic(false);
       setHasCycle(false); setStartDate(''); setEndDate('');
-      setHasReminder(false); setReminderTime('08:00'); setShowAddForm(false);
+      setHasReminder(false); setReminderTime(MORNING_REMINDER_DEFAULT); setShowAddForm(false);
     } catch (err: unknown) {
       console.error('[supplements] Save failed:', err);
       notify('Wystąpił błąd podczas zapisywania suplementu.', 'error');
@@ -105,6 +114,23 @@ export function useSupplementsData(userId: string) {
 
   function isLogged(supplementId: string, date: string): boolean {
     return logs.some(l => l.supplement_id === supplementId && l.date === date);
+  }
+
+  async function handleUpdateReminder(sup: Supplement, nextReminderTime: string | null) {
+    try {
+      await saveMutation.mutateAsync({
+        userId,
+        supplement: {
+          ...sup,
+          reminder_time: nextReminderTime,
+          reminder_sent_date: null,
+        },
+      });
+      notify(nextReminderTime ? `Przypomnienie: ${nextReminderTime.slice(0, 5)}` : 'Przypomnienie wyłączone', 'success');
+    } catch (err: unknown) {
+      notify('Nie udało się zapisać godziny przypomnienia.', 'error');
+      console.warn('[SupplementsPanel] Failed to update reminder:', err);
+    }
   }
 
   const activeSups = supplements.filter(s => s.active);
@@ -117,6 +143,6 @@ export function useSupplementsData(userId: string) {
     hasCycle, setHasCycle, startDate, setStartDate, endDate, setEndDate,
     hasReminder, setHasReminder, reminderTime, setReminderTime,
     submitting, today, last7Days,
-    handleToggle, handleDeactivate, handleSubmit, isLogged,
+    handleToggle, handleDeactivate, handleSubmit, handleUpdateReminder, isLogged,
   };
 }

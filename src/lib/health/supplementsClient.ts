@@ -73,6 +73,9 @@ export async function saveSupplement(
         start_date: supplement.start_date || null,
         end_date: supplement.end_date || null,
         reminder_time: supplement.reminder_time || null,
+        ...(supplement.reminder_sent_date !== undefined
+          ? { reminder_sent_date: supplement.reminder_sent_date }
+          : {}),
         skip_qty: supplement.skip_qty,
       })
       .eq('id', supplement.id)
