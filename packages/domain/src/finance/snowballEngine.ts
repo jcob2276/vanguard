@@ -16,6 +16,7 @@ export interface DividendRecord {
   status: 'expected' | 'received';
   payoutRatioPct?: number;
   fcfCoverageRatio?: number;
+  isIkeAccount?: boolean; // 0% Belka Tax Shield
 }
 
 export interface HoldingTarget {
@@ -53,8 +54,10 @@ export interface TaxSettings {
 
 /**
  * Calculates net dividend after tax deductions (Belka 19% or W8-BEN 15%).
+ * If account is IKE (isIkeAccount = true), Polish Belka Tax is 0%!
  */
-export function calculateNetDividend(grossAmount: number, isUsStock: boolean, settings: TaxSettings): number {
+export function calculateNetDividend(grossAmount: number, isUsStock: boolean, settings: TaxSettings, isIkeAccount = false): number {
+  if (isIkeAccount) return grossAmount; // IKE Tax Shield = 0% Belka Tax
   if (!settings.applyBelkaTax) return grossAmount;
   const taxRate = isUsStock ? Math.max(0.19, settings.w8BenRatePct / 100) : 0.19;
   return Math.round(grossAmount * (1 - taxRate) * 100) / 100;
@@ -113,7 +116,7 @@ export function calculate12MonthDividendForecast(
   dividends.forEach((div) => {
     const monthKey = div.payDate.slice(0, 7);
     const isUs = div.ticker.includes('AAPL') || div.ticker.includes('MSFT') || div.ticker.includes('NVDA');
-    const netAmount = calculateNetDividend(div.totalAmount, isUs, taxSettings);
+    const netAmount = calculateNetDividend(div.totalAmount, isUs, taxSettings, Boolean(div.isIkeAccount));
 
     monthlyTotalsGross[monthKey] = (monthlyTotalsGross[monthKey] || 0) + div.totalAmount;
     monthlyTotalsNet[monthKey] = (monthlyTotalsNet[monthKey] || 0) + netAmount;

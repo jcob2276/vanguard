@@ -20,6 +20,8 @@ export const FINANCE_ACCOUNT_TYPES = [
   'stocks',
   'btc',
   'bonds',
+  'ike',
+  'ikze',
   'other',
 ] as const;
 
@@ -54,5 +56,7 @@ export const FINANCE_ACCOUNT_LABELS: Record<FinanceAccountType, string> = {
   stocks: 'Akcje',
   btc: 'Krypto',
   bonds: 'Obligacje',
+  ike: 'Konto IKE (0% Belka)',
+  ikze: 'Konto IKZE (Tax Relief)',
   other: 'Inne',
 };

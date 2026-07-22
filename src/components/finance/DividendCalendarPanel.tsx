@@ -10,7 +10,7 @@ export default function DividendCalendarPanel() {
     {
       id: '1',
       ticker: 'VWCE.DE',
-      companyName: 'Vanguard FTSE All-World ETF',
+      companyName: 'Vanguard FTSE All-World ETF (IKE)',
       amountPerShare: 2.15,
       sharesCount: 120,
       totalAmount: 258,
@@ -19,6 +19,7 @@ export default function DividendCalendarPanel() {
       payDate: '2026-06-26',
       status: 'expected',
       payoutRatioPct: 40,
+      isIkeAccount: true,
     },
     {
       id: '2',
