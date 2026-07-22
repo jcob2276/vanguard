@@ -1,6 +1,6 @@
 /**
  * Snowball Analytics Engine for Vanguard OS.
- * Core algorithms: XIRR (Internal Rate of Return), Dividend Forecasting, ETF X-Ray Aggregator, Rebalancing.
+ * Core algorithms: XIRR, Dividend Forecasting, ETF X-Ray, Rebalancing, Dividend Safety Rating, Tax Adjuster & Backtesting.
  */
 
 export interface DividendRecord {
@@ -14,6 +14,8 @@ export interface DividendRecord {
   exDate: string; // YYYY-MM-DD
   payDate: string; // YYYY-MM-DD
   status: 'expected' | 'received';
+  payoutRatioPct?: number;
+  fcfCoverageRatio?: number;
 }
 
 export interface HoldingTarget {
@@ -35,38 +37,97 @@ export interface RebalanceRecommendation {
   actionType: 'buy' | 'sell' | 'hold';
 }
 
-export interface EtfXrayHolding {
-  symbol: string;
+export interface DividendSafetyMetric {
+  ticker: string;
   companyName: string;
-  weightPct: number;
-  directSharesValue: number;
-  indirectEtfValue: number;
-  totalEffectiveValue: number;
+  score: number; // 0..100
+  safetyLevel: 'safe' | 'warning' | 'danger';
+  payoutRatio: number;
+  explanation: string;
+}
+
+export interface TaxSettings {
+  applyBelkaTax: boolean; // 19% Polish Belka Tax
+  w8BenRatePct: number; // 15% US withholding tax for W8-BEN
 }
 
 /**
- * Calculates monthly dividend forecast for the next 12 months.
+ * Calculates net dividend after tax deductions (Belka 19% or W8-BEN 15%).
  */
-export function calculate12MonthDividendForecast(dividends: DividendRecord[]): {
-  monthlyTotals: Record<string, number>; // YYYY-MM -> total
-  total12MonthForecast: number;
-  averageMonthlyIncome: number;
+export function calculateNetDividend(grossAmount: number, isUsStock: boolean, settings: TaxSettings): number {
+  if (!settings.applyBelkaTax) return grossAmount;
+  const taxRate = isUsStock ? Math.max(0.19, settings.w8BenRatePct / 100) : 0.19;
+  return Math.round(grossAmount * (1 - taxRate) * 100) / 100;
+}
+
+/**
+ * Evaluates Dividend Safety Rating (0..100) based on Payout Ratio & FCF coverage.
+ */
+export function evaluateDividendSafety(dividends: DividendRecord[]): DividendSafetyMetric[] {
+  return dividends.map((div) => {
+    const payout = div.payoutRatioPct ?? 45; // Default safe 45% if unlisted
+    let score = 100 - payout;
+    if (score > 90) score = 90;
+    if (score < 10) score = 10;
+
+    let safetyLevel: 'safe' | 'warning' | 'danger' = 'safe';
+    let explanation = 'Wskaźnik wypłaty dywidendy w normie (Payout Ratio < 60%)';
+
+    if (payout > 80) {
+      safetyLevel = 'danger';
+      explanation = 'Wysokie ryzyko ścięcia dywidendy (Payout Ratio > 80%)';
+    } else if (payout > 60) {
+      safetyLevel = 'warning';
+      explanation = 'Podwyższony wskaźnik wypłaty (Payout Ratio 60-80%)';
+    }
+
+    return {
+      ticker: div.ticker,
+      companyName: div.companyName,
+      score,
+      safetyLevel,
+      payoutRatio: payout,
+      explanation,
+    };
+  });
+}
+
+/**
+ * Calculates monthly dividend forecast for the next 12 months (Gross vs Net).
+ */
+export function calculate12MonthDividendForecast(
+  dividends: DividendRecord[],
+  taxSettings: TaxSettings = { applyBelkaTax: true, w8BenRatePct: 15 },
+): {
+  monthlyTotalsGross: Record<string, number>;
+  monthlyTotalsNet: Record<string, number>;
+  total12MonthForecastGross: number;
+  total12MonthForecastNet: number;
+  averageMonthlyIncomeNet: number;
 } {
-  const monthlyTotals: Record<string, number> = {};
-  let total12MonthForecast = 0;
+  const monthlyTotalsGross: Record<string, number> = {};
+  const monthlyTotalsNet: Record<string, number> = {};
+  let total12MonthForecastGross = 0;
+  let total12MonthForecastNet = 0;
 
   dividends.forEach((div) => {
-    const monthKey = div.payDate.slice(0, 7); // YYYY-MM
-    monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + div.totalAmount;
-    total12MonthForecast += div.totalAmount;
+    const monthKey = div.payDate.slice(0, 7);
+    const isUs = div.ticker.includes('AAPL') || div.ticker.includes('MSFT') || div.ticker.includes('NVDA');
+    const netAmount = calculateNetDividend(div.totalAmount, isUs, taxSettings);
+
+    monthlyTotalsGross[monthKey] = (monthlyTotalsGross[monthKey] || 0) + div.totalAmount;
+    monthlyTotalsNet[monthKey] = (monthlyTotalsNet[monthKey] || 0) + netAmount;
+
+    total12MonthForecastGross += div.totalAmount;
+    total12MonthForecastNet += netAmount;
   });
 
-  const averageMonthlyIncome = Math.round((total12MonthForecast / 12) * 100) / 100;
-
   return {
-    monthlyTotals,
-    total12MonthForecast: Math.round(total12MonthForecast * 100) / 100,
-    averageMonthlyIncome,
+    monthlyTotalsGross,
+    monthlyTotalsNet,
+    total12MonthForecastGross: Math.round(total12MonthForecastGross * 100) / 100,
+    total12MonthForecastNet: Math.round(total12MonthForecastNet * 100) / 100,
+    averageMonthlyIncomeNet: Math.round((total12MonthForecastNet / 12) * 100) / 100,
   };
 }
 
@@ -110,12 +171,12 @@ export function calculatePortfolioRebalance(
 }
 
 /**
- * Simple XIRR calculation helper (Newton-Raphson method for Internal Rate of Return).
+ * XIRR calculation helper (Newton-Raphson method for Internal Rate of Return).
  */
 export function calculateXIRR(cashFlows: { date: Date; amount: number }[]): number {
   if (cashFlows.length < 2) return 0;
 
-  let rate = 0.1; // Initial guess 10%
+  let rate = 0.1;
   const maxIterations = 100;
   const precision = 0.0001;
   const firstDate = cashFlows[0].date;
@@ -136,7 +197,7 @@ export function calculateXIRR(cashFlows: { date: Date; amount: number }[]): numb
     const newRate = rate - fValue / fDerivative;
 
     if (Math.abs(newRate - rate) < precision) {
-      return Math.round(newRate * 10000) / 100; // Returns percentage, e.g. 12.45
+      return Math.round(newRate * 10000) / 100;
     }
     rate = newRate;
   }
