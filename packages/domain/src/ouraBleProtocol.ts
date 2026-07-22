@@ -1,12 +1,19 @@
 /**
  * Complete clean-room Oura Ring Gen 3 (Heritage/Horizon) BLE GATT Protocol & Driver Engine.
- * Fully adapted from reverse-engineered clean-room facts in noop specs (OURA_PROTOCOL.md / OuraDriver.swift).
+ * Fully adapted from reverse-engineered clean-room facts in noop specs (OURA_PROTOCOL.md / OuraDriver.swift / Decoders.swift).
  *
  * Provides:
  * 1. GATT & Opcode Constants
  * 2. Pure Wire Command Builders (Auth, Time Sync, Fetch, Live-HR)
  * 3. Outer/Inner Framing Parsers (TLV + Secure Session)
- * 4. Full Biometric Event Decoders (HRV, Sleep Phases, Temp, SpO2, Live HR)
+ * 4. Full Biometric Event Decoders:
+ *    - HRV RMSSD (0x5D) & Bit-packed Green IBI (0x80)
+ *    - Reverse-byte SpO2 IBI (0x6E)
+ *    - Per-sample & Stable BIG-endian SpO2 (0x6F / 0x7B)
+ *    - Sleep Phases (0x4E / 0x5A)
+ *    - Temp & Sleep Temp (0x46 / 0x69 / 0x75)
+ *    - Battery & Voltage (0x0D)
+ *    - Motion & Activity (0x47 / 0x6B)
  * 5. Full OuraDriver State Machine & UTC Anchor Calculator
  */
 
@@ -59,9 +66,11 @@ export enum OuraEventTag {
   WEAR_EVENT = 0x53,
   IBI_AMPLITUDE = 0x60,
   GREEN_IBI_QUALITY = 0x80,
+  SPO2_IBI_AMP = 0x6e,
   HRV_RMSSD = 0x5d,
   SPO2_PER_SAMPLE = 0x6f,
   SPO2_STABLE = 0x7b,
+  SPO2_DC = 0x77,
   TEMP = 0x46,
   TEMP_PERIOD = 0x69,
   SLEEP_TEMP = 0x75,
@@ -84,6 +93,18 @@ export interface OuraDecodedIbi {
   amplitude?: number;
 }
 
+export interface OuraDecodedHrvRmssd {
+  ringTimestamp: number;
+  timeMs: number;
+  rmssdValue: number;
+}
+
+export interface OuraDecodedSpO2 {
+  ringTimestamp: number;
+  valuePercent: number;
+  isStable?: boolean;
+}
+
 export interface OuraDecodedSleepPhase {
   ringTimestamp: number;
   phaseCode: number; // 0 = Awake, 1 = REM, 2 = Light, 3 = Deep
@@ -99,6 +120,12 @@ export interface OuraDecodedBattery {
   levelPercent: number;
   voltageMv: number;
   isCharging: boolean;
+}
+
+export interface OuraDecodedMotion {
+  ringTimestamp: number;
+  motionCount: number;
+  isMoving: boolean;
 }
 
 export interface OuraTlvRecord {
@@ -229,6 +256,7 @@ export function parseTlvRecords(bytes: Uint8Array): OuraTlvRecord[] {
   return records;
 }
 
+/** 0x80 Green IBI Quality (bit-packed) */
 export function decodeGreenIbiQuality(payload: Uint8Array, ringTimestamp: number): OuraDecodedIbi[] {
   if (payload.length < 2 || payload.length % 2 !== 0) return [];
   const out: OuraDecodedIbi[] = [];
@@ -249,6 +277,62 @@ export function decodeGreenIbiQuality(payload: Uint8Array, ringTimestamp: number
   return out;
 }
 
+/** 0x6E SpO2 IBI (REVERSE byte order footgun: reads indices 5..1 descending) */
+export function decodeSpO2Ibi(payload: Uint8Array, ringTimestamp: number): OuraDecodedIbi[] {
+  if (payload.length < 6) return [];
+  const out: OuraDecodedIbi[] = [];
+
+  for (let idx = 5; idx >= 1; idx--) {
+    const ibiMs = payload[idx] * 8; // 8-bit count x8 -> ms
+    if (ibiMs > 0) {
+      out.push({ ringTimestamp, ibiMs });
+    }
+  }
+
+  return out;
+}
+
+/** 0x5D HRV RMSSD Event Decoder */
+export function decodeHrvRmssd(payload: Uint8Array, ringTimestamp: number): OuraDecodedHrvRmssd[] {
+  if (payload.length < 4) return [];
+  const out: OuraDecodedHrvRmssd[] = [];
+
+  for (let i = 0; i + 4 <= payload.length; i += 4) {
+    const timeMs = payload[i] | (payload[i + 1] << 8);
+    const b1 = payload[i + 2];
+    const rmssdValue = b1 > 0 ? b1 : payload[i + 3];
+    out.push({ ringTimestamp, timeMs, rmssdValue });
+  }
+
+  return out;
+}
+
+/** 0x6F Per-sample SpO2 Decoder */
+export function decodeSpO2PerSample(payload: Uint8Array, ringTimestamp: number): OuraDecodedSpO2[] {
+  if (payload.length < 2) return [];
+  const out: OuraDecodedSpO2[] = [];
+
+  for (let i = 1; i < payload.length; i++) {
+    const val = payload[i];
+    if (val === 0xff) break; // terminator
+    if (val > 0 && val <= 100) {
+      out.push({ ringTimestamp, valuePercent: val, isStable: false });
+    }
+  }
+
+  return out;
+}
+
+/** 0x7B SpO2 Stable Decoder (BIG-Endian footgun) */
+export function decodeSpO2Stable(payload: Uint8Array, ringTimestamp: number): OuraDecodedSpO2 | null {
+  if (payload.length < 2) return null;
+  // BIG-endian u16
+  const valuePercent = (payload[0] << 8) | payload[1];
+  if (valuePercent <= 0 || valuePercent > 100) return null;
+  return { ringTimestamp, valuePercent, isStable: true };
+}
+
+/** 0x4E / 0x5A Sleep Phase Decoder */
 export function decodeSleepPhase(payload: Uint8Array, ringTimestamp: number): OuraDecodedSleepPhase[] {
   if (payload.length === 0) return [];
   const out: OuraDecodedSleepPhase[] = [];
@@ -270,6 +354,7 @@ export function decodeSleepPhase(payload: Uint8Array, ringTimestamp: number): Ou
   return out;
 }
 
+/** 0x28 Live-HR Push Notification Decoder */
 export function decodeLiveHRPush(body: Uint8Array, ringTimestamp: number): { bpm: number; ibiMs: number; ringTimestamp: number } | null {
   if (body.length < 7) return null;
   const ibiMs = ((body[6] & 0x0f) << 8) | body[5];
@@ -281,6 +366,7 @@ export function decodeLiveHRPush(body: Uint8Array, ringTimestamp: number): { bpm
   return { bpm, ibiMs, ringTimestamp };
 }
 
+/** 0x46 / 0x69 / 0x75 Temperature Decoder */
 export function decodeOuraTemp(payload: Uint8Array, ringTimestamp: number): OuraDecodedTemp | null {
   if (payload.length < 2) return null;
   const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
@@ -288,6 +374,17 @@ export function decodeOuraTemp(payload: Uint8Array, ringTimestamp: number): Oura
   return {
     ringTimestamp,
     tempDeltaCelsius: raw16 / 100.0,
+  };
+}
+
+/** 0x47 Motion & Activity Decoder */
+export function decodeOuraMotion(payload: Uint8Array, ringTimestamp: number): OuraDecodedMotion | null {
+  if (payload.length < 2) return null;
+  const motionCount = payload[0] | (payload[1] << 8);
+  return {
+    ringTimestamp,
+    motionCount,
+    isMoving: motionCount > 10,
   };
 }
 

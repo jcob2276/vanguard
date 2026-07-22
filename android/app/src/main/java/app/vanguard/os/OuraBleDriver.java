@@ -4,11 +4,14 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.util.Log;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
- * Foundation for Oura Ring Direct BLE GATT Connection.
- * Isolated from active production sync pipelines until user enables BLE mode.
+ * Complete Oura Ring Direct BLE GATT Connection & AES Cryptographic Proof Driver.
+ * Includes AES-128-ECB challenge-proof computation (OURA_PROTOCOL.md s3.4).
  */
 public class OuraBleDriver {
     private static final String TAG = "OuraBleDriver";
@@ -31,6 +34,30 @@ public class OuraBleDriver {
 
     public OuraBleDriver(ConnectionCallback callback) {
         this.callback = callback;
+    }
+
+    /**
+     * Compute AES-128-ECB Auth Proof from 15-byte nonce and 16-byte auth_key.
+     * Plaintext: nonce(15) || 0x01 || PKCS7 full-block pad (0x10 x16).
+     * Per OURA_PROTOCOL.md s3.4 / Auth.swift.
+     */
+    public static byte[] computeAuthProof(byte[] nonce15, byte[] authKey16) throws Exception {
+        if (nonce15 == null || nonce15.length != 15) throw new IllegalArgumentException("Nonce must be 15 bytes");
+        if (authKey16 == null || authKey16.length != 16) throw new IllegalArgumentException("Key must be 16 bytes");
+
+        byte[] plaintext = new byte[32];
+        System.arraycopy(nonce15, 0, plaintext, 0, 15);
+        plaintext[15] = 0x01;
+        for (int i = 16; i < 32; i++) {
+            plaintext[i] = 0x10; // PKCS7 pad byte
+        }
+
+        SecretKeySpec secretKey = new SecretKeySpec(authKey16, "AES");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] ciphertext = cipher.doFinal(plaintext);
+
+        return Arrays.copyOfRange(ciphertext, 0, 16);
     }
 
     public void onServicesDiscovered(BluetoothGatt gatt, int status) {
@@ -56,5 +83,17 @@ public class OuraBleDriver {
         if (bluetoothGatt == null) return false;
         Log.i(TAG, "Requesting Gen3 MTU clamp: " + MTU_GEN3);
         return bluetoothGatt.requestMtu(MTU_GEN3);
+    }
+
+    public boolean writeCommand(byte[] commandBytes) {
+        if (bluetoothGatt == null) return false;
+        BluetoothGattService service = bluetoothGatt.getService(SERVICE_UUID);
+        if (service == null) return false;
+        BluetoothGattCharacteristic writeChar = service.getCharacteristic(WRITE_CHAR_UUID);
+        if (writeChar == null) return false;
+
+        writeChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+        writeChar.setValue(commandBytes);
+        return bluetoothGatt.writeCharacteristic(writeChar);
     }
 }

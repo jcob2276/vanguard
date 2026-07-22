@@ -19,6 +19,7 @@
     "src/components/projects/ProjectCardWrapper.tsx",
     "src/components/projects/ProjectEvidenceStrip.tsx",
     "src/lib/projects/projectEvidence.ts",
+    "src/components/desktop/health/OuraBleSettingsPanel.tsx",
     "supabase/functions/_shared/database.types.ts",
     "supabase/functions/_shared/repos/**"
   ],
