@@ -84,6 +84,7 @@ export default function SidebarSection({
       <div className={`flex flex-col items-center gap-1.5 ${bordered ? 'border-t border-border-custom/30 pt-2' : ''} ${className}`}>
         {items.map((item) => {
           const titleText = typeof item.label === 'string' ? item.label : undefined;
+          const firstLetter = typeof item.label === 'string' ? item.label.charAt(0).toUpperCase() : null;
           return (
             <div key={item.id} className="relative flex items-center justify-center">
               <Pressable
@@ -96,10 +97,14 @@ export default function SidebarSection({
                     : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
                 }`}
               >
-                {item.colorDot ? (
+                {item.icon ? (
+                  item.icon
+                ) : item.colorDot ? (
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.colorDot }} />
+                ) : firstLetter ? (
+                  <span className="text-xs font-black opacity-80">{firstLetter}</span>
                 ) : (
-                  item.icon || <span className="h-2 w-2 rounded-full bg-text-muted" />
+                  <span className="h-2 w-2 rounded-full bg-text-muted/60" />
                 )}
                 {!!item.count && (
                   <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-extrabold text-white shadow-xs">
