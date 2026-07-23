@@ -141,7 +141,7 @@ export default function InlineEditor({
             <p className="whitespace-pre-wrap">{aiResult.text}</p>
           </div>
         )}
-        <div className="relative mt-2 min-h-[var(--ios-editor-min-height)] flex-1 select-text">
+        <div className={`relative mt-2 min-h-[var(--ios-editor-min-height)] select-text ${isMobile ? 'flex-none' : 'flex-1'}`}>
           <RichEditor value={content} onChange={setContent} placeholder="Zacznij pisać..."
             showStaticBar allNotes={allNotes} noteId={note.id} userId={userId || undefined}
             onNavigateToNote={id => { flushSave(); onNavigateToNote?.(id); }} />
