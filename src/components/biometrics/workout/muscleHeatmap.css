@@ -12,5 +12,5 @@
 }
 .muscle-map-model .rbh polygon:hover {
   opacity: var(--ds-local-css-0-88);
-  filter: brightness(1.08);
+  filter: var(--filter-hover-brightness);
 }

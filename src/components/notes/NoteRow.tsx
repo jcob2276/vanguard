@@ -4,7 +4,7 @@
  * @usedBy SplitNotesView
  */
 import { Pressable } from '../ui/ControlPrimitives';
-import { Pin } from 'lucide-react';
+import { LockKeyhole, Pin } from 'lucide-react';
 import { useRef } from 'react';
 import { Note, getColor, relativeDate, getPlainText } from './keepUtils';
 
@@ -19,7 +19,7 @@ export default function NoteRow({ note, isActive, onClick, onLongPress }: NoteRo
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
   const plainText = getPlainText(note.content);
-  const snippet = plainText ? plainText.slice(0, 110) : 'Brak dodatkowej treści';
+  const snippet = note.is_locked ? 'Wymaga hasła' : plainText ? plainText.slice(0, 110) : 'Brak dodatkowej treści';
   const dateStr = relativeDate(note.updated_at || note.created_at);
   const color = getColor(note.color);
   const cancelLongPress = () => {
@@ -57,7 +57,7 @@ export default function NoteRow({ note, isActive, onClick, onLongPress }: NoteRo
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="block flex-1 truncate text-sm font-semibold leading-tight tracking-[-0.01em] text-text-primary">
+        <span className="block flex-1 truncate text-sm font-semibold leading-tight tracking-[var(--tracking-note-title)] text-text-primary">
           {note.title.trim() || 'Bez tytułu'}
         </span>
         {note.is_pinned && (
@@ -65,9 +65,10 @@ export default function NoteRow({ note, isActive, onClick, onLongPress }: NoteRo
             <Pin size={12} fill="currentColor" />
           </span>
         )}
+        {note.is_locked && <LockKeyhole size={12} className="text-text-muted" />}
       </div>
 
-      <div className="flex items-center gap-1.5 truncate text-xs leading-[1.35] text-text-muted">
+      <div className="flex items-center gap-1.5 truncate text-xs leading-[var(--line-height-note)] text-text-muted">
         <span className="shrink-0 font-medium text-text-secondary">{dateStr}</span>
         <span aria-hidden="true">·</span>
         <span className="flex-1 truncate">{snippet}</span>

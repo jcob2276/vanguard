@@ -8,7 +8,8 @@
  * @consumer Inbox w aplikacji frontendowej (stream i linki)
  * @status active
  */
-import { transcribeBlob } from "../_shared/openai.ts";
+import { openaiChat, transcribeBlob } from "../_shared/openai.ts";
+import { encodeBase64 } from "https://deno.land/std@0.223.0/encoding/base64.ts";
 import { resolveUserScope } from "../_shared/supabase.ts";
 import { serveJson } from "../_shared/http.ts";
 import { fetchUrlMetadata, generateLinkAnalysis } from "../vanguard-telegram/_handlers/savedLinks.ts";
@@ -28,6 +29,7 @@ Deno.serve(serveJson(async (req, ctx) => {
     let isVaultLog = false;
     let category = "identity_vault";
     let text = "";
+    let action = "";
 
     if (contentType.includes("multipart/form-data")) {
       const { userId: scopeId } = await resolveUserScope(req, null);
@@ -37,6 +39,7 @@ Deno.serve(serveJson(async (req, ctx) => {
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
       if (!file) throw new Error("Missing audio file in form data");
+      action = String(formData.get("action") || "");
       
       const declaredSource = formData.get("source");
       if (declaredSource) source = String(declaredSource);
@@ -47,7 +50,30 @@ Deno.serve(serveJson(async (req, ctx) => {
       }
 
       if (!openAiKey) throw new Error("OPENAI_API_KEY is not configured");
+      if (action === "ocr_only") {
+        if (!file.type.startsWith("image/")) throw new Error("OCR requires an image file");
+        const imageBase64 = encodeBase64(new Uint8Array(await file.arrayBuffer()));
+        const result = await openaiChat({
+          apiKey: openAiKey,
+          model: "gpt-4o-mini",
+          maxTokens: 4000,
+          temperature: 0,
+          userId,
+          feature: "notes_ocr",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: "Przepisz cały widoczny tekst dokumentu. Zachowaj kolejność, akapity i język. Zwróć wyłącznie rozpoznany tekst." },
+              { type: "image_url", image_url: { url: `data:${file.type};base64,${imageBase64}` } },
+            ],
+          }],
+        });
+        return { ok: true, type: "ocr", text: result.content.trim() };
+      }
       content = await transcribeBlob(file, openAiKey, { filename: file.name || "audio.webm" });
+      if (action === "transcribe_only") {
+        return { ok: true, type: "transcription", transcript: content };
+      }
       metadata.from_voice = true;
       source = "voice";
 
@@ -57,7 +83,7 @@ Deno.serve(serveJson(async (req, ctx) => {
       userId = scopeId || body.userId;
       if (!userId) throw new Error("userId required");
 
-      const action = body.action;
+      action = String(body.action || "");
       source = String(body.source || "shortcut");
       
       isVaultLog = body.text !== undefined || action === "vault_log" || source === "identity_vault";

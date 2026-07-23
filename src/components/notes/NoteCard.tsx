@@ -1,11 +1,11 @@
 /**
  * @component NoteCard
  * @role Kafelek notatki w widoku grid.
- * @usedBy MasonryGrid, KeepNotesList
+ * @usedBy MasonryGrid
  */
 import { Pressable } from '../ui/ControlPrimitives';
 import { useRef } from 'react';
-import { Archive, ListTodo, Pin, Trash2 } from 'lucide-react';
+import { Archive, ListTodo, LockKeyhole, Pin, Trash2 } from 'lucide-react';
 import { getColor, relativeDate, sanitizeHtml, Note, highlightHtml } from './keepUtils';
 
 export default function NoteCard({
@@ -47,11 +47,11 @@ export default function NoteCard({
   return (
     <div
       ref={ref}
-      className={`keep-card ${isEditing ? 'editing' : ''} ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
+      className={`keep-card ${note.is_pinned ? 'pinned' : ''} ${isDragOver ? 'drag-over' : ''}`}
       style={{
         backgroundColor: c.bg,
         borderColor: isDragOver ? 'var(--color-theme-hex-6366f1)' : c.border,
-        opacity: isEditing ? 'var(--opacity-note-editing)' : 'var(--opacity-100)',
+        opacity: 'var(--opacity-100)',
       }}
       onClick={() => onOpen(note.id)}
       draggable={!isEditing}
@@ -64,6 +64,11 @@ export default function NoteCard({
       {note.is_pinned && (
         <div className="keep-pin-badge">
           <Pin size={9} fill="currentColor" />
+        </div>
+      )}
+      {note.is_locked && (
+        <div className="absolute right-3 top-3 text-text-muted" title="Zablokowana notatka">
+          <LockKeyhole size={13} />
         </div>
       )}
 

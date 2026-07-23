@@ -37,7 +37,3 @@ export async function insertDefaultSkillTree(supabase: SupabaseClient, userId: s
 }
 
 /** Dezaktywuje wszystkie skilli usera i wstawia świeże drzewo. */
-async function restoreDefaultSkillTree(supabase: SupabaseClient, userId: string) {
-  await supabase.from('learning_skills').update({ active: false }).eq('user_id', userId);
-  await insertDefaultSkillTree(supabase, userId);
-}

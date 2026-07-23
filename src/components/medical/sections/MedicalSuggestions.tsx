@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Card } from '../../ui/Card';
 import Button from '../../ui/Button';
-import { Calendar, Bell, Plus, CheckSquare, EyeOff, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Calendar, Bell, Plus, EyeOff } from 'lucide-react';
 import { notify } from '../../../lib/notify';
 import type { RetestSuggestion } from '../../../lib/health/medicalRetestSuggestions';
+import { ControlInput } from '../../ui/ControlPrimitives';
 
 interface MedicalSuggestionsProps {
   suggestions: RetestSuggestion[];
@@ -78,7 +79,7 @@ export default function MedicalSuggestions({ suggestions, loading }: MedicalSugg
               {title === 'Do omówienia ze specjalistą' && (
                 <div className="space-y-1.5">
                   <label className="text-2xs font-black uppercase text-text-muted">Notatka do omówienia / Pytanie</label>
-                  <input
+                  <ControlInput
                     type="text"
                     placeholder="Wpisz o co zapytać lekarza..."
                     defaultValue={doctorQuestions[item.id] || ''}
@@ -123,7 +124,7 @@ export default function MedicalSuggestions({ suggestions, loading }: MedicalSugg
         <p className="text-xs text-text-muted italic">Brak nowych rekomendacji. Panele są aktualne i kompletne.</p>
       ) : (
         <div className="space-y-6">
-          {renderCategoryList('Do omówienia ze specjalistą', categorized.toDiscuss, 'bg-red-500/10 text-red-500')}
+          {renderCategoryList('Do omówienia ze specjalistą', categorized.toDiscuss, 'bg-danger/10 text-danger')}
           {renderCategoryList('Warto potwierdzić', categorized.toVerify, 'bg-warning/10 text-warning')}
           {renderCategoryList('Warto odświeżyć', categorized.toRefresh, 'bg-primary/10 text-primary')}
           {renderCategoryList('Brakuje do pełnego obrazu', categorized.missing, 'bg-border-custom text-text-muted')}

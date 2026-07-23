@@ -32,7 +32,7 @@ export function FinanceTimelinePanel({
     <FinanceSection title="Trend majątku" subtitle="Raz na miesiąc wystarczy — patrzysz, czy idzie w górę.">
       <div className="flex items-center justify-between gap-3 px-4 pt-4">
         <span className="text-sm text-text-muted">Teraz: {formatPln(currentNetWorth)}</span>
-        <Button size="sm" loading={saving} onClick={onSaveSnapshot} className="rounded-xl active:scale-[0.98]">
+        <Button size="sm" loading={saving} onClick={onSaveSnapshot} className="rounded-xl active:scale-[var(--scale-pressed)]">
           Zapisz miesiąc
         </Button>
       </div>

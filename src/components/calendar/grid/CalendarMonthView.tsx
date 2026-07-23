@@ -1,7 +1,7 @@
 import { Pressable } from '../../ui/ControlPrimitives';
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { getMonthGridDays, eventColor, formatTime, addDays } from '../calendarHelpers';
+import { getMonthGridDays, eventColor, formatRangeLabel, formatTime } from '../calendarHelpers';
 import type { CalRow } from '../calendarHelpers';
 import type { CalendarTodo } from '../hooks/useCalendarTodos';
 import { getPolishHolidayForDate } from '../../../lib/holidays';
@@ -27,7 +27,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
   todosForDay,
   handleEventClick,
   setQuickCreate,
-  today,
+  today: _today,
 }) => {
   const currentMonthDate = useMemo(() => new Date(selectedDay), [selectedDay]);
   const gridDays = useMemo(() => getMonthGridDays(selectedDay), [selectedDay]);
@@ -49,7 +49,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
             <ChevronLeft size={18} className="text-text-muted" />
           </Pressable>
           <p className="text-sm font-black uppercase tracking-wider text-text-primary">
-            {new Date(selectedDay).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}
+            {formatRangeLabel('miesiac', selectedDay, selectedDay)}
           </p>
         </div>
         <Pressable onClick={() => changeMonth(1)} className="rounded-full p-2 hover:bg-surface-solid">
@@ -79,7 +79,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
               onClick={() => {
                 setSelectedDay(cell.dateStr);
               }}
-              className={`group relative flex flex-col p-1.5 transition-colors hover:bg-surface-solid/40 min-h-[90px] ${
+              className={`group relative flex flex-col p-1.5 transition-colors hover:bg-surface-solid/40 min-h-[var(--ds-h-90px)] ${
                 !cell.isCurrentMonth ? 'bg-surface-solid/10 text-text-muted/40' : ''
               } ${cell.isToday ? 'bg-primary/[0.04]' : ''}`}
             >
@@ -97,21 +97,21 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   {cell.dayNumber}
                 </span>
 
-                <button
+                <Pressable
                   onClick={(e) => {
                     e.stopPropagation();
                     setQuickCreate({ date: cell.dateStr, startMin: 540 });
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface-solid text-text-muted transition-opacity"
+                  className="opacity-[var(--opacity-0)] group-hover:opacity-[var(--opacity-100)] p-1 rounded hover:bg-surface-solid text-text-muted transition-opacity"
                   title="Dodaj wydarzenie"
                 >
                   <Plus size={12} />
-                </button>
+                </Pressable>
               </div>
 
               {holiday && (
                 <div
-                  className="truncate text-[9px] font-black text-warning bg-warning/10 px-1 py-0.5 rounded border border-warning/20 mb-0.5 shrink-0 select-none"
+                  className="truncate text-3xs font-black text-warning bg-warning/10 px-1 py-0.5 rounded border border-warning/20 mb-0.5 shrink-0 select-none"
                   title={holiday.name}
                 >
                   🇵🇱 {holiday.name}
@@ -127,7 +127,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                       e.stopPropagation();
                       handleEventClick(ev);
                     }}
-                    className={`truncate rounded px-1.5 py-0.5 text-3xs font-medium cursor-pointer transition-transform hover:scale-[1.02] ${eventColor(
+                    className={`truncate rounded px-1.5 py-0.5 text-3xs font-medium cursor-pointer transition-transform hover:scale-[var(--scale-hover)] ${eventColor(
                       ev
                     )}`}
                     title={`${ev.summary} (${ev.start_time ? formatTime(ev.start_time) : ''})`}
@@ -149,7 +149,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   ))}
 
                 {overflowCount > 0 && (
-                  <button
+                  <Pressable
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedDay(cell.dateStr);
@@ -158,7 +158,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                     className="w-full text-left text-3xs font-bold text-primary hover:underline pt-0.5"
                   >
                     +{overflowCount} więcej…
-                  </button>
+                  </Pressable>
                 )}
               </div>
             </div>

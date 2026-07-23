@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Card } from '../../ui/Card';
-import { Activity, Scale, Info, Calendar } from 'lucide-react';
+import { Scale, Info, Calendar } from 'lucide-react';
 import type { BodyCompositionRow } from '../../../lib/health/medicalAnalytics';
 
 interface MedicalBodyCompositionProps {
@@ -74,7 +73,7 @@ export default function MedicalBodyComposition({ rows }: MedicalBodyCompositionP
               </div>
             </div>
           </div>
-          <p className="text-[10px] text-text-muted italic border-t border-border-custom/40 pt-2">
+          <p className="text-2xs text-text-muted italic border-t border-border-custom/40 pt-2">
             Średnie: tłuszcz {avgFat.toFixed(1)}% · mięśnie {avgMuscle.toFixed(1)} kg
           </p>
         </Card>

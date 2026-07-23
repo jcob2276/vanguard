@@ -115,7 +115,6 @@ export const GETBASED_OPTIMAL: Record<string, OptimalRange> = {
 export function bridgeForMarkerKey(markerKey: string): MarkerBridgeEntry | null {
   return VANGUARD_MARKER_BRIDGE[markerKey] ?? null;
 }
-
 function optimalForMarkerKey(markerKey: string): OptimalRange | null {
   const bridge = bridgeForMarkerKey(markerKey);
   if (!bridge) return null;
@@ -139,16 +138,4 @@ export function optimalStatus(markerKey: string, value: number, unit: string | n
   if (opt.optimalMax != null && cv > opt.optimalMax) return 'above';
   if (opt.optimalMin != null || opt.optimalMax != null) return 'in';
   return 'unknown';
-}
-
-export function formatOptimalRange(markerKey: string): string | null {
-  const opt = optimalForMarkerKey(markerKey);
-  const bridge = bridgeForMarkerKey(markerKey);
-  if (!opt || !bridge) return null;
-  const { optimalMin, optimalMax } = opt;
-  const u = bridge.canonicalUnit;
-  if (optimalMin != null && optimalMax != null) return `${optimalMin}–${optimalMax} ${u}`;
-  if (optimalMin != null) return `≥ ${optimalMin} ${u}`;
-  if (optimalMax != null) return `≤ ${optimalMax} ${u}`;
-  return null;
 }

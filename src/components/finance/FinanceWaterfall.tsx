@@ -25,7 +25,7 @@ export function FinanceWaterfall({ lines, monthLabel }: FinanceWaterfallProps) {
             <span className={`text-sm ${line.kind === 'result' ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
               {line.label}
             </span>
-            <span className={`text-sm tabular-nums tracking-[-0.02em] ${amountClass(line.kind)}`}>
+            <span className={`text-sm tabular-nums tracking-[var(--tracking-tight)] ${amountClass(line.kind)}`}>
               {line.amount >= 0 ? '' : '−'}{formatPln(Math.abs(line.amount))}
             </span>
           </li>

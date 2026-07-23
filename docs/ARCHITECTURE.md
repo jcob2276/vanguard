@@ -206,7 +206,7 @@ New code should import these instead of duplicating `createClient` or stream que
 
 ## Edge functions registry
 
-**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/README.md`](../supabase/functions/README.md) — **31 functions** (verify count there before quoting it elsewhere; do not hardcode it in other docs, it goes stale).
+**Full list (status, JWT, tables, LOC, handler map):** [`supabase/functions/FUNCTIONS.md`](../supabase/functions/FUNCTIONS.md). The inventory is generated from code; do not hardcode its count in manual documentation.
 
 Do not add or deploy a function that is not listed there with status `active` or `manual`.
 

@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getTodayWarsaw } from '../date';
+import type { Database } from '../database.types';
 
 export type MedicalLabRow = {
   id: string;
@@ -51,23 +52,6 @@ export type MarkerSeries = {
   history: MedicalLabRow[];
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  hematology: 'Morfologia / hematologia',
-  lipids: 'Lipidogram',
-  metabolic: 'Metabolizm',
-  hormones: 'Hormony',
-  thyroid: 'Tarczyca',
-  iron_status: 'Żelazo / ferrytyna',
-  minerals: 'Minerały',
-  vitamins: 'Witaminy',
-  other: 'Inne',
-};
-
-export function categoryLabel(key: string | null | undefined): string {
-  if (!key) return CATEGORY_LABELS.other;
-  return CATEGORY_LABELS[key] ?? key.replace(/_/g, ' ');
-}
-
 export function diffDaysFromToday(dateStr: string): number | null {
   const today = getTodayWarsaw();
   const d = new Date(`${dateStr.slice(0, 10)}T12:00:00Z`).getTime();
@@ -107,19 +91,6 @@ export function formatMedicalDate(dateStr: string): string {
   }
 }
 
-export function formatRef(row: Pick<MedicalLabRow, 'ref_low' | 'ref_high' | 'ref_text'>): string {
-  if (row.ref_text) return row.ref_text;
-  if (row.ref_low != null && row.ref_high != null) return `${row.ref_low}–${row.ref_high}`;
-  if (row.ref_low != null) return `≥ ${row.ref_low}`;
-  if (row.ref_high != null) return `≤ ${row.ref_high}`;
-  return '—';
-}
-
-export function computeTrendPct(latest: number, prior: number): number | null {
-  if (prior === 0) return null;
-  return Math.round(((latest - prior) / prior) * 1000) / 10;
-}
-
 export function buildMarkerSeries(rows: MedicalLabRow[]): MarkerSeries[] {
   const byKey = new Map<string, MedicalLabRow[]>();
   for (const row of rows) {
@@ -153,17 +124,6 @@ export function buildMarkerSeries(rows: MedicalLabRow[]): MarkerSeries[] {
   });
 }
 
-function groupSeriesByCategory(series: MarkerSeries[]): Map<string, MarkerSeries[]> {
-  const map = new Map<string, MarkerSeries[]>();
-  for (const s of series) {
-    const cat = s.category ?? 'other';
-    const arr = map.get(cat);
-    if (arr) arr.push(s);
-    else map.set(cat, [s]);
-  }
-  return map;
-}
-
 export function groupRowsByDate(rows: MedicalLabRow[]): Map<string, MedicalLabRow[]> {
   const map = new Map<string, MedicalLabRow[]>();
   for (const row of rows) {
@@ -190,41 +150,7 @@ export const PRIORITY_CHART_MARKERS = [
   'triglycerides',
 ] as const;
 
-type TrendChartPoint = {
-  label: string;
-  value: number;
-  date: string;
-};
-
-function pickChartSeries(series: MarkerSeries[], limit = 8): MarkerSeries[] {
-  const withHistory = series.filter((s) => s.history.length >= 2);
-  const picked: MarkerSeries[] = [];
-  const seen = new Set<string>();
-
-  for (const key of PRIORITY_CHART_MARKERS) {
-    const match = withHistory.find((s) => s.marker_key === key);
-    if (match && !seen.has(match.marker_key)) {
-      picked.push(match);
-      seen.add(match.marker_key);
-    }
-  }
-
-  for (const s of withHistory) {
-    if (seen.has(s.marker_key)) continue;
-    picked.push(s);
-    seen.add(s.marker_key);
-    if (picked.length >= limit) break;
-  }
-
-  return picked.slice(0, limit);
-}
-
-function buildTrendChartPoints(s: MarkerSeries): TrendChartPoint[] {
-  return [...s.history]
-    .reverse()
-    .map((h) => ({
-      label: format(new Date(`${h.result_date.slice(0, 10)}T12:00:00Z`), 'd MMM yy', { locale: pl }),
-      value: h.value,
-      date: h.result_date,
-    }));
-}
+export type MedicalDocumentRow = Pick<
+  Database['public']['Tables']['medical_documents']['Row'],
+  'id' | 'document_date' | 'document_type' | 'source_name' | 'source_path' | 'provider' | 'clinical_validity' | 'summary' | 'notes' | 'created_at'
+>;

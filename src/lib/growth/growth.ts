@@ -59,9 +59,6 @@ export interface LearningWeekPin {
   done_at: string | null;
 }
 
-const MAX_MUST = 3;
-const MAX_ACTIVE = 2;
-
 export const RESOURCE_TYPE_META: Record<
   GrowthResourceType,
   { label: string; emoji: string }
@@ -74,25 +71,7 @@ export const RESOURCE_TYPE_META: Record<
   exercise: { label: 'Ćwiczenie', emoji: '🏋' },
 };
 
-const SCORE_LABELS = [
-  'Brak',
-  'Słyszałem',
-  'Podstawy',
-  'Robię sam',
-  'Pewnie',
-  'Uczę innych',
-] as const;
-
 /** Krótkie rubryki poziomów (devloop-style) — Twoja deklaracja, nie ocena systemu. */
-const SCORE_RUBRICS: Record<number, string> = {
-  0: 'Brak praktyki ani świadomego uczenia się w tym obszarze.',
-  1: 'Znasz pojęcia, czytasz/oglądasz, ale rzadko stosujesz.',
-  2: 'Pod podstawowym nadzorem — schematy, szablony, z cudzą pomocą.',
-  3: 'Robisz sam, regularnie, bez trzymania za rękę.',
-  4: 'Pewnie w typowych sytuacjach; wiesz kiedy eskalować.',
-  5: 'Uczysz innych lub jesteś punktem odniesienia w zespole.',
-};
-
 export function computeScoreDeltas(
   skills: LearningSkill[],
   scoresA: Record<string, number>,

@@ -72,7 +72,7 @@ export default function TodoQuickCapture({
   };
 
   const content = (
-    <div className="fixed bottom-0 left-0 right-0 top-0 z-overlay bg-scrim/35 backdrop-blur-md" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsExpanded(false); }}>
+    <div className="fixed bottom-0 left-0 right-0 top-0 z-overlay bg-scrim/35 backdrop-blur-[var(--blur-material)]" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsExpanded(false); }}>
       <section
         ref={quickCaptureRef}
         role="dialog"
@@ -158,7 +158,7 @@ export default function TodoQuickCapture({
           ) : null}
         </div>
 
-        <footer className="flex items-center gap-2 border-t border-border-custom/50 bg-surface-1/95 px-4 py-3 backdrop-blur-xl md:px-6">
+        <footer className="flex items-center gap-2 border-t border-border-custom/50 bg-surface-1/95 px-4 py-3 backdrop-blur-[var(--blur-heavy)] md:px-6">
           <Button variant="ghost" size="lg" onClick={cancel} className="shrink-0">Anuluj</Button>
           <Button size="lg" onClick={addItem} disabled={busy || !form.title.trim()} loading={busy} className="min-h-12 flex-1">Dodaj zadanie</Button>
         </footer>

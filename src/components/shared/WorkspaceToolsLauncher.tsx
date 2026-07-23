@@ -39,7 +39,7 @@ export default function WorkspaceToolsLauncher({ active, onNavigate, placement =
       title="Narzędzia"
     >
       <LayoutGrid size={15} />
-      {badgeCount > 0 && <span className="absolute -right-1 -top-1 h-4 min-w-4 rounded-full bg-warning px-1 text-3xs font-bold leading-4 text-white">{badgeCount}</span>}
+      {badgeCount > 0 && <span className="absolute -right-1 -top-1 h-4 min-w-4 rounded-full bg-warning px-1 text-3xs font-bold leading-4 text-on-accent">{badgeCount}</span>}
     </Pressable>
   ) : (
     <Pressable variant="ghost" onClick={() => setOpen(true)} className="workspace-tools-trigger min-h-12 w-auto flex-row gap-2 rounded-full px-5 text-sm font-semibold text-text-primary" icon={<LayoutGrid size={20} />}>

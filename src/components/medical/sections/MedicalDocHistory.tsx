@@ -1,8 +1,9 @@
-import { FileText, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import { Card } from '../../ui/Card';
+import type { MedicalDocumentRow } from '../../../lib/health/medicalAnalytics';
 
 interface MedicalDocHistoryProps {
-  documents: any[];
+  documents: MedicalDocumentRow[];
 }
 
 export default function MedicalDocHistory({ documents }: MedicalDocHistoryProps) {
@@ -29,7 +30,7 @@ export default function MedicalDocHistory({ documents }: MedicalDocHistoryProps)
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-text-primary">
                     <FileText size={14} className="text-text-muted shrink-0" />
-                    <span className="truncate max-w-[180px]" title={doc.source_name}>
+                    <span className="truncate max-w-[var(--ds-maxw-180px)]" title={doc.source_name}>
                       {doc.source_name}
                     </span>
                   </div>

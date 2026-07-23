@@ -68,6 +68,9 @@ export const desktopKeys = {
 export const notesKeys = {
   all: ['notes'] as const,
   list: (userId: string) => [...notesKeys.all, 'list', userId] as const,
+  trash: (userId: string) => [...notesKeys.all, 'trash', userId] as const,
+  attachments: (noteId: string) => [...notesKeys.all, 'attachments', noteId] as const,
+  folders: (userId: string) => [...notesKeys.all, 'folders', userId] as const,
 };
 
 // ── STATS OVERVIEW KEYS ──

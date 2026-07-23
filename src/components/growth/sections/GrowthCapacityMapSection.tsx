@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BookOpen, Key, Link as LinkIcon, Calendar } from 'lucide-react';
 import type { SkillInventoryRow } from '../../../lib/growth/growthOverview';
 import { Card } from '../../ui/Card';
+import { Pressable } from '../../ui/ControlPrimitives';
 
 const LEVEL_LABELS = [
   'odkrywam',
@@ -46,9 +47,9 @@ export default function GrowthCapacityMapSection({ skillInventory, onEdit }: Gro
           <span className="text-2xs font-black uppercase tracking-wider text-text-muted">Poziomy Kompetencji</span>
           <h3 className="text-lg font-black uppercase font-display mt-0.5">Mapa Zdolności</h3>
         </div>
-        <button onClick={onEdit} className="rounded-xl border border-border-custom px-3 py-1.5 text-xs font-black uppercase hover:bg-border-custom/40 transition-all cursor-pointer">
+        <Pressable onClick={onEdit} className="rounded-xl border border-border-custom px-3 py-1.5 text-xs font-black uppercase hover:bg-border-custom/40 transition-all cursor-pointer">
           Oceń Umiejętności
-        </button>
+        </Pressable>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
@@ -60,7 +61,7 @@ export default function GrowthCapacityMapSection({ skillInventory, onEdit }: Gro
             : 0;
 
           return (
-            <button
+            <Pressable
               key={area.name}
               onClick={() => setActiveArea(activeArea === area.name ? null : area.name)}
               className={`rounded-xl border p-3.5 text-left transition-all cursor-pointer flex flex-col justify-between h-28 ${
@@ -74,7 +75,7 @@ export default function GrowthCapacityMapSection({ skillInventory, onEdit }: Gro
                 <span className="text-2xs font-black text-primary uppercase bg-primary/10 rounded-full px-2 py-0.5">{count} skilli</span>
                 <p className="text-xs font-bold text-text-secondary mt-1">Średnia: {avgScore}/5</p>
               </div>
-            </button>
+            </Pressable>
           );
         })}
       </div>

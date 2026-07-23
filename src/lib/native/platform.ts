@@ -12,6 +12,10 @@ export function isAndroid(): boolean {
   return Capacitor.getPlatform() === 'android';
 }
 
+export function isIOS(): boolean {
+  return Capacitor.getPlatform() === 'ios';
+}
+
 /** True when running as installed PWA / browser — not Capacitor APK. */
 export function isWebRuntime(): boolean {
   return !isNativePlatform();

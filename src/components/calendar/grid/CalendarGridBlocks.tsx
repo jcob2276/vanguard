@@ -114,7 +114,7 @@ export const renderTodoBlock = ({
         setEditingTodo(todo);
         setEditingTodoTitle(todo.title);
       }}
-      className={`absolute rounded-lg border border-primary/40 bg-background/95 shadow-md hover:bg-surface-solid px-2 py-1 overflow-hidden transition-all duration-[var(--motion-fast)] z-[25] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
+      className={`absolute rounded-lg border border-primary/40 bg-background/95 shadow-md hover:bg-surface-solid px-2 py-1 overflow-hidden transition-all duration-[var(--motion-fast)] z-[var(--z-popover)] cursor-grab active:cursor-grabbing ${isCompleting ? 'opacity-[var(--opacity-50)]' : ''}`}
       style={{ top, height, left: 'var(--ds-inline-style-75)', width: 'var(--ds-inline-style-24)' }}
     >
       <div className="flex items-start gap-0.5">

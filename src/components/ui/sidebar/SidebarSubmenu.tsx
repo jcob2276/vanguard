@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSidebar } from './SidebarContext';
+import { useSidebar } from './sidebarContextState';
 
 export interface SidebarMenuSubProps extends React.HTMLAttributes<HTMLUListElement> {
   children?: React.ReactNode;

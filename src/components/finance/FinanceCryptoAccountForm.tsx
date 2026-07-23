@@ -32,13 +32,13 @@ export function FinanceCryptoAccountForm({ onAdd }: FinanceCryptoAccountFormProp
           name="name"
           placeholder="Nazwa (np. Ledger, giełda)"
           required
-          className="min-h-11 min-w-[8rem] flex-1 rounded-[var(--radius-md)] border border-border-custom bg-surface-1 px-3 py-2 text-sm"
+          className="min-h-11 min-w-[var(--finance-symbol-width)] flex-1 rounded-[var(--radius-md)] border border-border-custom bg-surface-1 px-3 py-2 text-sm"
         />
         <ControlSelect
           name="coin"
           defaultValue="bitcoin"
           required
-          className="min-h-11 min-w-[10rem] rounded-[var(--radius-md)] border border-border-custom bg-surface-1 px-3 py-2 text-sm"
+          className="min-h-11 min-w-[var(--finance-value-width)] rounded-[var(--radius-md)] border border-border-custom bg-surface-1 px-3 py-2 text-sm"
         >
           {COINGECKO_COINS.map((c) => (
             <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>

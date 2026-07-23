@@ -7,7 +7,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..", "..");
 
 const functionsDir = path.join(root, "supabase", "functions");
-const readmePath = path.join(functionsDir, "README.md");
 const deployNoJwtPath = path.join(root, "scripts", "ops", "deploy-no-jwt.ps1");
 const smokeManifestPath = path.join(root, "scripts", "ops", "smoke-manifest.mjs");
 

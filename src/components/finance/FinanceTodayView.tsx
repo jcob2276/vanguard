@@ -133,7 +133,7 @@ function PurchaseCheck({ freedomDaysForAmount }: { freedomDaysForAmount: (amount
             placeholder="np. 2400"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="min-h-12 w-full rounded-xl border-0 bg-surface-2/80 px-4 text-lg tracking-[-0.02em] ring-1 ring-border-custom/30 transition-shadow focus:ring-2 focus:ring-primary/40"
+            className="min-h-12 w-full rounded-xl border-0 bg-surface-2/80 px-4 text-lg tracking-[var(--tracking-tight)] ring-1 ring-border-custom/30 transition-shadow focus:ring-2 focus:ring-primary/40"
           />
         </label>
         {verdict && <FinanceProse className="mt-4">{verdict}</FinanceProse>}

@@ -1,8 +1,6 @@
 import { useCallback } from 'react';
-import { Note, createNoteApi, updateNoteApi, deleteNoteApi, sortNotes, isNetworkOrTableError } from '../../../lib/notesApi';
+import { Note, createNoteApi, updateNoteApi, moveNoteToTrashApi, restoreNoteApi, sortNotes } from '../../../lib/notesApi';
 import { notify, dismissToast } from '../../../lib/notify';
-import { isOfflineError, queueOfflineWrite } from '../../../lib/offlineQueue';
-import { STORAGE_KEYS } from '../../../lib/constants';
 import {
   registerReversibleAction,
   removeReversibleAction,
@@ -18,27 +16,11 @@ async function createNoteAction(
 ) {
   setBusy(true);
   setError(null);
-  const payload = { user_id: userId, ...partial };
   try {
     const data = await createNoteApi(userId, partial);
     setNotes((prev) => sortNotes([data, ...prev]));
   } catch (err) {
-    if (isNetworkOrTableError(err)) {
-      const id = crypto.randomUUID();
-      const local: Note = {
-        id, user_id: userId, title: partial.title || '', content: partial.content || '',
-        color: partial.color || 'default', is_pinned: partial.is_pinned || false,
-        is_archived: partial.is_archived || false, tags: partial.tags || [],
-        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-      };
-      if (isOfflineError(err)) await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, ...payload } }, 'Dodanie notatki');
-      setNotes((prev) => {
-        const updated = sortNotes([local, ...prev]);
-        localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-        return updated;
-      });
-      return;
-    }
+    setError('Nie utworzono notatki w chmurze. Sprawdź połączenie.');
     throw err;
   } finally { setBusy(false); }
 }
@@ -62,9 +44,8 @@ async function updateNoteAction(
       try {
         await updateNoteApi(id, { ...patch, updated_at: updatedAt });
       } catch (err) {
-        if (isOfflineError(err)) {
-          await queueOfflineWrite('table:update:vanguard_notes', { match: { id }, payload: { ...patch, updated_at: updatedAt } }, 'Archiwizacja notatki');
-        }
+        setNotes((prev) => sortNotes(prev.map((n) => (n.id === id ? original : n))));
+        setError(err instanceof Error ? err.message : 'Nie zapisano archiwizacji w chmurze.');
       }
     }, 5000);
     const actionId = registerReversibleAction({
@@ -104,20 +85,11 @@ async function updateNoteAction(
   try {
     await updateNoteApi(id, { ...patch, updated_at: updatedAt });
     setNotes((prev) => {
-      const updated = sortNotes(prev.map((n) => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
-      if (!navigator.onLine) localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-      return updated;
+      return sortNotes(prev.map((n) => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
     });
   } catch (err) {
-    if (isOfflineError(err)) {
-      await queueOfflineWrite('table:update:vanguard_notes', { match: { id }, payload: { ...patch, updated_at: updatedAt } }, 'Edycja notatki');
-    }
-    setNotes((prev) => {
-      const updated = sortNotes(prev.map((n) => (n.id === id ? { ...n, ...patch, updated_at: updatedAt } : n)));
-      localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-      return updated;
-    });
-    setError('Brak połączenia. Zaktualizowano lokalnie.');
+    setError('Nie zapisano w chmurze. Szkic pozostał na tym urządzeniu.');
+    throw err;
   }
 }
 
@@ -131,31 +103,29 @@ async function deleteNoteAction(
   if (!noteToDelete) return;
   setNotes((prev) => prev.filter((n) => n.id !== id));
   let cancelled = false;
+  let committed = false;
   let actionId = '';
   const timer = window.setTimeout(async () => {
     if (cancelled) return;
     removeReversibleAction(actionId);
     try {
-      await deleteNoteApi(id);
+      await moveNoteToTrashApi(id);
+      committed = true;
     } catch (err) {
-      if (isOfflineError(err)) await queueOfflineWrite('table:delete:vanguard_notes', { match: { id } }, 'Usunięcie notatki');
-      setError('Brak połączenia. Usunięto lokalnie.');
-      setNotes((prev) => {
-        const updated = prev.filter((n) => n.id !== id);
-        localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-        return updated;
-      });
+      setNotes((prev) => sortNotes([...prev.filter(note => note.id !== id), noteToDelete]));
+      setError(err instanceof Error ? err.message : 'Nie przeniesiono notatki do Kosza.');
     }
   }, 5000);
   actionId = registerReversibleAction({
-    label: 'Usunięcie notatki',
-    undo: () => {
+    label: 'Przeniesienie notatki do kosza',
+    undo: async () => {
       cancelled = true;
       clearTimeout(timer);
       setNotes((prev) => sortNotes([...prev, noteToDelete]));
+      if (committed) await restoreNoteApi(id);
     },
   });
-  const toastId = notify('Notatka usunięta', 'info', {
+  const toastId = notify('Przeniesiono do kosza', 'info', {
     duration: 5000,
     action: {
       label: 'Cofnij',
@@ -178,20 +148,10 @@ async function togglePinAction(
   try {
     await updateNoteApi(note.id, { is_pinned: next });
     setNotes((prev) => {
-      const updated = sortNotes(prev.map((n) => (n.id === note.id ? { ...n, is_pinned: next } : n)));
-      if (!navigator.onLine) localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-      return updated;
+      return sortNotes(prev.map((n) => (n.id === note.id ? { ...n, is_pinned: next } : n)));
     });
   } catch (err) {
-    if (isOfflineError(err)) {
-      await queueOfflineWrite('table:update:vanguard_notes', { match: { id: note.id }, payload: { is_pinned: next } }, 'Przypięcie notatki');
-    }
-    setNotes((prev) => {
-      const updated = sortNotes(prev.map((n) => (n.id === note.id ? { ...n, is_pinned: next } : n)));
-      localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-      return updated;
-    });
-    setError('Brak połączenia. Zmieniono przypięcie lokalnie.');
+    setError(err instanceof Error ? err.message : 'Nie zapisano przypięcia w chmurze.');
   }
 }
 
@@ -209,16 +169,8 @@ async function newNoteAction(
     setNotes((prev) => sortNotes([data, ...prev]));
     return data.id;
   } catch (err) {
-    const id = crypto.randomUUID();
-    if (isOfflineError(err)) await queueOfflineWrite('table:insert:vanguard_notes', { payload: { id, user_id: userId, ...empty } }, 'Dodanie notatki');
-    const local: Note = { id, user_id: userId, ...empty, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    setNotes((prev) => {
-      const updated = sortNotes([local, ...prev]);
-      localStorage.setItem(STORAGE_KEYS.KEEP_NOTES_LOCAL, JSON.stringify(updated));
-      return updated;
-    });
-    setError('Brak połączenia. Utworzono notatkę lokalnie.');
-    return local.id;
+    setError('Nie utworzono notatki w chmurze. Sprawdź połączenie.');
+    throw err;
   } finally { setBusy(false); }
 }
 

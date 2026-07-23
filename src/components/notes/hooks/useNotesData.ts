@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNotes, Note, updateNoteApi, createNoteApi, sortNotes } from '../../../lib/notesApi';
+import {
+  useNotes, useTrashedNotes, Note, updateNoteApi,
+  restoreNoteApi, deleteNoteApi, moveNoteToTrashApi, sortNotes,
+} from '../../../lib/notesApi';
 import { notesKeys } from '../../../lib/queryKeys';
 import { notify } from '../../../lib/notify';
 import { STORAGE_KEYS } from '../../../lib/constants';
 import { useNotesMutations } from './useNotesMutations';
+import { deleteAllNoteAttachmentFiles } from '../../../lib/noteAttachmentsApi';
+import { createNoteFolder, deleteNoteFolder, useNoteFolders } from '../../../lib/noteFoldersApi';
+import { decryptNotePayload, encryptNotePayload } from '../../../lib/noteLockCrypto';
+import { getNoteLockBlockReason } from '../../../lib/noteLockRules';
 
 function readLocalFallback(): Note[] {
   try {
@@ -26,12 +33,24 @@ export function useNotesData(userId: string) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [unlockedPayloads, setUnlockedPayloads] = useState(
+    new Map<string, { title: string; content: string; tags: string[] }>(),
+  );
+  const unlockSecretsRef = useRef(new Map<string, string>());
+  const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: serverNotes, isLoading: loading, isError, refetch: fetchNotes } = useNotes(userId);
-  const notes = useMemo(
+  const { data: trashedNotes = [], isLoading: trashLoading } = useTrashedNotes(userId);
+  const { data: folders = [], isLoading: foldersLoading } = useNoteFolders(userId);
+  const storedNotes = useMemo(
     () => (isError ? readLocalFallback() : (serverNotes ?? [])),
     [isError, serverNotes],
   );
+  const notes = useMemo(() => storedNotes.map(note => {
+    const payload = unlockedPayloads.get(note.id);
+    return payload ? { ...note, ...payload } : note;
+  }), [storedNotes, unlockedPayloads]);
+  const unlockedNoteIds = useMemo(() => new Set(unlockedPayloads.keys()), [unlockedPayloads]);
 
   // Mirror every successful cache state to localStorage — the fallback an offline session reads.
   useEffect(() => {
@@ -53,7 +72,7 @@ export function useNotesData(userId: string) {
 
   const {
     handleCreate,
-    handleUpdate,
+    handleUpdate: handlePlainUpdate,
     handleDelete,
     handleTogglePin,
     handleNewNote,
@@ -64,6 +83,60 @@ export function useNotesData(userId: string) {
     setBusy,
     setError,
   });
+
+  const lockNow = useCallback(() => {
+    unlockSecretsRef.current.clear();
+    setUnlockedPayloads(new Map());
+    if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    lockTimerRef.current = null;
+  }, []);
+
+  const refreshLockTimer = useCallback(() => {
+    if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    lockTimerRef.current = setTimeout(lockNow, 5 * 60 * 1000);
+  }, [lockNow]);
+
+  useEffect(() => () => {
+    if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    unlockSecretsRef.current.clear();
+  }, []);
+
+  const handleUpdate = useCallback(async (id: string, patch: Partial<Note>) => {
+    const stored = storedNotes.find(note => note.id === id);
+    const secret = unlockSecretsRef.current.get(id);
+    if (!stored?.is_locked || !secret) {
+      await handlePlainUpdate(id, patch);
+      return;
+    }
+
+    const current = unlockedPayloads.get(id);
+    if (!current) throw new Error('Sesja zablokowanej notatki wygasła.');
+    const payload = {
+      title: patch.title ?? current.title,
+      content: patch.content ?? current.content,
+      tags: patch.tags ?? current.tags,
+    };
+    const encrypted = await encryptNotePayload(payload, secret);
+    await updateNoteApi(id, {
+      title: payload.title,
+      content: '',
+      tags: [],
+      is_locked: true,
+      ...encrypted,
+      ...(patch.color !== undefined ? { color: patch.color } : {}),
+      ...(patch.folder_id !== undefined ? { folder_id: patch.folder_id } : {}),
+    });
+    setUnlockedPayloads(previous => new Map(previous).set(id, payload));
+    setNotes(previous => previous.map(note => note.id === id ? {
+      ...note,
+      title: payload.title,
+      content: '',
+      tags: [],
+      is_locked: true,
+      ...encrypted,
+    } : note));
+    refreshLockTimer();
+  }, [handlePlainUpdate, refreshLockTimer, setNotes, storedNotes, unlockedPayloads]);
 
   const handleDeleteTag = useCallback(async (tagToDelete: string) => {
     setBusy(true);
@@ -94,33 +167,6 @@ export function useNotesData(userId: string) {
     }
   }, [notes, setNotes]);
 
-  const handleCreateTag = useCallback(async (newTag: string) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const payload = {
-        title: `Tag: ${newTag}`,
-        content: `Pusta notatka utworzona automatycznie dla tagu #${newTag}.`,
-        tags: [newTag],
-        color: 'default',
-        is_pinned: false,
-        is_archived: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const data = await createNoteApi(userId, payload);
-      setNotes((prev) => sortNotes([data, ...prev]));
-      notify(`Utworzono tag: "${newTag}"!`, 'info');
-    } catch (err: unknown) {
-      console.error('Error creating tag:', err);
-      const errMsg = err instanceof Error ? err.message : String(err);
-      setError(errMsg || 'Nie udało się utworzyć tagu.');
-    } finally {
-      setBusy(false);
-    }
-  }, [userId, setNotes]);
-
   const handleReorder = useCallback((dragId: string, overId: string) => {
     setNotes((prev) => {
       const arr = [...prev];
@@ -134,10 +180,87 @@ export function useNotesData(userId: string) {
     });
   }, [setNotes]);
 
+  const handleRestore = useCallback(async (id: string) => {
+    await restoreNoteApi(id);
+    await queryClient.invalidateQueries({ queryKey: notesKeys.all });
+    notify('Notatka przywrócona', 'success');
+  }, [queryClient]);
+
+  const handlePermanentDelete = useCallback(async (id: string) => {
+    await deleteAllNoteAttachmentFiles(id);
+    await deleteNoteApi(id);
+    queryClient.setQueryData<Note[]>(
+      notesKeys.trash(userId),
+      previous => (previous ?? []).filter(note => note.id !== id),
+    );
+    notify('Notatka usunięta trwale', 'info');
+  }, [queryClient, userId]);
+
+  const handleDiscardEmpty = useCallback(async (id: string) => {
+    await moveNoteToTrashApi(id);
+    setNotes(previous => previous.filter(note => note.id !== id));
+    await queryClient.invalidateQueries({ queryKey: notesKeys.trash(userId) });
+  }, [queryClient, setNotes, userId]);
+
+  const handleCreateFolder = useCallback(async (name: string) => {
+    await createNoteFolder(userId, name);
+    await queryClient.invalidateQueries({ queryKey: notesKeys.folders(userId) });
+  }, [queryClient, userId]);
+
+  const handleDeleteFolder = useCallback(async (id: string) => {
+    await deleteNoteFolder(id);
+    await queryClient.invalidateQueries({ queryKey: notesKeys.all });
+    notify('Folder usunięty; notatki pozostały w Wszystkich', 'info');
+  }, [queryClient]);
+
+  const handleLockNote = useCallback(async (note: Note, passphrase: string) => {
+    const blockReason = getNoteLockBlockReason(note);
+    if (blockReason) throw new Error(blockReason);
+    const encrypted = await encryptNotePayload({
+      title: note.title,
+      content: note.content,
+      tags: note.tags,
+    }, passphrase);
+    const patch: Partial<Note> = {
+      title: note.title,
+      content: '',
+      tags: [],
+      attachment_names: [],
+      is_locked: true,
+      ...encrypted,
+    };
+    await updateNoteApi(note.id, patch);
+    setNotes(previous => previous.map(item => item.id === note.id ? { ...item, ...patch } : item));
+    unlockSecretsRef.current.delete(note.id);
+    setUnlockedPayloads(previous => {
+      const next = new Map(previous);
+      next.delete(note.id);
+      return next;
+    });
+  }, [setNotes]);
+
+  const handleUnlockNote = useCallback(async (note: Note, passphrase: string): Promise<void> => {
+    if (!note.locked_payload || !note.lock_salt || !note.lock_iv) {
+      throw new Error('Brak danych potrzebnych do odblokowania notatki.');
+    }
+    const payload = await decryptNotePayload({
+      locked_payload: note.locked_payload,
+      lock_salt: note.lock_salt,
+      lock_iv: note.lock_iv,
+    }, passphrase);
+    unlockSecretsRef.current.set(note.id, passphrase);
+    setUnlockedPayloads(previous => new Map(previous).set(note.id, payload));
+    refreshLockTimer();
+  }, [refreshLockTimer]);
+
   return {
     notes,
+    trashedNotes,
+    folders,
     setNotes,
     loading,
+    trashLoading,
+    foldersLoading,
     error,
     setError,
     busy,
@@ -149,7 +272,15 @@ export function useNotesData(userId: string) {
     handleTogglePin,
     handleNewNote,
     handleDeleteTag,
-    handleCreateTag,
     handleReorder,
+    handleRestore,
+    handlePermanentDelete,
+    handleDiscardEmpty,
+    handleCreateFolder,
+    handleDeleteFolder,
+    handleLockNote,
+    handleUnlockNote,
+    lockNow,
+    unlockedNoteIds,
   };
 }

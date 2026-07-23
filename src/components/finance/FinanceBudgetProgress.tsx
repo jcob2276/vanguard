@@ -18,13 +18,13 @@ export function FinanceBudgetProgress({ progress, monthLabel }: FinanceBudgetPro
         <div className="flex items-baseline justify-between gap-3">
           <div>
             <p className="text-sm text-text-muted">Wydane</p>
-            <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-text-primary">
+            <p className="text-lg font-semibold tabular-nums tracking-[var(--tracking-tight)] text-text-primary">
               {formatPln(progress.spent)}
             </p>
           </div>
           <div className="text-right">
             <p className="text-sm text-text-muted">Plan miesiąca</p>
-            <p className="text-lg font-semibold tabular-nums tracking-[-0.02em] text-text-secondary">
+            <p className="text-lg font-semibold tabular-nums tracking-[var(--tracking-tight)] text-text-secondary">
               {formatPln(progress.plan)}
             </p>
           </div>
@@ -32,7 +32,7 @@ export function FinanceBudgetProgress({ progress, monthLabel }: FinanceBudgetPro
 
         <div className="h-2 overflow-hidden rounded-full bg-surface-2">
           <div
-            className={`h-full rounded-full transition-[width] duration-300 ease-out ${progress.overBudget ? 'bg-warning' : 'bg-primary'}`}
+            className={`h-full rounded-full transition-[width] duration-[var(--motion-slow)] ease-[var(--ease-out)] ${progress.overBudget ? 'bg-warning' : 'bg-primary'}`}
             style={{ width: `${barPct}%` }}
           />
         </div>

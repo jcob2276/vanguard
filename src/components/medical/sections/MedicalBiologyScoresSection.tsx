@@ -4,10 +4,6 @@ import { Card } from '../../ui/Card';
 import { StatHero } from '../../ui/StatHero';
 import { HelpCircle, AlertCircle } from 'lucide-react';
 
-interface MedicalBiologyScoresSectionProps {
-  scores: BiologyScoreResult[];
-}
-
 function ScoreCard({ score }: { score: BiologyScoreResult }) {
   const isCoveragePoor = score.coverage < 0.4;
   const noData = (score.score == null && score.toneLabel === 'Brak danych') || isCoveragePoor;
@@ -56,7 +52,7 @@ function ScoreCard({ score }: { score: BiologyScoreResult }) {
           </p>
           {score.missing.length > 0 && (
             <p className="text-text-secondary">
-              <span className="text-text-muted uppercase font-black text-[9px]">Brakuje:</span> {score.missing.slice(0, 3).join(', ')}
+              <span className="text-text-muted uppercase font-black text-3xs">Brakuje:</span> {score.missing.slice(0, 3).join(', ')}
               {score.missing.length > 3 ? '…' : ''}
             </p>
           )}

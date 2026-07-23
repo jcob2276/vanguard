@@ -1,6 +1,4 @@
-import Button from '../../ui/Button';
 import React, { useMemo } from 'react';
-import { ChevronLeft } from 'lucide-react';
 import { useCalendar } from '../context/CalendarContext';
 import MiniCalendar from '../MiniCalendar';
 import SolarDayWidget from '../SolarDayWidget';
@@ -18,7 +16,7 @@ interface CalendarSidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export default function CalendarSidebar({ onBack, onNavigateTo, collapsed, onToggleCollapse }: CalendarSidebarProps) {
+export default function CalendarSidebar({ onBack: _onBack, onNavigateTo, collapsed, onToggleCollapse }: CalendarSidebarProps) {
   const {
     calData: {
       selectedDay,

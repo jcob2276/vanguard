@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import { parseBankCsv, BANK_LABELS, type ParsedTransaction } from '../../lib/finance/csvImport';
 import { FinanceSection } from './financeUi';
 import { FinanceCsvPreview, type KindFilter } from './FinanceCsvPreview';
+import { ControlInput } from '../ui/ControlPrimitives';
 
 interface FinanceCsvImportPanelProps {
   onImport: (rows: ParsedTransaction[]) => Promise<{ inserted: number; skipped: number }>;
@@ -71,7 +72,7 @@ export function FinanceCsvImportPanel({ onImport, importing }: FinanceCsvImportP
           <CheckCircle2 size={36} className="text-success" />
           <p className="text-lg font-semibold text-text-primary">Gotowe — wgrano {result.inserted} transakcji</p>
           {result.skipped > 0 && <p className="text-sm text-text-muted">{result.skipped} pominięto (już istniały)</p>}
-          <Button onClick={reset} variant="secondary" className="mt-2 rounded-xl active:scale-[0.98]">Importuj kolejny plik</Button>
+          <Button onClick={reset} variant="secondary" className="mt-2 rounded-xl active:scale-[var(--scale-pressed)]">Importuj kolejny plik</Button>
         </div>
       </FinanceSection>
     );
@@ -115,7 +116,7 @@ export function FinanceCsvImportPanel({ onImport, importing }: FinanceCsvImportP
           <p className="font-medium text-text-primary">Przeciągnij plik lub kliknij</p>
           <p className="mt-1 text-sm text-text-muted">CSV lub TXT z historią transakcji</p>
         </div>
-        <input ref={inputRef} type="file" accept=".csv,.txt" className="sr-only"
+        <ControlInput ref={inputRef} type="file" accept=".csv,.txt" className="sr-only"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
       </div>
       {fileError && (

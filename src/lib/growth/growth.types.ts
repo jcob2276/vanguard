@@ -57,6 +57,17 @@ export interface PracticeEvidence {
   details: string;
 }
 
+export interface DevelopmentReview {
+  learned: string;
+  applied: string;
+  results: string;
+  consumedOnly: string;
+  abandoned: string;
+  newGap: string;
+  nextPractice: string;
+  updatedAt?: string;
+}
+
 interface ActivePath {
   mainSkillId?: string;
   mainSkillWhy?: string;
@@ -105,6 +116,6 @@ export interface VanguardIdentityData {
   active_path: ActivePath | null;
   library_items: LibraryItem[] | null;
   practice_evidences: PracticeEvidence[] | null;
-  development_review: unknown | null;
+  development_review: DevelopmentReview | null;
 }
 

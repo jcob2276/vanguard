@@ -661,7 +661,72 @@
   --opacity-90: 0.9;
   --opacity-100: 1;
   --opacity-disabled: 0.48;
+  --opacity-dimmed: 0.4;
   --opacity-muted: 0.68;
+  --blur-material: 12px;
+  --blur-subtle: 4px;
+  --blur-heavy: 24px;
+  --material-light-65: rgb(255 255 255 / 65%);
+  --material-dark-75: rgb(28 28 30 / 75%);
+  --hairline-dark-6: rgb(0 0 0 / 6%);
+  --hairline-dark-8: rgb(0 0 0 / 8%);
+  --hairline-light-8: rgb(255 255 255 / 8%);
+  --hairline-light-12: rgb(255 255 255 / 12%);
+  --hover-dark: rgb(0 0 0 / 4%);
+  --hover-light: rgb(255 255 255 / 6%);
+  --pressed-dark: rgb(0 0 0 / 8%);
+  --pressed-light: rgb(255 255 255 / 10%);
+  --scrim-soft: rgb(0 0 0 / 22%);
+  --shadow-soft: rgb(0 0 0 / 5%);
+  --shadow-medium: rgb(0 0 0 / 12%);
+  --shadow-strong: rgb(0 0 0 / 20%);
+  --shadow-deep: rgb(0 0 0 / 24%);
+  --shadow-dark-material: rgb(0 0 0 / 30%);
+  --shadow-warm: rgb(38 32 27 / 14%);
+  --shadow-warm-soft: rgb(38 32 27 / 8%);
+  --value-zero: 0;
+  --calendar-mobile-sync-size: 42px;
+  --calendar-mobile-header-height: 62px;
+  --calendar-mobile-header-padding: 9px 14px;
+  --calendar-mobile-canvas-width: 884px;
+  --calendar-mobile-column-width: 120px;
+  --filter-hover-brightness: brightness(1.08);
+  --notes-control-transition: background-color 0.2s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  --notes-button-radius: 19px;
+  --notes-button-transition: background-color 0.16s cubic-bezier(0.23, 1, 0.32, 1), transform 0.1s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.16s ease;
+  --notes-active-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
+  --notes-small-radius: 4px;
+  --notes-actions-fade: note-actions-fade 160ms ease-out;
+  --notes-actions-rise: note-actions-rise 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  --notes-editor-font-size: 16px;
+  --notes-mobile-radius: 14px;
+  --notes-compact-radius: 12px;
+  --workspace-action-transition: transform 140ms ease, filter 140ms ease;
+  --workspace-trigger-transition: transform 140ms ease, background-color 140ms ease;
+  --workspace-tools-fade: workspace-tools-fade 160ms ease-out;
+  --workspace-sheet-radius: 28px;
+  --workspace-sheet-shadow: 0 24px 80px var(--shadow-deep);
+  --workspace-tile-radius: 20px;
+  --scale-pressed: 0.98;
+  --scale-pressed-strong: 0.97;
+  --scale-pressed-soft: 0.99;
+  --scale-hover: 1.02;
+  --tracking-tight: -0.02em;
+  --tracking-tighter: -0.03em;
+  --tracking-display: -0.04em;
+  --tracking-note-title: -0.01em;
+  --tracking-eyebrow: 0.2em;
+  --line-height-display: 0.95;
+  --line-height-reading: 1.55;
+  --line-height-note: 1.35;
+  --finance-symbol-width: 8rem;
+  --finance-value-width: 10rem;
+  --finance-range-width: 7.5rem;
+  --finance-display-size: clamp(2.5rem, 9vw, 3.75rem);
+  --growth-modal-height: 75vh;
+  --sidebar-glyph-width: 16px;
+  --ds-maxw-180px: 180px;
+  --ds-w-2px: 2px;
   --z-base: 0;
   --z-sticky: 30;
   --z-overlay: 50;
@@ -859,6 +924,7 @@
   /* iOS-style spring easing */
   --spring: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --motion-fast: 120ms;
   --motion-medium: 200ms;
@@ -1453,6 +1519,160 @@
   }
 }
 
+/* iOS interaction contract. Central override: components consume these tokens. */
+:root {
+  --control-touch: 44px;
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 17px;
+  --text-lg: 20px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 34px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  --ios-material-thin: color-mix(in srgb, var(--surface) 72%, transparent);
+  --ios-material-regular: color-mix(in srgb, var(--surface) 84%, transparent);
+  --ios-separator: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  --ios-press-scale: 0.96;
+  --ios-metadata-tracking: 0.01em;
+  --ios-icon-radius: 15px;
+  --ios-document-editor-height: 80vh;
+  --ios-document-page-height: 60vh;
+  --ios-editor-min-height: 300px;
+  --border-custom: var(--border);
+  --border-width: 1px;
+  --color-from: var(--color-primary);
+  --color-to: transparent;
+  --ios-scanner-selection: rgb(255 204 0);
+  --ios-scanner-selection-fill: rgb(255 204 0 / 12%);
+}
+
+html {
+  font-size: 100%;
+  font-optical-sizing: auto;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-size: var(--text-base);
+  line-height: 1.47;
+  letter-spacing: 0;
+}
+
+.text-xs { letter-spacing: 0.01em; }
+.text-sm, .text-base { letter-spacing: 0; }
+.text-lg, .text-xl { letter-spacing: -0.012em; }
+.text-2xl, .text-3xl, .stat-hero-number { letter-spacing: -0.022em; }
+
+.pixel-label,
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.ios-control {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ios-fast-capture-modal {
+  margin-bottom: max(5.6rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+}
+
+.ios-insight-actions {
+  margin-bottom: max(3rem, calc(env(safe-area-inset-bottom) + 1.5rem));
+}
+
+.ios-fullscreen-experience {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fullscreen);
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  isolation: isolate;
+}
+
+.ios-fullscreen-experience-light {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+.ios-fullscreen-experience-dark {
+  background: var(--scrim);
+  color: var(--color-on-accent);
+}
+
+.ios-fullscreen-experience-success {
+  background: var(--color-success);
+  color: var(--color-on-accent);
+}
+
+.ios-popover-dismiss-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  cursor: default;
+}
+
+.ios-anchored-popover {
+  transform-origin: top right;
+  animation: ios-popover-materialize var(--motion-enter) var(--ease-out) both;
+}
+
+@keyframes ios-popover-materialize {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.glass-structural {
+  background: var(--ios-material-regular);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.glass-elevated,
+.glass-floating {
+  background: var(--ios-material-thin);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-structural,
+  .glass-elevated,
+  .glass-floating {
+    background: var(--surface-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass-structural,
+  .glass-elevated,
+  .glass-floating {
+    background: var(--surface-solid);
+    border: 1px solid currentColor;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════
    Keep (notes) — note color palette tokens
    Moved from notes.css so ALL visual decisions live in this file.
@@ -1612,3 +1832,84 @@
   }
 }
 
+
+
+/* Centralized values for feature-local selectors. */
+:root {
+  --central-width-0466783d: 100%;
+  --central-min-width-3922d326: 0;
+  --central-padding-inline-add84322: 0;
+  --central-background-0ba2f7f0: color-mix(in srgb, var(--background) 88%, transparent);
+  --central--webkit-backdrop-filter-4ba6a4b2: blur(20px) saturate(180%);
+  --central-padding-top-af98dd6c: 6px;
+  --central-padding-bottom-c5906063: 64px;
+  --central-width-f74111a8: 18px;
+  --central-border-radius-9eaa9c48: 50%;
+  --central-margin-top-474aa6aa: 3.5px;
+  --central-flex-shrink-6ee0661e: 0;
+  --central-margin-78d3c170: 16px auto 0 auto;
+  --central-height-0472f1f7: 48px;
+  --central-max-width-27aeb617: 100%;
+  --central-backdrop-filter-1ea9ed65: blur(20px) saturate(180%);
+  --central-border-radius-cb013bd4: 24px;
+  --central-box-shadow-94435ff9: 0 4px 20px var(--shadow-soft);
+  --central-box-shadow-79f01e0e: 0 4px 24px var(--shadow-dark-material);
+  --central-height-3b849112: 38px;
+  --central-transform-3b4a4e20: scale(0.93);
+  --central-opacity-c6e7979d: 1;
+  --central-width-aa77e27e: 1px;
+  --central-flex-97445a8d: 1;
+  --central-width-d525ed1d: 320px;
+  --central-padding-e2c960fb: 8px;
+  --central-width-51781b80: 4px;
+  --central-height-62264068: 100%;
+  --central-width-08c9f9d5: clamp(360px, 40vw, 560px);
+  --central-transition-2eff8e4f: background-color 120ms ease-out, transform 100ms ease-out;
+  --central-background-bd753191: color-mix(in srgb, var(--primary) 9%, transparent);
+  --central-padding-cc781baa: 12px;
+  --central--webkit-backdrop-filter-ba7988a1: blur(2px);
+  --central-width-2ccc0719: min(100%, 420px);
+  --central-border-radius-26ec7723: 22px;
+  --central-box-shadow-91b3419a: 0 18px 60px var(--shadow-strong);
+  --central--webkit-backdrop-filter-b462750d: blur(24px) saturate(180%);
+  --central-border-radius-8852e697: 0;
+  --central-border-top-299db583: 1px solid color-mix(in srgb, var(--border-custom) 55%, transparent);
+  --central-opacity-8d919cb5: 0;
+  --central-transform-6258a59e: translateY(18px) scale(0.98);
+  --central-animation-05778225: none;
+  --central-height-6f9f7945: 100svh;
+  --central-min-height-5d088121: 52px;
+  --central-border-bottom-6d9a076a: 0;
+  --central-gap-05ed2a19: 1px;
+  --central-font-weight-02a2d333: 500;
+  --central-gap-33fcd4c3: 8px;
+  --central-font-size-81351bd1: 24px;
+  --central-letter-spacing-4ce74e4a: -0.025em;
+  --central-bottom-044d6f1a: max(12px, env(safe-area-inset-bottom));
+  --central-margin-11696618: 0;
+  --central-box-shadow-09a2c61d: 0 8px 30px var(--shadow-medium);
+  --central-width-1027ae58: clamp(280px, 27vw, 360px);
+  --central-border-bottom-11ba7267: 1px solid color-mix(in srgb, var(--border-custom) 55%, transparent);
+  --central-padding-2eeaef10: 12px 12px calc(88px + env(safe-area-inset-bottom));
+  --central-min-height-b3a52872: 38px;
+  --central-padding-e227f3cd: 8px 10px calc(84px + env(safe-area-inset-bottom));
+  --central-bottom-017edde0: max(10px, env(safe-area-inset-bottom));
+  --central-transform-1b8ae7b7: translateX(-50%);
+  --central-border-radius-a28678f5: 999px;
+  --central-box-shadow-66144bb1: 0 10px 32px var(--shadow-warm), 0 2px 8px var(--shadow-warm-soft);
+  --central--webkit-backdrop-filter-a4bdda4b: blur(20px) saturate(135%);
+  --central-box-shadow-a747f164: 0 4px 14px color-mix(in srgb, var(--primary) 28%, transparent);
+  --central-transform-aef9037a: scale(0.97);
+  --central-min-width-50b92dce: 132px;
+  --central--webkit-backdrop-filter-7f3777e1: blur(3px);
+  --central-width-8f53a839: min(100%, 440px);
+  --central-border-df6f2e72: 1px solid color-mix(in srgb, var(--border-custom) 60%, transparent);
+  --central-background-70c7a5a6: color-mix(in srgb, var(--background) 92%, transparent);
+  --central-backdrop-filter-d4002e65: blur(28px) saturate(180%);
+  --central-animation-2dfb4c85: workspace-tools-rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  --central-min-height-15f45b1f: 88px;
+  --central-background-0ca327aa: color-mix(in srgb, var(--surface-1) 82%, transparent);
+  --central-transition-2a758569: transform 100ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
+  --central-transform-2c7b6e9d: scale(0.96);
+  --central-background-a4e814a0: color-mix(in srgb, var(--primary) 12%, var(--surface-1));
+}

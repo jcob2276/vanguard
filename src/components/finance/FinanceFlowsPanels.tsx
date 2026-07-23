@@ -82,7 +82,7 @@ export function FinanceExpensesPanel({ transactions, onAdd }: FinanceExpensesPan
 
           <ControlInput name="note" placeholder="Notatka" className="min-h-11 flex-1 rounded-xl border-0 bg-surface-2/70 px-3 ring-1 ring-border-custom/25" />
 
-          <Button type="submit" size="sm" className="rounded-xl active:scale-[0.98]">Dodaj</Button>
+          <Button type="submit" size="sm" className="rounded-xl active:scale-[var(--scale-pressed)]">Dodaj</Button>
 
         </form>
 

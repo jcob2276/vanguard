@@ -21,7 +21,7 @@ export function BorderBeamGallery() {
     <Section icon={<Sparkles size={16} />} title="BorderBeam (Jakub Antalik)">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card variant="surface" className="relative overflow-hidden p-6">
-          <BorderBeam size={220} duration={10} colorFrom="var(--color-primary, #38bdf8)" colorTo="#818cf8" />
+          <BorderBeam size={220} duration={10} colorFrom="var(--color-primary)" colorTo="var(--color-info-hover)" />
           <h4 className="text-sm font-bold text-text-primary">Główny cel dnia (Focus Card)</h4>
           <p className="mt-1 text-xs text-text-muted">
             Karta ze świecącym promieniem brzegowym podświetlającym aktywny cel rano.
@@ -29,7 +29,7 @@ export function BorderBeamGallery() {
         </Card>
 
         <Card variant="glass" className="relative overflow-hidden p-6">
-          <BorderBeam size={180} duration={6} colorFrom="#10b981" colorTo="#38bdf8" />
+          <BorderBeam size={180} duration={6} colorFrom="var(--color-success)" colorTo="var(--color-info)" />
           <h4 className="text-sm font-bold text-text-primary">Aktywny status Vanguard</h4>
           <p className="mt-1 text-xs text-text-muted">
             Szybki promień z zielono-cyjanowym gradientem dla alertów i odzyskiwania.

@@ -23,7 +23,7 @@ export default function GrowthHeaderSection({ identity, skills, onEdit }: Growth
     <Card variant="surface" padding="1.5rem" className="relative overflow-hidden border border-primary/20 bg-primary/[0.02]">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <span className="text-2xs font-black uppercase tracking-[0.2em] text-primary">Kierunek Rozwoju</span>
+          <span className="text-2xs font-black uppercase tracking-[var(--tracking-eyebrow)] text-primary">Kierunek Rozwoju</span>
           <h2 className="text-2xl font-black font-display uppercase tracking-tight mt-1">
             {identity?.development_theme || 'Zdefiniuj swój aktualny motyw'}
           </h2>

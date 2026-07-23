@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Note } from '../../../lib/notesApi';
 import { convertNoteToTodoItem, exportNoteChecklistsToTodos } from '../../../lib/behavior/captureBridge';
-import { notify, confirmDialog } from '../../../lib/notify';
+import { notify, confirmDialog, promptDialog } from '../../../lib/notify';
 import { useKeepPageEffects } from './useKeepPageEffects';
+import { matchesNoteSearch } from '../keepUtils';
 
-type KeepViewMode = 'grid' | 'list' | 'split';
+type KeepViewMode = 'list' | 'gallery';
 
 const isMobileNotesView = () => window.matchMedia('(max-width: 767px)').matches;
 const keepViewStorageKey = () => `vanguard_keep_view_mode_${isMobileNotesView() ? 'mobile' : 'desktop'}`;
@@ -23,14 +24,17 @@ interface UseKeepViewProps {
   handleReorder: (dragId: string, overId: string) => void;
   handleNewNote: () => Promise<string | null | undefined>;
   handleDeleteTag: (tag: string) => Promise<void>;
-  handleCreateTag: (tag: string) => Promise<void>;
+  handleDiscardEmpty: (id: string) => Promise<void>;
+  handleUnlockNote: (note: Note, passphrase: string) => Promise<void>;
+  unlockedNoteIds: Set<string>;
   onBack?: () => void;
   onNavigateTo?: (dest: string) => void;
 }
 
 export function useKeepView({
   userId, notes, setNotes, busy, setBusy, handleCreate, handleUpdate, handleDelete,
-  handleTogglePin, handleReorder, handleNewNote, handleDeleteTag, handleCreateTag,
+  handleTogglePin, handleReorder, handleNewNote, handleDeleteTag, handleDiscardEmpty, handleUnlockNote,
+  unlockedNoteIds,
   onBack, onNavigateTo,
 }: UseKeepViewProps) {
   const navigate = useNavigate();
@@ -38,16 +42,19 @@ export function useKeepView({
 
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<'notes' | 'archive'>('notes');
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<'notes' | 'archive' | 'trash'>('notes');
   
   const [viewMode, setViewMode] = useState<KeepViewMode>(() => {
     try {
       const saved = localStorage.getItem(keepViewStorageKey());
-      if (saved === 'grid' || saved === 'list' || saved === 'split') return saved;
+      if (saved === 'list' || saved === 'gallery') return saved;
+      if (saved === 'grid') return 'gallery';
+      if (saved === 'split') return 'list';
     } catch {
       // storage unavailable
     }
-    return isMobileNotesView() ? 'split' : 'grid';
+    return 'list';
   });
 
   const setViewModeWithPersist = useCallback((val: KeepViewMode | ((prev: KeepViewMode) => KeepViewMode)) => {
@@ -80,13 +87,38 @@ export function useKeepView({
 
   const goBack = useCallback(() => (onBack ? onBack() : navigate('/')), [onBack, navigate]);
 
-  const handleCloseCard = useCallback(() => {
+  const handleCloseCard = useCallback((isEmpty = false) => {
+    const closingId = editingId;
     setEditingId(null);
+    if (isEmpty && closingId) {
+      void handleDiscardEmpty(closingId).catch(error => {
+        notify(error instanceof Error ? error.message : 'Nie usunięto pustej notatki', 'error');
+      });
+    }
     if (!searchParams.has('note')) return;
     const next = new URLSearchParams(searchParams);
     next.delete('note');
     setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [editingId, handleDiscardEmpty, searchParams, setSearchParams]);
+
+  const handleOpenNote = useCallback(async (id: string) => {
+    const note = notes.find(item => item.id === id);
+    if (!note) return;
+    if (note.is_locked && !unlockedNoteIds.has(note.id)) {
+      const passphrase = await promptDialog('Hasło do zablokowanej notatki');
+      if (passphrase === null) return;
+      setBusy(true);
+      try {
+        await handleUnlockNote(note, passphrase);
+      } catch (error) {
+        notify(error instanceof Error ? error.message : 'Nie udało się odblokować notatki', 'error');
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
+    setEditingId(id);
+  }, [handleUnlockNote, notes, setBusy, unlockedNoteIds]);
 
   const allTags = Array.from(new Set(notes.flatMap(n => n.tags))).sort();
 
@@ -97,29 +129,12 @@ export function useKeepView({
     setActiveTag(t => (t === tagToDelete ? null : t));
   }, [handleDeleteTag]);
 
-  const handlePromptCreateTag = useCallback(async () => {
-    const newTagRaw = window.prompt('Wpisz nazwę nowego tagu:');
-    if (!newTagRaw) return;
-    const newTag = newTagRaw.trim().toLowerCase().replace(/[\s#]/g, '_');
-    if (!newTag) return;
-
-    if (allTags.includes(newTag)) {
-      notify('Ten tag już istnieje.', 'error');
-      return;
-    }
-    await handleCreateTag(newTag);
-  }, [allTags, handleCreateTag]);
-
   const filtered = notes.filter(n => {
-    const matchTab = sidebarTab === 'notes' ? !n.is_archived : !!n.is_archived;
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      n.title.toLowerCase().includes(q) ||
-      n.content.toLowerCase().includes(q) ||
-      n.tags.some(t => t.toLowerCase().includes(q));
+    const matchTab = sidebarTab === 'notes' ? !n.is_archived : sidebarTab === 'archive' && !!n.is_archived;
+    const matchSearch = matchesNoteSearch(n, search);
     const matchTag = !activeTag || n.tags.includes(activeTag);
-    return matchTab && matchSearch && matchTag;
+    const matchFolder = !activeFolderId || n.folder_id === activeFolderId;
+    return matchTab && matchSearch && matchTag && matchFolder;
   });
 
   const pinned = sidebarTab === 'notes' ? filtered.filter(n => n.is_pinned) : [];
@@ -129,6 +144,7 @@ export function useKeepView({
   const handleTagClick = useCallback((tag: string) => {
     setSidebarTab('notes');
     setSearch('');
+    setActiveFolderId(null);
     setActiveTag(t => (t === tag ? null : tag));
   }, []);
 
@@ -167,7 +183,7 @@ export function useKeepView({
     busy,
     columns,
     editingId,
-    onOpenCard: setEditingId,
+    onOpenCard: (id: string) => { void handleOpenNote(id); },
     onClickTag: handleTagClick,
     onConvertToTodo: sidebarTab === 'notes' ? handleConvertToTodo : undefined,
     search,
@@ -176,15 +192,16 @@ export function useKeepView({
   return {
     search, setSearch,
     activeTag, setActiveTag,
+    activeFolderId, setActiveFolderId,
     sidebarTab, setSidebarTab,
     viewMode, setViewMode: setViewModeWithPersist,
     editingId, setEditingId,
     visibleCount, setVisibleCount,
     goTo, goBack,
     handleCloseCard,
+    handleOpenNote,
     allTags,
     handleConfirmDeleteTag,
-    handlePromptCreateTag,
     filtered, pinned, others, visibleOthers,
     handleExportChecklists,
     sharedGridProps,

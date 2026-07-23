@@ -2,7 +2,7 @@
  * @component MasonryGrid
  * @role Układ masonry dla kafelków notatek.
  * @composes NoteCard
- * @usedBy KeepNotesList
+ * @usedBy SplitNotesView
  */
 import { useState } from 'react';
 import NoteCard from './NoteCard';

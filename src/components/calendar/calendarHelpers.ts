@@ -28,6 +28,10 @@ export const HOURS = HOUR_END - HOUR_START;
 export const PX_PER_HOUR = 54;
 export const PX_PER_MIN = PX_PER_HOUR / 60;
 
+export const minutesLabel = (minutes: number) => (
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+);
+
 export interface CalRow {
   id: string;
   event_id: string | null;
@@ -42,7 +46,6 @@ export interface CalRow {
   recurrence?: string[] | null;
   series_id?: string | null;
 }
-
 export function toLocalISO(date: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -300,90 +303,4 @@ export function formatRangeLabel(calView: string, selectedDay: string, weekStart
     return selDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
   }
   return selDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
-}
-
-export function layoutDayEvents(dayEvents: CalRow[]) {
-  // 1. Filter and parse times
-  const parsed = dayEvents
-    .filter(ev => ev.start_time && ev.end_time)
-    .map(ev => {
-      const start = parseTime(ev.start_time!);
-      const end = parseTime(ev.end_time!);
-      return {
-        event: ev,
-        start: Math.max(HOUR_START * 60, start),
-        end: Math.min(HOUR_END * 60, end)
-      };
-    });
-
-  // Sort by start time, then end time (longest first)
-  parsed.sort((a, b) => {
-    if (a.start !== b.start) return a.start - b.start;
-    return (b.end - b.start) - (a.end - a.start);
-  });
-
-  // Group into columns
-  const columns: { end: number }[][] = [];
-  const eventLayouts = new Map<string, { columnIndex: number }>();
-
-  for (const item of parsed) {
-    let colIndex = 0;
-    while (colIndex < columns.length) {
-      const col = columns[colIndex];
-      const lastInCol = col[col.length - 1];
-      if (item.start >= lastInCol.end) {
-        break;
-      }
-      colIndex++;
-    }
-
-    if (colIndex === columns.length) {
-      columns.push([]);
-    }
-
-    columns[colIndex].push(item);
-    eventLayouts.set(item.event.id, { columnIndex: colIndex });
-  }
-
-  // Group into overlapping clusters to normalize column counts
-  const clusters: typeof parsed[] = [];
-  let currentCluster: typeof parsed = [];
-  let clusterEnd = 0;
-
-  for (const item of parsed) {
-    if (currentCluster.length === 0 || item.start < clusterEnd) {
-      currentCluster.push(item);
-      clusterEnd = Math.max(clusterEnd, item.end);
-    } else {
-      clusters.push(currentCluster);
-      currentCluster = [item];
-      clusterEnd = item.end;
-    }
-  }
-  if (currentCluster.length > 0) {
-    clusters.push(currentCluster);
-  }
-
-  const styles = new Map<string, { left: string; width: string }>();
-
-  for (const cluster of clusters) {
-    let maxCol = 0;
-    for (const item of cluster) {
-      const layout = eventLayouts.get(item.event.id);
-      if (layout && layout.columnIndex > maxCol) {
-        maxCol = layout.columnIndex;
-      }
-    }
-    const colsCount = maxCol + 1;
-
-    for (const item of cluster) {
-      const layout = eventLayouts.get(item.event.id);
-      const colIdx = layout ? layout.columnIndex : 0;
-      const width = `${100 / colsCount}%`;
-      const left = `${(colIdx * 100) / colsCount}%`;
-      styles.set(item.event.id, { left, width });
-    }
-  }
-
-  return styles;
 }

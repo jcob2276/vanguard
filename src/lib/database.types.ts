@@ -2838,6 +2838,77 @@ export type Database = {
         }
         Relationships: []
       }
+      note_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      note_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          note_id: string
+          ocr_text: string | null
+          size_bytes: number
+          storage_path: string
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          note_id: string
+          ocr_text?: string | null
+          size_bytes: number
+          storage_path: string
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          note_id?: string
+          ocr_text?: string | null
+          size_bytes?: number
+          storage_path?: string
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "vanguard_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nutrition_profile: {
         Row: {
           birth_date: string | null
@@ -5279,9 +5350,15 @@ export type Database = {
           color: string
           content: string
           created_at: string
+          deleted_at: string | null
+          folder_id: string | null
           id: string
           is_archived: boolean
+          is_locked: boolean
           is_pinned: boolean
+          lock_iv: string | null
+          lock_salt: string | null
+          locked_payload: string | null
           tags: string[]
           title: string
           updated_at: string
@@ -5291,9 +5368,15 @@ export type Database = {
           color?: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          folder_id?: string | null
           id?: string
           is_archived?: boolean
+          is_locked?: boolean
           is_pinned?: boolean
+          lock_iv?: string | null
+          lock_salt?: string | null
+          locked_payload?: string | null
           tags?: string[]
           title?: string
           updated_at?: string
@@ -5303,15 +5386,29 @@ export type Database = {
           color?: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          folder_id?: string | null
           id?: string
           is_archived?: boolean
+          is_locked?: boolean
           is_pinned?: boolean
+          lock_iv?: string | null
+          lock_salt?: string | null
+          locked_payload?: string | null
           tags?: string[]
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vanguard_notes_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "note_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vanguard_oracle_runs: {
         Row: {

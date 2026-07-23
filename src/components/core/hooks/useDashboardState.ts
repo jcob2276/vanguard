@@ -327,7 +327,12 @@ export function useDashboardState(session: Session) {
     }
   }, [view, haptics, navigate]);
 
-  const { handleMainTouchStart, handleMainTouchEnd } = useDashboardSwipeNav({ view, navigateTo, tabOrder: TAB_ORDER });
+  const {
+    handleMainTouchStart,
+    handleMainTouchMove,
+    handleMainTouchEnd,
+    handleMainTouchCancel,
+  } = useDashboardSwipeNav({ view, navigateTo, tabOrder: TAB_ORDER });
 
   const handleSpineGuideNavigate = useCallback((target: SpineGuideTarget) => {
     if (target === 'dashboard') { navigate('/dashboard'); return; }
@@ -408,7 +413,7 @@ export function useDashboardState(session: Session) {
   return {
     // routing
     view, navigate, goBack, navigateTo,
-    location, handleMainTouchStart, handleMainTouchEnd,
+    location, handleMainTouchStart, handleMainTouchMove, handleMainTouchEnd, handleMainTouchCancel,
     // data
     weeklyCalories, todayWin, proteinToday, hasWorkoutToday, readiness, loading, refresh,
     spineGuidance, spineGuidanceLoading,

@@ -1,33 +1,14 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-
-export type SidebarState = 'expanded' | 'collapsed';
-export type SidebarCollapsible = 'offcanvas' | 'icon' | 'none';
-export type SidebarVariant = 'sidebar' | 'floating' | 'inset';
-
-export interface SidebarContextValue {
-  state: SidebarState;
-  open: boolean;
-  setOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
-  openMobile: boolean;
-  setOpenMobile: (open: boolean | ((prev: boolean) => boolean)) => void;
-  isMobile: boolean;
-  toggleSidebar: () => void;
-  collapsible: SidebarCollapsible;
-  variant: SidebarVariant;
-}
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+  SidebarContext,
+  type SidebarCollapsible,
+  type SidebarContextValue,
+  type SidebarState,
+  type SidebarVariant,
+} from './sidebarContextState';
 
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 const STORAGE_KEY = 'vanguard:sidebar:state';
-const SidebarContext = createContext<SidebarContextValue | null>(null);
-
-export function useSidebar() {
-  const context = useContext(SidebarContext);
-  if (!context) {
-    throw new Error('useSidebar must be used within a SidebarProvider.');
-  }
-  return context;
-}
-
 export interface SidebarProviderProps {
   defaultOpen?: boolean;
   open?: boolean;

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { sanitizeHtml } from './keepUtils';
+import { matchesNoteSearch, sanitizeHtml } from './keepUtils';
+import type { Note } from '../../lib/notesApi';
 
 describe('sanitizeHtml', () => {
   it('allows safe HTML elements and attributes', () => {
@@ -91,5 +92,35 @@ describe('sanitizeHtml', () => {
   it('strips object and embed tags (FORBIDDEN)', () => {
     const input = '<div>Safe</div><object data="evil.swf"></object><embed src="evil.swf">';
     expect(sanitizeHtml(input)).toBe('<div>Safe</div>');
+  });
+});
+
+describe('matchesNoteSearch', () => {
+  const note = {
+    title: 'Plan podróży',
+    content: '<p>Rezerwacja hotelu w Gdańsku</p>',
+    tags: ['wakacje'],
+    attachment_names: ['bilety-lotnicze.pdf'],
+    attachment_text: 'numer rezerwacji ABC123',
+  } as Note;
+
+  it('searches normalized plain content and multiple terms', () => {
+    expect(matchesNoteSearch(note, 'hotel gdansk')).toBe(true);
+  });
+
+  it('searches tags and attachment names', () => {
+    expect(matchesNoteSearch(note, 'wakacje bilety')).toBe(true);
+  });
+
+  it('searches OCR text from scans', () => {
+    expect(matchesNoteSearch(note, 'ABC123')).toBe(true);
+  });
+
+  it('requires every search term to match', () => {
+    expect(matchesNoteSearch(note, 'hotel faktura')).toBe(false);
+  });
+
+  it('never searches protected fields of a locked note', () => {
+    expect(matchesNoteSearch({ ...note, is_locked: true }, 'bilety')).toBe(false);
   });
 });

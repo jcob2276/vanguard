@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { CorrelationCategory, ImpactFactor } from '@vanguard/domain';
+import type { CorrelationCategory } from '@vanguard/domain';
 import { classifyImpactFactors } from '@vanguard/domain';
 import { useUserId } from '../../../store/useStore';
 import { useCorrelationsQuery } from '../../../lib/correlationsApi';

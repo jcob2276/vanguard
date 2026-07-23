@@ -4,7 +4,6 @@ import Button from '../../ui/Button';
 import { Bluetooth, RefreshCw, CheckCircle2, ShieldCheck, Cpu } from 'lucide-react';
 import { isNativePlatform } from '../../../lib/native/platform';
 import { BleProbe } from '../../../lib/native/bleProbePlugin';
-import { OuraDriverStateMachine } from '@vanguard/domain';
 import { isOuraBleModeEnabled, setOuraBleModeEnabled } from '../../../lib/biometrics/ouraBleSync';
 
 export default function OuraBleSettingsPanel() {
@@ -46,11 +45,6 @@ export default function OuraBleSettingsPanel() {
     } catch {
       setIsScanning(false);
     }
-  };
-
-  const handlePairSimulated = () => {
-    setPaired(true);
-    setBatteryLevel(84);
   };
 
   return (

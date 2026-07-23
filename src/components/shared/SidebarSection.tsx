@@ -9,7 +9,7 @@ import {
   SidebarMenuSkeleton,
 } from '../ui/sidebar';
 
-export interface SidebarSubItemData {
+interface SidebarSubItemData {
   id: string;
   label: ReactNode;
   icon?: ReactNode;
@@ -17,7 +17,7 @@ export interface SidebarSubItemData {
   onClick?: () => void;
 }
 
-export interface SidebarSectionItem {
+interface SidebarSectionItem {
   id: string;
   label: ReactNode;
   icon?: ReactNode;
@@ -42,6 +42,32 @@ export interface SidebarSectionProps {
   bordered?: boolean;
   isLoading?: boolean;
   className?: string;
+}
+
+function CollapsedSidebarItems({ items, bordered, className }: Pick<SidebarSectionProps, 'items' | 'bordered' | 'className'>) {
+  return (
+    <div className={`flex flex-col items-center gap-1.5 ${bordered ? 'border-t border-border-custom/30 pt-2' : ''} ${className}`}>
+      {items.map((item) => {
+        const title = typeof item.label === 'string' ? item.label : undefined;
+        const firstLetter = title?.charAt(0).toUpperCase();
+        return (
+          <div key={item.id} className="relative flex items-center justify-center">
+            <Pressable
+              onClick={item.onClick}
+              title={title}
+              aria-label={title}
+              className={`relative flex h-9 w-9 items-center justify-center rounded-xl ${item.active ? 'bg-primary/15 font-bold text-primary shadow-xs' : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}`}
+            >
+              {item.icon ?? (item.colorDot
+                ? <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.colorDot }} />
+                : <span className="text-xs font-black opacity-[var(--opacity-80)]">{firstLetter ?? '•'}</span>)}
+              {!!item.count && <span className="absolute -right-1 -top-1 flex h-4 min-w-[var(--sidebar-glyph-width)] items-center justify-center rounded-full bg-primary px-1 text-2xs font-extrabold text-on-accent shadow-xs">{item.count}</span>}
+            </Pressable>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function SidebarSection({
@@ -80,43 +106,7 @@ export default function SidebarSection({
   }
 
   if (isCollapsedIcon) {
-    return (
-      <div className={`flex flex-col items-center gap-1.5 ${bordered ? 'border-t border-border-custom/30 pt-2' : ''} ${className}`}>
-        {items.map((item) => {
-          const titleText = typeof item.label === 'string' ? item.label : undefined;
-          const firstLetter = typeof item.label === 'string' ? item.label.charAt(0).toUpperCase() : null;
-          return (
-            <div key={item.id} className="relative flex items-center justify-center">
-              <Pressable
-                onClick={item.onClick}
-                title={titleText}
-                aria-label={titleText}
-                className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
-                  item.active
-                    ? 'bg-primary/15 text-primary font-bold shadow-xs'
-                    : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
-                }`}
-              >
-                {item.icon ? (
-                  item.icon
-                ) : item.colorDot ? (
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.colorDot }} />
-                ) : firstLetter ? (
-                  <span className="text-xs font-black opacity-80">{firstLetter}</span>
-                ) : (
-                  <span className="h-2 w-2 rounded-full bg-text-muted/60" />
-                )}
-                {!!item.count && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-extrabold text-white shadow-xs">
-                    {item.count}
-                  </span>
-                )}
-              </Pressable>
-            </div>
-          );
-        })}
-      </div>
-    );
+    return <CollapsedSidebarItems items={items} bordered={bordered} className={className} />;
   }
 
   return (

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Book, FileText, Headphones, Video, MessageSquare, Plus, Link as LinkIcon, AlertCircle, HelpCircle } from 'lucide-react';
+import { Book, FileText, Headphones, Video, MessageSquare, Link as LinkIcon, AlertCircle, HelpCircle, type LucideIcon } from 'lucide-react';
 import type { LibraryItem } from '../../../lib/growth/growth.types';
 import { Card } from '../../ui/Card';
 import Button from '../../ui/Button';
+import { Pressable } from '../../ui/ControlPrimitives';
 
 interface GrowthLibrarySectionProps {
   items: LibraryItem[];
@@ -20,7 +21,7 @@ const STATUS_TABS = [
   { value: 'deferred', label: 'Odłożone' }
 ];
 
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<LibraryItem['type'], LucideIcon> = {
   book: Book,
   article: FileText,
   podcast: Headphones,
@@ -61,7 +62,7 @@ export default function GrowthLibrarySection({ items, onAdd, onEditItem }: Growt
       {/* Status Filter Tabs */}
       <div className="flex flex-wrap gap-1 bg-background/50 border border-border-custom p-1 rounded-xl overflow-x-auto">
         {STATUS_TABS.map(tab => (
-          <button
+          <Pressable
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
@@ -71,7 +72,7 @@ export default function GrowthLibrarySection({ items, onAdd, onEditItem }: Growt
             }`}
           >
             {tab.label}
-          </button>
+          </Pressable>
         ))}
       </div>
 
@@ -113,7 +114,7 @@ export default function GrowthLibrarySection({ items, onAdd, onEditItem }: Growt
                   {item.connectedSkill && <span className="text-3xs bg-primary/10 text-primary px-1 rounded font-black uppercase">Skill</span>}
                   {item.connectedDecision && <span className="text-3xs bg-warning/10 text-warning px-1 rounded font-black uppercase">Decyzja</span>}
                   {item.connectedPractice && <span className="text-3xs bg-success/10 text-success px-1 rounded font-black uppercase">Praktyka</span>}
-                  {!isLinked && <span className="text-3xs bg-red-500/10 text-red-500 px-1 rounded font-black uppercase">Brak pętli</span>}
+                  {!isLinked && <span className="text-3xs bg-danger/10 text-danger px-1 rounded font-black uppercase">Brak pętli</span>}
                 </div>
                 {item.url && (
                   <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-text-muted hover:text-primary transition-colors">

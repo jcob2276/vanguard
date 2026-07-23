@@ -1,4 +1,4 @@
-import { Target, Lightbulb, Zap, Plus, X, PlusCircle } from 'lucide-react';
+import { Target, Lightbulb, Zap } from 'lucide-react';
 import type { VanguardIdentityData } from '../../../lib/growth/growth.types';
 import type { LearningSkill } from '../../../lib/growth/growth';
 import { Card } from '../../ui/Card';

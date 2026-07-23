@@ -4,8 +4,8 @@ import { STORAGE_KEYS } from '../../../lib/constants';
 interface UseKeepPageEffectsProps {
   search: string;
   activeTag: string | null;
-  sidebarTab: 'notes' | 'archive';
-  viewMode: 'grid' | 'list' | 'split';
+  sidebarTab: 'notes' | 'archive' | 'trash';
+  viewMode: 'list' | 'gallery';
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   setVisibleCount: (fn: (prev: number) => number) => void;
@@ -36,7 +36,7 @@ export function useKeepPageEffects({
     function update() {
       const w = window.innerWidth;
       if (w < 640) {
-        setColumns(viewMode === 'grid' ? 2 : 1);
+        setColumns(viewMode === 'gallery' ? 2 : 1);
       } else if (w < 900) {
         setColumns(2);
       } else if (w < 1180) {

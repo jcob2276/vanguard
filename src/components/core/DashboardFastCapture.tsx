@@ -2,6 +2,7 @@ import { Pressable } from '../ui/ControlPrimitives';
 import { Plus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Fab from '../ui/Fab';
+import Modal from '../ui/Modal';
 
 interface FastCaptureItem {
   label: string;
@@ -24,23 +25,23 @@ interface Props {
 }
 
 export function DashboardFastCaptureMenu({ show, onClose, items, tools }: Props) {
-  if (!show) return null;
   const run = (action: () => void) => {
     action();
     onClose();
   };
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-[var(--z-nav)] bg-scrim/40 backdrop-blur-[var(--blur-fine)] animate-fadeIn"
-        onClick={onClose}
-      />
-      <div
-        className="fixed left-1/2 z-[var(--z-modal)] w-[calc(100%_-_2rem)] max-w-[360px] -translate-x-1/2 rounded-[28px] border border-border-custom/70 bg-background/90 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-3xl animate-in slide-in-from-bottom-4 fade-in duration-200"
-        style={{ bottom: 'var(--ds-inline-style-calc-max-2rem-calc-1rem-env-safe-area-inset-bottom-5-6rem)' }}
-      >
-        <p className="mb-2 px-1 text-2xs font-black uppercase tracking-[0.16em] text-text-muted">Szybkie akcje</p>
+    <Modal
+      isOpen={show}
+      onClose={onClose}
+      title="Szybkie akcje"
+      showCloseButton={false}
+      size="sm"
+      padding="p-4"
+      overflowY={false}
+      overlayClassName="items-end"
+      className="ios-fast-capture-modal"
+    >
         <div className="grid grid-cols-4 gap-2">
           {items.map(item => (
             <Pressable
@@ -57,7 +58,7 @@ export function DashboardFastCaptureMenu({ show, onClose, items, tools }: Props)
         </div>
 
         <div className="my-3 h-px bg-border-custom/60" />
-        <p className="mb-2 px-1 text-2xs font-black uppercase tracking-[0.16em] text-text-muted">Narzędzia</p>
+        <p className="mb-2 px-1 text-xs font-semibold tracking-[var(--ios-metadata-tracking)] text-text-muted">Narzędzia</p>
         <div className="grid grid-cols-4 gap-2">
           {tools.map(({ label, icon: Icon, action }) => (
             <Pressable
@@ -66,13 +67,12 @@ export function DashboardFastCaptureMenu({ show, onClose, items, tools }: Props)
               onClick={() => run(action)}
               className="flex min-w-0 flex-col gap-2 rounded-2xl px-1 py-3 text-center active:scale-95"
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-surface-1 text-primary shadow-sm ring-1 ring-border-custom/50"><Icon size={20} /></span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[var(--ios-icon-radius)] bg-surface-1 text-primary shadow-sm ring-1 ring-border-custom/50"><Icon size={20} /></span>
               <span className="text-3xs font-bold leading-tight text-text-secondary">{label}</span>
             </Pressable>
           ))}
         </div>
-      </div>
-    </>
+    </Modal>
   );
 }
 

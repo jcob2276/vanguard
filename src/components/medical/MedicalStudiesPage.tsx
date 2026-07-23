@@ -2,10 +2,9 @@ import { useState, useMemo } from 'react';
 import { useUserId } from '../../store/useStore';
 import { useMedicalData } from './hooks/useMedicalData';
 import { useRetestSuggestions } from './hooks/useMedicalRetestContext';
-import { buildMarkerSeries, diffDaysFromToday, labFreshness } from '../../lib/health/medicalAnalytics';
+import { buildMarkerSeries } from '../../lib/health/medicalAnalytics';
 import { computeBiologyScoresLite } from '../../lib/getBased/biologyScoresLite';
 import { supabase } from '../../lib/supabase';
-import { notify } from '../../lib/notify';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import type { Database } from '../../lib/database.types';
@@ -24,10 +23,11 @@ import MedicalBodyComposition from './sections/MedicalBodyComposition';
 // Modals / Overlays
 import MedicalMarkerInspector from './sections/MedicalMarkerInspector';
 import MedicalImport from './sections/MedicalImport';
+import type { ImportedMedicalResult } from './sections/MedicalImport';
 
 export default function MedicalStudiesPage() {
   const userId = useUserId();
-  const { labs, bodyComposition, documents, loading, error, refresh } = useMedicalData(userId!);
+  const { labs, bodyComposition, documents, loading, refresh } = useMedicalData(userId!);
 
   const [selectedMarkerKey, setSelectedMarkerKey] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -42,7 +42,7 @@ export default function MedicalStudiesPage() {
     labs,
   );
 
-  const handleConfirmImport = async (results: any[], docName: string) => {
+  const handleConfirmImport = async (results: ImportedMedicalResult[], docName: string) => {
     if (!userId) return;
 
     // 1. Create medical document record
@@ -55,7 +55,7 @@ export default function MedicalStudiesPage() {
       clinical_validity: 'clinical'
     };
 
-    const { data: doc, error: docErr } = await supabase
+    const { error: docErr } = await supabase
       .from('medical_documents')
       .insert(docRow)
       .select()
@@ -140,7 +140,6 @@ export default function MedicalStudiesPage() {
         <div id="przeglad">
           <MedicalOverview
             labs={labs}
-            documents={documents}
             onActionClick={scrollToSection}
           />
         </div>

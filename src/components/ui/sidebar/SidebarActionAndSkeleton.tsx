@@ -1,35 +1,6 @@
 import React from 'react';
-import { useSidebar } from './SidebarContext';
+import { useSidebar } from './sidebarContextState';
 import Skeleton from '../Skeleton';
-
-export interface SidebarMenuActionProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  showOnHover?: boolean;
-  children?: React.ReactNode;
-}
-
-export function SidebarMenuAction({
-  showOnHover = true,
-  children,
-  className = '',
-  ...props
-}: SidebarMenuActionProps) {
-  const { state, collapsible } = useSidebar();
-  if (state === 'collapsed' && collapsible === 'icon') {
-    return null;
-  }
-
-  return (
-    <button
-      data-sidebar="menu-action"
-      className={`absolute right-1.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-3 transition-all duration-150 outline-none ${
-        showOnHover ? 'opacity-0 group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100' : 'opacity-100'
-      } ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
 
 export interface SidebarMenuSkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   showIcon?: boolean;

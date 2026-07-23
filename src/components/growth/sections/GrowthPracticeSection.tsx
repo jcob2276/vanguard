@@ -1,4 +1,4 @@
-import { Award, Zap, BookOpen, UserCheck, Hammer, Activity } from 'lucide-react';
+import { Award, Zap, BookOpen, Hammer, Activity, type LucideIcon } from 'lucide-react';
 import type { PracticeEvidence } from '../../../lib/growth/growth.types';
 import type { LearningSkill } from '../../../lib/growth/growth';
 import { Card } from '../../ui/Card';
@@ -11,7 +11,7 @@ interface GrowthPracticeSectionProps {
   onEditItem: (item: PracticeEvidence) => void;
 }
 
-const COMPETENCE_LEVELS: Record<string, { label: string; color: string; icon: any }> = {
+const COMPETENCE_LEVELS: Record<PracticeEvidence['competenceLevel'], { label: string; color: string; icon: LucideIcon }> = {
   consume: { label: 'Konsumuję', color: 'bg-border-custom text-text-muted', icon: BookOpen },
   understand: { label: 'Rozumiem', color: 'bg-primary/10 text-primary', icon: Zap },
   try: { label: 'Próbuję', color: 'bg-warning/10 text-warning', icon: Activity },

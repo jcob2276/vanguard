@@ -44,7 +44,7 @@ export function MonteCarloPanel({ result, fireTarget }: MonteCarloPanelProps) {
           )}
         </div>
         <div className="text-right">
-          <p className={`text-3xl font-semibold tabular-nums tracking-[-0.03em] ${probColor}`}>
+          <p className={`text-3xl font-semibold tabular-nums tracking-[var(--tracking-tighter)] ${probColor}`}>
             {formatPct(result.successProbability * 100)}
           </p>
           <p className="text-xs text-text-muted">szans na cel</p>

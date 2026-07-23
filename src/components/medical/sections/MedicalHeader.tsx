@@ -1,11 +1,11 @@
 import { AlertTriangle, CheckCircle, FilePlus } from 'lucide-react';
-import type { MedicalLabRow } from '../../../lib/health/medicalAnalytics';
+import type { MedicalDocumentRow, MedicalLabRow } from '../../../lib/health/medicalAnalytics';
 import { Card } from '../../ui/Card';
 import Button from '../../ui/Button';
 
 interface MedicalHeaderProps {
   labs: MedicalLabRow[];
-  documents: any[];
+  documents: MedicalDocumentRow[];
   onImportClick: () => void;
   onViewResults: () => void;
   onPlanRetest: () => void;

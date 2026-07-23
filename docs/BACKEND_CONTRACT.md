@@ -60,7 +60,7 @@ Ratchet pilnuje, żeby liczby **nigdy nie rosły**. Zmniejszyłeś — obniż ba
 | `SB_SECRET_KEY` poza kernelem | **4** | udokumentowany wyjątek — service-to-service auth (patrz niżej) |
 | Pliki > 300 linii | **0** (poza `_shared/database.types.ts`, generowany, zwolniony) | 0 — osiągnięte |
 
-Wszystkie 31 funkcji edge przechodzą przez `serveJson` (`_shared/http.ts`) — jednolity
+Wszystkie funkcje edge przechodzą przez `serveJson` (`_shared/http.ts`) — jednolity
 CORS/OPTIONS/auth/error-logging. Handler może zwrócić zwykłą wartość (JSON-wrapowana
 automatycznie) LUB instancję `Response` (przepuszczaną bez zmian — dla webhooków,
 streamingu, czy niestandardowych statusów, które faktycznie sprawdza jakiś caller).

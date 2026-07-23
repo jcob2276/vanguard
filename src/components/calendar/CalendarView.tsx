@@ -23,6 +23,7 @@ import CalendarSidebar from './components/CalendarSidebar';
 import CalendarHeader from './components/CalendarHeader';
 import CalendarTodoModal from './components/CalendarTodoModal';
 import CalendarBudgetModal from './components/CalendarBudgetModal';
+import Fab from '../ui/Fab';
 
 import { calculateWeeklyTotals } from './calendarView/calendarViewHelpers';
 import { useCalendarActions } from './calendarView/hooks/useCalendarActions';
@@ -232,13 +233,15 @@ export default function CalendarView({
         </div>
 
         {/* Mobile Quick Create Floating Action Button (FAB) */}
-        <button
+        <Fab
+          position="custom"
+          size="lg"
           onClick={() => calData.setQuickCreate({ date: calData.selectedDay, startMin: 540 })}
           className="fixed right-5 bottom-20 z-[var(--z-sticky)] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-accent shadow-2xl transition-transform active:scale-95 md:hidden"
           title="Dodaj nowe wydarzenie"
         >
           <span className="text-2xl font-bold">+</span>
-        </button>
+        </Fab>
 
         <CalendarEventModal
           calData={calData}

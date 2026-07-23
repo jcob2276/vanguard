@@ -123,7 +123,7 @@ export function EventDetailsModal({ event, onClose, onEdit, onDelete }: EventDet
             variant="primary"
             onClick={onEdit}
             icon={<Edit3 size={16} />}
-            className="h-11 flex-1 font-bold uppercase tracking-wider shadow-lg shadow-primary/20"
+            className="h-11 flex-1 font-bold uppercase tracking-wider"
           >
             Edytuj
           </Button>

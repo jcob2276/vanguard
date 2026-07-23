@@ -19,7 +19,7 @@ export function FinanceIncomeSummary({ lines }: FinanceIncomeSummaryProps) {
           {lines.map((line) => (
             <div key={line.key} className="px-3 py-4 text-center">
               <p className="text-xs text-text-muted">{line.label}</p>
-              <p className={`mt-1 text-base font-semibold tabular-nums tracking-[-0.02em] ${line.amount > 0 ? 'text-text-primary' : 'text-text-muted'}`}>
+              <p className={`mt-1 text-base font-semibold tabular-nums tracking-[var(--tracking-tight)] ${line.amount > 0 ? 'text-text-primary' : 'text-text-muted'}`}>
                 {formatPln(line.amount)}
               </p>
             </div>

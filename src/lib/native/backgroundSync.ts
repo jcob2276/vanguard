@@ -2,7 +2,6 @@
  * Foreground service orchestration + periodic sync ticks (Android APK).
  */
 import { App } from '@capacitor/app';
-import { Geolocation } from '@capacitor/geolocation';
 import { STORAGE_KEYS } from '../constants';
 import { syncLocationNow } from './locationSync';
 import { isNativePlatform } from './platform';
@@ -86,16 +85,6 @@ export async function openAutostartSettings(): Promise<void> {
 export async function openBackgroundLocationSettings(): Promise<void> {
   if (!isNativePlatform()) return;
   await BackgroundSync.openAppSettings();
-}
-
-async function hasBackgroundLocationPermission(): Promise<boolean> {
-  if (!isNativePlatform()) return false;
-  try {
-    const perm = await Geolocation.checkPermissions();
-    return perm.location === 'granted' || perm.coarseLocation === 'granted';
-  } catch {
-    return false;
-  }
 }
 
 async function runSyncTick(userId: string): Promise<void> {

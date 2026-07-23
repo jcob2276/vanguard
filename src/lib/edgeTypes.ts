@@ -114,8 +114,10 @@ interface ParseFoodNLResponse {
 interface CaptureVaultResponse { success: true; chunks: number; triads: number; message: string; }
 interface CaptureLinkResponse { ok: true; type: 'link'; data: Record<string, unknown>; }
 interface CaptureStreamResponse { ok: true; type: 'stream'; data: Record<string, unknown>; }
+interface CaptureTranscriptionResponse { ok: true; type: 'transcription'; transcript: string; }
+interface CaptureOcrResponse { ok: true; type: 'ocr'; text: string; }
 
-type CaptureResponse = CaptureVaultResponse | CaptureLinkResponse | CaptureStreamResponse;
+type CaptureResponse = CaptureVaultResponse | CaptureLinkResponse | CaptureStreamResponse | CaptureTranscriptionResponse | CaptureOcrResponse;
 
 interface NightlyResponse {
   success: boolean; run_id: string;

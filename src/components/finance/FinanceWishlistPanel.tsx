@@ -128,13 +128,13 @@ export function FinanceWishlistPanel({
 
                     <>
 
-                      <Button size="sm" onClick={() => onUpdate({ id: item.id, cool_off_until: null })} className="rounded-lg active:scale-[0.98]">
+                      <Button size="sm" onClick={() => onUpdate({ id: item.id, cool_off_until: null })} className="rounded-lg active:scale-[var(--scale-pressed)]">
 
                         Kupuję
 
                       </Button>
 
-                      <Button size="sm" variant="secondary" onClick={() => onUpdate({ id: item.id, still_want: false })} className="rounded-lg active:scale-[0.98]">
+                      <Button size="sm" variant="secondary" onClick={() => onUpdate({ id: item.id, still_want: false })} className="rounded-lg active:scale-[var(--scale-pressed)]">
 
                         Rezygnuję
 

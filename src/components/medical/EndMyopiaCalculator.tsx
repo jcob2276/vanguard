@@ -10,6 +10,7 @@ import StabilityRing from './StabilityRing';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useUserId } from '../../store/useStore';
 import { STORAGE_KEYS } from '../../lib/constants';
+import FullscreenExperience from '../ui/FullscreenExperience';
 type Eye = 'left' | 'right';
 type Phase = 'calibrate' | 'select-eye' | 'measure' | 'captured' | 'saved';
 export default function EndMyopiaCalculator() {
@@ -158,7 +159,7 @@ export default function EndMyopiaCalculator() {
         // NOTE: custom overlay — EndMyopiaCalculator renders full-screen immersive camera measurement phases
         // (measure / captured / saved). These require full-viewport coverage with camera PIP and focus
         // target elements. ui/Modal cannot provide this full-screen camera layout.
-        <div className="fixed inset-0 z-[var(--z-overlay)] bg-on-accent flex flex-col">
+        <FullscreenExperience label="Pomiar wzroku" tone="light">
 
           {/* PIP Camera - top right corner */}
           <div className="absolute top-4 right-4 w-16 h-20 rounded-xl overflow-hidden border-2 border-border-custom shadow-lg">
@@ -242,7 +243,7 @@ export default function EndMyopiaCalculator() {
               {autoCapture ? '● Auto-capture' : '○ Ręczne złapanie'}
             </Pressable>
           </div>
-        </div>
+        </FullscreenExperience>
       )}
 
       {/* ══════════════════════════════════════════════
@@ -250,7 +251,7 @@ export default function EndMyopiaCalculator() {
       ══════════════════════════════════════════════ */}
       {phase === 'captured' && (
         // NOTE: custom overlay — see 'measure' phase comment above.
-        <div className="fixed inset-0 z-[var(--z-overlay)] bg-background flex flex-col items-center justify-center px-6 gap-8">
+        <FullscreenExperience label="Wynik pomiaru wzroku" className="items-center justify-center gap-8 px-6">
           <div className="w-full max-w-xs rounded-3xl bg-surface border-2 border-primary/30 p-8 text-center shadow-2xl">
             <p className="text-xs uppercase tracking-widest text-text-muted mb-5 font-bold">
               {selectedEye === 'left' ? '👁 Lewe oko' : 'Prawe oko 👁'}
@@ -292,7 +293,7 @@ export default function EndMyopiaCalculator() {
               Zmierz ponownie
             </Pressable>
           </div>
-        </div>
+        </FullscreenExperience>
       )}
 
       {/* ══════════════════════════════════════════════
@@ -300,7 +301,7 @@ export default function EndMyopiaCalculator() {
       ══════════════════════════════════════════════ */}
       {phase === 'saved' && (
         // NOTE: custom overlay — see 'measure' phase comment above.
-        <div className="fixed inset-0 z-[var(--z-overlay)] bg-success flex flex-col items-center justify-center gap-4">
+        <FullscreenExperience label="Pomiar zapisany" tone="success" className="items-center justify-center gap-4">
           <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center">
             <Check size={36} className="text-success" />
           </div>
@@ -308,7 +309,7 @@ export default function EndMyopiaCalculator() {
           <p className="text-sm text-success">
             {selectedEye === 'left' ? 'Przechodzę do prawego oka...' : 'Pomiary zakończone!'}
           </p>
-        </div>
+        </FullscreenExperience>
       )}
 
       {/* ══════════════════════════════════════════════

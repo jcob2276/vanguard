@@ -5,6 +5,7 @@ import Spinner from '../ui/Spinner';
 import { CardFactory, type CardTemplateId } from '../cards/CardFactory';
 import { WidgetFactory, type WidgetType } from '../widgets/WidgetFactory';
 import type { InsightCardData } from '../../lib/insightsApi';
+import Modal from '../ui/Modal';
 
 interface InsightCardProps {
   card: InsightCardData;
@@ -73,19 +74,22 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
         )}
       </div>
 
-      {overlayOpen && (
-        // NOTE: custom overlay — InsightCard shows a long-press mobile context menu with circular action
-        // buttons anchored at the bottom-center. ui/Modal shows a dialog box and cannot render these
-        // floating radial buttons, so a raw fixed overlay is intentional here.
-        <div
-          className="fixed inset-0 z-[var(--z-overlay)] flex items-end justify-center pb-12"
-          style={{ background: 'var(--color-theme-hex-ba00006)' }}
-          onClick={() => setOverlayOpen(false)}
-        >
-          <div className="flex gap-5 items-center" onClick={e => e.stopPropagation()}>
+      <Modal
+        isOpen={overlayOpen}
+        onClose={() => setOverlayOpen(false)}
+        title="Akcje wniosku"
+        showCloseButton={false}
+        size="sm"
+        padding="p-4"
+        overflowY={false}
+        overlayClassName="items-end"
+        className="ios-insight-actions"
+      >
+          <div className="flex items-center justify-center gap-5">
             {onPin && (
               <Button
                 variant="ghost"
+                aria-label={card.isPinned ? 'Odepnij' : 'Przypnij'}
                 onClick={() => { onPin(card.id); setOverlayOpen(false); }}
                 icon={<Pin size={20} color="var(--color-on-accent)" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
@@ -95,6 +99,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
             {onSort && (
               <Button
                 variant="ghost"
+                aria-label="Zmień kolejność"
                 onClick={() => { onSort(card.id); setOverlayOpen(false); }}
                 icon={<SortAsc size={20} color="var(--color-on-accent)" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
@@ -104,6 +109,7 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
             {onDelete && (
               <Button
                 variant="ghost"
+                aria-label="Usuń"
                 onClick={handleDelete}
                 icon={deleting ? <Spinner size="sm" className="h-5 w-5 !border-on-accent/30 !border-t-on-accent" /> : <Trash2 size={20} color="var(--color-on-accent)" />}
                 className="w-14 h-14 min-w-0 p-0 rounded-full shadow-lg hover:bg-transparent"
@@ -112,14 +118,14 @@ export function InsightCard({ card, onPin, onSort, onDelete, expanded }: Insight
             )}
             <Button
               variant="ghost"
+              aria-label="Zamknij"
               onClick={() => setOverlayOpen(false)}
               icon={<X size={16} color="var(--color-theme-hex-0a0a0a)" />}
               className="w-10 h-10 min-w-0 p-0 rounded-full hover:bg-transparent"
               style={{ background: 'var(--color-on-accent)' }}
             />
           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

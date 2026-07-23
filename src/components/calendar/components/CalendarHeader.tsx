@@ -1,4 +1,4 @@
-import { Pressable } from '../../ui/ControlPrimitives';
+import { ControlInput, Pressable } from '../../ui/ControlPrimitives';
 import { RefreshCw, Calendar as CalendarIcon, Search, X } from 'lucide-react';
 import { useCalendar } from '../context/CalendarContext';
 import { WorkspaceHeader } from '../../shared/WorkspaceHeader';
@@ -48,7 +48,7 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
           {/* Live Search Input */}
           <div className="relative flex items-center">
             <Search size={14} className="absolute left-2.5 text-text-muted pointer-events-none" />
-            <input
+            <ControlInput
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -56,12 +56,12 @@ export default function CalendarHeader({ onBack }: CalendarHeaderProps) {
               className="h-8 w-36 sm:w-48 pl-8 pr-7 text-xs rounded-lg border border-border-custom/40 bg-surface-solid/30 text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-primary focus:bg-background transition-all"
             />
             {searchQuery && (
-              <button
+              <Pressable
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2 text-text-muted hover:text-text-primary"
               >
                 <X size={12} />
-              </button>
+              </Pressable>
             )}
           </div>
 

@@ -57,7 +57,7 @@ export default function RecurrencePicker({
 
       <div className="flex flex-wrap gap-1">
         {options.map((option) => (
-          <button
+          <Pressable
             key={option || 'once'}
             type="button"
             onClick={() => setRecurrence(option)}
@@ -68,7 +68,7 @@ export default function RecurrencePicker({
             }`}
           >
             {LABELS[option]}
-          </button>
+          </Pressable>
         ))}
       </div>
 
@@ -77,7 +77,7 @@ export default function RecurrencePicker({
           {WEEKDAYS.map((day) => {
             const selected = customDays.includes(day.key);
             return (
-              <button
+              <Pressable
                 key={day.key}
                 type="button"
                 onClick={() =>
@@ -92,7 +92,7 @@ export default function RecurrencePicker({
                 }`}
               >
                 {day.label}
-              </button>
+              </Pressable>
             );
           })}
         </div>

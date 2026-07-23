@@ -14,6 +14,7 @@ Layout: `ops/` (deploy, smoke, CI checks), `aw/` (ActivityWatch bridge), `analys
 | `ops/smoke-manifest.mjs` | SSOT: no-verify-jwt list + cron expectations | imported by smoke script |
 | `ops/smoke-ui.mjs` | UI smoke check (CI) | `npm run smoke:ui` |
 | `ops/check-edge-functions.mjs` | Deno typecheck of all edge functions (CI) | `npm run typecheck` |
+| `ops/check-readme-sync.mjs` | README parity with routes, env vars, scripts, links, and Edge Function references | `npm run audit:readme` |
 | `ops/oss-audit.mjs` | Public-readiness audit (secrets, personal data) | `npm run oss:audit` |
 | `ops/e2e-daily-loop.mjs` | E2E daily-loop pipeline check (CI cron) | `npm run e2e:loop` |
 

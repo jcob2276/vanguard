@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSidebar } from './SidebarContext';
+import { useSidebar } from './sidebarContextState';
 import Sheet from '../Sheet';
 
 export interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -16,7 +16,7 @@ export function Sidebar({
   style,
   ...props
 }: SidebarProps) {
-  const { open, openMobile, setOpenMobile, isMobile, state, collapsible, variant } = useSidebar();
+  const { openMobile, setOpenMobile, isMobile, state, collapsible, variant } = useSidebar();
 
   // Mobile Drawer view using existing Sheet primitive
   if (isMobile) {
@@ -37,10 +37,10 @@ export function Sidebar({
 
   const variantClass =
     variant === 'floating'
-      ? 'm-2 rounded-2xl border border-border-custom/30 shadow-md bg-surface-1/90 backdrop-blur-md'
+      ? 'm-2 rounded-2xl border border-border-custom/30 shadow-md bg-surface-1/90 backdrop-blur-[var(--blur-material)]'
       : variant === 'inset'
       ? 'bg-transparent border-r-0'
-      : 'border-r border-border-custom/30 bg-surface-1/95 backdrop-blur-sm';
+      : 'border-r border-border-custom/30 bg-surface-1/95 backdrop-blur-[var(--blur-subtle)]';
 
   return (
     <aside
@@ -49,7 +49,7 @@ export function Sidebar({
       data-side={side}
       data-collapsible={collapsible}
       data-variant={variant}
-      className={`relative hidden h-svh shrink-0 flex-col overflow-y-auto py-3 transition-[width,padding,margin,border-color] duration-200 ease-in-out md:flex ${widthClass} ${variantClass} ${className}`}
+      className={`relative hidden h-svh shrink-0 flex-col overflow-y-auto py-3 transition-[width,padding,margin,border-color] duration-[var(--motion-medium)] ease-[var(--ease-in-out)] md:flex ${widthClass} ${variantClass} ${className}`}
       style={style}
       {...props}
     >

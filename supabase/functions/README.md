@@ -2,7 +2,7 @@
 
 Project: configured per deployment through environment variables.
 
-For the complete, auto-generated list of all 31 Edge Functions, their triggers, roles, status, read/write dependencies, and consumers, see:
+For the complete, auto-generated list of Edge Functions, their triggers, roles, status, read/write dependencies, and consumers, see:
 👉 **[FUNCTIONS.md](./FUNCTIONS.md)**
 
 ---

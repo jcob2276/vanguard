@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Calendar, CheckSquare, RefreshCw, XCircle } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import Button from '../../ui/Button';
 import { ControlTextarea } from '../../ui/ControlPrimitives';
+import type { DevelopmentReview } from '../../../lib/growth/growth.types';
 
 interface GrowthReviewSectionProps {
-  currentReview: any;
-  onSaveReview: (reviewData: any) => Promise<void>;
+  currentReview: DevelopmentReview | null;
+  onSaveReview: (reviewData: DevelopmentReview) => Promise<void>;
 }
 
 export default function GrowthReviewSection({ currentReview, onSaveReview }: GrowthReviewSectionProps) {
@@ -17,7 +18,7 @@ export default function GrowthReviewSection({ currentReview, onSaveReview }: Gro
   const [consumedOnly, setConsumedOnly] = useState(currentReview?.consumedOnly || '');
   const [abandoned, setAbandoned] = useState(currentReview?.abandoned || '');
   const [newGap, setNewGap] = useState(currentReview?.newGap || '');
-  const [nextPractice, setNextPractice] = useState(currentReview?.nextPractice || '');
+  const [nextPractice] = useState(currentReview?.nextPractice || '');
 
   const handleSave = async () => {
     await onSaveReview({

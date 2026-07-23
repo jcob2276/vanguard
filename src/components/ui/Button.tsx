@@ -21,12 +21,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   type = 'button',
   ...props
 }, ref) {
-  const baseClass = 'inline-flex items-center justify-center font-bold font-display rounded-[var(--radius-md)] transition-[transform,background-color,color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-97 disabled:opacity-[var(--opacity-50)] disabled:pointer-events-none cursor-pointer';
+  const baseClass = 'ios-control inline-flex min-h-[var(--control-touch)] items-center justify-center font-semibold font-display rounded-[var(--radius-md)] transition-[transform,background-color,color,border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-[var(--ios-press-scale)] disabled:opacity-[var(--opacity-50)] disabled:pointer-events-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45';
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-xs gap-1',
-    md: 'px-4.5 py-2.5 text-sm gap-1.5',
-    lg: 'px-6 py-3.5 text-base gap-2',
+    sm: 'px-3 py-2 text-sm gap-1',
+    md: 'px-4.5 py-2.5 text-base gap-1.5',
+    lg: 'px-6 py-3 text-lg gap-2',
   };
 
   const variantClasses = {

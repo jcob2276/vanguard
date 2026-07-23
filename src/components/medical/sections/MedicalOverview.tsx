@@ -1,14 +1,14 @@
 import { Calendar, HelpCircle, AlertOctagon, CheckSquare, ArrowRight } from 'lucide-react';
 import type { MedicalLabRow } from '../../../lib/health/medicalAnalytics';
 import { Card } from '../../ui/Card';
+import { Pressable } from '../../ui/ControlPrimitives';
 
 interface MedicalOverviewProps {
   labs: MedicalLabRow[];
-  documents: any[];
   onActionClick: (actionId: string) => void;
 }
 
-export default function MedicalOverview({ labs, documents, onActionClick }: MedicalOverviewProps) {
+export default function MedicalOverview({ labs, onActionClick }: MedicalOverviewProps) {
   const latestPanel = labs.length > 0 ? labs[0] : null;
   const latestDateStr = latestPanel ? latestPanel.result_date : null;
   
@@ -74,7 +74,7 @@ export default function MedicalOverview({ labs, documents, onActionClick }: Medi
         </Card>
 
         {/* Next Step / Action Card */}
-        <button
+        <Pressable
           onClick={() => onActionClick('retest')}
           className="rounded-2xl border border-dashed border-primary/30 hover:border-primary/60 bg-primary/[0.02] hover:bg-primary/[0.04] p-4 text-left transition-all cursor-pointer flex flex-col justify-between h-36"
         >
@@ -90,7 +90,7 @@ export default function MedicalOverview({ labs, documents, onActionClick }: Medi
           <div className="flex items-center gap-1 text-2xs font-black text-primary uppercase">
             Przejdź do planu <ArrowRight size={10} />
           </div>
-        </button>
+        </Pressable>
       </div>
     </div>
   );

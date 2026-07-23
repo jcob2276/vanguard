@@ -1,5 +1,6 @@
 import React from 'react';
 import { LIFE_SPHERES } from '../../lib/projects/lifeSpheres';
+import { Pressable } from '../ui/ControlPrimitives';
 
 interface CategoryPickerProps {
   selected: string | null;
@@ -12,11 +13,11 @@ export default function CategoryPicker({ selected, onSelect }: CategoryPickerPro
       {[{ id: null as string | null, label: 'Brak', dot: 'bg-text-muted/40' }, ...LIFE_SPHERES].map((cat) => {
         const isSelected = selected === cat.id;
         return (
-          <button
+          <Pressable
             key={cat.id || 'none'}
             type="button"
             onClick={() => onSelect(cat.id)}
-            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all duration-150 select-none ${
+            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all duration-[var(--motion-fast)] select-none ${
               isSelected
                 ? cat.id
                   ? 'bg-primary/15 border-primary/40 text-text-primary shadow-sm font-black'
@@ -26,7 +27,7 @@ export default function CategoryPicker({ selected, onSelect }: CategoryPickerPro
           >
             <span className={`w-2 h-2 rounded-full shrink-0 ${cat.dot}`} />
             <span>{cat.label}</span>
-          </button>
+          </Pressable>
         );
       })}
     </div>

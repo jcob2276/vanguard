@@ -39,6 +39,22 @@ interface Props {
   onNavigateTo?: (dest: string) => void;
 }
 
+function TerminyHeader({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
+  return (
+    <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-custom/25 bg-background/85 backdrop-blur-[var(--blur-md)]">
+      <div className="mx-auto flex max-w-[var(--content-wide)] items-center gap-3 px-[var(--space-4)] py-4 md:px-[var(--space-8)]">
+        <Pressable onClick={onBack} aria-label="Wróć" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-secondary hover:bg-surface-2 hover:text-text-primary">
+          <ArrowLeft size={20} strokeWidth={1.75} />
+        </Pressable>
+        <div className="min-w-0 flex-1"><h1 className="text-xl font-semibold tracking-tight">Terminy</h1><p className="text-xs text-text-muted">Urodziny, przeglądy, polisy</p></div>
+        <Pressable onClick={onAdd} aria-label="Dodaj termin" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-accent hover:opacity-[var(--opacity-90)]">
+          <Plus size={20} strokeWidth={2.25} />
+        </Pressable>
+      </div>
+    </header>
+  );
+}
+
 export default function TerminyPage({ onBack, onNavigateTo }: Props) {
   const userId = useStore((s) => s.session?.user?.id);
   const today = getTodayWarsaw();
@@ -122,28 +138,7 @@ export default function TerminyPage({ onBack, onNavigateTo }: Props) {
       />
 
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-y-auto">
-        <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-custom/25 bg-background/85 backdrop-blur-[var(--blur-md)]">
-          <div className="mx-auto flex max-w-[var(--content-wide)] items-center gap-3 px-[var(--space-4)] py-4 md:px-[var(--space-8)]">
-            <Pressable
-              onClick={onBack}
-              aria-label="Wróć"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-secondary transition-[transform,background-color,color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-95 hover:bg-surface-2 hover:text-text-primary"
-            >
-              <ArrowLeft size={20} strokeWidth={1.75} />
-            </Pressable>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-semibold tracking-tight">Terminy</h1>
-              <p className="text-xs text-text-muted">Urodziny, przeglądy, polisy</p>
-            </div>
-            <Pressable
-              onClick={() => openAdd(null)}
-              aria-label="Dodaj termin"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-accent transition-[transform,opacity] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-95 hover:opacity-[var(--opacity-90)]"
-            >
-              <Plus size={20} strokeWidth={2.25} />
-            </Pressable>
-          </div>
-        </header>
+        <TerminyHeader onBack={onBack} onAdd={() => openAdd(null)} />
 
         <ContentContainer width="default" className="space-y-6 pb-16 pt-6 flex-1">
           {isLoading && (

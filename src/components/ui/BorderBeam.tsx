@@ -18,7 +18,6 @@ export interface BorderBeamProps {
   /** Extra inline styles */
   style?: CSSProperties;
 }
-
 /**
  * BorderBeam component — creates an animated traveling glow beam around the border of any container.
  * Requires container to have `relative overflow-hidden` and a border-radius.
@@ -27,8 +26,8 @@ export function BorderBeam({
   size = 200,
   duration = 12,
   delay = 0,
-  colorFrom = 'var(--color-primary, #38bdf8)',
-  colorTo = 'var(--color-info-hover, #818cf8)',
+  colorFrom = 'var(--color-primary)',
+  colorTo = 'var(--color-info-hover)',
   borderWidth = 1.5,
   className = '',
   style,
@@ -36,7 +35,7 @@ export function BorderBeam({
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 rounded-[inherit] [border:var(--border-width)_solid_transparent] [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)] ${className}`}
+      className={`pointer-events-none absolute inset-0 rounded-[inherit] [border:var(--border-width)_solid_transparent] [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(var(--scrim),var(--scrim))] ${className}`}
       style={
         {
           '--border-width': `${borderWidth}px`,
@@ -60,5 +59,3 @@ export function BorderBeam({
     </div>
   );
 }
-
-export default BorderBeam;

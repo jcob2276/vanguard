@@ -1,6 +1,9 @@
 import Button from '../ui/Button';
 import type { LucideIcon } from 'lucide-react';
 import Badge from '../ui/Badge';
+import { motion } from 'framer-motion';
+import { IOS_SPRING } from '../../lib/motion/iosMotion';
+import { useHaptics } from '../../hooks/useHaptics';
 
 interface NavItem {
   id: string;
@@ -23,19 +26,23 @@ export function DashboardNavBar({
   navItems,
   tabOrder,
 }: DashboardNavBarProps) {
+  const haptics = useHaptics();
+
   return (
     <nav className="fixed left-1/2 z-[var(--z-modal)] flex w-[var(--ds-w-90)] max-w-[var(--ds-maxw-360px)] -translate-x-1/2 items-center justify-between rounded-full border border-border-custom bg-surface/75 p-1.5 shadow-[var(--shadow-nav)] glass-structural" style={{ bottom: 'var(--ds-inline-style-max-2rem-calc-1rem-env-safe-area-inset-bottom)' }}>
       {/* Sliding background indicator pill */}
-      <div
-        className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active transition-all duration-[var(--motion-slow)]"
-        style={{
-          width: 'var(--ds-inline-style-calc-20-3px)',
+      <motion.div
+        className="absolute top-1.5 bottom-1.5 rounded-full nav-pill-active"
+        animate={{
           left: (() => {
             const idx = tabOrder.indexOf(view);
             const slotIndex = idx < 2 ? idx : idx + 1;
             return `calc(${slotIndex * 20}% + 1.5px)`;
           })(),
-          transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}
+        transition={IOS_SPRING.interactive}
+        style={{
+          width: 'var(--ds-inline-style-calc-20-3px)',
         }}
       />
       {(() => {
@@ -45,7 +52,10 @@ export function DashboardNavBar({
             <Button
               key={item.id}
               variant="ghost"
-              onClick={() => navigateTo(item.id)}
+              onClick={() => {
+                if (view !== item.id) haptics.selection();
+                navigateTo(item.id);
+              }}
               disabled={false}
               className={`relative z-[var(--z-raised)] flex flex-1 flex-col items-center gap-1 rounded-full py-2.5 px-0 min-w-0 h-auto transition-all duration-[var(--motion-slow)] active:scale-95 hover:bg-transparent disabled:cursor-default ${
                 view === item.id
@@ -61,7 +71,7 @@ export function DashboardNavBar({
                   </span>
                 )}
               </div>
-              <span className="text-xs font-black uppercase tracking-wider">{item.label}</span>
+              <span className="text-xs font-semibold">{item.label}</span>
             </Button>
           );
 

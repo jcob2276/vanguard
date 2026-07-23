@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalendarDays, Clock, Repeat2, Trash2, MapPin, Bell, AlignLeft } from 'lucide-react';
 import Button from '../ui/Button';
-import { ControlInput, ControlTextarea } from '../ui/ControlPrimitives';
+import { ControlInput, ControlSelect, ControlTextarea } from '../ui/ControlPrimitives';
 import Modal from '../ui/Modal';
 import { useCalendarData } from './hooks/useCalendarData';
 import CategoryPicker from './CategoryPicker';
@@ -62,7 +62,7 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-xs font-bold text-text-muted"><Clock size={14} /> Kiedy</span>
               <label className="flex items-center gap-2 text-xs font-bold text-text-muted cursor-pointer select-none">
-                <input
+                <ControlInput
                   type="checkbox"
                   checked={editAllDay}
                   onChange={(e) => setEditAllDay(e.target.checked)}
@@ -78,11 +78,11 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
               </label>
               <label className="space-y-1 text-xs font-bold text-text-secondary">
                 <span className="text-text-muted">Od</span>
-                <ControlInput type="time" disabled={editAllDay} value={editStart} onChange={(event) => setEditStart(event.target.value)} className="h-9 w-full rounded-lg border border-border-custom/40 bg-surface-solid/50 px-2.5 text-xs font-semibold text-text-primary disabled:opacity-40" />
+                <ControlInput type="time" disabled={editAllDay} value={editStart} onChange={(event) => setEditStart(event.target.value)} className="h-9 w-full rounded-lg border border-border-custom/40 bg-surface-solid/50 px-2.5 text-xs font-semibold text-text-primary disabled:opacity-[var(--opacity-dimmed)]" />
               </label>
               <label className="space-y-1 text-xs font-bold text-text-secondary">
                 <span className="text-text-muted">Do</span>
-                <ControlInput type="time" disabled={editAllDay} value={editEnd} onChange={(event) => setEditEnd(event.target.value)} className="h-9 w-full rounded-lg border border-border-custom/40 bg-surface-solid/50 px-2.5 text-xs font-semibold text-text-primary disabled:opacity-40" />
+                <ControlInput type="time" disabled={editAllDay} value={editEnd} onChange={(event) => setEditEnd(event.target.value)} className="h-9 w-full rounded-lg border border-border-custom/40 bg-surface-solid/50 px-2.5 text-xs font-semibold text-text-primary disabled:opacity-[var(--opacity-dimmed)]" />
               </label>
             </div>
           </div>
@@ -116,7 +116,7 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
           <div className="flex items-center gap-2 bg-surface-solid/30 border border-border-custom/30 rounded-xl px-3.5 py-2 text-xs font-bold text-text-secondary">
             <Bell size={14} className="text-text-muted shrink-0" />
             <span className="text-text-muted">Przypomnienie:</span>
-            <select
+            <ControlSelect
               value={editReminder ?? ''}
               onChange={(e) => setEditReminder(e.target.value ? Number(e.target.value) : null)}
               className="bg-transparent text-text-primary font-bold focus:outline-none cursor-pointer flex-1"
@@ -126,7 +126,7 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
               <option value="30">30 minut przed</option>
               <option value="60">1 godzina przed</option>
               <option value="1440">1 dzień przed</option>
-            </select>
+            </ControlSelect>
           </div>
 
           {/* Category Picker */}
@@ -160,7 +160,7 @@ export function EditEventModal({ calData, handleEditSave }: Props) {
               disabled={saving || !editTitle.trim() || !editDate || (!editAllDay && (!editStart || !editEnd)) || (editRecurrence === 'custom' && editCustomDays.length === 0)}
               loading={saving}
               variant="primary"
-              className="h-11 flex-1 text-xs font-black uppercase tracking-wider shadow-lg shadow-primary/20"
+              className="h-11 flex-1 text-xs font-black uppercase tracking-wider"
             >
               Zapisz zmiany
             </Button>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '../ui/Card';
 import Button from '../ui/Button';
-import { Calendar, DollarSign, TrendingUp, Plus, ShieldCheck, Percent } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Plus, ShieldCheck } from 'lucide-react';
 import { calculate12MonthDividendForecast, evaluateDividendSafety, type DividendRecord } from '@vanguard/domain';
 import { DividendAddForm } from './DividendAddForm';
 import { useYahooQuotes } from '../../lib/yahooFinanceApi';

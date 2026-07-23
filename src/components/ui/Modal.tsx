@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Button from './Button';
+import { IOS_SPRING } from '../../lib/motion/iosMotion';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -44,28 +46,56 @@ export default function Modal({
   containerRef,
 }: ModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const reduceMotion = useReducedMotion();
 
-  // Close on Escape key press
-  useEffect(() => {
-    if (!isOpen) return;
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      restoreFocusRef.current?.focus();
+      return;
+    }
+
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    const focusableSelector =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+      );
+      if (focusable.length === 0) {
+        e.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    // Prevent background scrolling when modal is open
     document.body.style.overflow = 'hidden';
+    const first = dialogRef.current?.querySelector<HTMLElement>(focusableSelector);
+    (first ?? dialogRef.current)?.focus();
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
+      restoreFocusRef.current?.focus();
     };
   }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (closeOnBackdropClick && e.target === backdropRef.current) {
@@ -79,17 +109,32 @@ export default function Modal({
   const backdropPadding = overlayClassName.includes('p-0') ? '' : 'p-4';
 
   return (
-    <div
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      className={`fixed inset-0 z-[var(--z-overlay)] flex bg-scrim/40 backdrop-blur-[var(--blur-sm)] animate-fadeIn ${backdropPadding} ${verticalAlignClass} ${justifyClass} ${flexDirClass} ${overlayClassName}`}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        ref={containerRef}
-        className={`w-full ${sizeClasses[size]} glass-floating rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[var(--ds-arbitrary-90vh)] overflow-y-auto' : ''} ${className}`}
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={backdropRef}
+          onClick={handleBackdropClick}
+          className={`fixed inset-0 z-[var(--z-overlay)] flex bg-scrim/40 backdrop-blur-[var(--blur-sm)] ${backdropPadding} ${verticalAlignClass} ${justifyClass} ${flexDirClass} ${overlayClassName}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0.12 : 0.2 }}
+        >
+          <motion.div
+            ref={(node) => {
+              dialogRef.current = node;
+              if (containerRef) containerRef.current = node;
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={typeof title === 'string' ? title : undefined}
+            tabIndex={-1}
+            className={`w-full ${sizeClasses[size]} glass-floating rounded-[var(--radius-xl)] shadow-xl ${padding} ${overflowY ? 'max-h-[var(--ds-arbitrary-90vh)] overflow-y-auto' : ''} ${className}`}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 36, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.98 }}
+            transition={reduceMotion ? { duration: 0.12 } : IOS_SPRING.default}
+          >
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -118,7 +163,9 @@ export default function Modal({
           </div>
         )}
         <div className="outline-none">{children}</div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

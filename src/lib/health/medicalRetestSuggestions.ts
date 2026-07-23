@@ -31,7 +31,6 @@ export function computeAgeFromBirthDate(birthDate: string | null | undefined): n
   if (m < 0 || (m === 0 && now.getDate() < born.getDate())) age--;
   return age >= 0 && age < 120 ? age : null;
 }
-
 export function buildRetestSuggestions(input: {
   series: MarkerSeries[];
   fullPanel: FullPanelInfo | null;
@@ -139,39 +138,4 @@ export function buildRetestSuggestions(input: {
       return true;
     })
     .slice(0, 6);
-}
-
-function buildOracleLabPrompt(
-  suggestions: RetestSuggestion[],
-  user: MedicalUserContext,
-  fullPanel: FullPanelInfo | null,
-): string {
-  const ageLine = user.age != null ? `${user.age} lat` : 'wiek nieznany';
-  const sexLine = user.sex ? `, płeć: ${user.sex}` : '';
-  const panelLine = fullPanel
-    ? `Ostatni pełny panel: ${formatMedicalDate(fullPanel.date)} (${fullPanel.markerCount} markerów, ${fullPanel.ageDays ?? '?'} dni temu).`
-    : 'Brak pełnego panelu w bazie.';
-
-  const detList = suggestions.length
-    ? suggestions.map((s) => `- [${s.priority}] ${s.title}: ${s.reason}`).join('\n')
-    : '- Brak automatycznych propozycji — oceń od zera na podstawie medical_context.';
-
-  return `[Badania — priorytetyzacja z kontekstem]
-
-Masz pełny state_vector Vanguard (medical_context z datami, trening, sen, projekty, stream).
-
-Profil: ${ageLine}${sexLine}.
-${panelLine}
-${user.sprintGoal ? `Sprint: ${user.sprintGoal}` : ''}
-${user.trainingHint ? `Trening: ${user.trainingHint}` : ''}
-
-Propozycje deterministyczne systemu (start, nie dogma):
-${detList}
-
-ZADANIE:
-1. Oceń które badania / retesty mają dla mnie NAJWIĘKSZE przełożenie TERAZ — max 3–5 punktów.
-2. Każdy punkt: jeden konkret z MOICH danych (data wyniku, luka, sprzeczność z zachowaniem) — bez diagnozy.
-3. Odrzuć propozycje bez sensu w moim kontekście (wiek, brak objawów, świeży wynik).
-4. Nie twierdz że coś „jest nie tak” — mów co warto odświeżyć i dlaczego operacyjnie.
-5. Na końcu: jedna linia „nie robić teraz” (overtesting).`;
 }

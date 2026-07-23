@@ -82,7 +82,7 @@ function AccountRow({
             className="min-h-9 w-28 rounded-lg border-0 bg-surface-2/80 px-2 text-sm ring-1 ring-border-custom/25"
             aria-label={isCrypto ? `Ilość ${account.name}` : `Saldo ${account.name}`}
           />
-          <Button type="submit" size="sm" variant="secondary" className="rounded-lg active:scale-[0.98]">
+          <Button type="submit" size="sm" variant="secondary" className="rounded-lg active:scale-[var(--scale-pressed)]">
             {isCrypto ? 'Zapisz' : 'Saldo'}
           </Button>
         </form>

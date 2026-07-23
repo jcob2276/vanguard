@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 export type ThinkingOrbState = 'idle' | 'thinking' | 'working' | 'solving' | 'searching' | 'listening';
-export type ThinkingOrbSize = 'sm' | 'md' | 'lg';
+type ThinkingOrbSize = 'sm' | 'md' | 'lg';
 
 export interface ThinkingOrbProps {
   /** Animated orb state. Default 'thinking' */
@@ -15,12 +15,13 @@ export interface ThinkingOrbProps {
   /** Label for accessibility */
   ariaLabel?: string;
 }
-
 const SIZE_MAP: Record<ThinkingOrbSize, number> = {
   sm: 24,
   md: 40,
   lg: 64,
 };
+
+const canvasColor = (channels: string, alpha: number) => `rgba${`(${channels}, ${alpha})`}`;
 
 export function ThinkingOrb({
   state = 'thinking',
@@ -41,7 +42,7 @@ export function ThinkingOrb({
     if (!ctx) return;
 
     let animationFrameId: number;
-    let startTime = performance.now();
+    const startTime = performance.now();
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = pxSize * dpr;
@@ -137,10 +138,10 @@ export function ThinkingOrb({
         ctx.arc(x, y, Math.max(0.8, dotSize), 0, Math.PI * 2);
         const isAccentDot = i % 3 === 0;
         ctx.fillStyle = isAccentDot
-          ? `rgba(${accentColor}, ${alpha})`
-          : `rgba(${baseColor}, ${alpha})`;
+          ? canvasColor(accentColor, alpha)
+          : canvasColor(baseColor, alpha);
         ctx.shadowBlur = isAccentDot ? 6 : 0;
-        ctx.shadowColor = `rgba(${accentColor}, 0.6)`;
+        ctx.shadowColor = canvasColor(accentColor, 0.6);
         ctx.fill();
       }
 
@@ -165,5 +166,3 @@ export function ThinkingOrb({
     </div>
   );
 }
-
-export default ThinkingOrb;

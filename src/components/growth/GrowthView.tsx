@@ -18,7 +18,7 @@ import GrowthPracticeSection from './sections/GrowthPracticeSection';
 import GrowthReviewSection from './sections/GrowthReviewSection';
 import GrowthModals from './sections/GrowthModals';
 
-import type { LibraryItem, PracticeEvidence, VanguardIdentityData } from '../../lib/growth/growth.types';
+import type { DevelopmentReview, LibraryItem, PracticeEvidence, VanguardIdentityData } from '../../lib/growth/growth.types';
 
 export default function GrowthView({ session }: { session: Session }) {
   const userId = session.user.id;
@@ -59,7 +59,7 @@ export default function GrowthView({ session }: { session: Session }) {
     }
   };
 
-  const handleSaveReview = async (reviewData: any) => {
+  const handleSaveReview = async (reviewData: DevelopmentReview) => {
     await handleSaveIdentity({
       development_review: reviewData
     });
@@ -151,7 +151,7 @@ export default function GrowthView({ session }: { session: Session }) {
 
         {/* Section 7: Review */}
         <GrowthReviewSection 
-          currentReview={identity?.development_review || {}} 
+          currentReview={identity?.development_review ?? null}
           onSaveReview={handleSaveReview} 
         />
       </div>

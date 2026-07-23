@@ -172,7 +172,13 @@ export default function Dashboard({ session }: { session: Session }) {
             handleLogoPressEnd={s.handleLogoPressEnd}
           />
 
-          <main className="flex-1 overflow-hidden vt-tab-main" onTouchStart={showLock ? undefined : s.handleMainTouchStart} onTouchEnd={showLock ? undefined : s.handleMainTouchEnd}>
+          <main
+            className="flex-1 overflow-hidden vt-tab-main touch-pan-y"
+            onTouchStart={showLock ? undefined : s.handleMainTouchStart}
+            onTouchMove={showLock ? undefined : s.handleMainTouchMove}
+            onTouchEnd={showLock ? undefined : s.handleMainTouchEnd}
+            onTouchCancel={showLock ? undefined : s.handleMainTouchCancel}
+          >
             {showLock ? (
               <div className="p-5 pb-8 space-y-7 overflow-y-auto h-full">
                 <OrientationFooter />

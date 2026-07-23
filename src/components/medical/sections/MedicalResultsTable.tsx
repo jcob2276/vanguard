@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { HelpCircle, ChevronRight, AlertTriangle, ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { ChevronRight, AlertTriangle, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import type { MedicalLabRow } from '../../../lib/health/medicalAnalytics';
+import { ControlSelect, Pressable } from '../../ui/ControlPrimitives';
 
 interface MedicalResultsTableProps {
   labs: MedicalLabRow[];
@@ -18,11 +19,9 @@ export default function MedicalResultsTable({ labs, onSelectMarker }: MedicalRes
   const [activeTab, setActiveTab] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Compute latest results per marker
   const latestMarkers = useMemo(() => {
     const latestMap = new Map<string, { current: MedicalLabRow; previous: MedicalLabRow | null; count: number }>();
     
-    // Sort labs chronologically ascending to track history
     const sortedLabs = [...labs].sort((a, b) => a.result_date.localeCompare(b.result_date));
     
     sortedLabs.forEach(row => {
@@ -45,21 +44,17 @@ export default function MedicalResultsTable({ labs, onSelectMarker }: MedicalRes
     return [...latestMap.values()].sort((a, b) => a.current.marker_name.localeCompare(b.current.marker_name));
   }, [labs]);
 
-  // Unique categories list
   const categories = useMemo(() => {
     const set = new Set(labs.map(l => l.category).filter(Boolean) as string[]);
     return ['all', ...set];
   }, [labs]);
 
-  // Filtering logic
   const filteredMarkers = useMemo(() => {
     return latestMarkers.filter(m => {
-      // 1. Category Filter
       if (selectedCategory !== 'all' && m.current.category !== selectedCategory) {
         return false;
       }
 
-      // 2. Status Tab Filter
       if (activeTab === 'attention') {
         return m.current.flag && m.current.flag !== 'N' && m.current.flag !== 'normal';
       }
@@ -99,8 +94,7 @@ export default function MedicalResultsTable({ labs, onSelectMarker }: MedicalRes
           <p className="text-2xs text-text-muted mt-0.5">Surowe fakty bezpośrednio z laboratoriów</p>
         </div>
 
-        {/* Categories drop-down */}
-        <select
+        <ControlSelect
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
           className="rounded-xl border border-border-custom bg-background px-3 py-1.5 text-xs font-bold outline-none cursor-pointer"
@@ -109,13 +103,12 @@ export default function MedicalResultsTable({ labs, onSelectMarker }: MedicalRes
           {categories.filter(c => c !== 'all').map(c => (
             <option key={c || ''} value={c || ''}>{c}</option>
           ))}
-        </select>
+        </ControlSelect>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex flex-wrap gap-1 border-b border-border-custom/60 pb-2">
         {FILTER_TABS.map(tab => (
-          <button
+          <Pressable
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
             className={`rounded-lg px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
@@ -125,11 +118,10 @@ export default function MedicalResultsTable({ labs, onSelectMarker }: MedicalRes
             }`}
           >
             {tab.label}
-          </button>
+          </Pressable>
         ))}
       </div>
 
-      {/* Table display */}
       <div className="overflow-x-auto rounded-2xl border border-border-custom bg-background/30">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
@@ -166,7 +158,7 @@ export default function MedicalResultsTable({ labs, onSelectMarker }: MedicalRes
                   <td className="px-4 py-3 text-center text-text-secondary font-mono">{normStr}</td>
                   <td className="px-4 py-3 font-mono">{renderDelta(m.current.value, m.previous)}</td>
                   <td className="px-4 py-3 text-text-muted">{m.current.result_date}</td>
-                  <td className="px-4 py-3 text-text-secondary truncate max-w-[120px]" title={m.current.provider || m.current.source_name}>
+                  <td className="px-4 py-3 text-text-secondary truncate max-w-[var(--ds-maxw-120px)]" title={m.current.provider || m.current.source_name}>
                     {m.current.provider || m.current.source_name}
                   </td>
                   <td className="px-4 py-3 text-right text-text-muted">

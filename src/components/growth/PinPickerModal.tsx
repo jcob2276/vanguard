@@ -1,6 +1,5 @@
 import type { GrowthLinkRow, GrowthTodoRow } from './hooks/useGrowthData';
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function pinTitle(
   pin: {
     entity_type: string;

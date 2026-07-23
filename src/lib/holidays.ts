@@ -44,14 +44,12 @@ function addDays(d: Date, days: number): Date {
 /**
  * Returns all statutory Polish holidays for a given year.
  */
-export function getPolishHolidays(year: number): Record<string, PolishHoliday> {
+function getPolishHolidays(year: number): Record<string, PolishHoliday> {
   const map: Record<string, PolishHoliday> = {};
 
   const add = (dateStr: string, name: string, isFreeDay = true) => {
     map[dateStr] = { date: dateStr, name, isFreeDay };
   };
-
-  const pad = (n: number) => String(n).padStart(2, '0');
 
   // Fixed holidays
   add(`${year}-01-01`, 'Nowy Rok');

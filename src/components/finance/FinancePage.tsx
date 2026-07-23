@@ -54,17 +54,17 @@ function FinancePage() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary">
-      <header className="sticky top-0 z-20 border-b border-border-custom/25 bg-background/85 backdrop-blur-md">
+      <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-custom/25 bg-background/85 backdrop-blur-[var(--blur-material)]">
         <div className="mx-auto flex max-w-[var(--content-wide)] items-center gap-3 px-[var(--space-4)] py-4 md:px-[var(--space-8)]">
           <Link
             to="/dzis"
             aria-label="Wróć"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-secondary transition-[transform,background-color,color] duration-150 ease-out active:scale-95 hover:bg-surface-2 hover:text-text-primary"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-secondary transition-[transform,background-color,color] duration-[var(--motion-fast)] ease-[var(--ease-out)] active:scale-95 hover:bg-surface-2 hover:text-text-primary"
           >
             <ArrowLeft size={20} strokeWidth={1.75} />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold tracking-[-0.02em]">Finanse</h1>
+            <h1 className="text-xl font-semibold tracking-[var(--tracking-tight)]">Finanse</h1>
           </div>
         </div>
       </header>

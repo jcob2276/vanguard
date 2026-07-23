@@ -9,6 +9,7 @@ export interface ToastItem {
 
 type ToastListener = (items: ToastItem[]) => void;
 type ConfirmListener = (open: boolean, message: string) => void;
+type PromptListener = (open: boolean, message: string, initialValue: string) => void;
 
 let toasts: ToastItem[] = [];
 const toastListeners = new Set<ToastListener>();
@@ -17,6 +18,11 @@ let confirmOpen = false;
 let confirmMessage = '';
 let confirmResolve: ((value: boolean) => void) | null = null;
 const confirmListeners = new Set<ConfirmListener>();
+let promptOpen = false;
+let promptMessage = '';
+let promptInitialValue = '';
+let promptResolve: ((value: string | null) => void) | null = null;
+const promptListeners = new Set<PromptListener>();
 
 function emitToasts() {
   const snapshot = [...toasts];
@@ -37,6 +43,12 @@ export function subscribeConfirm(listener: ConfirmListener): () => void {
   confirmListeners.add(listener);
   listener(confirmOpen, confirmMessage);
   return () => confirmListeners.delete(listener);
+}
+
+export function subscribePrompt(listener: PromptListener): () => void {
+  promptListeners.add(listener);
+  listener(promptOpen, promptMessage, promptInitialValue);
+  return () => promptListeners.delete(listener);
 }
 
 export function notify(
@@ -75,4 +87,24 @@ export function resolveConfirm(value: boolean) {
   emitConfirm();
   confirmResolve?.(value);
   confirmResolve = null;
+}
+
+export function promptDialog(message: string, initialValue = ''): Promise<string | null> {
+  if (promptOpen) return Promise.resolve(null);
+  promptOpen = true;
+  promptMessage = message;
+  promptInitialValue = initialValue;
+  promptListeners.forEach(listener => listener(true, message, initialValue));
+  return new Promise(resolve => {
+    promptResolve = resolve;
+  });
+}
+
+export function resolvePrompt(value: string | null) {
+  promptOpen = false;
+  promptMessage = '';
+  promptInitialValue = '';
+  promptListeners.forEach(listener => listener(false, '', ''));
+  promptResolve?.(value);
+  promptResolve = null;
 }

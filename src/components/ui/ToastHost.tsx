@@ -3,6 +3,7 @@ import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { subscribeToasts, type ToastItem } from '../../lib/notify';
 import ConfirmDialog from './ConfirmDialog';
 import Button from './Button';
+import PromptDialog from './PromptDialog';
 
 const ICONS = {
   success: CheckCircle2,
@@ -49,6 +50,7 @@ export function ToastHost() {
       </div>
 
       <ConfirmDialog />
+      <PromptDialog />
     </>
   );
 }

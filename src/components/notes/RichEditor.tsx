@@ -1,16 +1,14 @@
-/**
- * RichEditor — świadomy wyjątek od limitu 300 linii (FRONTEND_GUIDE.md §13.8).
- * Gęsta logika kursora/selekcji (Range, document.execCommand, visualViewport)
- * wymaga utrzymania stanu w jednym miejscu — rozbicie grozi subtelnymi bugami
- * z kursorem (skaczący kursor, utrata selekcji przy zmianie narzędzia).
- * StaticBar wyekstrahowany do RichEditorStaticBar.tsx.
- */
+/* RichEditor intentionally keeps dense cursor/selection and visualViewport logic
+ * together; splitting it risks selection loss. StaticBar is already extracted. */
 import { Pressable, ControlInput } from '../ui/ControlPrimitives';
 import { useEffect, useRef, useState } from 'react';
 import FloatingToolbar from './FloatingToolbar';
 import RichEditorStaticBar from './RichEditorStaticBar';
-import { notify } from '../../lib/notify';
+import { notify, promptDialog } from '../../lib/notify';
 import { SLASH_COMMANDS } from './richEditorCommands';
+import { uploadNoteAttachment } from '../../lib/noteAttachmentsApi';
+import { useQueryClient } from '@tanstack/react-query';
+import { notesKeys } from '../../lib/queryKeys';
 export default function RichEditor({
   value,
   onChange,
@@ -19,6 +17,9 @@ export default function RichEditor({
   style = {},
   showStaticBar = false,
   allNotes = [],
+  noteId,
+  userId,
+  onNavigateToNote,
 }: {
   value: string;
   onChange: (html: string) => void;
@@ -27,7 +28,11 @@ export default function RichEditor({
   style?: React.CSSProperties;
   showStaticBar?: boolean;
   allNotes?: Array<{ id: string; title: string }>;
+  noteId?: string;
+  userId?: string;
+  onNavigateToNote?: (noteId: string) => void;
 }) {
+  const queryClient = useQueryClient();
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [toolbarRange, setToolbarRange] = useState<Range | null>(null);
@@ -338,13 +343,14 @@ export default function RichEditor({
       handleInput();
       handleSelection();
     } else if (action === 'link') {
-      restoreSelection();
-      const url = window.prompt('Wpisz adres URL odnośnika:');
-      if (url !== null) {
-        document.execCommand('createLink', false, url);
-        handleInput();
-      }
-      handleSelection();
+      void promptDialog('Wpisz adres URL odnośnika:').then(url => {
+        if (url !== null) {
+          restoreSelection();
+          document.execCommand('createLink', false, url);
+          handleInput();
+          handleSelection();
+        }
+      });
     } else if (action === 'clear') {
       restoreSelection();
       document.execCommand('removeFormat', false);
@@ -436,26 +442,27 @@ export default function RichEditor({
     }
   };
 
-  const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Limit: 5 MB
-    if (file.size > 5 * 1024 * 1024) {
-      notify('Zdjęcie jest za duże (max 5 MB). Użyj mniejszego pliku.', 'error');
+    if (!noteId || !userId) {
+      notify('Najpierw zapisz notatkę, aby dodać załącznik.', 'error');
       e.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const src = ev.target?.result as string;
+    try {
+      const attachment = await uploadNoteAttachment(userId, noteId, file);
+      await queryClient.invalidateQueries({ queryKey: notesKeys.attachments(noteId) });
+      const safeLabel = document.createElement('span');
+      safeLabel.textContent = `📎 ${attachment.file_name}`;
       restoreSelection();
       document.execCommand('insertHTML', false,
-        `<figure class="keep-figure" contenteditable="false">
-          <img class="keep-inline-img" src="${src}" alt="Załącznik" />
-        </figure><p><br></p>`);
+        `<p><span data-attachment-id="${attachment.id}" contenteditable="false">${safeLabel.innerHTML}</span></p><p><br></p>`);
       handleInput();
-    };
-    reader.readAsDataURL(file);
+      notify('Zdjęcie zapisane jako załącznik', 'success');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Nie udało się dodać załącznika', 'error');
+    }
     e.target.value = '';
   };
 
@@ -485,7 +492,7 @@ export default function RichEditor({
       e.preventDefault();
       const noteId = target.getAttribute('data-note-id');
       if (noteId) {
-        target.dispatchEvent(new CustomEvent('wiki-link-navigate', { bubbles: true, detail: { noteId } }));
+        onNavigateToNote?.(noteId);
       }
     }
   };
@@ -715,7 +722,7 @@ export default function RichEditor({
         type="file"
         accept="image/*"
         style={{ display: 'none' }}
-        onChange={handleImageFile}
+        onChange={event => { void handleImageFile(event); }}
       />
       <div
         ref={editorRef}

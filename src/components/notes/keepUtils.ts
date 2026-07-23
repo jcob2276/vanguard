@@ -1,5 +1,7 @@
 import { differenceInDays } from 'date-fns';
 import { formatWarsawDate, getTodayWarsaw, TIMEZONE } from '../../lib/date';
+import { getPlainText } from '../../lib/noteText';
+export { getPlainText } from '../../lib/noteText';
 
 export function relativeDate(iso: string): string {
   const d = new Date(iso);
@@ -10,13 +12,25 @@ export function relativeDate(iso: string): string {
   return d.toLocaleDateString('pl-PL', { timeZone: TIMEZONE, day: 'numeric', month: 'short' });
 }
 
-export function formatNoteDate(iso: string): string {
-  return new Intl.DateTimeFormat('pl-PL', { timeZone: TIMEZONE, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
-}
+const normalizeSearchText = (value: string) => (
+  value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pl-PL')
+);
 
-/** Strips HTML tags — shared by NoteRow, InlineEditor, EditNoteModal for snippet/AI text. */
-export function getPlainText(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+export function matchesNoteSearch(note: Note, query: string): boolean {
+  const terms = normalizeSearchText(query).trim().split(/\s+/).filter(Boolean);
+  if (!terms.length) return true;
+  if (note.is_locked) {
+    const lockedTitle = normalizeSearchText(note.title);
+    return terms.every(term => lockedTitle.includes(term));
+  }
+  const haystack = normalizeSearchText([
+    note.title,
+    getPlainText(note.content),
+    ...note.tags,
+    ...(note.attachment_names ?? []),
+    note.attachment_text ?? '',
+  ].join(' '));
+  return terms.every(term => haystack.includes(term));
 }
 
 export function sanitizeHtml(html: string): string {

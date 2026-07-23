@@ -51,7 +51,7 @@ if (output.trim().startsWith("{") || output.includes('"migrations"')) {
         rows = parsed.migrations.map((m) => [null, m.local || "", m.remote || "", m.time || ""]);
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // fallback
   }
 }

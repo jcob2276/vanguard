@@ -38,7 +38,7 @@ function GoalProgressEditor({
         className="min-h-9 w-28 rounded-lg border-0 bg-surface-2/80 px-2 text-sm ring-1 ring-border-custom/25"
         aria-label={`Postęp celu ${goal.name}`}
       />
-      <Button type="submit" size="sm" variant="secondary" className="rounded-lg active:scale-[0.98]">
+      <Button type="submit" size="sm" variant="secondary" className="rounded-lg active:scale-[var(--scale-pressed)]">
         Zapisz
       </Button>
     </form>
@@ -69,7 +69,7 @@ export function FinanceGoalsPanel({ goals, onAdd, onUpdateProgress, onRemove }: 
                 trailing={`${pct.toFixed(0)}%`}
               >
                 <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-2">
-                  <div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-primary transition-[width] duration-[var(--motion-slow)] ease-[var(--ease-out)]" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <GoalProgressEditor goal={g} onSave={(amount) => onUpdateProgress({ id: g.id, current_amount: amount })} />

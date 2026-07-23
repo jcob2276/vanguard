@@ -6,6 +6,7 @@ import { formatPln } from '../../lib/finance/formatMoney';
 import { FinanceEmpty, FinanceList, FinanceSection } from './financeUi';
 import { ToggleChip } from '../ui/ToggleChip';
 import type { ParsedTransaction } from '../../lib/finance/csvImport';
+import { ControlInput, ControlSelect, Pressable } from '../ui/ControlPrimitives';
 
 const KIND_FILTER = ['wszystkie', 'expense', 'income'] as const;
 export type KindFilter = (typeof KIND_FILTER)[number];
@@ -81,22 +82,22 @@ export function FinanceCsvPreview({
                 {k === 'wszystkie' ? 'Wszystkie' : k === 'expense' ? 'Wydatki' : 'Wpływy'}
               </ToggleChip>
             ))}
-            <button
+            <Pressable
               type="button"
               onClick={() => onToggleAll(selectedCount < transactions.length)}
-              className="ml-auto rounded-lg px-2 py-1 text-xs text-text-muted hover:text-text-primary active:scale-[0.97]"
+              className="ml-auto rounded-lg px-2 py-1 text-xs text-text-muted hover:text-text-primary active:scale-[var(--scale-pressed-strong)]"
             >
               {selectedCount === transactions.length ? 'Odznacz wszystkie' : 'Zaznacz wszystkie'}
-            </button>
+            </Pressable>
           </div>
 
           <FinanceList>
             {visibleTx.map((tx) => (
               <div
                 key={tx.dedup_hash}
-                className={`flex items-start gap-3 px-4 py-3.5 transition-colors ${selected.has(tx.dedup_hash) ? '' : 'opacity-40'}`}
+                className={`flex items-start gap-3 px-4 py-3.5 transition-colors ${selected.has(tx.dedup_hash) ? '' : 'opacity-[var(--opacity-dimmed)]'}`}
               >
-                <input
+                <ControlInput
                   type="checkbox"
                   checked={selected.has(tx.dedup_hash)}
                   onChange={() => onToggle(tx.dedup_hash)}
@@ -112,7 +113,7 @@ export function FinanceCsvPreview({
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     <span className="text-sm text-text-muted">{tx.transaction_date}</span>
-                    <select
+                    <ControlSelect
                       value={categoryOverrides[tx.dedup_hash] ?? tx.category}
                       onChange={(e) => onCategoryOverride(tx.dedup_hash, e.target.value as FinanceExpenseCategory)}
                       className="rounded-md border-0 bg-surface-2/80 px-2 py-0.5 text-xs text-text-secondary ring-1 ring-border-custom/25 focus:ring-primary/40"
@@ -120,7 +121,7 @@ export function FinanceCsvPreview({
                       {FINANCE_EXPENSE_CATEGORIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
-                    </select>
+                    </ControlSelect>
                   </div>
                 </div>
               </div>
@@ -132,7 +133,7 @@ export function FinanceCsvPreview({
               onClick={onConfirm}
               loading={importing}
               disabled={selectedCount === 0}
-              className="rounded-xl active:scale-[0.98]"
+              className="rounded-xl active:scale-[var(--scale-pressed)]"
             >
               Importuj {selectedCount} transakcji
             </Button>

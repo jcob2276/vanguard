@@ -26,11 +26,11 @@ export function SliderField({
     <label className="block space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-text-secondary">{label}</span>
-        <span className="text-sm font-medium tabular-nums tracking-[-0.02em] text-text-primary">
+        <span className="text-sm font-medium tabular-nums tracking-[var(--tracking-tight)] text-text-primary">
           {display ?? `${value.toLocaleString('pl-PL')}${suffix}`}
         </span>
       </div>
-      <input
+      <ControlInput
         type="range"
         min={min}
         max={max}
@@ -69,10 +69,10 @@ export function QuickAddForm({ fields, onSubmit, submitLabel = 'Dodaj' }: QuickA
           placeholder={f.placeholder}
           defaultValue={f.defaultValue}
           required
-          className="min-h-11 min-w-[7.5rem] flex-1 rounded-xl border-0 bg-surface-2/70 px-3 py-2 text-sm ring-1 ring-border-custom/25 focus:ring-2 focus:ring-primary/35"
+          className="min-h-11 min-w-[var(--finance-range-width)] flex-1 rounded-xl border-0 bg-surface-2/70 px-3 py-2 text-sm ring-1 ring-border-custom/25 focus:ring-2 focus:ring-primary/35"
         />
       ))}
-      <Button type="submit" size="sm" className="rounded-xl active:scale-[0.98]">
+      <Button type="submit" size="sm" className="rounded-xl active:scale-[var(--scale-pressed)]">
         {submitLabel}
       </Button>
     </form>

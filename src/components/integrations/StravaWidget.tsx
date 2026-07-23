@@ -1,5 +1,5 @@
 import { Pressable } from '../ui/ControlPrimitives';
-import { TIMEZONE, formatShortDateWarsaw } from '../../lib/date';
+import { formatShortDateWarsaw } from '../../lib/date';
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Clock, HeartPulse, RefreshCw, Route } from 'lucide-react';
 import { supabase, invokeEdge } from '../../lib/supabase';

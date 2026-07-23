@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 /** Shared typography + layout for the finance module (Apple-style grouped sections). */
 
 export const financeHeroNumberClass =
-  'text-[clamp(2.5rem,9vw,3.75rem)] font-semibold tabular-nums tracking-[-0.04em] leading-[0.95] text-text-primary';
+  'text-[var(--finance-display-size)] font-semibold tabular-nums tracking-[var(--tracking-display)] leading-[var(--line-height-display)] text-text-primary';
 
-const financeAmountClass = 'tabular-nums tracking-[-0.02em]';
+const financeAmountClass = 'tabular-nums tracking-[var(--tracking-tight)]';
 
 export function FinanceSection({
   title,
@@ -82,6 +82,6 @@ export function FinanceEmpty({ children }: { children: ReactNode }) {
 
 export function FinanceProse({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <p className={`text-base leading-[1.55] text-text-secondary ${className}`}>{children}</p>
+    <p className={`text-base leading-[var(--line-height-reading)] text-text-secondary ${className}`}>{children}</p>
   );
 }

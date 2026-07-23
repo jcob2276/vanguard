@@ -60,7 +60,7 @@ export default function CorrelationCard({ item, expanded = false, showExperiment
     <Card
       variant="surface"
       padding="1.25rem"
-      className={`border transition-all duration-200 ${
+      className={`border transition-all duration-[var(--motion-medium)] ${
         item.evidence_level === 'confirmed' ? 'border-success/20 hover:border-success/40' :
         item.evidence_level === 'probable' ? 'border-primary/20 hover:border-primary/40' :
         'border-border-custom hover:border-border-custom-hover'
@@ -135,7 +135,7 @@ export default function CorrelationCard({ item, expanded = false, showExperiment
         {expanded && (
           <div className="mt-4 pt-3 border-t border-border-custom/60 space-y-3">
             {showChart && (
-              <div className="h-[140px] w-full">
+              <div className="h-[var(--ds-h-140px)] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-custom)" opacity={0.4} />

@@ -69,7 +69,7 @@ export default function CorrelationsPage() {
     <div className="min-h-screen w-full bg-background text-text-primary flex flex-col">
       <CorrelationsHeader loading={false} onRefresh={load} />
 
-      <div className="border-b border-border-custom bg-surface-solid/40 sticky top-0 z-10 backdrop-blur-md">
+      <div className="border-b border-border-custom bg-surface-solid/40 sticky top-0 z-[var(--z-sticky)] backdrop-blur-[var(--blur-material)]">
         <div className="max-w-3xl mx-auto px-4 flex gap-4 text-xs font-semibold">
           <Button
             variant="ghost"
@@ -227,7 +227,7 @@ export default function CorrelationsPage() {
                         </div>
 
                         <div className="w-full bg-border-custom/50 rounded-full h-1.5 mt-4 overflow-hidden">
-                          <div className="bg-success h-1.5 transition-all duration-300" style={{ width: `${pct}%` }}></div>
+                          <div className="bg-success h-1.5 transition-all duration-[var(--motion-slow)]" style={{ width: `${pct}%` }}></div>
                         </div>
                       </Card>
                     );
