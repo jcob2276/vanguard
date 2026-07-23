@@ -76,7 +76,7 @@ export function useDashboardState(session: Session) {
 
   // Modal visibility state
   const [actionCenterOpen, setActionCenterOpen]     = useState(false);
-  const [historySubTab, setHistorySubTab]           = useState<'chronicle' | 'patterns' | 'archive'>('chronicle');
+  const [historySubTab, setHistorySubTab]           = useState<'chronicle' | 'archive'>('chronicle');
   const [workoutInitial, setWorkoutInitial]         = useState<WorkoutLoggerInitial | null>(null);
   const [workoutKey, setWorkoutKey]                 = useState(0);
   const [showMorningPlan, setShowMorningPlan]       = useState(false);

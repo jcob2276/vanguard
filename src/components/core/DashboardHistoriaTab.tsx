@@ -4,13 +4,14 @@
  * @usedBy Dashboard
  */
 import { Suspense, lazy } from 'react';
-import { Archive, Brain, History, Sparkles } from 'lucide-react';
+import { Archive, History, Sparkles } from 'lucide-react';
 import { useSession } from '../../store/useStore';
 import Spinner from '../ui/Spinner';
 import Tabs from '../ui/Tabs';
 import HorizonHeader from './HorizonHeader';
 
 const Stats             = lazy(() => import('./Stats'));
+const StandaloneBodyMetricsCard = lazy(() => import('./stats/StandaloneBodyMetricsCard'));
 const InsightsDashboard = lazy(() => import('../insights/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })));
 const StravaWidget      = lazy(() => import('../integrations/StravaWidget'));
 
@@ -26,8 +27,8 @@ function ViewFallback() {
 }
 
 interface Props {
-  historySubTab: 'chronicle' | 'patterns' | 'archive';
-  onSetSubTab: (tab: 'chronicle' | 'patterns' | 'archive') => void;
+  historySubTab: 'chronicle' | 'archive';
+  onSetSubTab: (tab: 'chronicle' | 'archive') => void;
   weeklyCalories: number;
   nutritionKey: number;
 }
@@ -38,7 +39,6 @@ export function DashboardHistoriaTab({ historySubTab, onSetSubTab, weeklyCalorie
 
   const tabs = [
     { key: 'chronicle', label: 'Kronika', icon: <Sparkles size={14} /> },
-    { key: 'patterns', label: 'Wzorce', icon: <Brain size={14} /> },
     { key: 'archive', label: 'Archiwum', icon: <Archive size={14} /> },
   ];
 
@@ -48,7 +48,7 @@ export function DashboardHistoriaTab({ historySubTab, onSetSubTab, weeklyCalorie
         <HorizonHeader
           eyebrow="Uczę się"
           title="Historia"
-          description="Znaczące zdarzenia, wzorce oparte na dowodach i pełne dane źródłowe — każdy poziom osobno."
+          description="Znaczące zdarzenia, pełne dane źródłowe i statystyki — każdy poziom osobno."
           icon={History}
         />
       </div>
@@ -59,12 +59,11 @@ export function DashboardHistoriaTab({ historySubTab, onSetSubTab, weeklyCalorie
           </div>
 
           <div className={historySubTab === 'chronicle' ? 'space-y-7' : 'hidden'}>
+            <StandaloneBodyMetricsCard />
             <InsightsDashboard mode="chronicle" />
             <Photos />
           </div>
-          <div className={historySubTab === 'patterns' ? '' : 'hidden'}>
-            <InsightsDashboard mode="patterns" />
-          </div>
+
           <div className={historySubTab === 'archive' ? '' : 'hidden'}>
             <div className="mb-6">
               <NutritionCard weeklyCalories={weeklyCalories} refreshSignal={nutritionKey} />

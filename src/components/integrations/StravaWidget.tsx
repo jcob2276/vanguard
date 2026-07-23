@@ -160,7 +160,7 @@ export default function StravaWidget({ session }: { session: Session }) {
           onClick={handleSync}
           disabled={syncing}
           className="rounded-xl border border-border-custom bg-surface p-2.5 text-text-secondary transition-all hover:bg-surface-solid hover:text-text-primary active:scale-95 shadow-sm cursor-pointer"
-          title="Sync Strava"
+          title="Sync Garmin"
         >
           <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
         </Pressable>

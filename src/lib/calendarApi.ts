@@ -69,6 +69,7 @@ export function useCreateCalendarEvent() {
           body: { userId, action: 'create', event: safeEvent },
         });
         return res as { success: boolean; eventId: string };
+
       } catch (err: unknown) {
         if (!isOfflineError(err)) throw err;
         const tempId = `offline-${crypto.randomUUID()}`;
@@ -136,7 +137,8 @@ export function useUpdateCalendarEvent() {
         return { success: true, eventId: event.id };
       }
     },
-    onSuccess: (data, variables) => {
+
+    onSuccess: (_data, variables) => {
       queryClient.setQueriesData<VanguardCalendarRow[]>(
         { queryKey: ['calendar', 'events'] },
         (prev) => {
@@ -201,7 +203,7 @@ export function useDeleteCalendarEvent() {
         return { success: true };
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.setQueriesData<VanguardCalendarRow[]>(
         { queryKey: ['calendar', 'events'] },
         (prev) => {

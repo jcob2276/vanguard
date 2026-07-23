@@ -1634,25 +1634,24 @@
 .keep-split-container {
   display: flex;
   flex-direction: row;
-  flex: var(--central-flex-97445a8d);
+  flex: 1;
   min-height: 0;
-  width: var(--central-width-0466783d);
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
 .keep-split-list-pane {
-  width: var(--central-width-d525ed1d);
+  width: 340px;
   border-right: 1px solid var(--border-custom);
   overflow-y: auto;
   height: 100%;
-  padding: var(--central-padding-e2c960fb);
   flex-shrink: 0;
   background-color: var(--background);
 }
 
 .keep-split-list-pane::-webkit-scrollbar {
-  width: var(--central-width-51781b80);
+  width: 6px;
 }
 
 .keep-split-list-pane::-webkit-scrollbar-track {
@@ -1669,9 +1668,9 @@
 }
 
 .keep-split-editor-pane {
-  flex: var(--central-flex-97445a8d);
+  flex: 1;
   min-width: 0;
-  height: var(--central-height-62264068);
+  height: 100%;
   padding: 0;
   overflow: hidden;
   background-color: var(--background);
@@ -1680,13 +1679,16 @@
 .keep-inline-editor {
   display: flex;
   flex-direction: column;
-  height: var(--central-height-62264068);
+  height: 100%;
   overflow: hidden;
 }
 
 .keep-split-list-pane.gallery {
-  width: var(--central-width-08c9f9d5);
+  flex: 1;
+  min-width: 0;
+  max-width: 540px;
 }
+
 
 .note-list-row {
   transition: var(--central-transition-2eff8e4f);

@@ -86,7 +86,7 @@ Supabase Auth.
 
 ### Zdrowie i aktywność
 
-- synchronizacja danych Oura i Strava;
+- synchronizacja danych Oura i Garmin;
 - własne logowanie treningów siłowych, sauny, posiłków, kofeiny i suplementów;
 - dzienne agregaty snu, gotowości, obciążenia i regeneracji;
 - historia pomiarów ciała i wyników badań;
@@ -128,7 +128,7 @@ refleksji, nie automatycznemu układaniu planu.
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
 │ Wejścia                                                         │
-│ React PWA / Android · Telegram · Oura · Strava · Google Calendar │
+│ React PWA / Android · Telegram · Oura · Garmin · Google Calendar │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
                                 ▼
@@ -197,7 +197,7 @@ Aktualne tryby wejścia, przepływy oraz mapę handlerów opisują
 | Backend | Supabase PostgreSQL, Auth, RLS, Storage, Edge Functions, pg_cron |
 | Funkcje | TypeScript uruchamiany w Deno |
 | Modele | DeepSeek, OpenAI Whisper, OpenAI embeddings |
-| Integracje | Telegram Bot API, Oura, Strava, Google Calendar, ActivityWatch |
+| Integracje | Telegram Bot API, Oura, Garmin, Google Calendar, ActivityWatch |
 | Testy i jakość | Vitest, Testing Library, ESLint, TypeScript, Knip, własne ratchety i smoke testy |
 | Hosting | Vercel dla PWA, Supabase dla backendu |
 

@@ -12,7 +12,7 @@ Supabase project: configured per deployment through environment variables.
 | Subsystem | Role | Paths |
 |-----------|------|--------|
 | **Vanguard Core** | Daily loop, stream, friction, Oracle, planning | `supabase/functions/vanguard-*` |
-| **Integrations** | Oura, Calendar, Strava, derived analysis | `supabase/functions/sync-*`, `supabase/functions/analyze-*`, `compute-daily-strain` |
+| **Integrations** | Oura, Calendar, Garmin, derived analysis | `supabase/functions/sync-*`, `supabase/functions/analyze-*`, `compute-daily-strain` |
 | **Projects & Todo** | Native projects and separate task surfaces | `src/components/projects`, `src/components/todo`, `projects`, `todo_*` tables |
 | **Life admin** | Birthdays, vehicle, documents with lead reminders | `src/components/terminy`, `life_obligations` |
 | Legacy workout | Existing workout UI/data model | `src/`, `workout_*` tables |

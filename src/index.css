@@ -1834,82 +1834,74 @@ body {
 
 
 
-/* Centralized values for feature-local selectors. */
+/* Apple HIG & iOS Material Utilities */
 :root {
-  --central-width-0466783d: 100%;
-  --central-min-width-3922d326: 0;
-  --central-padding-inline-add84322: 0;
-  --central-background-0ba2f7f0: color-mix(in srgb, var(--background) 88%, transparent);
-  --central--webkit-backdrop-filter-4ba6a4b2: blur(20px) saturate(180%);
-  --central-padding-top-af98dd6c: 6px;
-  --central-padding-bottom-c5906063: 64px;
-  --central-width-f74111a8: 18px;
-  --central-border-radius-9eaa9c48: 50%;
-  --central-margin-top-474aa6aa: 3.5px;
-  --central-flex-shrink-6ee0661e: 0;
-  --central-margin-78d3c170: 16px auto 0 auto;
-  --central-height-0472f1f7: 48px;
-  --central-max-width-27aeb617: 100%;
-  --central-backdrop-filter-1ea9ed65: blur(20px) saturate(180%);
-  --central-border-radius-cb013bd4: 24px;
-  --central-box-shadow-94435ff9: 0 4px 20px var(--shadow-soft);
-  --central-box-shadow-79f01e0e: 0 4px 24px var(--shadow-dark-material);
-  --central-height-3b849112: 38px;
-  --central-transform-3b4a4e20: scale(0.93);
-  --central-opacity-c6e7979d: 1;
-  --central-width-aa77e27e: 1px;
-  --central-flex-97445a8d: 1;
-  --central-width-d525ed1d: 320px;
-  --central-padding-e2c960fb: 8px;
-  --central-width-51781b80: 4px;
-  --central-height-62264068: 100%;
-  --central-width-08c9f9d5: clamp(360px, 40vw, 560px);
-  --central-transition-2eff8e4f: background-color 120ms ease-out, transform 100ms ease-out;
-  --central-background-bd753191: color-mix(in srgb, var(--primary) 9%, transparent);
-  --central-padding-cc781baa: 12px;
-  --central--webkit-backdrop-filter-ba7988a1: blur(2px);
-  --central-width-2ccc0719: min(100%, 420px);
-  --central-border-radius-26ec7723: 22px;
-  --central-box-shadow-91b3419a: 0 18px 60px var(--shadow-strong);
-  --central--webkit-backdrop-filter-b462750d: blur(24px) saturate(180%);
-  --central-border-radius-8852e697: 0;
-  --central-border-top-299db583: 1px solid color-mix(in srgb, var(--border-custom) 55%, transparent);
-  --central-opacity-8d919cb5: 0;
-  --central-transform-6258a59e: translateY(18px) scale(0.98);
-  --central-animation-05778225: none;
-  --central-height-6f9f7945: 100svh;
-  --central-min-height-5d088121: 52px;
-  --central-border-bottom-6d9a076a: 0;
-  --central-gap-05ed2a19: 1px;
-  --central-font-weight-02a2d333: 500;
-  --central-gap-33fcd4c3: 8px;
-  --central-font-size-81351bd1: 24px;
-  --central-letter-spacing-4ce74e4a: -0.025em;
-  --central-bottom-044d6f1a: max(12px, env(safe-area-inset-bottom));
-  --central-margin-11696618: 0;
-  --central-box-shadow-09a2c61d: 0 8px 30px var(--shadow-medium);
-  --central-width-1027ae58: clamp(280px, 27vw, 360px);
-  --central-border-bottom-11ba7267: 1px solid color-mix(in srgb, var(--border-custom) 55%, transparent);
-  --central-padding-2eeaef10: 12px 12px calc(88px + env(safe-area-inset-bottom));
-  --central-min-height-b3a52872: 38px;
-  --central-padding-e227f3cd: 8px 10px calc(84px + env(safe-area-inset-bottom));
-  --central-bottom-017edde0: max(10px, env(safe-area-inset-bottom));
-  --central-transform-1b8ae7b7: translateX(-50%);
-  --central-border-radius-a28678f5: 999px;
-  --central-box-shadow-66144bb1: 0 10px 32px var(--shadow-warm), 0 2px 8px var(--shadow-warm-soft);
-  --central--webkit-backdrop-filter-a4bdda4b: blur(20px) saturate(135%);
-  --central-box-shadow-a747f164: 0 4px 14px color-mix(in srgb, var(--primary) 28%, transparent);
-  --central-transform-aef9037a: scale(0.97);
-  --central-min-width-50b92dce: 132px;
-  --central--webkit-backdrop-filter-7f3777e1: blur(3px);
-  --central-width-8f53a839: min(100%, 440px);
-  --central-border-df6f2e72: 1px solid color-mix(in srgb, var(--border-custom) 60%, transparent);
-  --central-background-70c7a5a6: color-mix(in srgb, var(--background) 92%, transparent);
-  --central-backdrop-filter-d4002e65: blur(28px) saturate(180%);
-  --central-animation-2dfb4c85: workspace-tools-rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  --central-min-height-15f45b1f: 88px;
-  --central-background-0ca327aa: color-mix(in srgb, var(--surface-1) 82%, transparent);
-  --central-transition-2a758569: transform 100ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
-  --central-transform-2c7b6e9d: scale(0.96);
-  --central-background-a4e814a0: color-mix(in srgb, var(--primary) 12%, var(--surface-1));
+  --ios-sheet-radius: 28px;
+  --ios-card-radius: 20px;
+  --ios-pill-radius: 9999px;
+  --ios-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ios-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ios-touch-target: 44px;
 }
+
+.ios-card {
+  border-radius: var(--ios-card-radius);
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-custom);
+  box-shadow: var(--shadow-card);
+  transition: transform 160ms var(--ios-ease-out), background-color 160ms ease, border-color 160ms ease;
+}
+
+.dark .ios-card {
+  background-color: rgba(24, 24, 27, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.ios-card-interactive {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ios-card-interactive:active {
+  transform: scale(0.97);
+}
+
+.ios-pill-nav {
+  border-radius: var(--ios-pill-radius);
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+
+.dark .ios-pill-nav {
+  background-color: rgba(18, 18, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+}
+
+.ios-sheet-handle {
+  width: 36px;
+  height: 5px;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.2);
+  margin: 8px auto 12px auto;
+  flex-shrink: 0;
+}
+
+.dark .ios-sheet-handle {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+
+.ios-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+

@@ -36,7 +36,7 @@ Local/Supabase sync: edge functions (+ `_shared/`) — exact count and last-veri
 | Subsystem | Purpose | Key paths |
 |---|---|---|
 | Vanguard Core | Daily loop, stream, oracle, planning, Telegram | `supabase/functions/vanguard-*` |
-| Integrations | Oura, Calendar, Strava | `supabase/functions/sync-*`, `supabase/functions/analyze-*` |
+| Integrations | Oura, Calendar, Garmin | `supabase/functions/sync-*`, `supabase/functions/analyze-*` |
 | Legacy workout | Original fitness tracking UI/tables | `src/` + `workout_*` tables |
 
 ## CRITICAL RULES

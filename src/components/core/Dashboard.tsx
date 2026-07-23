@@ -12,7 +12,8 @@ import { Pressable } from '../ui/ControlPrimitives';
 import { TIMEZONE } from '../../lib/date';
 import { Suspense, lazy } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen, WalletCards, Bell } from 'lucide-react';
+import { Sun, Calendar, FolderKanban, Clock, StickyNote, ListTodo, BookOpen, WalletCards, Bell, Apple, Dumbbell, Flame, Eye } from 'lucide-react';
+
 import { ErrorBoundary } from './ErrorBoundary';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardNavBar } from './DashboardNavBar';
@@ -137,11 +138,14 @@ export default function Dashboard({ session }: { session: Session }) {
   const showLock = !s.todayWin;
 
   const fastCaptureItems = [
-    { label: 'Dodaj Jedzenie', emoji: '🍎', color: 'var(--color-success)', action: () => s.setShowQuickFoodEntry(true) },
-    { label: 'Zaloguj Trening', emoji: '🏋️', color: 'var(--color-warning)', action: () => { s.openWorkout(); } },
-    { label: 'Zaloguj Saunę', emoji: '🧖', color: 'var(--color-warning)', action: () => s.navigate('/sauna') },
-    { label: 'Zmierz Wzrok', emoji: '👁️', color: 'var(--color-theme-hex-14b8a6)', action: () => s.navigate('/optics') },
+
+    { label: 'Dodaj Jedzenie', emoji: '🍎', icon: Apple, color: 'var(--color-success)', action: () => s.setShowQuickFoodEntry(true) },
+    { label: 'Zaloguj Trening', emoji: '🏋️', icon: Dumbbell, color: 'var(--color-warning)', action: () => { s.openWorkout(); } },
+    { label: 'Zaloguj Saunę', emoji: '🧖', icon: Flame, color: 'var(--color-warning)', action: () => s.navigate('/sauna') },
+    { label: 'Zmierz Wzrok', emoji: '👁️', icon: Eye, color: 'var(--color-theme-hex-14b8a6)', action: () => s.navigate('/optics') },
   ];
+
+
 
   const workspaceTools = [
     { label: 'Notatki', icon: StickyNote, action: () => s.navigate('/keep') },

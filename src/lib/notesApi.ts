@@ -29,10 +29,10 @@ type NoteQueryRow = Omit<Note, 'attachment_names' | 'attachment_text'> & {
 };
 
 const mapNoteRows = (rows: unknown[] | null): Note[] => (
-  ((rows ?? []) as NoteQueryRow[]).map(({ note_attachments, ...note }) => ({
-    ...note,
-    attachment_names: note.is_locked ? [] : note_attachments.map(item => item.file_name),
-    attachment_text: note.is_locked ? '' : note_attachments.map(item => item.ocr_text ?? '').join(' '),
+  ((rows ?? []) as Partial<NoteQueryRow>[]).map(({ note_attachments, ...note }) => ({
+    ...(note as Note),
+    attachment_names: note.is_locked ? [] : (note_attachments ?? []).map(item => item.file_name),
+    attachment_text: note.is_locked ? '' : (note_attachments ?? []).map(item => item.ocr_text ?? '').join(' '),
   }))
 );
 
@@ -42,7 +42,8 @@ export function useNotes(userId: string) {
   return useQuery({
     queryKey: notesKeys.list(userId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Primary query trying note_attachments and deleted_at filter
+      const primaryRes = await supabase
         .from('vanguard_notes')
         .select('*, note_attachments(file_name, ocr_text)')
         .eq('user_id', userId)
@@ -50,8 +51,20 @@ export function useNotes(userId: string) {
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw new Error(error.message);
-      return mapNoteRows(data);
+      if (!primaryRes.error && primaryRes.data) {
+        return mapNoteRows(primaryRes.data);
+      }
+
+      // Safe fallback query if DB schema lacks deleted_at column or note_attachments table
+      const fallbackRes = await supabase
+        .from('vanguard_notes')
+        .select('*')
+        .eq('user_id', userId)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (fallbackRes.error) throw new Error(fallbackRes.error.message);
+      return mapNoteRows(fallbackRes.data);
     },
     enabled: !!userId,
   });
@@ -119,12 +132,13 @@ export function useTrashedNotes(userId: string) {
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
 
-      if (error) throw new Error(error.message);
+      if (error) return [];
       return mapNoteRows(data);
     },
     enabled: !!userId,
   });
 }
+
 
 // ── DOMAIN HELPERS ──
 
