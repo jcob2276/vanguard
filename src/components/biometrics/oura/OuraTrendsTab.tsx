@@ -1,8 +1,8 @@
 /**
  * @component OuraTrendsTab
- * @role Zakładka Trendy & Moduły NOOP Power Engine (Rozpad Kofeiny, Zegar Biologiczny, Porównywarka Nocy, Biofeedback Oddechowy, Kalkulator Cykli, Biomarkery).
+ * @role Zakładka Trendy & Moduły NOOP Power Engine z prawdziwymi korelacjami z silnika statystycznego (0 sztucznych danych).
  */
-import { TrendingUp, Coffee, Dumbbell } from 'lucide-react';
+import { TrendingUp, Activity, Sparkles } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 import { OuraCaffeineDecayCard } from './OuraCaffeineDecayCard';
 import { OuraCircadianClockCard } from './OuraCircadianClockCard';
@@ -10,10 +10,23 @@ import { OuraNightCompareCard } from './OuraNightCompareCard';
 import { OuraBreathingBiofeedbackCard } from './OuraBreathingBiofeedbackCard';
 import { OuraSmartSleepCyclesCard } from './OuraSmartSleepCyclesCard';
 import { OuraBiomarkerExplorerCard } from './OuraBiomarkerExplorerCard';
+import { useCorrelationsQuery } from '../../../lib/correlationsApi';
+import { useUserId } from '../../../store/useStore';
 
 export function OuraTrendsTab(props: OuraHealthHubData) {
-  const hrvAvg = props.oura?.hrv_avg ?? 62;
-  const rhrAvg = props.oura?.rhr_avg ?? 54;
+  const userId = useUserId();
+  const { data: corrData, isLoading: isCorrLoading } = useCorrelationsQuery(userId, false);
+
+  // Compute 30-day Vitals Averages from real DB history
+  const history = props.ouraHistory || [];
+
+  const validHrv = history.map((h) => h.hrv_avg).filter((v): v is number => v != null && v > 0);
+  const validRhr = history.map((h) => h.rhr_avg).filter((v): v is number => v != null && v > 0);
+
+  const hrvAvg30 = validHrv.length > 0 ? Math.round(validHrv.reduce((a, b) => a + b, 0) / validHrv.length) : null;
+  const rhrAvg30 = validRhr.length > 0 ? Math.round(validRhr.reduce((a, b) => a + b, 0) / validRhr.length) : null;
+
+  const correlations = corrData?.correlations || [];
 
   return (
     <div className="space-y-4 text-white animate-fadeIn">
@@ -35,53 +48,65 @@ export function OuraTrendsTab(props: OuraHealthHubData) {
       {/* 6. Biomarker Explorer Card */}
       <OuraBiomarkerExplorerCard {...props} />
 
-      {/* Trends Overview Card */}
+      {/* Trends Overview Card (Dynamically computed from DB history) */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl">
         <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-          <TrendingUp size={12} className="text-teal-400" /> Trendy 30-dniowe (Vitals Trends)
+          <TrendingUp size={12} className="text-teal-400" /> Trendy Vitals (Z bazy Oura)
         </h4>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 space-y-1">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Średnie HRV (30d)</p>
-            <p className="text-2xl font-black text-emerald-400">{hrvAvg} ms</p>
-            <p className="text-3xs text-emerald-400 font-semibold">↑ +4.2 ms vs ubiegły miesiąc</p>
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Średnie HRV ({history.length}d)</p>
+            <p className="text-2xl font-black text-emerald-400">{hrvAvg30 !== null ? `${hrvAvg30} ms` : '--'}</p>
+            <p className="text-3xs text-slate-400 font-semibold">
+              {validHrv.length > 0 ? `Średnia z ${validHrv.length} zalogowanych nocy` : 'Brak danych w bazie'}
+            </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 space-y-1">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Średnie RHR (30d)</p>
-            <p className="text-2xl font-black text-teal-400">{rhrAvg} bpm</p>
-            <p className="text-3xs text-teal-400 font-semibold">↓ -1.8 bpm (poprawa)</p>
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Średnie RHR ({history.length}d)</p>
+            <p className="text-2xl font-black text-teal-400">{rhrAvg30 !== null ? `${rhrAvg30} bpm` : '--'}</p>
+            <p className="text-3xs text-slate-400 font-semibold">
+              {validRhr.length > 0 ? `Średnia z ${validRhr.length} zalogowanych nocy` : 'Brak danych w bazie'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Habit Correlations Engine */}
-      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 space-y-3">
-        <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-          Silnik Korelacji Nawyków Vanguard
-        </h4>
+      {/* Real Habit Correlations Engine */}
+      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 space-y-3 shadow-xl">
+        <div className="flex items-center justify-between">
+          <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-400" /> Silnik Korelacji Nawyków Vanguard
+          </h4>
+          <span className="text-3xs text-slate-500 font-medium">Analiza statystyczna Nightly</span>
+        </div>
 
         <div className="space-y-2.5 text-xs">
-          <div className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
-            <Coffee size={18} className="text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold text-white">Kawa po godzinie 14:00</p>
-              <p className="text-2xs text-slate-400 mt-0.5 leading-relaxed">
-                Spożycie kofeiny po 14:00 zwiększa opóźnienie zasypiania (latency) o śr. <span className="text-rose-400 font-bold">+18 min</span> i zmniejsza fazę Deep o <span className="text-rose-400 font-bold">-14%</span>.
+          {isCorrLoading ? (
+            <div className="p-4 text-center text-3xs text-slate-400 animate-pulse">
+              Liczenie korelacji z bazy danych...
+            </div>
+          ) : correlations.length > 0 ? (
+            correlations.slice(0, 3).map((item, idx) => (
+              <div key={idx} className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
+                <Activity size={18} className="text-teal-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold text-white">{item.feature_name || item.metric}</p>
+                  <p className="text-2xs text-slate-300 leading-relaxed">
+                    Współczynnik $r = {item.r_value?.toFixed(2) ?? '--'}$, $N = {item.sample_size ?? item.n_days ?? '--'}$ dni. {item.description || 'Wykryty wpływ na regenerację.'}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 rounded-2xl border border-white/5 bg-white/5 text-center space-y-1">
+              <p className="text-xs font-bold text-slate-300">Wymagana większa próba nocy</p>
+              <p className="text-3xs text-slate-400 leading-normal">
+                Silnik potrzebuje min. 7 nocy z zalogowanymi posiłkami i treningami, aby wyznaczyć istotną statystycznie korelację.
               </p>
             </div>
-          </div>
-
-          <div className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
-            <Dumbbell size={18} className="text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold text-white">Trening Siłowy przed 19:00</p>
-              <p className="text-2xs text-slate-400 mt-0.5 leading-relaxed">
-                Trening ukończony przed 19:00 wydłuża fazę snu głębokiego (Deep) do <span className="text-emerald-400 font-bold">1h 45m</span> i obniża tętno spoczynkowe.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
