@@ -1,16 +1,40 @@
 /**
  * @component OuraTrendsTab
- * @role Zakładka Trendy & Korelacje Vanguard — Wykresy trendów 7D/30D oraz silnik korelacji nawyków.
+ * @role Zakładka Trendy & Moduły NOOP Power Engine (Rozpad Kofeiny, Zegar Biologiczny, Porównywarka Nocy, Biofeedback Oddechowy, Kalkulator Cykli, Biomarkery).
  */
-import { TrendingUp, Coffee, Dumbbell, UtensilsCrossed, Moon } from 'lucide-react';
+import { TrendingUp, Coffee, Dumbbell } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
+import { OuraCaffeineDecayCard } from './OuraCaffeineDecayCard';
+import { OuraCircadianClockCard } from './OuraCircadianClockCard';
+import { OuraNightCompareCard } from './OuraNightCompareCard';
+import { OuraBreathingBiofeedbackCard } from './OuraBreathingBiofeedbackCard';
+import { OuraSmartSleepCyclesCard } from './OuraSmartSleepCyclesCard';
+import { OuraBiomarkerExplorerCard } from './OuraBiomarkerExplorerCard';
 
-export function OuraTrendsTab({ oura }: OuraHealthHubData) {
-  const hrvAvg = oura?.hrv_avg ?? 62;
-  const rhrAvg = oura?.rhr_avg ?? 54;
+export function OuraTrendsTab(props: OuraHealthHubData) {
+  const hrvAvg = props.oura?.hrv_avg ?? 62;
+  const rhrAvg = props.oura?.rhr_avg ?? 54;
 
   return (
     <div className="space-y-4 text-white animate-fadeIn">
+      {/* 1. Caffeine Decay Curve Card */}
+      <OuraCaffeineDecayCard />
+
+      {/* 2. Circadian Clock Card */}
+      <OuraCircadianClockCard />
+
+      {/* 3. Night Comparison Card */}
+      <OuraNightCompareCard {...props} />
+
+      {/* 4. Breathing Biofeedback Card */}
+      <OuraBreathingBiofeedbackCard />
+
+      {/* 5. Smart Sleep Cycles Card */}
+      <OuraSmartSleepCyclesCard />
+
+      {/* 6. Biomarker Explorer Card */}
+      <OuraBiomarkerExplorerCard {...props} />
+
       {/* Trends Overview Card */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl">
         <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
@@ -35,7 +59,7 @@ export function OuraTrendsTab({ oura }: OuraHealthHubData) {
       {/* Habit Correlations Engine */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 space-y-3">
         <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-          <Moon size={12} className="text-indigo-400" /> Silnik Korelacji Nawyków Vanguard
+          Silnik Korelacji Nawyków Vanguard
         </h4>
 
         <div className="space-y-2.5 text-xs">
@@ -55,16 +79,6 @@ export function OuraTrendsTab({ oura }: OuraHealthHubData) {
               <p className="font-bold text-white">Trening Siłowy przed 19:00</p>
               <p className="text-2xs text-slate-400 mt-0.5 leading-relaxed">
                 Trening ukończony przed 19:00 wydłuża fazę snu głębokiego (Deep) do <span className="text-emerald-400 font-bold">1h 45m</span> i obniża tętno spoczynkowe.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
-            <UtensilsCrossed size={18} className="text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold text-white">Późna kolacja (po 21:00)</p>
-              <p className="text-2xs text-slate-400 mt-0.5 leading-relaxed">
-                Ciężki posiłek po 21:00 opóźnia osiągnięcie najniższego tętna w nocy o <span className="text-amber-400 font-bold">2.5 godziny</span> i podnosi temperaturę ciała.
               </p>
             </div>
           </div>
