@@ -5,6 +5,7 @@
 import type { OuraHealthHubData } from './types';
 import { OuraHypnogramChart } from './OuraHypnogramChart';
 import { OuraSleepDebtCard } from './OuraSleepDebtCard';
+import { OuraDeepAnalyticsLabCard } from './OuraDeepAnalyticsLabCard';
 import { OuraVitalsLinearCharts } from './OuraVitalsLinearCharts';
 
 export function OuraSleepTab(dataProps: OuraHealthHubData) {
@@ -82,6 +83,9 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
 
       {/* Deficyt Snu & Zegar Biologiczny */}
       <OuraSleepDebtCard {...dataProps} />
+
+      {/* Głębokie Laboratorium Snu (Social Jetlag, Ranking Dni Tygodnia, Architektura Faz) */}
+      <OuraDeepAnalyticsLabCard {...dataProps} />
 
       {/* Wykresy Liniowe Tętna i HRV */}
       <OuraVitalsLinearCharts {...dataProps} />
