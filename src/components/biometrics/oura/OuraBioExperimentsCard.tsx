@@ -4,7 +4,7 @@
  *       Umożliwia uruchamianie i śledzenie testów A/B wpływu suplementów, Sauny, pory posiłków i nawyków na regenerację Oura.
  */
 import { useState } from 'react';
-import { Sparkles, Experiment, TestTube, CheckCircle2, Play, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, FlaskConical, TestTube, CheckCircle2, Play, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
 interface BioExperiment {
