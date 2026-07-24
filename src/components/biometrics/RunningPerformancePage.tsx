@@ -341,6 +341,24 @@ export default function RunningPerformancePage() {
               <div className="p-3 text-center text-3xs text-slate-400">Brak szczegółowego rozbicia stref w tym biegu.</div>
             )}
           </div>
+
+          {/* 🏃‍♂️ Interwały i Odcinki (interval_summary z Intervals.icu) */}
+          {selRaw.interval_summary && Array.isArray(selRaw.interval_summary) && selRaw.interval_summary.length > 0 && (
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-emerald-500/20 space-y-2">
+              <span className="text-3xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <Clock size={14} /> Struktura Odcinków & Interwałów z Intervals.icu
+              </span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs pt-1">
+                {selRaw.interval_summary.map((item: string, idx: number) => (
+                  <div key={idx} className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                    <span className="text-3xs font-bold text-slate-400">Odcinek #{idx + 1}</span>
+                    <span className="text-xs font-black text-emerald-300">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
