@@ -31,7 +31,7 @@ export function OuraOracleAiCoachCard({ strainRow, oura, enhanced, ouraHistory }
 Wygeneruj dla mnie precyzyjną, 3-punktową strategię bio-hakerską na dzisiaj (1. Zalecany poziom aktywności/Strain, 2. Protokół snu i kofeiny, 3. Priorytet regeneracyjny). Bądź konkretny, zwięzły i bezpośredni. Napisz w języku polskim.`;
 
       const res = await invokeEdge('vanguard-oracle', {
-        prompt: promptText,
+        body: { prompt: promptText }
       });
 
       const responseText = (res as any)?.answer || (res as any)?.text || (res as any)?.response || null;
