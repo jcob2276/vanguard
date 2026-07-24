@@ -93,6 +93,7 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
 
   let bestBedStr: string | null = null;
   let bestWakeStr: string | null = null;
+  let avgTopScore: number | null = null;
   if (sortedBySleep.length > 0) {
     const bestBeds = sortedBySleep.map(r => {
       const s = toWarsawHM(r.bedtime_timestamp!);
@@ -101,7 +102,21 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
     const avgBestBed = bestBeds.reduce((a, b) => a + b, 0) / bestBeds.length;
     bestBedStr = decToHHMM(avgBestBed % 24);
     bestWakeStr = decToHHMM((avgBestBed + avgSleepDur) % 24);
+    avgTopScore = Math.round(
+      sortedBySleep.reduce((a, r) => a + (r.sleep_score ?? 0), 0) / sortedBySleep.length
+    );
   }
+
+  // Gap factors: components that limit sleep score beyond bedtime
+  const latencyAvg = nightsWithData.length > 0
+    ? nightsWithData.reduce((a, r) => a + (r.latency_minutes ?? 0), 0) / nightsWithData.length
+    : null;
+  const effAvg = nightsWithData.length > 0
+    ? nightsWithData.reduce((a, r) => a + (r.sleep_efficiency ?? 0), 0) / nightsWithData.length
+    : null;
+  const deepAvg = nightsWithData.length > 0
+    ? nightsWithData.reduce((a, r) => a + (r.deep_sleep_hours ?? 0), 0) / nightsWithData.length
+    : null;
 
   // Is late sleeper? midpoint past 04:30 = outside peak regeneration window
   const isLateSleeper = avgMid !== null && avgMid % 24 > 4.5;
@@ -161,11 +176,18 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
               </div>
             </div>
 
-            {/* Optymalne Okno — z najlepszych nocy (co działa), nie z chronotypu */}
+            {/* Twój aktualny sufit — z najlepszych nocy (co działa), nie z chronotypu */}
             {bestBedStr && bestWakeStr && (
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
-                <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-emerald-400">
-                  <Target size={12} /> Optymalne Okno Snu (z Twoich 5 najlepszych nocy)
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-emerald-400">
+                    <Target size={12} /> Twój aktualny sufit (top 5 nocy)
+                  </div>
+                  {avgTopScore !== null && (
+                    <span className="text-3xs font-black text-emerald-300">
+                      śr. {avgTopScore}/100 pkt
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -184,15 +206,45 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
                     </div>
                   </div>
                 </div>
-                <p className="text-3xs text-slate-400">
-                  Avg z 5 nocy z najwyższym sleep score · {avgSleepDur.toFixed(1)}h snu
-                </p>
 
-                {/* Ostrzeżenie: chronotyp poza oknem biologicznym */}
+                {/* Gap analysis: skąd brakujące ~20 pkt */}
+                {avgTopScore !== null && avgTopScore < 90 && (
+                  <div className="pt-2 border-t border-white/10 space-y-1.5">
+                    <p className="text-3xs font-black text-slate-300 uppercase tracking-wider">
+                      Skąd brakujące ~{100 - avgTopScore} pkt do 100:
+                    </p>
+                    {latencyAvg !== null && latencyAvg > 20 && (
+                      <div className="flex justify-between text-3xs">
+                        <span className="text-slate-400">⏱ Zasypianie ({latencyAvg.toFixed(0)} min śr.) — cel: &lt;20 min</span>
+                        <span className="text-rose-400 font-bold">−pkt</span>
+                      </div>
+                    )}
+                    {effAvg !== null && effAvg < 85 && (
+                      <div className="flex justify-between text-3xs">
+                        <span className="text-slate-400">📊 Wydajność ({effAvg.toFixed(0)}% śr.) — cel: &gt;85%</span>
+                        <span className="text-rose-400 font-bold">−pkt</span>
+                      </div>
+                    )}
+                    {deepAvg !== null && deepAvg < 1.5 && (
+                      <div className="flex justify-between text-3xs">
+                        <span className="text-slate-400">🌊 Sen głęboki ({deepAvg.toFixed(1)}h śr.) — cel: &gt;1.5h</span>
+                        <span className="text-rose-400 font-bold">−pkt</span>
+                      </div>
+                    )}
+                    {isLateSleeper && (
+                      <div className="flex justify-between text-3xs">
+                        <span className="text-slate-400">🕐 Timing snu (środek {avgMidStr}) — cel: przed 04:00</span>
+                        <span className="text-amber-400 font-bold">−pkt</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Ostrzeżenie biologiczne */}
                 {isLateSleeper && (
                   <div className="pt-1.5 border-t border-white/10">
                     <p className="text-3xs text-amber-400 font-semibold leading-relaxed">
-                      ⚠️ Twój chronotyp (środek snu {avgMidStr}) wypada poza biologicznym oknem regeneracji 22:00–02:00 — wtedy dominuje sen głęboki i wydzielany jest hormon wzrostu. Wcześniejsze kładzenie się spać to największa dźwignia jakości snu.
+                      ⚠️ Okno regeneracji 22:00–02:00 — wtedy dominuje sen głęboki i GH. Wcześniejsze kładzenie się spać to największa dźwignia.
                     </p>
                   </div>
                 )}
