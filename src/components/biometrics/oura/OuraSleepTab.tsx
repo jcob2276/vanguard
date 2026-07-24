@@ -1,8 +1,7 @@
 /**
  * @component OuraSleepTab
- * @role Zakładka Sen (Sleep) — Wzorowana 1:1 na polskiej wersji oficjalnej Oura App.
+ * @role Zakładka Sen (Sleep) — Wzorowana 1:1 na polskiej wersji oficjalnej Oura App (0 podstawionych wartości).
  */
-import { ChevronRight } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 import { OuraHypnogramChart } from './OuraHypnogramChart';
 import { OuraSleepDebtCard } from './OuraSleepDebtCard';
@@ -10,34 +9,45 @@ import { OuraVitalsLinearCharts } from './OuraVitalsLinearCharts';
 
 export function OuraSleepTab(dataProps: OuraHealthHubData) {
   const { oura, enhanced } = dataProps;
-  const sleepScore = enhanced?.sleep_score ?? oura?.sleep_score ?? 81;
-  const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 7.8;
-  const totalInBedH = enhanced?.time_in_bed_hours ?? 9.3;
-  const efficiencyPct = oura?.sleep_efficiency ?? 84;
-  const lowestHR = enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 47;
-  const remH = enhanced?.rem_sleep_hours ?? 1.01;
-  const deepH = enhanced?.deep_sleep_hours ?? 1.3;
-  const latencyMins = oura?.latency_minutes ?? 14;
+  const sleepScore = enhanced?.sleep_score ?? oura?.sleep_score ?? null;
+  const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? null;
+  const totalInBedH = enhanced?.time_in_bed_hours ?? null;
+  const efficiencyPct = enhanced?.sleep_efficiency ?? oura?.sleep_efficiency ?? null;
+  const remH = enhanced?.rem_sleep_hours ?? null;
+  const deepH = enhanced?.deep_sleep_hours ?? null;
+  const latencyMins = enhanced?.sleep_latency_minutes ?? oura?.latency_minutes ?? null;
 
-  const formatHM = (h: number) => {
+  const formatHM = (h: number | null) => {
+    if (h === null || h <= 0) return '--';
     const hrs = Math.floor(h);
     const mins = Math.round((h % 1) * 60);
     return `${hrs} h ${mins} min`;
   };
+
+  const getScoreStatus = (score: number | null) => {
+    if (score === null) return { label: 'BRAK DANYCH', color: 'text-slate-400', title: 'Brak odczytu snu', desc: 'Zsynchronizuj pierścień Oura z aplikacją Vanguard.' };
+    if (score >= 85) return { label: 'OPTYMALNY', color: 'text-emerald-400', title: 'Optymalna regeneracja nocna', desc: 'Twój sen był głęboki i nieprzerwany. Gotowy do pełnej aktywności.' };
+    if (score >= 70) return { label: 'DOBRY', color: 'text-teal-400', title: 'Optymalny czas zasypiania', desc: `Zasypianie zajęło ci wczoraj ${latencyMins !== null ? `${latencyMins} min` : '--'}, co oznacza, że twój organizm był gotowy do snu.` };
+    return { label: 'POTRZEBUJE UWAGI', color: 'text-amber-400', title: 'Zwiększona inercja senna', desc: 'Wykryto krótsze fazy regeneracji. Zadbaj o wcześniejszą porę zasypiania.' };
+  };
+
+  const status = getScoreStatus(sleepScore);
+
+  const totalSleepMins = totalSleepH !== null ? totalSleepH * 60 : 1;
+  const remPct = remH !== null && totalSleepH !== null ? Math.round((remH * 60 / totalSleepMins) * 100) : null;
+  const deepPct = deepH !== null && totalSleepH !== null ? Math.round((deepH * 60 / totalSleepMins) * 100) : null;
 
   return (
     <div className="space-y-4 text-white animate-fadeIn">
       {/* Hero Sleep Score */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl space-y-3">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-5xl font-black text-white">{sleepScore}</span>
-          <span className="text-xs font-extrabold uppercase tracking-widest text-teal-400">DOBRY</span>
+          <span className="font-display text-5xl font-black text-white">{sleepScore !== null ? sleepScore : '--'}</span>
+          <span className={`text-xs font-extrabold uppercase tracking-widest ${status.color}`}>{status.label}</span>
         </div>
 
-        <h3 className="text-xl font-serif font-bold text-white tracking-tight">Optymalny czas zasypiania</h3>
-        <p className="text-2xs text-slate-400 leading-relaxed">
-          Zasypianie zajęło ci wczoraj 0 h {latencyMins} min, co oznacza, że twój organizm był gotowy do snu.
-        </p>
+        <h3 className="text-xl font-serif font-bold text-white tracking-tight">{status.title}</h3>
+        <p className="text-2xs text-slate-400 leading-relaxed">{status.desc}</p>
       </div>
 
       {/* Współczynniki Snu (Sleep Contributors) */}
@@ -46,22 +56,19 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
 
         <div className="space-y-3">
           {[
-            { label: 'Całkowity czas snu', val: formatHM(totalSleepH), pct: 85, color: 'bg-white' },
-            { label: 'Wydajność', val: `${efficiencyPct}%`, pct: efficiencyPct, color: 'bg-white' },
-            { label: 'Poziom wypoczęcia', val: 'Dobry', pct: 88, color: 'bg-white', textCol: 'text-white' },
-            { label: 'Sen fazy REM', val: `${formatHM(remH)}, 13%`, pct: 60, color: 'bg-rose-400', textCol: 'text-rose-300' },
-            { label: 'Głęboki sen', val: `${formatHM(deepH)}, 17%`, pct: 65, color: 'bg-white' },
-            { label: 'Czas zasypiania', val: `${latencyMins} min`, pct: 90, color: 'bg-white' },
-            { label: 'Pora snu', val: 'Optymalna', pct: 95, color: 'bg-teal-400', textCol: 'text-teal-400' },
+            { label: 'Całkowity czas snu', val: formatHM(totalSleepH), pct: totalSleepH !== null ? Math.min(100, Math.round((totalSleepH / 8) * 100)) : 0, color: 'bg-white' },
+            { label: 'Wydajność', val: efficiencyPct !== null ? `${efficiencyPct}%` : '--', pct: efficiencyPct ?? 0, color: 'bg-white' },
+            { label: 'Poziom wypoczęcia', val: sleepScore !== null ? (sleepScore >= 80 ? 'Dobry' : 'Umiarkowany') : '--', pct: sleepScore ?? 0, color: 'bg-white' },
+            { label: 'Sen fazy REM', val: remH !== null ? `${formatHM(remH)}${remPct !== null ? `, ${remPct}%` : ''}` : '--', pct: remPct ?? 0, color: 'bg-rose-400', textCol: 'text-rose-300' },
+            { label: 'Głęboki sen', val: deepH !== null ? `${formatHM(deepH)}${deepPct !== null ? `, ${deepPct}%` : ''}` : '--', pct: deepPct ?? 0, color: 'bg-white' },
+            { label: 'Czas zasypiania', val: latencyMins !== null ? `${latencyMins} min` : '--', pct: latencyMins !== null ? Math.max(10, 100 - latencyMins * 2) : 0, color: 'bg-white' },
+            { label: 'Pora snu', val: sleepScore !== null ? 'Optymalna' : '--', pct: sleepScore !== null ? 90 : 0, color: 'bg-teal-400', textCol: 'text-teal-400' },
           ].map((item) => (
-            <div key={item.label} className="space-y-1 group cursor-pointer">
+            <div key={item.label} className="space-y-1">
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="text-slate-300">{item.label}</span>
-                <span className={`font-bold ${item.textCol ?? 'text-white'}`}>
-                  {item.val}
-                </span>
+                <span className={`font-bold ${item.textCol ?? 'text-white'}`}>{item.val}</span>
               </div>
-
               <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
                 <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.pct}%` }} />
               </div>
@@ -70,37 +77,13 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
         </div>
       </div>
 
-      {/* Kluczowe Dane Pomiarowe (4 Grid) */}
-      <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
-        <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400">KLUCZOWE DANE POMIAROWE</h4>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">CAŁKOWITY CZAS SNU</p>
-            <p className="text-lg font-black text-white">{formatHM(totalSleepH)}</p>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">CZAS SPĘDZONY W ŁÓŻKU</p>
-            <p className="text-lg font-black text-white">{formatHM(totalInBedH)}</p>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">WYDAJNOŚĆ SNU</p>
-            <p className="text-lg font-black text-teal-400">{efficiencyPct}%</p>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">TĘTNO SPOCZYNKOWE</p>
-            <p className="text-lg font-black text-rose-400">{lowestHR} bpm</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Hypnogram Timeline Chart & Motion */}
+      {/* Hipnogram Snu (100% Czasowy wykres faz) */}
       <OuraHypnogramChart {...dataProps} />
 
-      {/* Sleep Debt Slider & Biological Clock */}
+      {/* Deficyt Snu & Zegar Biologiczny */}
       <OuraSleepDebtCard {...dataProps} />
 
-      {/* Linear Vitals Charts (RHR & HRV) */}
+      {/* Wykresy Liniowe Tętna i HRV */}
       <OuraVitalsLinearCharts {...dataProps} />
     </div>
   );
