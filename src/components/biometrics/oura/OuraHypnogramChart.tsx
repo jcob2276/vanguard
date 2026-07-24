@@ -1,8 +1,14 @@
 /**
  * @component OuraHypnogramChart
- * @role Blokowy czasowy wykres stadiów snu (4 poziomy wysokości) z precyzyjnymi wybudzeniami w nocy.
+ * @role Ciągły, wygładzony czasowy wykres stadiów snu (grupowanie ciągłych segmentów bez przerw i pigułek).
  */
 import type { OuraHealthHubData } from './types';
+
+interface GroupedSegment {
+  type: '1' | '2' | '3' | '4';
+  startIdx: number;
+  count: number;
+}
 
 export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
   const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 7.8;
@@ -31,8 +37,6 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
   let rawPhases = enhanced?.sleep_phase_5_min || '';
 
   if (!rawPhases || rawPhases.length === 0) {
-    // Generate realistic sleep architecture sequence with mid-night awakenings
-    // 4=Awake, 2=Light, 1=Deep, 3=REM
     const totalBlocks = 80;
     const awakeBlocks = Math.max(2, Math.round((awakeMins / 60 / timeInBedH) * totalBlocks));
     const deepBlocks = Math.max(4, Math.round((deepH / timeInBedH) * totalBlocks));
@@ -42,29 +46,52 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
     const partAwake = Math.max(1, Math.floor(awakeBlocks / 4));
 
     const arr: string[] = [];
-    arr.push(...Array(partAwake).fill('4')); // 1. Zasypianie
+    arr.push(...Array(partAwake).fill('4'));
     arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
     arr.push(...Array(Math.floor(deepBlocks * 0.6)).fill('1'));
-    arr.push(...Array(partAwake).fill('4')); // 2. Wybudzenie nocne 1 (ok. 03:00)
+    arr.push(...Array(partAwake).fill('4')); // Wybudzenie w nocy 1
     arr.push(...Array(Math.floor(remBlocks * 0.4)).fill('3'));
     arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
     arr.push(...Array(Math.ceil(deepBlocks * 0.4)).fill('1'));
-    arr.push(...Array(partAwake).fill('4')); // 3. Wybudzenie nocne 2 (ok. 05:30)
+    arr.push(...Array(partAwake).fill('4')); // Wybudzenie w nocy 2
     arr.push(...Array(Math.ceil(remBlocks * 0.6)).fill('3'));
     arr.push(...Array(Math.ceil(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(awakeBlocks - 3 * partAwake).fill('4')); // 4. Poranne wybudzenie
+    arr.push(...Array(awakeBlocks - 3 * partAwake).fill('4'));
 
     rawPhases = arr.join('');
   }
 
-  const getTierInfo = (char: string) => {
-    switch (char) {
-      case '1': return { label: 'deep', height: 'h-4', color: 'bg-sky-600' };
-      case '2': return { label: 'light', height: 'h-8', color: 'bg-sky-400' };
-      case '3': return { label: 'rem', height: 'h-11', color: 'bg-sky-300' };
-      case '4': default: return { label: 'awake', height: 'h-14', color: 'bg-stone-200 border-stone-300' };
+  // Group consecutive identical stage characters into continuous segments (NO GAPS / NO PILLS)
+  const segments: GroupedSegment[] = [];
+  if (rawPhases.length > 0) {
+    let currentType = rawPhases[0] as '1' | '2' | '3' | '4';
+    let startIdx = 0;
+    let count = 1;
+
+    for (let i = 1; i < rawPhases.length; i++) {
+      const ch = rawPhases[i] as '1' | '2' | '3' | '4';
+      if (ch === currentType) {
+        count++;
+      } else {
+        segments.push({ type: currentType, startIdx, count });
+        currentType = ch;
+        startIdx = i;
+        count = 1;
+      }
+    }
+    segments.push({ type: currentType, startIdx, count });
+  }
+
+  const getTierDetails = (type: '1' | '2' | '3' | '4') => {
+    switch (type) {
+      case '4': return { label: 'Stan czuwania', heightPct: '100%', bg: 'bg-stone-200', border: 'border-stone-300' };
+      case '3': return { label: 'REM', heightPct: '75%', bg: 'bg-sky-300', border: 'border-sky-200' };
+      case '2': return { label: 'Płytki', heightPct: '50%', bg: 'bg-sky-500', border: 'border-sky-400' };
+      case '1': default: return { label: 'Głęboki sen', heightPct: '25%', bg: 'bg-indigo-600', border: 'border-indigo-500' };
     }
   };
+
+  const totalLen = rawPhases.length || 1;
 
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-2xl">
@@ -77,19 +104,25 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
         </div>
       </div>
 
-      {/* Multi-tier Hypnogram Timeline (4 levels) */}
+      {/* Multi-tier Hypnogram Timeline (Continuous Solid Blocks) */}
       <div className="space-y-2 pt-2">
-        <div className="relative h-28 w-full rounded-2xl bg-black/40 p-2 border border-white/5 flex items-end overflow-hidden">
-          <div className="relative h-full w-full flex items-end">
-            {rawPhases.split('').map((ch, idx) => {
-              const info = getTierInfo(ch);
-              const widthPct = 100 / rawPhases.length;
+        <div className="relative h-32 w-full rounded-2xl bg-black/50 p-2 border border-white/5 overflow-hidden">
+          <div className="relative h-full w-full">
+            {segments.map((seg, idx) => {
+              const details = getTierDetails(seg.type);
+              const leftPct = (seg.startIdx / totalLen) * 100;
+              const widthPct = (seg.count / totalLen) * 100;
+
               return (
                 <div
                   key={idx}
-                  style={{ left: `${idx * widthPct}%`, width: `${widthPct}%` }}
-                  className={`absolute bottom-0 rounded-sm ${info.height} ${info.color} opacity-90 border-t transition-all`}
-                  title={`${info.label.toUpperCase()}`}
+                  style={{
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    height: details.heightPct,
+                  }}
+                  className={`absolute bottom-0 ${details.bg} border-t-2 ${details.border} transition-all`}
+                  title={`${details.label}`}
                 />
               );
             })}
@@ -107,10 +140,10 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
 
         {/* Legend */}
         <div className="grid grid-cols-4 gap-1 text-3xs font-bold text-slate-400 text-center pt-1 border-t border-white/5">
-          <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-stone-200" /> Stan czuwania / Wybudzenia</span>
-          <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-300" /> REM</span>
-          <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-400" /> Płytki</span>
-          <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-600" /> Głęboki sen</span>
+          <span className="flex items-center justify-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-stone-200" /> Stan czuwania</span>
+          <span className="flex items-center justify-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-sky-300" /> REM</span>
+          <span className="flex items-center justify-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-sky-500" /> Płytki</span>
+          <span className="flex items-center justify-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-indigo-600" /> Głęboki sen</span>
         </div>
       </div>
 
@@ -140,13 +173,13 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
         </div>
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="flex items-center gap-2 text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-sm bg-sky-400" /> Płytki
+            <span className="h-2.5 w-2.5 rounded-sm bg-sky-500" /> Płytki
           </span>
           <span className="font-bold text-white">{lightH > 0 ? formatHM(lightH) : '--'} {lightPct > 0 ? <span className="text-slate-400 font-normal">{lightPct}%</span> : ''}</span>
         </div>
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="flex items-center gap-2 text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-sm bg-sky-600" /> Głęboki
+            <span className="h-2.5 w-2.5 rounded-sm bg-indigo-600" /> Głęboki
           </span>
           <span className="font-bold text-white">{deepH > 0 ? formatHM(deepH) : '--'} {deepPct > 0 ? <span className="text-slate-400 font-normal">{deepPct}%</span> : ''}</span>
         </div>
