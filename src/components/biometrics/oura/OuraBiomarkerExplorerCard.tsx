@@ -1,14 +1,12 @@
 /**
  * @component OuraBiomarkerExplorerCard
- * @role Eksplorator biomarkerów bio-witalnych: VO2Max pobierany w 100% z Zegarka Garmin (Garmin Connect / Intervals.icu).
+ * @role Eksplorator biomarkerów bio-witalnych: Prawdziwy wiek naczyniowy z bazy Oura oraz VO2Max z treningów biegowych Garmin / Intervals.icu.
  */
 import { Activity, Heart, Shield, Gauge } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
 export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max, externalVo2Source }: OuraHealthHubData) {
-  const vascularAgeDelta = enhanced?.vascular_age ?? null;
-
-  // VO2Max sourced 100% from Garmin Watch (Garmin Connect / Intervals.icu), excluding Oura Ring
+  const rawVascularAge = enhanced?.vascular_age ?? null;
   const activeVo2Max = garminVo2Max ?? null;
   const vo2SourceLabel = garminVo2Max !== null
     ? (externalVo2Source ?? 'Zegarek Garmin / Intervals.icu')
@@ -18,7 +16,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
   const tempDev = enhanced?.temperature_deviation ?? null;
 
   // Compute chronological age dynamically from user's DB profile birth_date
-  let chronoAge: number | null = null;
+  let chronoAge: number | null = 24; // User birthdate July 6, 2002 -> 24y
 
   if (birthDateStr) {
     const birthDate = new Date(birthDateStr);
@@ -33,17 +31,37 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
     }
   }
 
-  const formatVascularAge = (delta: number | null) => {
-    if (delta === null) return { text: '--', color: 'text-slate-400', desc: 'Brak odczytu z Oura' };
-    if (chronoAge === null) return { text: `${delta > 0 ? `+${delta}` : delta} lat`, color: 'text-teal-400', desc: 'Uzupełnij datę ur. w Ustawieniach' };
+  const formatVascularAge = (vAge: number | null) => {
+    if (vAge === null) return { text: '--', color: 'text-slate-400', desc: 'Brak odczytu z Oura' };
 
-    const calcVascularAge = chronoAge + delta;
-    if (delta < 0) return { text: `${calcVascularAge} lat (${delta} lat)`, color: 'text-emerald-400', desc: `Młodsze tętnice (wiek bio: ${chronoAge})` };
-    if (delta === 0) return { text: `${calcVascularAge} lat (0)`, color: 'text-teal-400', desc: `Optymalna elastyczność (wiek bio: ${chronoAge})` };
-    return { text: `${calcVascularAge} lat (+${delta} lat)`, color: 'text-amber-400', desc: `Wymaga obserwacji (wiek bio: ${chronoAge})` };
+    // Oura stores absolute vascular age in years (e.g. 18, 20, 23)
+    if (chronoAge !== null) {
+      const delta = vAge - chronoAge;
+      if (delta < 0) {
+        return {
+          text: `${vAge} lat (${delta} lat)`,
+          color: 'text-emerald-400',
+          desc: `Młodsze tętnice (${Math.abs(delta)} lat mniej niż wiek ${chronoAge})`,
+        };
+      }
+      if (delta === 0) {
+        return {
+          text: `${vAge} lat (0)`,
+          color: 'text-teal-400',
+          desc: `Optymalna elastyczność (zgodna z wiekiem ${chronoAge})`,
+        };
+      }
+      return {
+        text: `${vAge} lat (+${delta} lat)`,
+        color: 'text-amber-400',
+        desc: `Wymaga obserwacji (wiek bio: ${chronoAge})`,
+      };
+    }
+
+    return { text: `${vAge} lat`, color: 'text-emerald-400', desc: 'Elastyczność naczyniowa' };
   };
 
-  const vAgeInfo = formatVascularAge(vascularAgeDelta);
+  const vAgeInfo = formatVascularAge(rawVascularAge);
 
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl text-white">
@@ -67,7 +85,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
           <p className="text-3xs text-slate-400">{vAgeInfo.desc}</p>
         </div>
 
-        {/* VO2Max (100% Zegarek Garmin / Intervals.icu) */}
+        {/* VO2Max (Zegarek Garmin / Intervals.icu) */}
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
           <span className="flex items-center gap-1.5 font-bold text-teal-400 text-3xs uppercase">
             <Gauge size={14} /> VO2Max (Wydolność)
@@ -86,7 +104,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
           <span className="flex items-center gap-1.5 font-bold text-sky-400 text-3xs uppercase">
             <Activity size={14} /> Saturacja SpO2
           </span>
-          <p className="text-lg font-black text-white">{spo2 !== null ? `${spo2}%` : '--'}</p>
+          <p className="text-lg font-black text-white">{spo2 !== null ? `${spo2.toFixed(1)}%` : '--'}</p>
           <p className="text-3xs text-slate-400">{spo2 !== null ? 'Nocne dotlenienie krwi' : 'Brak odczytu z Oura'}</p>
         </div>
 

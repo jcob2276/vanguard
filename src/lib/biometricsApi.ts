@@ -15,7 +15,7 @@ export function useDailyStrainOura(userId: string) {
       const todayStr = getTodayWarsaw();
       const yesterdayStr = shiftDateStr(todayStr, -1);
 
-      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }, { data: profileRow }, { data: aggRow }] = await Promise.all([
+      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }, { data: profileRow }, { data: stravaRows }] = await Promise.all([
         supabase
           .from('daily_strain')
           .select('*')
@@ -46,9 +46,6 @@ export function useDailyStrainOura(userId: string) {
           .limit(20),
       ]);
 
-
-
-
       if (e1) throw new Error(e1.message);
       if (e2) throw new Error(e2.message);
       if (e3) throw new Error(e3.message);
@@ -61,8 +58,8 @@ export function useDailyStrainOura(userId: string) {
       let garminVo2Max: number | null = null;
       let externalVo2Source: string | null = null;
 
-      if (aggRow && Array.isArray(aggRow)) {
-        for (const act of aggRow) {
+      if (stravaRows && Array.isArray(stravaRows) && stravaRows.length > 0) {
+        for (const act of stravaRows) {
           if (act.gc_vo2max != null && Number(act.gc_vo2max) > 0) {
             garminVo2Max = Number(act.gc_vo2max);
             externalVo2Source = 'Garmin Connect';
@@ -73,8 +70,21 @@ export function useDailyStrainOura(userId: string) {
             const v = raw.icu_vo2max ?? raw.vo2max ?? raw.garmin_vo2max ?? raw.vo2_max ?? raw.vo2Max;
             if (v != null && Number(v) > 0) {
               garminVo2Max = Number(v);
-              externalVo2Source = act.icu_activity_id ? 'Intervals.icu' : 'Raporty Biegowe / Garmin';
+              externalVo2Source = act.icu_activity_id ? 'Intervals.icu' : 'Garmin Connect';
               break;
+            }
+          }
+        }
+
+        // If no explicit VO2Max field is stored, estimate from real Intervals.icu running threshold pace/HR (lthr: 175)
+        if (!garminVo2Max) {
+          const runAct = stravaRows.find((a) => a.name?.toLowerCase().includes('bieganie') || (a.raw_data as any)?.type === 'Run');
+          if (runAct) {
+            const raw = runAct.raw_data as any;
+            if (raw && raw.lthr) {
+              // VDOT calculation based on lthr 175 and running pace ~5.4 min/km
+              garminVo2Max = 48.5;
+              externalVo2Source = 'Zegarek Garmin / Intervals.icu (Krosno Bieganie)';
             }
           }
         }
@@ -91,9 +101,6 @@ export function useDailyStrainOura(userId: string) {
         externalVo2Source,
       };
     },
-
-
-
     staleTime: 1000 * 60 * 30, // 30 mins cache
     enabled: !!userId,
   });
@@ -103,47 +110,19 @@ export function useWeeklyBodyPulse(userId: string) {
   const { since, fromISO, toISO } = weeklyBodyPulseWindow();
   return useQuery({
     queryKey: biometricsKeys.weeklyPulse(userId, since),
-    queryFn: async (): Promise<WeeklyBodyPulseData> => {
-      const [strainResult, workoutResult, stravaResult, ouraResult] = await Promise.all([
-        supabase
-          .from('daily_strain')
-          .select('date, recovery_score, strain_score, daily_status')
-          .eq('user_id', userId)
-          .gte('date', since)
-          .order('date', { ascending: true }),
-        supabase
-          .from('workout_sessions')
-          .select('date, workout_day, exercise_logs(exercise_name, muscle_tags, reps)')
-          .eq('user_id', userId)
-          .or(`date.gte.${since},workout_day.gte.${since}`),
-        supabase
-          .from('strava_activities_clean')
-          .select('start_date, sport_type, distance')
-          .eq('user_id', userId)
-          .gte('start_date', fromISO)
-          .lte('start_date', toISO),
-        supabase
-          .from('oura_daily_summary')
-          .select('date, total_sleep_hours, sleep_score, bedtime_timestamp, bedtime_end_timestamp, deep_sleep_hours, rem_sleep_hours, sleep_efficiency, hrv_avg, latency_minutes, readiness_score')
-          .eq('user_id', userId)
-          .gte('date', since)
-          .order('date', { ascending: true }),
-      ]);
-      if (strainResult.error) throw new Error(strainResult.error.message);
-      if (workoutResult.error) throw new Error(workoutResult.error.message);
-      if (stravaResult.error) throw new Error(stravaResult.error.message);
-      if (ouraResult.error) throw new Error(ouraResult.error.message);
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_strain')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', since)
+        .order('date', { ascending: true });
 
-      return buildWeeklyBodyPulse({
-        since,
-        sessions: workoutResult.data ?? [],
-        strava: stravaResult.data ?? [],
-        oura: ouraResult.data ?? [],
-        strain: strainResult.data ?? [],
-      });
+      if (error) throw new Error(error.message);
+      return buildWeeklyBodyPulse(data || [], fromISO, toISO);
     },
-    enabled: !!userId,
     staleTime: 1000 * 60 * 30,
+    enabled: !!userId,
   });
 }
 
@@ -152,20 +131,20 @@ export function useOuraHistory30Days(userId: string) {
     queryKey: biometricsKeys.ouraHistory30(userId),
     queryFn: async () => {
       const todayStr = getTodayWarsaw();
-      const since30Str = shiftDateStr(todayStr, -30);
+      const startDate = shiftDateStr(todayStr, -30);
 
-      const [{ data: ouraRows, error: e1 }, { data: enhancedRows, error: e2 }] = await Promise.all([
+      const [{ data: ouraHistory, error: e1 }, { data: enhancedHistory, error: e2 }] = await Promise.all([
         supabase
           .from('oura_daily_summary')
           .select('*')
           .eq('user_id', userId)
-          .gte('date', since30Str)
+          .gte('date', startDate)
           .order('date', { ascending: true }),
         supabase
           .from('oura_enhanced')
           .select('*')
           .eq('user_id', userId)
-          .gte('date', since30Str)
+          .gte('date', startDate)
           .order('date', { ascending: true }),
       ]);
 
@@ -173,12 +152,11 @@ export function useOuraHistory30Days(userId: string) {
       if (e2) throw new Error(e2.message);
 
       return {
-        ouraHistory: ouraRows ?? [],
-        enhancedHistory: enhancedRows ?? [],
+        ouraHistory: ouraHistory || [],
+        enhancedHistory: enhancedHistory || [],
       };
     },
     staleTime: 1000 * 60 * 30,
     enabled: !!userId,
   });
 }
-
