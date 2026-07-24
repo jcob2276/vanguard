@@ -92,9 +92,9 @@ export function OuraTrendsTab(props: OuraHealthHubData) {
               <div key={idx} className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
                 <Activity size={18} className="text-teal-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="font-bold text-white">{item.feature_name || item.metric}</p>
+                  <p className="font-bold text-white">{item.label || item.x_label}</p>
                   <p className="text-2xs text-slate-300 leading-relaxed">
-                    Współczynnik $r = {item.r_value?.toFixed(2) ?? '--'}$, $N = {item.sample_size ?? item.n_days ?? '--'}$ dni. {item.description || 'Wykryty wpływ na regenerację.'}
+                    Współczynnik $r = {item.r != null ? item.r.toFixed(2) : '--'}$, $N = {item.n ?? '--'}$ dni. {item.note || `Wpływ ${item.x_label} na ${item.y_label}.`}
                   </p>
                 </div>
               </div>
