@@ -33,7 +33,7 @@ export function OuraTrendsTab(props: OuraHealthHubData) {
       <OuraCaffeineDecayCard />
 
       {/* 2. Circadian Clock Card */}
-      <OuraCircadianClockCard />
+      <OuraCircadianClockCard {...props} />
 
       {/* 3. Night Comparison Card */}
       <OuraNightCompareCard {...props} />
@@ -84,17 +84,20 @@ export function OuraTrendsTab(props: OuraHealthHubData) {
               Liczenie korelacji z bazy danych...
             </div>
           ) : correlations.length > 0 ? (
-            correlations.slice(0, 3).map((item, idx) => (
-              <div key={idx} className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
-                <Activity size={18} className="text-teal-400 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-bold text-white">{item.label || item.x_label}</p>
-                  <p className="text-2xs text-slate-300 leading-relaxed">
-                    Współczynnik $r = {item.r != null ? item.r.toFixed(2) : '--'}$, $N = {item.n ?? '--'}$ dni. {item.note || `Wpływ ${item.x_label} na ${item.y_label}.`}
-                  </p>
+            correlations.slice(0, 3).map((item, idx) => {
+              const cleanNote = item.note?.replace(/\$r\s*=\s*([^$]+)\$/g, 'r = $1').replace(/\$N\s*=\s*([^$]+)\$/g, 'N = $1') || '';
+              return (
+                <div key={idx} className="p-3.5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
+                  <Activity size={18} className="text-teal-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-white">{item.label || item.x_label}</p>
+                    <p className="text-2xs text-slate-300 leading-relaxed">
+                      Współczynnik r = {item.r != null ? item.r.toFixed(2) : '--'} (N = {item.n ?? '--'} dni). {cleanNote}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-4 rounded-2xl border border-white/5 bg-white/5 text-center space-y-1">
               <p className="text-xs font-bold text-slate-300">Wymagana większa próba nocy</p>

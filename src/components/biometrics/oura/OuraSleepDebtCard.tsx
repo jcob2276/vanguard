@@ -81,9 +81,10 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
   };
   const chronotype = getChronotype(avgMid);
 
-  // ── 7-MONTH STATISTICAL BUCKETS (All Available Oura History) ──────────────
+  // ── 7-MONTH STATISTICAL BUCKETS & PEAK (Nights >= 85 pts) ─────────────────
   const validNightsAll = allHistory.filter(r => r.sleep_score != null && r.bedtime_timestamp && (r.total_sleep_hours ?? 0) > 0);
-  const sortedAllTime = [...validNightsAll].sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0)).slice(0, 5);
+  const peak85Plus = validNightsAll.filter(r => (r.sleep_score ?? 0) >= 85);
+  const sortedAllTime = (peak85Plus.length > 0 ? peak85Plus : [...validNightsAll].sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0))).slice(0, 10);
 
   let peakBedStr: string | null = null;
   let peakWakeStr: string | null = null;
@@ -103,18 +104,17 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
 
   // ── RECENT 14 DAYS AVERAGE ───────────────────────────────────────────────
   const recent14Valid = allHistory.slice(-14).filter(r => r.sleep_score != null && r.bedtime_timestamp && (r.total_sleep_hours ?? 0) > 0);
-  const sortedRecent = [...recent14Valid].sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0)).slice(0, 5);
 
   let recentBedStr: string | null = null;
   let recentAvgScore: number | null = null;
   let recentDeepSleep: number | null = null;
 
-  if (sortedRecent.length > 0) {
-    const beds = sortedRecent.map(r => decHour(toWarsawHM(r.bedtime_timestamp!).h, toWarsawHM(r.bedtime_timestamp!).m, true));
+  if (recent14Valid.length > 0) {
+    const beds = recent14Valid.map(r => decHour(toWarsawHM(r.bedtime_timestamp!).h, toWarsawHM(r.bedtime_timestamp!).m, true));
     const avgBedDec = beds.reduce((a, b) => a + b, 0) / beds.length;
-    recentAvgScore = Math.round(sortedRecent.reduce((a, r) => a + (r.sleep_score ?? 0), 0) / sortedRecent.length);
+    recentAvgScore = Math.round(recent14Valid.reduce((a, r) => a + (r.sleep_score ?? 0), 0) / recent14Valid.length);
     recentBedStr = decToHHMM(avgBedDec % 24);
-    recentDeepSleep = sortedRecent.reduce((a, r) => a + (r.deep_sleep_hours ?? 0), 0) / sortedRecent.length;
+    recentDeepSleep = recent14Valid.reduce((a, r) => a + (r.deep_sleep_hours ?? 0), 0) / recent14Valid.length;
   }
 
   // ── 7-MONTH BUCKET COMPUTATION ──────────────────────────────────────────

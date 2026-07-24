@@ -7,16 +7,18 @@ import type { OuraHealthHubData } from './types';
 
 export function OuraActivityTab({ oura, enhanced, strainRow }: OuraHealthHubData) {
   const strainScore = strainRow?.strain_score ?? 0;
-  const activeCals = enhanced?.active_calories ?? oura?.active_calories ?? 262;
-  const totalCals = enhanced?.total_calories ?? oura?.total_calories ?? 2484;
-  const steps = enhanced?.steps ?? oura?.steps ?? 3541;
-  const targetCals = enhanced?.target_calories ?? 550;
-  const walkDistKm = enhanced?.equivalent_walking_distance ? (enhanced.equivalent_walking_distance / 1000).toFixed(1) : '2.8';
+  const activeCals = enhanced?.active_calories ?? oura?.active_calories ?? 0;
+  const totalCals = enhanced?.total_calories ?? oura?.total_calories ?? 0;
+  const steps = enhanced?.steps ?? oura?.steps ?? 0;
+  const targetCals = enhanced?.target_calories ?? 500;
+  const walkDistKm = enhanced?.equivalent_walking_distance
+    ? (enhanced.equivalent_walking_distance / 1000).toFixed(1)
+    : steps > 0 ? (steps * 0.00075).toFixed(1) : '0.0';
 
-  const highMins = enhanced?.high_activity_minutes ?? 15;
-  const medMins = enhanced?.medium_activity_minutes ?? 42;
-  const lowMins = enhanced?.low_activity_minutes ?? 110;
-  const sedMins = enhanced?.sedentary_minutes ?? 480;
+  const highMins = enhanced?.high_activity_minutes ?? 0;
+  const medMins = enhanced?.medium_activity_minutes ?? 0;
+  const lowMins = enhanced?.low_activity_minutes ?? 0;
+  const sedMins = enhanced?.sedentary_minutes ?? 0;
 
   return (
     <div className="space-y-4 text-white animate-fadeIn">

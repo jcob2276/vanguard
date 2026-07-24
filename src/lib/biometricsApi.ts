@@ -83,7 +83,7 @@ export function useDailyStrainOura(userId: string) {
             const raw = runAct.raw_data as any;
             if (raw && raw.lthr) {
               garminVo2Max = 48.5;
-              externalVo2Source = 'Zegarek Garmin / Intervals.icu (Krosno Bieganie)';
+              externalVo2Source = 'Garmin Connect / Raport Biegowy';
             }
           }
         }
@@ -135,7 +135,7 @@ export function useOuraHistory30Days(userId: string) {
     queryKey: biometricsKeys.ouraHistory30(userId),
     queryFn: async () => {
       const todayStr = getTodayWarsaw();
-      const startDate = shiftDateStr(todayStr, -30);
+      const startDate = shiftDateStr(todayStr, -365); // Full Oura history (7+ months)
 
       const [{ data: ouraHistory, error: e1 }, { data: enhancedHistory, error: e2 }] = await Promise.all([
         supabase
