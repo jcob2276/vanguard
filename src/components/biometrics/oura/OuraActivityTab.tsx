@@ -4,7 +4,6 @@
  */
 import { Activity, Flame, Footprints, Clock } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
-import { OuraRunningPerformanceLabCard } from './OuraRunningPerformanceLabCard';
 
 export function OuraActivityTab({ oura, enhanced, strainRow }: OuraHealthHubData) {
   const strainScore = strainRow?.strain_score ?? 0;
@@ -45,9 +44,6 @@ export function OuraActivityTab({ oura, enhanced, strainRow }: OuraHealthHubData
           </div>
         </div>
       </div>
-
-      {/* Dedykowane Centrum Biegowe & Performance Hub (Intervals.icu / Garmin) */}
-      <OuraRunningPerformanceLabCard />
 
       {/* Steps & Distance */}
       <div className="grid grid-cols-2 gap-2.5">

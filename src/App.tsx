@@ -24,6 +24,7 @@ const EndMyopiaCalculator = lazy(() => import('./components/medical/EndMyopiaCal
 const FinancePage = lazy(() => import('./components/finance'));
 const DesignSystemPage = lazy(() => import('./components/dev/DesignSystemPage'));
 const OuraHealthPage = lazy(() => import('./components/biometrics/OuraHealthPage'));
+const RunningPerformancePage = lazy(() => import('./components/biometrics/RunningPerformancePage'));
 
 
 const FALLBACK_SPINNER = (
@@ -116,7 +117,11 @@ function AppRoutes() {
       <Route path="/terminy" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
       <Route path="/links" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
       <Route path="/fundament" element={<Screen kind="dashboard"><Dashboard session={session} /></Screen>} />
-      <Route path="/trening" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
+      <Route path="/trening" element={
+        <Suspense fallback={FALLBACK_SPINNER}>
+          <Screen kind="dashboard"><RunningPerformancePage /></Screen>
+        </Suspense>
+      } />
       <Route path="/sauna" element={<Screen kind="list"><Dashboard session={session} /></Screen>} />
 
       <Route path="/dashboard" element={
