@@ -5,9 +5,9 @@
  * @usedBy DashboardDzisTab (lazy)
  */
 import { getTodayWarsaw } from '../../lib/date';
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { BarChart2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Sparkles } from 'lucide-react';
+import Button from '../ui/Button';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,14 +20,16 @@ import { useDailyStrainRefresh } from './hooks/useDailyStrainRefresh';
 import DailyStrainHeader from './DailyStrainHeader';
 import DailyStrainMetricsRow from './DailyStrainMetricsRow';
 import DailyStrainVitalsRow from './DailyStrainVitalsRow';
-
+import OuraHealthHubModal from './OuraHealthHubModal';
 
 export default function DailyStrainCard({
   refreshSignal = 0,
 }: {
   refreshSignal?: number
 }) {
+  const [isHubOpen, setIsHubOpen] = useState(false);
   const userId = useUserId();
+
   const haptics = useHaptics();
   const queryClient = useQueryClient();
   const { refreshing, refresh } = useDailyStrainRefresh(userId, queryClient, haptics);
@@ -156,19 +158,27 @@ export default function DailyStrainCard({
         <DataStateNotice title="Niepełne dane" detail={missingSignals.join(' | ')} />
       )}
 
-      {/* Diagnostic debug */}
-      <div className="text-3xs text-text-muted/40 text-center select-none">
-        Debug: O={oura ? 'Y' : 'N'} OY={ouraYesterday ? 'Y' : 'N'} E={enhanced ? 'Y' : 'N'} EY={enhancedYesterday ? 'Y' : 'N'}
-      </div>
-
-      {/* Correlations link */}
-      <Link
-        to="/korelacje"
-        className="flex items-center justify-center gap-1.5 rounded-xl border border-border-custom/40 bg-surface-solid/20 py-2 text-xs font-bold text-text-muted hover:text-primary hover:border-primary/20 transition-all active:scale-[var(--ds-arbitrary-0-985)] relative z-[var(--z-raised)]"
+      {/* Oura Health Hub Launcher Button */}
+      <Button
+        variant="outline"
+        onClick={() => setIsHubOpen(true)}
+        className="w-full flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-primary border-primary/20 bg-primary/[0.04] hover:bg-primary/[0.08] transition-all active:scale-[0.98] relative z-[var(--z-raised)]"
       >
-        <BarChart2 size={11} />
-        Korelacje — kawa, sen, trening
-      </Link>
+        <Sparkles size={14} className="text-primary animate-pulse" />
+        Pełny Wgląd Oura & Sen (110%) →
+      </Button>
+
+      <OuraHealthHubModal
+        isOpen={isHubOpen}
+        onClose={() => setIsHubOpen(false)}
+        strainRow={row}
+        oura={oura}
+        ouraYesterday={ouraYesterday}
+        enhanced={enhanced}
+        enhancedYesterday={enhancedYesterday}
+        comp={comp}
+      />
     </div>
   );
 }
+
