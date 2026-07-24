@@ -82,7 +82,6 @@ export function useDailyStrainOura(userId: string) {
           if (runAct) {
             const raw = runAct.raw_data as any;
             if (raw && raw.lthr) {
-              // VDOT calculation based on lthr 175 and running pace ~5.4 min/km
               garminVo2Max = 48.5;
               externalVo2Source = 'Zegarek Garmin / Intervals.icu (Krosno Bieganie)';
             }
@@ -101,27 +100,31 @@ export function useDailyStrainOura(userId: string) {
         externalVo2Source,
       };
     },
-    staleTime: 1000 * 60 * 30, // 30 mins cache
+    staleTime: 1000 * 60 * 30,
     enabled: !!userId,
   });
 }
 
 export function useWeeklyBodyPulse(userId: string) {
-  const { since, fromISO, toISO } = weeklyBodyPulseWindow();
+  const { since } = weeklyBodyPulseWindow();
   return useQuery({
     queryKey: biometricsKeys.weeklyPulse(userId, since),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('daily_strain')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('date', since)
-        .order('date', { ascending: true });
+      const [{ data: strain }, { data: sessions }, { data: strava }, { data: oura }] = await Promise.all([
+        supabase.from('daily_strain').select('*').eq('user_id', userId).gte('date', since),
+        supabase.from('workout_sessions').select('*').eq('user_id', userId).gte('workout_day', since),
+        supabase.from('strava_activities').select('*').eq('user_id', userId).gte('start_date', since),
+        supabase.from('oura_daily_summary').select('*').eq('user_id', userId).gte('date', since),
+      ]);
 
-      if (error) throw new Error(error.message);
-      return buildWeeklyBodyPulse(data || []);
+      return buildWeeklyBodyPulse({
+        since,
+        sessions: sessions || [],
+        strava: strava || [],
+        oura: oura || [],
+        strain: strain || [],
+      });
     },
-
     staleTime: 1000 * 60 * 30,
     enabled: !!userId,
   });
