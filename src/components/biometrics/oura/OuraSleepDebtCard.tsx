@@ -1,6 +1,7 @@
 /**
  * @component OuraSleepDebtCard
- * @role Deficyt snu z sleep_debt_h (daily_strain.components — kanoniczne źródło) + Zegar Biologiczny z optymalnym oknem snu.
+ * @role Deficyt snu z sleep_debt_h (daily_strain.components — kanoniczne źródło)
+ *       + Zegar Biologiczny z optymalnym oknem opartym na najlepszych nocach (nie chronotypie).
  */
 import type { OuraHealthHubData } from './types';
 import { parseStrainComponents } from '../../../lib/db-json-guards';
@@ -8,35 +9,38 @@ import { Moon, Sun, Target } from 'lucide-react';
 
 const TZ = 'Europe/Warsaw';
 
-function toWarsawHHMM(iso: string): { h: number; m: number; str: string } {
-  const d = new Date(iso);
-  const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false })
-    .format(d).split(':').map(Number);
-  return { h, m, str: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
+function toWarsawHM(iso: string): { h: number; m: number } {
+  const [h, m] = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date(iso)).split(':').map(Number);
+  return { h, m };
 }
 
-function decimalHour(h: number, m: number, wrapNight = true): number {
-  const dec = h + m / 60;
-  // Normalize: hours < 12 (0–11) count as "next calendar day" for night chronotype
-  return wrapNight && dec < 12 ? dec + 24 : dec;
+/** Decimal hour, wrapping pre-noon hours into "next calendar day" for night math */
+function decHour(h: number, m: number, wrapNight = true): number {
+  const d = h + m / 60;
+  return wrapNight && d < 12 ? d + 24 : d;
 }
 
-function decimalToHHMM(dec: number): string {
-  const wrapped = dec % 24;
-  const h = Math.floor(wrapped);
-  const m = Math.round((wrapped - h) * 60);
+function decToHHMM(dec: number): string {
+  const w = dec % 24;
+  const h = Math.floor(w);
+  const m = Math.round((w - h) * 60);
   return `${String(h).padStart(2, '0')}:${String(m === 60 ? 0 : m).padStart(2, '0')}`;
 }
 
 export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData) {
-  // ── Sleep Debt — z daily_strain.components.sleep_debt_h (kanoniczne źródło, to samo co DailyStrainCard) ──
+  // ── Sleep Debt — canonical source: daily_strain.components.sleep_debt_h ──────
   const comp = parseStrainComponents(strainRow?.components ?? null) ?? {};
-  // sleep_debt_h < 0 oznacza dług (konwencja: ujemny = niedobór), > 0 = nadwyżka
-  const rawDebt = comp.sleep_debt_h != null ? -comp.sleep_debt_h : null; // konwersja na dodatni dług
+  // sleep_debt_h < 0 = deficit, > 0 = surplus (engine convention)
+  const rawDebt = comp.sleep_debt_h != null ? -comp.sleep_debt_h : null;
   const debtHoursDiff = rawDebt !== null ? Math.max(0, rawDebt) : null;
 
   const nightsWithData = (ouraHistory ?? []).filter((r) => (r.total_sleep_hours ?? 0) > 0);
   const n = nightsWithData.length;
+  const avgSleepDur = n > 0
+    ? nightsWithData.reduce((a, r) => a + (r.total_sleep_hours ?? 0), 0) / n
+    : 7.5;
 
   const debtHours = debtHoursDiff !== null ? Math.floor(debtHoursDiff) : null;
   const debtMins = debtHoursDiff !== null ? Math.round((debtHoursDiff % 1) * 60) : null;
@@ -47,78 +51,64 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
     if (diff <= 8) return { label: 'UMIARKOWANE', color: 'text-amber-400', pct: 65, barColor: 'bg-amber-400' };
     return { label: 'WYSOKIE', color: 'text-rose-400', pct: 92, barColor: 'bg-rose-400' };
   };
-
   const debtStatus = debtHoursDiff !== null ? getDebtStatus(debtHoursDiff) : null;
 
-  // ── Chronotype: Midpoint of Sleep ──────────────────────────────────────────
+  // ── Chronotype: average sleep midpoint (informational) ────────────────────
   const allRows = (ouraHistory ?? []).slice(-14);
   const midpoints: number[] = [];
   const bedtimes: number[] = [];
-  const waketimes: number[] = [];
 
   for (const r of allRows) {
-    const start = r.bedtime_timestamp ? new Date(r.bedtime_timestamp).getTime() : null;
-    const end = r.bedtime_end_timestamp ? new Date(r.bedtime_end_timestamp).getTime() : null;
-    if (!start || !end || end <= start) continue;
-
-    const sw = toWarsawHHMM(r.bedtime_timestamp!);
-    const ew = toWarsawHHMM(r.bedtime_end_timestamp!);
-
-    const bedDec = decimalHour(sw.h, sw.m, true);
-    const wakeDec = decimalHour(ew.h, ew.m, false);
+    if (!r.bedtime_timestamp || !r.bedtime_end_timestamp) continue;
+    const s = toWarsawHM(r.bedtime_timestamp);
+    const e = toWarsawHM(r.bedtime_end_timestamp);
+    const bedDec = decHour(s.h, s.m, true);
+    const wakeDec = decHour(e.h, e.m, false);
     const midDec = (bedDec + (bedDec > wakeDec ? wakeDec + 24 : wakeDec)) / 2;
-
     midpoints.push(midDec % 24);
     bedtimes.push(bedDec % 24);
-    waketimes.push(wakeDec);
   }
 
-  const avgMid = midpoints.length > 0 ? midpoints.reduce((a, b) => a + b, 0) / midpoints.length : null;
-  const avgBed = bedtimes.length > 0 ? bedtimes.reduce((a, b) => a + b, 0) / bedtimes.length : null;
-  const avgWake = waketimes.length > 0 ? waketimes.reduce((a, b) => a + b, 0) / waketimes.length : null;
+  const avgMid = midpoints.length > 0
+    ? midpoints.reduce((a, b) => a + b, 0) / midpoints.length
+    : null;
+  const avgMidStr = avgMid !== null ? decToHHMM(avgMid) : null;
 
-  const avgMidStr = avgMid !== null ? decimalToHHMM(avgMid) : null;
+  const getChronotype = (h: number | null) => {
+    if (h === null) return null;
+    const v = h % 24;
+    if (v < 3)   return { label: 'Skowronek (bardzo wczesny)', icon: '🌅' };
+    if (v < 3.5) return { label: 'Skowronek', icon: '🌤️' };
+    if (v < 4.5) return { label: 'Neutralny', icon: '⚖️' };
+    if (v < 5.5) return { label: 'Nocna Sowa (późny)', icon: '🦉' };
+    return { label: 'Nocna Sowa (bardzo późny)', icon: '🌙' };
+  };
+  const chronotype = getChronotype(avgMid);
 
-  // Optimal sleep window = midpoint ± half of avg sleep duration
-  const avgSleepDur = n > 0 ? nightsWithData.reduce((a, r) => a + (r.total_sleep_hours ?? 0), 0) / n : 7.5;
-  const half = avgSleepDur / 2;
-
-  const optBedDecimal = avgMid !== null ? ((avgMid - half + 24) % 24) : null;
-  const optWakeDecimal = avgMid !== null ? ((avgMid + half) % 24) : null;
-  const optBedStr = optBedDecimal !== null ? decimalToHHMM(optBedDecimal) : null;
-  const optWakeStr = optWakeDecimal !== null ? decimalToHHMM(optWakeDecimal) : null;
-
-  // Best nights: top 5 by sleep score → what bedtime they had
+  // ── Best bedtime: avg from top-5 sleep-score nights (prescriptive) ────────
   const sortedBySleep = [...allRows]
     .filter(r => r.sleep_score != null && r.bedtime_timestamp)
     .sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0))
     .slice(0, 5);
 
   let bestBedStr: string | null = null;
+  let bestWakeStr: string | null = null;
   if (sortedBySleep.length > 0) {
     const bestBeds = sortedBySleep.map(r => {
-      const sw = toWarsawHHMM(r.bedtime_timestamp!);
-      return decimalHour(sw.h, sw.m, true);
+      const s = toWarsawHM(r.bedtime_timestamp!);
+      return decHour(s.h, s.m, true);
     });
     const avgBestBed = bestBeds.reduce((a, b) => a + b, 0) / bestBeds.length;
-    bestBedStr = decimalToHHMM(avgBestBed % 24);
+    bestBedStr = decToHHMM(avgBestBed % 24);
+    bestWakeStr = decToHHMM((avgBestBed + avgSleepDur) % 24);
   }
 
-  const getChronotype = (h: number | null) => {
-    if (h === null) return null;
-    const n = h % 24;
-    if (n < 3) return { label: 'Skowronek (bardzo wczesny)', icon: '🌅' };
-    if (n < 3.5) return { label: 'Skowronek', icon: '🌤️' };
-    if (n < 4.5) return { label: 'Neutralny', icon: '⚖️' };
-    if (n < 5.5) return { label: 'Nocna Sowa (późny)', icon: '🦉' };
-    return { label: 'Nocna Sowa (bardzo późny)', icon: '🌙' };
-  };
-
-  const chronotype = getChronotype(avgMid);
+  // Is late sleeper? midpoint past 04:30 = outside peak regeneration window
+  const isLateSleeper = avgMid !== null && avgMid % 24 > 4.5;
 
   return (
     <div className="space-y-4">
-      {/* Deficyt Snu */}
+      {/* ── Deficyt Snu ────────────────────────────────────────────────── */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
         <div className="flex items-center justify-between text-3xs font-black uppercase tracking-widest text-slate-400">
           <span>DEFICYT SNU</span>
@@ -148,67 +138,71 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
             </div>
           </>
         ) : (
-          <p className="text-sm text-slate-400">{n < 3 ? `Za mało danych (${n} nocy) — potrzeba min. 3.` : '--'}</p>
+          <p className="text-sm text-slate-400">
+            {n < 3 ? `Za mało danych (${n} nocy) — potrzeba min. 3.` : 'Brak danych silnika — uruchom sync.'}
+          </p>
         )}
       </div>
 
-      {/* Zegar Biologiczny */}
+      {/* ── Zegar Biologiczny ──────────────────────────────────────────── */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl">
         <p className="text-3xs font-black uppercase tracking-widest text-slate-400">ZEGAR BIOLOGICZNY</p>
 
         {chronotype && avgMidStr ? (
           <>
-            {/* Chronotype */}
+            {/* Chronotype — informacyjny (co robisz), nie normatywny */}
             <div className="flex items-center gap-3">
               <span className="text-3xl">{chronotype.icon}</span>
               <div>
                 <p className="text-sm font-black text-white">{chronotype.label}</p>
-                <p className="text-3xs text-slate-400">Środek snu: <span className="text-sky-400 font-bold">{avgMidStr}</span> (z {midpoints.length} nocy)</p>
+                <p className="text-3xs text-slate-400">
+                  Twój średni środek snu: <span className="text-sky-400 font-bold">{avgMidStr}</span> (z {midpoints.length} nocy)
+                </p>
               </div>
             </div>
 
-            {/* Optimal Sleep Window — computed from chronotype */}
-            {optBedStr && optWakeStr && (
+            {/* Optymalne Okno — z najlepszych nocy (co działa), nie z chronotypu */}
+            {bestBedStr && bestWakeStr && (
               <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
                 <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-emerald-400">
-                  <Target size={12} /> Optymalne Okno Snu (wyliczone z Twojego chronotypu)
+                  <Target size={12} /> Optymalne Okno Snu (z Twoich 5 najlepszych nocy)
                 </div>
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2">
                     <Moon size={14} className="text-indigo-400" />
                     <div>
                       <p className="text-3xs text-slate-400">Połóż się spać</p>
-                      <p className="text-xl font-black text-indigo-300">{optBedStr}</p>
+                      <p className="text-xl font-black text-indigo-300">{bestBedStr}</p>
                     </div>
                   </div>
                   <div className="text-slate-500 text-lg font-bold">→</div>
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2">
                     <Sun size={14} className="text-amber-400" />
                     <div>
                       <p className="text-3xs text-slate-400">Wstań</p>
-                      <p className="text-xl font-black text-amber-300">{optWakeStr}</p>
+                      <p className="text-xl font-black text-amber-300">{bestWakeStr}</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-3xs text-slate-400 leading-relaxed">
-                  Oparte na środku snu {avgMidStr} ± {(avgSleepDur / 2).toFixed(1)}h (śr. {avgSleepDur.toFixed(1)}h snu z {n} nocy)
+                <p className="text-3xs text-slate-400">
+                  Avg z 5 nocy z najwyższym sleep score · {avgSleepDur.toFixed(1)}h snu
                 </p>
-              </div>
-            )}
 
-            {/* Best bedtime from actual high-score nights */}
-            {bestBedStr && (
-              <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/20">
-                <p className="text-3xs font-black uppercase tracking-wider text-sky-400 mb-1">Najlepsza pora (z Twoich 5 najlepszych nocy)</p>
-                <p className="text-sm font-black text-white">Kłaść się spać ok. <span className="text-sky-300">{bestBedStr}</span></p>
-                <p className="text-3xs text-slate-400 mt-0.5">
-                  Top 5 nocy z najwyższym sleep score miało średnio tę porę zasypiania.
-                </p>
+                {/* Ostrzeżenie: chronotyp poza oknem biologicznym */}
+                {isLateSleeper && (
+                  <div className="pt-1.5 border-t border-white/10">
+                    <p className="text-3xs text-amber-400 font-semibold leading-relaxed">
+                      ⚠️ Twój chronotyp (środek snu {avgMidStr}) wypada poza biologicznym oknem regeneracji 22:00–02:00 — wtedy dominuje sen głęboki i wydzielany jest hormon wzrostu. Wcześniejsze kładzenie się spać to największa dźwignia jakości snu.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </>
         ) : (
-          <p className="text-sm text-slate-400">Brak danych — potrzeba min. 1 nocy z godzinami zaśnięcia i przebudzenia.</p>
+          <p className="text-sm text-slate-400">
+            Brak danych — potrzeba min. 1 nocy z godzinami zaśnięcia i przebudzenia.
+          </p>
         )}
       </div>
     </div>
