@@ -47,7 +47,7 @@ export function DashboardHeader({
   const { medium, heavy, selection } = useHaptics();
 
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] flex items-center justify-between gap-2 border-b border-black/8 dark:border-white/10 bg-background/80 px-4 py-3 backdrop-blur-[20px] saturate(180%) shadow-sm">
+    <header className="sticky top-0 z-[var(--z-sticky)] pt-safe-top flex items-center justify-between gap-2 border-b border-black/8 dark:border-white/10 bg-background/80 px-4 py-3 backdrop-blur-[20px] saturate(180%) shadow-sm">
       <div className="min-w-0 shrink-0">
         <h1
           className="font-display text-sm font-bold text-primary select-none cursor-pointer flex items-center gap-1.5 touch-manipulation active:opacity-80"

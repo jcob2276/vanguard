@@ -1596,9 +1596,16 @@ body {
   display: flex;
   min-height: 100dvh;
   flex-direction: column;
-  padding-top: env(safe-area-inset-top);
+  padding-top: max(env(safe-area-inset-top), 2.25rem);
   padding-bottom: env(safe-area-inset-bottom);
   isolation: isolate;
+}
+
+/* Native Android / iOS status bar safe area offset for Capacitor APK */
+.capacitor-native header.sticky,
+.capacitor-native .sticky.top-0,
+.capacitor-native .pt-safe-top {
+  padding-top: max(env(safe-area-inset-top), 2.25rem);
 }
 
 .ios-fullscreen-experience-light {

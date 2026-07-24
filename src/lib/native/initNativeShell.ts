@@ -15,6 +15,9 @@ function cssColor(varName: string, fallback: string): string {
 export async function initNativeShell(): Promise<void> {
   if (!isNativePlatform()) return;
 
+  document.documentElement.classList.add('capacitor-native');
+  document.body.classList.add('capacitor-native');
+
   try {
     // Prefer design token; StatusBar API needs a concrete color string.
     const bg = cssColor('--background', cssColor('--bg-primary', 'transparent'));
