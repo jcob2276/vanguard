@@ -2,20 +2,34 @@ import { Smartphone, ShieldAlert, BarChart2, Flame, Clock, AlertTriangle, Calend
 import type { OuraHealthHubData } from './types';
 import { useScreenTimeCorrelation, type PairedNight } from './hooks/useScreenTimeCorrelation';
 
+function formatHoursMins(mins: number): string {
+  if (!mins || mins <= 0) return '0m';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
 function PairedNightsTable({ paired }: { paired: PairedNight[] }) {
   return (
     <div className="p-3.5 rounded-2xl bg-slate-950/50 border border-white/5 space-y-2">
-      <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-slate-300">
-        <Calendar size={13} className="text-indigo-400" />
-        Szczegółowy Wykaz Sparowanych Nocy ({paired.length})
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-slate-300">
+          <Calendar size={13} className="text-indigo-400" />
+          Szczegółowy Wykaz Sparowanych Nocy ({paired.length})
+        </div>
+        <span className="text-3xs text-slate-500 font-bold">Noc = 23:00–04:00</span>
       </div>
       <div className="space-y-1.5 text-3xs">
         {paired.map((n) => (
-          <div key={n.date} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+          <div key={n.date} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="font-mono text-slate-300 font-bold">{n.date}</span>
               <span className={`px-2 py-0.5 rounded-md font-bold ${n.lateNightMins >= 30 ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                Ekran: {n.lateNightMins} min
+                Noc (23:00+): {n.lateNightMins} min
+              </span>
+              <span className="text-slate-400 font-medium">
+                Dzień: {formatHoursMins(n.totalMins)}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -74,7 +88,7 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-3xs font-black uppercase text-emerald-400">Ekran &lt; 30 min nocą</span>
+                <span className="text-3xs font-black uppercase text-emerald-400">Ekran &lt; 30 min nocą (23:00+)</span>
                 <span className="text-2xs font-bold text-emerald-300">({low.count} nocy)</span>
               </div>
               <div className="flex items-baseline gap-2">
@@ -89,7 +103,7 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
 
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-3xs font-black uppercase text-rose-400">Ekran &gt; 30 min nocą</span>
+                <span className="text-3xs font-black uppercase text-rose-400">Ekran &gt; 30 min nocą (23:00+)</span>
                 <span className="text-2xs font-bold text-rose-300">({high.count} nocy)</span>
               </div>
               <div className="flex items-baseline gap-2">
@@ -108,7 +122,7 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
             <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-rose-500/10 border border-amber-500/30 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-amber-400">
-                  <Flame size={15} /> Nocna Pętla Dopaminowa (Pinterest / Brave / Social &gt;30m)
+                  <Flame size={15} /> Nocna Pętla Dopaminowa (Pinterest / Brave / Social &gt;30m nocą)
                 </div>
                 <span className="text-3xs font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md">
                   {dopamine.count} nocy

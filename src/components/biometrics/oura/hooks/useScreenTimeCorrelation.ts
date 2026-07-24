@@ -10,6 +10,7 @@ export interface PairedNight {
   deepSleepHours: number;
   latencyMins: number;
   lateNightMins: number;
+  totalMins: number;
   topApps: Array<{ app: string; pkg?: string; min?: number }>;
 }
 
@@ -66,6 +67,7 @@ export function useScreenTimeCorrelation(ouraHistory: OuraHealthHubData['ouraHis
         deepSleepHours: night.deep_sleep_hours ?? 0,
         latencyMins: night.latency_minutes ?? 0,
         lateNightMins: phone.late_night_minutes ?? 0,
+        totalMins: phone.total_minutes ?? 0,
         topApps: (phone.top_apps as Array<{ app: string; pkg?: string; min?: number }>) || [],
       };
     })
