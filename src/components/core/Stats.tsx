@@ -5,12 +5,9 @@
  *          DataExportSection, FoodAnalysisSection -> stats/foodAnalysis/{Range,Single})
  * @usedBy DashboardHistoriaTab
  */
-import Button from '../ui/Button';
 import type { ReactNode } from 'react';
-import { TrainingAnalysisSection } from './stats/TrainingAnalysisSection';
 import { WorkoutHistorySection } from './stats/WorkoutHistorySection';
 import { DataExportSection } from './stats/DataExportSection';
-import { FoodAnalysisSection } from './stats/FoodAnalysisSection';
 import { useStatsData } from './hooks/useStatsData';
 
 export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?: ReactNode; runningSlot?: ReactNode }) {
@@ -20,41 +17,25 @@ export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?
     recentSessions,
     dateRange, setDateRange,
     isExporting,
-    isExportingOura,
     includeNutrition, setIncludeNutrition,
     includeJournal, setIncludeJournal,
-    includeOura, setIncludeOura,
-    includeHabits, setIncludeHabits,
     includeWorkouts, setIncludeWorkouts,
     includeBody, setIncludeBody,
-    includeActivityWatch, setIncludeActivityWatch,
-    isAnalyzing,
-    analyzeDate, setAnalyzeDate,
-    analyzePeriod, setAnalyzePeriod,
-    analyzeResult, setAnalyzeResult,
     editingSession, setEditingSession,
     showAllSessions, setShowAllSessions,
     editForm, setEditForm,
-    isAnalyzingTraining,
-    trainingAnalysis,
     deleteSession,
-    analyzeFood,
-    analyzeTrainingLoad,
     startEditing,
     updateSession,
     deleteLog,
     exportData,
-    exportOuraCSV,
   } = useStatsData();
 
   if (!userId) return null;
   if (loading) return <div className="p-8 text-center text-text-muted uppercase font-black animate-pulse tracking-widest">Wczytywanie...</div>;
 
-
   return (
     <div className="space-y-6 pb-4">
-
-
       <section className="card p-5 space-y-4">
         <DataExportSection
           dateRange={dateRange}
@@ -70,29 +51,12 @@ export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?
           exportData={exportData}
           isExporting={isExporting}
         />
-
-        <FoodAnalysisSection
-          analyzePeriod={analyzePeriod}
-          setAnalyzePeriod={setAnalyzePeriod}
-          analyzeResult={analyzeResult}
-          setAnalyzeResult={setAnalyzeResult}
-          analyzeDate={analyzeDate}
-          setAnalyzeDate={setAnalyzeDate}
-          analyzeFood={analyzeFood}
-          isAnalyzing={isAnalyzing}
-        />
       </section>
-
 
       {topSlot}
 
-      <TrainingAnalysisSection
-        trainingAnalysis={trainingAnalysis}
-        analyzeTrainingLoad={analyzeTrainingLoad}
-        isAnalyzingTraining={isAnalyzingTraining}
-      />
-
       <WorkoutHistorySection
+
         recentSessions={recentSessions}
         showAllSessions={showAllSessions}
         setShowAllSessions={setShowAllSessions}
