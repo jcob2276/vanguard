@@ -1,9 +1,36 @@
-import { Smartphone, ShieldAlert, BarChart2, Flame, Clock } from 'lucide-react';
+import { Smartphone, ShieldAlert, BarChart2, Flame, Clock, AlertTriangle, Calendar } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
-import { useScreenTimeCorrelation } from './hooks/useScreenTimeCorrelation';
+import { useScreenTimeCorrelation, type PairedNight } from './hooks/useScreenTimeCorrelation';
+
+function PairedNightsTable({ paired }: { paired: PairedNight[] }) {
+  return (
+    <div className="p-3.5 rounded-2xl bg-slate-950/50 border border-white/5 space-y-2">
+      <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-slate-300">
+        <Calendar size={13} className="text-indigo-400" />
+        Szczegółowy Wykaz Sparowanych Nocy ({paired.length})
+      </div>
+      <div className="space-y-1.5 text-3xs">
+        {paired.map((n) => (
+          <div key={n.date} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-slate-300 font-bold">{n.date}</span>
+              <span className={`px-2 py-0.5 rounded-md font-bold ${n.lateNightMins >= 30 ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                Ekran: {n.lateNightMins} min
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-400">Zasypianie: <strong className="text-white">{n.latencyMins}m</strong></span>
+              <span className="text-slate-400">Wynik Oura: <strong className="text-indigo-300">{n.sleepScore} pkt</strong></span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData) {
-  const { paired, low, high, dopamine, dopamineNights, scoreDiff, latencyDiff } = useScreenTimeCorrelation(ouraHistory);
+  const { paired, low, high, dopamine, dopamineNights, scoreDiff, latencyDiff, isLowSample, sampleWarning } = useScreenTimeCorrelation(ouraHistory);
   const hasData = paired.length > 0;
 
   return (
@@ -25,12 +52,24 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
           </div>
         </div>
         <span className="text-3xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-          {paired.length} par nocy
+          {paired.length} sparowanych nocy
         </span>
       </div>
 
       {hasData ? (
         <>
+          {/* Low Sample Warning Banner */}
+          {isLowSample && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+              <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-amber-300">
+                <AlertTriangle size={14} /> Mała Próba Statystyczna (N = {paired.length} nocy)
+              </div>
+              <p className="text-3xs text-slate-300 leading-relaxed font-medium">
+                {sampleWarning}
+              </p>
+            </div>
+          )}
+
           {/* Low vs High Late-Night Screen Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
@@ -69,7 +108,7 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
             <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-rose-500/10 border border-amber-500/30 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-amber-400">
-                  <Flame size={15} /> Nocna Pętla Dopaminowa (Pinterest / Brave / Social)
+                  <Flame size={15} /> Nocna Pętla Dopaminowa (Pinterest / Brave / Social &gt;30m)
                 </div>
                 <span className="text-3xs font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md">
                   {dopamine.count} nocy
@@ -90,10 +129,12 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
                 </div>
               </div>
               <p className="text-3xs text-slate-300 leading-relaxed font-medium">
-                Pobudzenie układu nagrody po 22:00 opóźnia wyciszenie układu przywspółczulnego. Powoduje podwyższone tętno spoczynkowe w I połowie nocy i skrócenie fazy głębokiej.
+                Stymulacja układu nagrody po 22:00 hamuje wydzielanie melatoniny i opóźnia przejście układu nerwowego w stan przywspółczulny.
               </p>
             </div>
           )}
+
+          <PairedNightsTable paired={paired} />
 
           {/* Bio Insight */}
           {(scoreDiff !== null || latencyDiff !== null) && (
@@ -102,11 +143,12 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
                 <ShieldAlert size={14} /> Wniosek Bio-Witalny Oura Engine
               </div>
               <p className="text-xs leading-relaxed text-slate-200 font-medium">
-                {scoreDiff && scoreDiff > 0
-                  ? <>Używanie telefonu po 22:00 obniża Twój wynik snu o <strong className="text-rose-400">-{scoreDiff} pkt</strong>.</>
-                  : <>Nocny ekran ma umiarkowane przełożenie na całkowity wynik snu.</>}
-                {latencyDiff && latencyDiff > 0 && (
-                  <> Wydłuża czas zasypiania o <strong className="text-amber-400">+{latencyDiff} min</strong>.</>
+                {isLowSample ? (
+                  <>Próba $N={paired.length}$ jest za mała na ostateczny wniosek statystyczny. Gromadźmy dalsze dane z telefonu, aby zweryfikować ubytek fazy głębokiej.</>
+                ) : scoreDiff && scoreDiff > 0 ? (
+                  <>Używanie telefonu po 22:00 obniża Twój wynik snu o <strong className="text-rose-400">-{scoreDiff} pkt</strong>.</>
+                ) : (
+                  <>Ekran nocny ma umiarkowane przełożenie na wynik w obecnej próbie.</>
                 )}
               </p>
             </div>
@@ -118,7 +160,7 @@ export function OuraScreenTimeCorrelationCard({ ouraHistory }: OuraHealthHubData
               Niebieskie Światło & Dopamina Przed Snem
             </div>
             <p className="text-3xs text-slate-400 leading-normal">
-              Social media i przeglądarki używane w oknie 22:00–01:00 hamują wydzielanie melatoniny o nawet 50%.
+              Aplikacje społecznościowe i przeglądarki używane w oknie 22:00–01:00 hamują wydzielanie melatoniny o nawet 50%.
             </p>
           </div>
         </>

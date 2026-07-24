@@ -4,49 +4,95 @@
  * Earth baseline: ~30–50 µT.
  * Elevated EMF (chargers/transformers near head): > 100 µT.
  */
+
 export interface EMFReading {
-  totalMicroTesla: number;
-  x: number;
-  y: number;
-  z: number;
+  hardwareAvailable: boolean;
+  totalMicroTesla: number | null;
+  x: number | null;
+  y: number | null;
+  z: number | null;
   isElevated: boolean;
-  status: 'safe' | 'moderate' | 'high';
+  status: 'safe' | 'moderate' | 'high' | 'no_sensor';
   recommendation: string | null;
+  errorReason?: string;
 }
 
 export async function readMagnetometerEMF(): Promise<EMFReading> {
-  // If browser supports Web Magnetometer API
+  // Check if Web Magnetometer API is available in window
   if (typeof window !== 'undefined' && 'Magnetometer' in window) {
     try {
-      // @ts-ignore - Web Magnetometer API
+      // @ts-ignore - Web Magnetometer API (Chrome / Android HTTPS)
       const sensor = new window.Magnetometer({ frequency: 10 });
       return await new Promise<EMFReading>((resolve) => {
-        sensor.addEventListener('reading', () => {
-          const x = sensor.x || 0;
-          const y = sensor.y || 0;
-          const z = sensor.z || 0;
-          const totalMicroTesla = Math.round(Math.sqrt(x * x + y * y + z * z));
-          sensor.stop();
-          resolve(formatEMFReading(totalMicroTesla, x, y, z));
-        }, { once: true });
+        sensor.addEventListener(
+          'reading',
+          () => {
+            const x = sensor.x || 0;
+            const y = sensor.y || 0;
+            const z = sensor.z || 0;
+            const totalMicroTesla = Math.round(Math.sqrt(x * x + y * y + z * z));
+            sensor.stop();
+            resolve(formatEMFReading(totalMicroTesla, x, y, z, true));
+          },
+          { once: true }
+        );
 
-        sensor.addEventListener('error', () => {
-          resolve(formatEMFReading(42, 25, 20, 26)); // Normal Earth baseline fallback
-        }, { once: true });
+        sensor.addEventListener(
+          'error',
+          (_err: unknown) => {
+            resolve({
+              hardwareAvailable: false,
+              totalMicroTesla: null,
+              x: null,
+              y: null,
+              z: null,
+              isElevated: false,
+              status: 'no_sensor',
+              recommendation: null,
+              errorReason: 'Fizyczny czujnik pola magnetycznego niedostępny w przeglądarce.',
+            });
+          },
+          { once: true }
+        );
 
         sensor.start();
       });
-    } catch {
-      // Fallback
+    } catch (_e: unknown) {
+      return {
+        hardwareAvailable: false,
+        totalMicroTesla: null,
+        x: null,
+        y: null,
+        z: null,
+        isElevated: false,
+        status: 'no_sensor',
+        recommendation: null,
+        errorReason: 'Wymaga aplikacji Android APK z dostępem do Sensor.TYPE_MAGNETIC_FIELD.',
+      };
     }
   }
 
-  // Baseline readout fallback (30–45 µT) for non-hardware / web environments
-  const baseEMF = 42 + Math.floor(Math.random() * 6);
-  return formatEMFReading(baseEMF, 24, 21, 25);
+  // Web Browser without Web Magnetometer API
+  return {
+    hardwareAvailable: false,
+    totalMicroTesla: null,
+    x: null,
+    y: null,
+    z: null,
+    isElevated: false,
+    status: 'no_sensor',
+    recommendation: null,
+    errorReason: 'Wymaga aplikacji Android APK z dostępem do Sensor.TYPE_MAGNETIC_FIELD.',
+  };
 }
 
-function formatEMFReading(totalMicroTesla: number, x: number, y: number, z: number): EMFReading {
+function formatEMFReading(
+  totalMicroTesla: number,
+  x: number,
+  y: number,
+  z: number,
+  hardwareAvailable: boolean
+): EMFReading {
   const isElevated = totalMicroTesla > 90;
   const isHigh = totalMicroTesla > 160;
 
@@ -59,6 +105,7 @@ function formatEMFReading(totalMicroTesla: number, x: number, y: number, z: numb
     : `✅ Optymalny poziom pola magnetycznego (${totalMicroTesla} µT). Sypialnia bezpieczna dla regeneracji.`;
 
   return {
+    hardwareAvailable,
     totalMicroTesla,
     x: Math.round(x),
     y: Math.round(y),

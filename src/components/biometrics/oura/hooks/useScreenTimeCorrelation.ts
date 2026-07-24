@@ -4,7 +4,7 @@ import { shiftDateStr, getTodayWarsaw } from '../../../../lib/date';
 import { fetchPhoneUsageRange } from '../../../../lib/phoneUsageApi';
 import type { OuraHealthHubData } from '../types';
 
-interface PairedNight {
+export interface PairedNight {
   date: string;
   sleepScore: number;
   deepSleepHours: number;
@@ -39,6 +39,8 @@ export interface ScreenTimeCorrelation {
   dopamineNights: PairedNight[];
   scoreDiff: number | null;
   latencyDiff: number | null;
+  isLowSample: boolean;
+  sampleWarning: string | null;
 }
 
 export function useScreenTimeCorrelation(ouraHistory: OuraHealthHubData['ouraHistory']): ScreenTimeCorrelation {
@@ -71,14 +73,21 @@ export function useScreenTimeCorrelation(ouraHistory: OuraHealthHubData['ouraHis
 
   const lowNights = paired.filter(d => d.lateNightMins < 30);
   const highNights = paired.filter(d => d.lateNightMins >= 30);
+  
+  // Align dopamine nights threshold with high screen time threshold (>= 30m)
   const dopamineNights = paired.filter(d =>
-    d.lateNightMins >= 15 &&
+    d.lateNightMins >= 30 &&
     d.topApps.some(app => /pinterest|brave|musically|tiktok|badoo|xmobile|twitter/i.test(app.pkg || app.app))
   );
 
   const low = calcStats(lowNights);
   const high = calcStats(highNights);
   const dopamine = calcStats(dopamineNights);
+
+  const isLowSample = paired.length < 7;
+  const sampleWarning = isLowSample
+    ? `Wskazówka statystyczna: Wyrywkowa próba N=${paired.length} nocy jest podatna na odchylenia. Jeśli 1 noc z wysokim wynikiem (np. 81 pkt po treningu) znajdzie się w grupie z ekranem, średnia ulega pozornemu zaburzeniu. Potrzeba min. 14 nocy z danymi, by potwierdzić ubytek fazy głębokiej.`
+    : null;
 
   return {
     paired,
@@ -88,5 +97,7 @@ export function useScreenTimeCorrelation(ouraHistory: OuraHealthHubData['ouraHis
     dopamineNights,
     scoreDiff: low.avgScore !== null && high.avgScore !== null ? low.avgScore - high.avgScore : null,
     latencyDiff: high.avgLatency !== null && low.avgLatency !== null ? high.avgLatency - low.avgLatency : null,
+    isLowSample,
+    sampleWarning,
   };
 }
