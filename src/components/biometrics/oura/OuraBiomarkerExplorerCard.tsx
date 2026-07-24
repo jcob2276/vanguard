@@ -1,15 +1,19 @@
 /**
  * @component OuraBiomarkerExplorerCard
- * @role Eksplorator biomarkerów bio-witalnych z automatycznym wyciąganiem VO2Max z Garmin Connect gdy Oura nie podaje wartości.
+ * @role Eksplorator biomarkerów bio-witalnych z zasilaniem VO2Max z Raportów Biegowych / Garmin Connect / Intervals.icu.
  */
 import { Activity, Heart, Shield, Gauge } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
-export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max }: OuraHealthHubData) {
+export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max, externalVo2Source }: OuraHealthHubData) {
   const vascularAgeDelta = enhanced?.vascular_age ?? null;
   const ouraVo2Max = enhanced?.vo2_max ?? null;
   const activeVo2Max = ouraVo2Max ?? garminVo2Max ?? null;
-  const vo2Source = ouraVo2Max !== null ? 'Oura Ring' : garminVo2Max !== null ? 'Garmin Connect' : null;
+  const vo2SourceLabel = ouraVo2Max !== null
+    ? 'Oura Ring'
+    : garminVo2Max !== null
+    ? (externalVo2Source ?? 'Garmin Connect / Raporty Biegowe')
+    : null;
 
   const spo2 = enhanced?.spo2_percentage ?? null;
   const tempDev = enhanced?.temperature_deviation ?? null;
@@ -64,7 +68,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
           <p className="text-3xs text-slate-400">{vAgeInfo.desc}</p>
         </div>
 
-        {/* VO2Max (z Garmin Connect / Oura Ring) */}
+        {/* VO2Max (z Raportów Biegowych / Garmin Connect / Intervals.icu / Oura Ring) */}
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
           <span className="flex items-center gap-1.5 font-bold text-teal-400 text-3xs uppercase">
             <Gauge size={14} /> VO2Max (Wydolność)
@@ -74,7 +78,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
             {activeVo2Max !== null && <span className="text-2xs font-bold text-slate-400">ml/kg/min</span>}
           </p>
           <p className="text-3xs text-slate-400">
-            {vo2Source !== null ? `Zasilane z ${vo2Source}` : 'Brak odczytu z Garmin/Oura'}
+            {vo2SourceLabel !== null ? `Zasilane z ${vo2SourceLabel}` : 'Brak odczytu z Raportów Biegowych / Intervals / Oura'}
           </p>
         </div>
 

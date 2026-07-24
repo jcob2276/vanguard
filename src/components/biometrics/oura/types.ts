@@ -21,7 +21,9 @@ export interface OuraHealthHubData {
   enhancedHistory?: Tables<'oura_enhanced'>[];
   birthDateStr?: string | null;
   garminVo2Max?: number | null;
+  externalVo2Source?: string | null;
 }
+
 
 
 

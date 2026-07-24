@@ -40,13 +40,12 @@ export function useDailyStrainOura(userId: string) {
           .maybeSingle(),
         supabase
           .from('strava_activities')
-          .select('gc_vo2max')
+          .select('gc_vo2max, raw_data, name, start_date')
           .eq('user_id', userId)
-          .not('gc_vo2max', 'is', null)
           .order('start_date', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .limit(20),
       ]);
+
 
 
       if (e1) throw new Error(e1.message);
@@ -58,6 +57,28 @@ export function useDailyStrainOura(userId: string) {
       const enhancedRow = enhancedRows?.find((s) => s.date === todayStr) ?? enhancedRows?.[0] ?? null;
       const enhancedYesterdayRow = enhancedRows?.find((s) => s.date === yesterdayStr) ?? null;
 
+      let garminVo2Max: number | null = null;
+      let externalVo2Source: string | null = null;
+
+      if (aggRow && Array.isArray(aggRow)) {
+        for (const act of aggRow) {
+          if (act.gc_vo2max != null && Number(act.gc_vo2max) > 0) {
+            garminVo2Max = Number(act.gc_vo2max);
+            externalVo2Source = 'Garmin Connect';
+            break;
+          }
+          const raw = act.raw_data as any;
+          if (raw && typeof raw === 'object') {
+            const v = raw.icu_vo2max ?? raw.vo2max ?? raw.garmin_vo2max ?? raw.vo2_max ?? raw.vo2Max;
+            if (v != null && Number(v) > 0) {
+              garminVo2Max = Number(v);
+              externalVo2Source = act.icu_activity_id ? 'Intervals.icu' : 'Raporty Biegowe / Garmin';
+              break;
+            }
+          }
+        }
+      }
+
       return {
         row: strainRows,
         oura: ouraRow,
@@ -65,9 +86,11 @@ export function useDailyStrainOura(userId: string) {
         enhanced: enhancedRow,
         enhancedYesterday: enhancedYesterdayRow,
         birthDateStr: profileRow?.birth_date ?? null,
-        garminVo2Max: aggRow?.gc_vo2max ?? null,
+        garminVo2Max,
+        externalVo2Source,
       };
     },
+
 
 
     staleTime: 1000 * 60 * 30, // 30 mins cache
