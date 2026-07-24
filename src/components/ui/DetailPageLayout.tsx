@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
+import { useEdgeSwipeBack } from '../../hooks/useEdgeSwipeBack';
 
 interface DetailPageLayoutProps {
   title: string;
@@ -10,8 +11,13 @@ interface DetailPageLayoutProps {
 }
 
 export function DetailPageLayout({ title, subtitle, onBack, actions, children }: DetailPageLayoutProps) {
+  const swipeRef = useEdgeSwipeBack<HTMLDivElement>({
+    onBack: onBack ?? (() => {}),
+    enabled: Boolean(onBack),
+  });
+
   return (
-    <div className="flex flex-col min-h-0 h-full">
+    <div ref={swipeRef} className="flex flex-col min-h-0 h-full pt-safe-top">
       <header
         className="sticky top-0 z-[var(--z-popover)] flex items-center gap-3 border-b border-border-custom bg-surface-solid/95 backdrop-blur-[var(--blur-md)] px-4 py-3"
       >
