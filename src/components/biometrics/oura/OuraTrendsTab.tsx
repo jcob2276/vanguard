@@ -10,6 +10,7 @@ import { OuraNightCompareCard } from './OuraNightCompareCard';
 import { OuraSmartSleepCyclesCard } from './OuraSmartSleepCyclesCard';
 import { OuraBiomarkerExplorerCard } from './OuraBiomarkerExplorerCard';
 import { OuraBioSimulatorLabCard } from './OuraBioSimulatorLabCard';
+import { OuraBioExperimentsCard } from './OuraBioExperimentsCard';
 import { useCorrelationsQuery } from '../../../lib/correlationsApi';
 import { useUserId } from '../../../store/useStore';
 
@@ -47,6 +48,9 @@ export function OuraTrendsTab(props: OuraHealthHubData) {
 
       {/* 6. Symulator Nocy "Co Jeśli..." & Predyktor ACWR */}
       <OuraBioSimulatorLabCard {...props} />
+
+      {/* 7. Laboratorium Eksperymentów Bio-Hakerskich XYZ */}
+      <OuraBioExperimentsCard {...props} />
 
       {/* Trends Overview Card (Dynamically computed from DB history) */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl">
