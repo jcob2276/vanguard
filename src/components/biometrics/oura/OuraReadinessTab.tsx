@@ -4,8 +4,10 @@
  */
 import { Sparkles } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
+import { OuraOracleAiCoachCard } from './OuraOracleAiCoachCard';
 
-export function OuraReadinessTab({ oura, enhanced, strainRow, ouraHistory, enhancedHistory }: OuraHealthHubData) {
+export function OuraReadinessTab(dataProps: OuraHealthHubData) {
+  const { oura, enhanced, strainRow, ouraHistory } = dataProps;
   const readinessScore = Number(enhanced?.readiness_score ?? oura?.readiness_score ?? strainRow?.readiness_level ?? 0) || 0;
   const tempDev = Number(enhanced?.temperature_deviation ?? oura?.temp_deviation ?? 0) || 0;
   const hrvAvg = Number(enhanced?.sleep_average_hrv ?? oura?.hrv_avg ?? 0) || 0;
@@ -108,6 +110,9 @@ export function OuraReadinessTab({ oura, enhanced, strainRow, ouraHistory, enhan
           </div>
         </div>
       </div>
+
+      {/* Wyrocznia Bio-Witalna AI (Oura AI Coach) */}
+      <OuraOracleAiCoachCard {...dataProps} />
 
       {/* Składniki Gotowości (Prawdziwe dane) */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 space-y-3 shadow-xl">
