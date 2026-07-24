@@ -46,62 +46,64 @@ export default function OuraHealthPage() {
     externalVo2Source: dbData?.externalVo2Source ?? null,
   };
 
-
-
-
-
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-4 sm:p-6 space-y-5 pb-24">
-      {/* Header with Back Button */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
-        >
-          <ArrowLeft size={16} /> Powrót do Vanguard
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-3xs font-black uppercase tracking-widest text-slate-400">Oura Engine Live</span>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-950 text-white pb-24">
 
-      {/* Floating Dark Oura App Navigation Dock */}
-      <div className="grid grid-cols-4 gap-1 p-1.5 rounded-2xl border border-white/10 bg-slate-900/90 shadow-2xl backdrop-blur-xl">
-        {[
-          { id: 'readiness', label: 'Gotowość', icon: Zap },
-          { id: 'sleep', label: 'Sen', icon: Moon },
-          { id: 'activity', label: 'Aktywność', icon: Activity },
-          { id: 'trends', label: 'Trendy', icon: TrendingUp },
-        ].map(({ id, label, icon: Icon }) => (
+      {/* ── Sticky Header + Tab Bar ──────────────────────────────────── */}
+      <div className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 pt-4 pb-3 space-y-3">
+        {/* Back button + status */}
+        <div className="flex items-center justify-between">
           <button
-            key={id}
-            onClick={() => setActiveTab(id as typeof activeTab)}
-            className={`flex flex-col items-center gap-1 rounded-xl py-2.5 px-1 text-3xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === id
-                ? 'bg-slate-800 text-teal-400 shadow-md border border-white/10 scale-[1.02]'
-                : 'text-slate-400 hover:text-white'
-            }`}
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
           >
-            <Icon size={18} />
-            <span className="truncate">{label}</span>
+            <ArrowLeft size={16} /> Powrót do Vanguard
           </button>
-        ))}
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-3xs font-black uppercase tracking-widest text-slate-400">Oura Engine Live</span>
+          </div>
+        </div>
+
+        {/* Tab Nav */}
+        <div className="grid grid-cols-4 gap-1 p-1.5 rounded-2xl border border-white/10 bg-slate-900/90 shadow-2xl">
+          {[
+            { id: 'readiness', label: 'Gotowość', icon: Zap },
+            { id: 'sleep', label: 'Sen', icon: Moon },
+            { id: 'activity', label: 'Aktywność', icon: Activity },
+            { id: 'trends', label: 'Trendy', icon: TrendingUp },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id as typeof activeTab)}
+              className={`flex flex-col items-center gap-1 rounded-xl py-2.5 px-1 text-3xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === id
+                  ? 'bg-slate-800 text-teal-400 shadow-md border border-white/10 scale-[1.02]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Icon size={18} />
+              <span className="truncate">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Loading state */}
-      {isLoading ? (
-        <div className="p-12 text-center text-xs font-bold uppercase tracking-widest text-slate-500 animate-pulse">
-          Wczytywanie wskaźników bio-witalnych Oura...
-        </div>
-      ) : (
-        <main className="space-y-4">
-          {activeTab === 'readiness' && <OuraReadinessTab {...dataProps} />}
-          {activeTab === 'sleep' && <OuraSleepTab {...dataProps} />}
-          {activeTab === 'activity' && <OuraActivityTab {...dataProps} />}
-          {activeTab === 'trends' && <OuraTrendsTab {...dataProps} />}
-        </main>
-      )}
+      {/* ── Scrollable Content ───────────────────────────────────────── */}
+      <div className="px-4 sm:px-6 pt-5 space-y-5">
+        {isLoading ? (
+          <div className="p-12 text-center text-xs font-bold uppercase tracking-widest text-slate-500 animate-pulse">
+            Wczytywanie wskaźników bio-witalnych Oura...
+          </div>
+        ) : (
+          <main className="space-y-4">
+            {activeTab === 'readiness' && <OuraReadinessTab {...dataProps} />}
+            {activeTab === 'sleep' && <OuraSleepTab {...dataProps} />}
+            {activeTab === 'activity' && <OuraActivityTab {...dataProps} />}
+            {activeTab === 'trends' && <OuraTrendsTab {...dataProps} />}
+          </main>
+        )}
+      </div>
     </div>
   );
 }
