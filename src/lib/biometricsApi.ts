@@ -15,7 +15,7 @@ export function useDailyStrainOura(userId: string) {
       const todayStr = getTodayWarsaw();
       const yesterdayStr = shiftDateStr(todayStr, -1);
 
-      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }, { data: profileRow }] = await Promise.all([
+      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }, { data: profileRow }, { data: aggRow }] = await Promise.all([
         supabase
           .from('daily_strain')
           .select('*')
@@ -38,6 +38,14 @@ export function useDailyStrainOura(userId: string) {
           .select('birth_date')
           .eq('user_id', userId)
           .maybeSingle(),
+        supabase
+          .from('vanguard_daily_aggregate')
+          .select('gc_vo2max')
+          .eq('user_id', userId)
+          .not('gc_vo2max', 'is', null)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (e1) throw new Error(e1.message);
@@ -56,8 +64,10 @@ export function useDailyStrainOura(userId: string) {
         enhanced: enhancedRow,
         enhancedYesterday: enhancedYesterdayRow,
         birthDateStr: profileRow?.birth_date ?? null,
+        garminVo2Max: aggRow?.gc_vo2max ?? null,
       };
     },
+
 
     staleTime: 1000 * 60 * 30, // 30 mins cache
     enabled: !!userId,

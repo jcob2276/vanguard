@@ -1,13 +1,16 @@
 /**
  * @component OuraBiomarkerExplorerCard
- * @role Eksplorator biomarkerów bio-witalnych: Wiek Naczyniowy z wyliczeniem na podstawie daty urodzenia z bazy Supabase.
+ * @role Eksplorator biomarkerów bio-witalnych z automatycznym wyciąganiem VO2Max z Garmin Connect gdy Oura nie podaje wartości.
  */
 import { Activity, Heart, Shield, Gauge } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
-export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr }: OuraHealthHubData) {
+export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max }: OuraHealthHubData) {
   const vascularAgeDelta = enhanced?.vascular_age ?? null;
-  const vo2Max = enhanced?.vo2_max ?? null;
+  const ouraVo2Max = enhanced?.vo2_max ?? null;
+  const activeVo2Max = ouraVo2Max ?? garminVo2Max ?? null;
+  const vo2Source = ouraVo2Max !== null ? 'Oura Ring' : garminVo2Max !== null ? 'Garmin Connect' : null;
+
   const spo2 = enhanced?.spo2_percentage ?? null;
   const tempDev = enhanced?.temperature_deviation ?? null;
 
@@ -61,15 +64,18 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr }: OuraHealth
           <p className="text-3xs text-slate-400">{vAgeInfo.desc}</p>
         </div>
 
-        {/* VO2Max */}
+        {/* VO2Max (z Garmin Connect / Oura Ring) */}
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
           <span className="flex items-center gap-1.5 font-bold text-teal-400 text-3xs uppercase">
             <Gauge size={14} /> VO2Max (Wydolność)
           </span>
           <p className="text-lg font-black text-white">
-            {vo2Max !== null ? vo2Max : '--'} {vo2Max !== null && <span className="text-2xs font-bold text-slate-400">ml/kg/min</span>}
+            {activeVo2Max !== null ? activeVo2Max : '--'}{' '}
+            {activeVo2Max !== null && <span className="text-2xs font-bold text-slate-400">ml/kg/min</span>}
           </p>
-          <p className="text-3xs text-slate-400">{vo2Max !== null ? 'Pułap tlenowy' : 'Brak odczytu z Oura'}</p>
+          <p className="text-3xs text-slate-400">
+            {vo2Source !== null ? `Zasilane z ${vo2Source}` : 'Brak odczytu z Garmin/Oura'}
+          </p>
         </div>
 
         {/* SpO2 */}

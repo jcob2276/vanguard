@@ -20,7 +20,9 @@ export interface OuraHealthHubData {
   ouraHistory?: Tables<'oura_daily_summary'>[];
   enhancedHistory?: Tables<'oura_enhanced'>[];
   birthDateStr?: string | null;
+  garminVo2Max?: number | null;
 }
+
 
 
 export interface SleepDebtLedger {

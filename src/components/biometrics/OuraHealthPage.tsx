@@ -42,7 +42,9 @@ export default function OuraHealthPage() {
     ouraHistory,
     enhancedHistory,
     birthDateStr: dbData?.birthDateStr ?? null,
+    garminVo2Max: dbData?.garminVo2Max ?? null,
   };
+
 
 
 
