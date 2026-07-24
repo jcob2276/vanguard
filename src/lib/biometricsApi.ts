@@ -39,14 +39,15 @@ export function useDailyStrainOura(userId: string) {
           .eq('user_id', userId)
           .maybeSingle(),
         supabase
-          .from('vanguard_daily_aggregate')
+          .from('strava_activities')
           .select('gc_vo2max')
           .eq('user_id', userId)
           .not('gc_vo2max', 'is', null)
-          .order('date', { ascending: false })
+          .order('start_date', { ascending: false })
           .limit(1)
           .maybeSingle(),
       ]);
+
 
       if (e1) throw new Error(e1.message);
       if (e2) throw new Error(e2.message);
