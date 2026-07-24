@@ -1,8 +1,7 @@
 /**
  * @component OuraSleepTab
- * @role Zakładka Sen (Sleep) — Wzorowana 1:1 na Oura Ring UI Redesign & NOOP Hypnogram.
+ * @role Zakładka Sen (Sleep) — Wzorowana 1:1 na Oura Ring UI Redesign & NOOP Hypnogram (Wersja polska).
  */
-import { Heart, Wind, Clock, Activity, AlertTriangle, ChevronRight } from 'lucide-react';
 import type { OuraHealthHubData, SleepStageBlock } from './types';
 
 export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
@@ -10,7 +9,6 @@ export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
   const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 6.4;
   const deepH = enhanced?.deep_sleep_hours ?? oura?.deep_sleep_hours ?? 1.0;
   const remH = enhanced?.rem_sleep_hours ?? oura?.rem_sleep_hours ?? 1.7;
-  const lightH = enhanced?.light_sleep_hours ?? Math.max(0, totalSleepH - deepH - remH);
   const latencyMins = oura?.latency_minutes ?? 8;
   const efficiencyPct = oura?.sleep_efficiency ?? 91;
   const totalInBedH = (enhanced?.time_in_bed_hours ?? (totalSleepH + 0.5));
@@ -21,26 +19,13 @@ export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
     return `${hrs}h ${mins}m`;
   };
 
-  // Hypnogram timeline blocks
-  const hypnogramBlocks: SleepStageBlock[] = [
-    { stage: 'light', startTs: '23:15', endTs: '23:45', durationMins: 30 },
-    { stage: 'deep', startTs: '23:45', endTs: '01:15', durationMins: 90 },
-    { stage: 'rem', startTs: '01:15', endTs: '02:00', durationMins: 45 },
-    { stage: 'light', startTs: '02:00', endTs: '03:10', durationMins: 70 },
-    { stage: 'awake', startTs: '03:10', endTs: '03:22', durationMins: 12 },
-    { stage: 'deep', startTs: '03:22', endTs: '04:10', durationMins: 48 },
-    { stage: 'rem', startTs: '04:10', endTs: '05:00', durationMins: 50 },
-    { stage: 'light', startTs: '05:00', endTs: '06:45', durationMins: 105 },
-    { stage: 'awake', startTs: '06:45', endTs: '07:15', durationMins: 30 },
-  ];
-
   return (
     <div className="space-y-4 text-white animate-fadeIn">
       {/* Oura Sleep Area Chart Card */}
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/90 p-5 shadow-2xl">
         <div className="flex items-center justify-between text-3xs font-black uppercase tracking-widest text-slate-400">
-          <span>YESTERDAY</span>
-          <span className="text-teal-400 border-b border-teal-400 pb-0.5">TODAY</span>
+          <span>WCZORAJ</span>
+          <span className="text-teal-400 border-b border-teal-400 pb-0.5">DZIŚ</span>
         </div>
 
         {/* Hypnogram Area Stream */}
@@ -68,29 +53,29 @@ export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
           </div>
 
           <div className="flex justify-between text-3xs font-bold text-slate-400 px-1">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-400" /> AWAKE</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-400" /> REM</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" /> LIGHT</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-600" /> DEEP</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-400" /> CZUWANIE</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-400" /> FAZA REM</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" /> SEN LEKKI</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-600" /> SEN GŁĘBOKI</span>
           </div>
         </div>
 
         {/* Top Summary Grid (Total Sleep / Time in Bed / Efficiency / RHR) */}
         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-center">
           <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">TOTAL SLEEP TIME</p>
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">CAŁKOWITY CZAS SNU</p>
             <p className="text-lg font-black text-white">{formatHM(totalSleepH)}</p>
           </div>
           <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">TIME IN BED</p>
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">CZAS W ŁÓŻKU</p>
             <p className="text-lg font-black text-white">{formatHM(totalInBedH)}</p>
           </div>
           <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">SLEEP EFFICIENCY</p>
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">EFEKTYWNOŚĆ SNU</p>
             <p className="text-lg font-black text-teal-400">{efficiencyPct}%</p>
           </div>
           <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
-            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">RESTING HEART RATE</p>
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">TĘTNO SPOCZYNKOWE</p>
             <p className="text-lg font-black text-rose-400">{enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 54} bpm</p>
           </div>
         </div>
@@ -98,24 +83,24 @@ export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
 
       {/* Hero Sleep Score */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 text-center shadow-xl">
-        <p className="text-3xs font-black uppercase tracking-[0.25em] text-slate-400">SLEEP SCORE</p>
+        <p className="text-3xs font-black uppercase tracking-[0.25em] text-slate-400">OCENA SNU</p>
         <span className="font-display text-5xl font-black text-white mt-1 block">{sleepScore}</span>
-        <p className="text-3xs font-bold text-teal-400 uppercase tracking-widest mt-1">SEE TRENDS ›</p>
+        <p className="text-3xs font-bold text-teal-400 uppercase tracking-widest mt-1">ZOBACZ TRENDY ›</p>
       </div>
 
-      {/* Sleep Contributors (Wzór 1:1 ze zdjęcia) */}
+      {/* Sleep Contributors */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 space-y-4">
-        <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400">SLEEP CONTRIBUTORS</h4>
+        <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400">SKŁADNIKI SNU (CONTRIBUTORS)</h4>
 
         <div className="space-y-3.5">
           {[
-            { name: 'TOTAL SLEEP', val: formatHM(totalSleepH), pct: 85, color: 'bg-teal-400', labelColor: 'text-white' },
-            { name: 'EFFICIENCY', val: `${efficiencyPct}%`, pct: efficiencyPct, color: 'bg-teal-400', labelColor: 'text-white' },
-            { name: 'RESTFULNESS', val: 'Good', pct: 88, color: 'bg-teal-400', labelColor: 'text-teal-400' },
-            { name: 'REM SLEEP', val: `${formatHM(remH)}, 27%`, pct: 75, color: 'bg-sky-400', labelColor: 'text-white' },
-            { name: 'DEEP SLEEP', val: `${formatHM(deepH)}, 16%`, pct: 60, color: 'bg-indigo-500', labelColor: 'text-white' },
-            { name: 'LATENCY', val: `${latencyMins}m`, pct: 90, color: 'bg-teal-400', labelColor: 'text-white' },
-            { name: 'TIMING', val: 'Optimal', pct: 95, color: 'bg-teal-400', labelColor: 'text-teal-400' },
+            { name: 'CAŁKOWITY SEN', val: formatHM(totalSleepH), pct: 85, color: 'bg-teal-400', labelColor: 'text-white' },
+            { name: 'EFEKTYWNOŚĆ', val: `${efficiencyPct}%`, pct: efficiencyPct, color: 'bg-teal-400', labelColor: 'text-white' },
+            { name: 'SPOKÓJ SNU', val: 'Dobry', pct: 88, color: 'bg-teal-400', labelColor: 'text-teal-400' },
+            { name: 'SEN REM', val: `${formatHM(remH)}, 27%`, pct: 75, color: 'bg-sky-400', labelColor: 'text-white' },
+            { name: 'SEN GŁĘBOKI', val: `${formatHM(deepH)}, 16%`, pct: 60, color: 'bg-indigo-500', labelColor: 'text-white' },
+            { name: 'OPÓŹNIENIE ZASYPIANIA', val: `${latencyMins}m`, pct: 90, color: 'bg-teal-400', labelColor: 'text-white' },
+            { name: 'PORA SNU', val: 'Optymalna', pct: 95, color: 'bg-teal-400', labelColor: 'text-teal-400' },
           ].map((item) => (
             <div key={item.name} className="space-y-1.5">
               <div className="flex justify-between text-xs font-semibold">
