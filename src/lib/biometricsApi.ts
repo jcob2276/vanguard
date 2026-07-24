@@ -40,11 +40,12 @@ export function useDailyStrainOura(userId: string) {
           .maybeSingle(),
         supabase
           .from('strava_activities')
-          .select('gc_vo2max, raw_data, name, start_date')
+          .select('gc_vo2max, icu_activity_id, raw_data, name, start_date')
           .eq('user_id', userId)
           .order('start_date', { ascending: false })
           .limit(20),
       ]);
+
 
 
 
