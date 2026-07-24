@@ -1,8 +1,7 @@
 /**
  * @component OuraHypnogramChart
- * @role Blokowy czasowy wykres stadiów snu (4 poziomy wysokości) z prawdziwymi danymi z Supabase.
+ * @role Blokowy czasowy wykres stadiów snu (4 poziomy wysokości) z 100% natywnych próbkowania 5-minutowych sleep_phase_5_min z bazy Supabase.
  */
-import { SlidersHorizontal } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
 export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
@@ -28,17 +27,17 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
     return `${hrs} h ${mins} min`;
   };
 
-  // Dynamic tiers rendering based on actual sleep breakdown
-  const timelineTiers = [
-    { type: 'awake', start: 0, width: 6, height: 'h-14', color: 'bg-stone-200 border-stone-300' },
-    { type: 'light', start: 6, width: Math.max(5, lightPct * 0.4), height: 'h-8', color: 'bg-sky-400' },
-    { type: 'deep', start: 22, width: Math.max(5, deepPct * 0.5), height: 'h-4', color: 'bg-sky-600' },
-    { type: 'rem', start: 42, width: Math.max(5, remPct * 0.5), height: 'h-11', color: 'bg-sky-300' },
-    { type: 'light', start: 58, width: 20, height: 'h-8', color: 'bg-sky-400' },
-    { type: 'awake', start: 78, width: 4, height: 'h-14', color: 'bg-stone-200 border-stone-300' },
-    { type: 'rem', start: 82, width: 10, height: 'h-11', color: 'bg-sky-300' },
-    { type: 'light', start: 92, width: 8, height: 'h-8', color: 'bg-sky-400' },
-  ];
+  // Parse exact sleep_phase_5_min string from Oura (1=Deep, 2=Light, 3=REM, 4=Awake)
+  const rawPhases = enhanced?.sleep_phase_5_min || '';
+
+  const getTierInfo = (char: string) => {
+    switch (char) {
+      case '1': return { label: 'deep', height: 'h-4', color: 'bg-sky-600' };
+      case '2': return { label: 'light', height: 'h-8', color: 'bg-sky-400' };
+      case '3': return { label: 'rem', height: 'h-11', color: 'bg-sky-300' };
+      case '4': default: return { label: 'awake', height: 'h-14', color: 'bg-stone-200 border-stone-300' };
+    }
+  };
 
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-2xl">
@@ -51,18 +50,27 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
         </div>
       </div>
 
-
       {/* Multi-tier Hypnogram Timeline (4 levels) */}
       <div className="space-y-2 pt-2">
         <div className="relative h-28 w-full rounded-2xl bg-black/40 p-2 border border-white/5 flex items-end overflow-hidden">
           <div className="relative h-full w-full flex items-end">
-            {timelineTiers.map((t, idx) => (
-              <div
-                key={idx}
-                style={{ left: `${t.start}%`, width: `${t.width}%` }}
-                className={`absolute bottom-0 rounded-sm ${t.height} ${t.color} opacity-90 border-t transition-all`}
-              />
-            ))}
+            {rawPhases.length > 0 ? (
+              rawPhases.split('').map((ch, idx) => {
+                const info = getTierInfo(ch);
+                const widthPct = 100 / rawPhases.length;
+                return (
+                  <div
+                    key={idx}
+                    style={{ left: `${idx * widthPct}%`, width: `${widthPct}%` }}
+                    className={`absolute bottom-0 rounded-sm ${info.height} ${info.color} opacity-90 border-t transition-all`}
+                  />
+                );
+              })
+            ) : (
+              <div className="w-full text-center text-3xs font-bold text-slate-500 py-10">
+                Brak odczytu ciągłego stadiów snu
+              </div>
+            )}
           </div>
         </div>
 

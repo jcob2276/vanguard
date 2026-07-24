@@ -135,7 +135,12 @@ export const runEnhanced = async (req: Request) => {
         r.sleep_lowest_heart_rate = it.lowest_heart_rate ?? null
         r.sleep_average_hrv = it.average_hrv ?? null
         r.sleep_average_breath = it.average_breath ?? null
+        r.sleep_phase_5_min = it.sleep_phase_5_min ?? null
+        r.hr_items = it.heart_rate?.items ?? null
+        r.hrv_items = it.hrv?.items ?? null
+        r.movement_items = it.movement_30_sec ?? null
       })
+
 
       activity.data?.forEach((it: any) => {
         const r = ensure(it.day); if (!r) return

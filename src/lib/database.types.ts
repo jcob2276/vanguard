@@ -3294,7 +3294,12 @@ export type Database = {
           sleep_efficiency: number | null
           sleep_latency_minutes: number | null
           sleep_lowest_heart_rate: number | null
+          sleep_phase_5_min: string | null
+          hr_items: (number | null)[] | null
+          hrv_items: (number | null)[] | null
+          movement_items: string | null
           sleep_score: number | null
+
           spo2_percentage: number | null
           steps: number | null
           stress_day_summary: string | null
