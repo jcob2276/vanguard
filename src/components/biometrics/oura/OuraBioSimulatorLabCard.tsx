@@ -72,7 +72,7 @@ export function OuraBioSimulatorLabCard({ ouraHistory, enhancedHistory, strainRo
       <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-3xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
-            <Zap size={12} /> Symulator Nocy "Co Jeśli..." (Predykcja na Żywo)
+            <Zap size={12} /> Symulator i Prognoza Snu (Predykcja Na Żywo)
           </span>
           <span className="text-3xs text-slate-400">
             Zmień suwaki ➔ Zobacz wyliczone skutki

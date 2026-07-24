@@ -40,7 +40,8 @@
     "supabase/functions/_shared/foodParseCore.ts": ["exports"],
     "supabase/functions/_shared/foodParse/matching.ts": ["exports"],
     "src/lib/phoneUsageApi.ts": ["exports"],
-    "src/components/biometrics/oura/OuraCaffeineDecayCard.tsx": ["exports"]
+    "src/components/biometrics/oura/OuraCaffeineDecayCard.tsx": ["exports"],
+    "src/lib/native/bleProbePlugin.ts": ["exports", "types"]
   },
   "ignoreDependencies": [
     "npm"

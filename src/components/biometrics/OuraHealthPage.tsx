@@ -61,7 +61,7 @@ export default function OuraHealthPage() {
           </button>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-3xs font-black uppercase tracking-widest text-slate-400">Oura Engine Live</span>
+            <span className="text-3xs font-black uppercase tracking-widest text-slate-400">Dane Biometryczne</span>
           </div>
         </div>
 

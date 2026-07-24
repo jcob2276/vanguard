@@ -153,9 +153,13 @@ const NO_BUTTON_GUARD_EXCEPTIONS = [
   'src/components/core/nutrition/FoodQuickCapture.tsx',
   // Caffeine decay card — interactive caffeine log entry buttons
   'src/components/biometrics/oura/OuraCaffeineDecayCard.tsx',
+  // Oura Health Page — full-screen biometric hub tab switcher
+  'src/components/biometrics/OuraHealthPage.tsx',
 ]
 
 const NO_COLOR_GUARD_EXCEPTIONS = [
+  // Oura Health Page — dark biometric hub palette styling
+  'src/components/biometrics/OuraHealthPage.tsx',
   // Sleep-environment analysis cards — semantic color coding (green=good/red=bad) is intentional
   // and cannot be expressed through neutral theme tokens without losing UX meaning.
   'src/components/biometrics/oura/OuraScreenTimeCorrelationCard.tsx',
@@ -169,6 +173,8 @@ const NO_COLOR_GUARD_EXCEPTIONS = [
   'src/components/identity/PhysiqueAnalysisModal.tsx',
   // Food Quick Capture — macro confidence indicator colors
   'src/components/core/nutrition/FoodQuickCapture.tsx',
+  // Sleep simulator lab — interactive prediction status colors
+  'src/components/biometrics/oura/OuraBioSimulatorLabCard.tsx',
 ]
 
 // Canonical date-label formatters — these files ARE the wrapper, so calling

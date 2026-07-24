@@ -163,7 +163,7 @@ export default function DailyStrainCard({
         className="w-full flex items-center justify-center gap-2 rounded-2xl py-2.5 px-4 text-xs font-bold text-primary border border-primary/20 bg-primary/[0.04] hover:bg-primary/[0.08] transition-all active:scale-[0.98] relative z-[var(--z-raised)]"
       >
         <Sparkles size={14} className="text-primary animate-pulse" />
-        Pełny Wgląd Oura & Sen (110%) →
+        Pełny wgląd w sen i biometrię →
       </Link>
     </div>
   );
