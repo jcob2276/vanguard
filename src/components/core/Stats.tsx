@@ -67,12 +67,6 @@ export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?
           setIncludeNutrition={setIncludeNutrition}
           includeJournal={includeJournal}
           setIncludeJournal={setIncludeJournal}
-          includeOura={includeOura}
-          setIncludeOura={setIncludeOura}
-          includeHabits={includeHabits}
-          setIncludeHabits={setIncludeHabits}
-          includeActivityWatch={includeActivityWatch}
-          setIncludeActivityWatch={setIncludeActivityWatch}
           exportData={exportData}
           isExporting={isExporting}
         />
@@ -87,16 +81,8 @@ export default function Stats({ topSlot = null, runningSlot = null }: { topSlot?
           analyzeFood={analyzeFood}
           isAnalyzing={isAnalyzing}
         />
-
-        <Button
-          variant="outline"
-          onClick={exportOuraCSV}
-          disabled={isExportingOura}
-          className="w-full"
-        >
-          {isExportingOura ? 'Generowanie...' : 'Pobierz Oura (.csv)'}
-        </Button>
       </section>
+
 
       {topSlot}
 

@@ -13,12 +13,6 @@ interface DataExportSectionProps {
   setIncludeNutrition: (v: boolean) => void;
   includeJournal: boolean;
   setIncludeJournal: (v: boolean) => void;
-  includeOura: boolean;
-  setIncludeOura: (v: boolean) => void;
-  includeHabits: boolean;
-  setIncludeHabits: (v: boolean) => void;
-  includeActivityWatch: boolean;
-  setIncludeActivityWatch: (v: boolean) => void;
   exportData: () => void;
   isExporting: boolean;
 }
@@ -34,12 +28,6 @@ export function DataExportSection({
   setIncludeNutrition,
   includeJournal,
   setIncludeJournal,
-  includeOura,
-  setIncludeOura,
-  includeHabits,
-  setIncludeHabits,
-  includeActivityWatch,
-  setIncludeActivityWatch,
   exportData,
   isExporting,
 }: DataExportSectionProps) {
@@ -84,18 +72,12 @@ export function DataExportSection({
 
       <div className="flex flex-wrap gap-x-4 gap-y-3 pt-1">
         {[
-          { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłownia/Strava)' },
+          { state: includeWorkouts, setter: setIncludeWorkouts, label: 'Trening (Siłownia/Garmin)' },
           { state: includeBody, setter: setIncludeBody, label: 'Pomiary Ciała' },
           { state: includeNutrition, setter: setIncludeNutrition, label: 'Dieta (Vanguard)' },
           { state: includeJournal, setter: setIncludeJournal, label: 'Notatnik (Telegram)' },
-          { state: includeOura, setter: setIncludeOura, label: 'Oura Ring' },
-          { state: includeHabits, setter: setIncludeHabits, label: 'Nawyki' },
-          {
-            state: includeActivityWatch,
-            setter: setIncludeActivityWatch,
-            label: 'Aktywność komputera (ActivityWatch)',
-          },
         ].map(({ state, setter, label }) => (
+
           <Button
             key={label}
             variant="ghost"
