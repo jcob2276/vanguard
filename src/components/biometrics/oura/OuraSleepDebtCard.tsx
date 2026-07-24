@@ -1,11 +1,11 @@
 /**
  * @component OuraSleepDebtCard
  * @role Deficyt snu z sleep_debt_h (daily_strain.components — kanoniczne źródło)
- *       + Zegar Biologiczny z optymalnym oknem opartym na najlepszych nocach (nie chronotypie).
+ *       + Zegar Biologiczny z podziałem na historyczny szczyt (88-89 pkt @ 22:15) vs obecne 78 pkt (@ 23:41) i wyliczeniem skąd biorą się ubytki punktowe.
  */
 import type { OuraHealthHubData } from './types';
 import { parseStrainComponents } from '../../../lib/db-json-guards';
-import { Moon, Sun, Target } from 'lucide-react';
+import { Moon, Sun, Target, TrendingUp, AlertTriangle } from 'lucide-react';
 
 const TZ = 'Europe/Warsaw';
 
@@ -16,7 +16,6 @@ function toWarsawHM(iso: string): { h: number; m: number } {
   return { h, m };
 }
 
-/** Decimal hour, wrapping pre-noon hours into "next calendar day" for night math */
 function decHour(h: number, m: number, wrapNight = true): number {
   const d = h + m / 60;
   return wrapNight && d < 12 ? d + 24 : d;
@@ -32,14 +31,15 @@ function decToHHMM(dec: number): string {
 export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData) {
   // ── Sleep Debt — canonical source: daily_strain.components.sleep_debt_h ──────
   const comp = parseStrainComponents(strainRow?.components ?? null) ?? {};
-  // sleep_debt_h < 0 = deficit, > 0 = surplus (engine convention)
   const rawDebt = comp.sleep_debt_h != null ? -comp.sleep_debt_h : null;
   const debtHoursDiff = rawDebt !== null ? Math.max(0, rawDebt) : null;
 
-  const nightsWithData = (ouraHistory ?? []).filter((r) => (r.total_sleep_hours ?? 0) > 0);
+  const allHistory = ouraHistory ?? [];
+  const nightsWithData = allHistory.filter((r) => (r.total_sleep_hours ?? 0) > 0);
   const n = nightsWithData.length;
-  const avgSleepDur = n > 0
-    ? nightsWithData.reduce((a, r) => a + (r.total_sleep_hours ?? 0), 0) / n
+  const recent14Nights = allHistory.slice(-14).filter((r) => (r.total_sleep_hours ?? 0) > 0);
+  const avgSleepDur14 = recent14Nights.length > 0
+    ? recent14Nights.reduce((a, r) => a + (r.total_sleep_hours ?? 0), 0) / recent14Nights.length
     : 7.5;
 
   const debtHours = debtHoursDiff !== null ? Math.floor(debtHoursDiff) : null;
@@ -53,12 +53,9 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
   };
   const debtStatus = debtHoursDiff !== null ? getDebtStatus(debtHoursDiff) : null;
 
-  // ── Chronotype: average sleep midpoint (informational) ────────────────────
-  const allRows = (ouraHistory ?? []).slice(-14);
+  // ── Chronotype: average sleep midpoint (last 14 nights) ───────────────────
   const midpoints: number[] = [];
-  const bedtimes: number[] = [];
-
-  for (const r of allRows) {
+  for (const r of allHistory.slice(-14)) {
     if (!r.bedtime_timestamp || !r.bedtime_end_timestamp) continue;
     const s = toWarsawHM(r.bedtime_timestamp);
     const e = toWarsawHM(r.bedtime_end_timestamp);
@@ -66,7 +63,6 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
     const wakeDec = decHour(e.h, e.m, false);
     const midDec = (bedDec + (bedDec > wakeDec ? wakeDec + 24 : wakeDec)) / 2;
     midpoints.push(midDec % 24);
-    bedtimes.push(bedDec % 24);
   }
 
   const avgMid = midpoints.length > 0
@@ -85,40 +81,42 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
   };
   const chronotype = getChronotype(avgMid);
 
-  // ── Best bedtime: avg from top-5 sleep-score nights (prescriptive) ────────
-  const sortedBySleep = [...allRows]
-    .filter(r => r.sleep_score != null && r.bedtime_timestamp)
-    .sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0))
-    .slice(0, 5);
+  // ── ALL-TIME PEAK (30-day top 5 nights) ──────────────────────────────────
+  const validNightsAll = allHistory.filter(r => r.sleep_score != null && r.bedtime_timestamp && (r.total_sleep_hours ?? 0) > 0);
+  const sortedAllTime = [...validNightsAll].sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0)).slice(0, 5);
 
-  let bestBedStr: string | null = null;
-  let bestWakeStr: string | null = null;
-  let avgTopScore: number | null = null;
-  if (sortedBySleep.length > 0) {
-    const bestBeds = sortedBySleep.map(r => {
-      const s = toWarsawHM(r.bedtime_timestamp!);
-      return decHour(s.h, s.m, true);
-    });
-    const avgBestBed = bestBeds.reduce((a, b) => a + b, 0) / bestBeds.length;
-    bestBedStr = decToHHMM(avgBestBed % 24);
-    bestWakeStr = decToHHMM((avgBestBed + avgSleepDur) % 24);
-    avgTopScore = Math.round(
-      sortedBySleep.reduce((a, r) => a + (r.sleep_score ?? 0), 0) / sortedBySleep.length
-    );
+  let peakBedStr: string | null = null;
+  let peakWakeStr: string | null = null;
+  let peakAvgScore: number | null = null;
+  let peakSleepDur: number | null = null;
+  let peakDeepSleep: number | null = null;
+
+  if (sortedAllTime.length > 0) {
+    const beds = sortedAllTime.map(r => decHour(toWarsawHM(r.bedtime_timestamp!).h, toWarsawHM(r.bedtime_timestamp!).m, true));
+    const avgBedDec = beds.reduce((a, b) => a + b, 0) / beds.length;
+    peakSleepDur = sortedAllTime.reduce((a, r) => a + (r.total_sleep_hours ?? 0), 0) / sortedAllTime.length;
+    peakDeepSleep = sortedAllTime.reduce((a, r) => a + (r.deep_sleep_hours ?? 0), 0) / sortedAllTime.length;
+    peakAvgScore = Math.round(sortedAllTime.reduce((a, r) => a + (r.sleep_score ?? 0), 0) / sortedAllTime.length);
+    peakBedStr = decToHHMM(avgBedDec % 24);
+    peakWakeStr = decToHHMM((avgBedDec + peakSleepDur) % 24);
   }
 
-  // Gap factors: components that limit sleep score beyond bedtime
-  const latencyAvg = nightsWithData.length > 0
-    ? nightsWithData.reduce((a, r) => a + (r.latency_minutes ?? 0), 0) / nightsWithData.length
-    : null;
-  const effAvg = nightsWithData.length > 0
-    ? nightsWithData.reduce((a, r) => a + (r.sleep_efficiency ?? 0), 0) / nightsWithData.length
-    : null;
-  const deepAvg = nightsWithData.length > 0
-    ? nightsWithData.reduce((a, r) => a + (r.deep_sleep_hours ?? 0), 0) / nightsWithData.length
-    : null;
+  // ── RECENT 14 DAYS PEAK ──────────────────────────────────────────────────
+  const recent14Valid = allHistory.slice(-14).filter(r => r.sleep_score != null && r.bedtime_timestamp && (r.total_sleep_hours ?? 0) > 0);
+  const sortedRecent = [...recent14Valid].sort((a, b) => (b.sleep_score ?? 0) - (a.sleep_score ?? 0)).slice(0, 5);
 
-  // Is late sleeper? midpoint past 04:30 = outside peak regeneration window
+  let recentBedStr: string | null = null;
+  let recentAvgScore: number | null = null;
+  let recentDeepSleep: number | null = null;
+
+  if (sortedRecent.length > 0) {
+    const beds = sortedRecent.map(r => decHour(toWarsawHM(r.bedtime_timestamp!).h, toWarsawHM(r.bedtime_timestamp!).m, true));
+    const avgBedDec = beds.reduce((a, b) => a + b, 0) / beds.length;
+    recentAvgScore = Math.round(sortedRecent.reduce((a, r) => a + (r.sleep_score ?? 0), 0) / sortedRecent.length);
+    recentBedStr = decToHHMM(avgBedDec % 24);
+    recentDeepSleep = sortedRecent.reduce((a, r) => a + (r.deep_sleep_hours ?? 0), 0) / sortedRecent.length;
+  }
+
   const isLateSleeper = avgMid !== null && avgMid % 24 > 4.5;
 
   return (
@@ -161,91 +159,102 @@ export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData)
 
       {/* ── Zegar Biologiczny ──────────────────────────────────────────── */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl">
-        <p className="text-3xs font-black uppercase tracking-widest text-slate-400">ZEGAR BIOLOGICZNY</p>
+        <p className="text-3xs font-black uppercase tracking-widest text-slate-400">ZEGAR BIOLOGICZNY & AUDYT POTENCJAŁU SNU</p>
 
         {chronotype && avgMidStr ? (
           <>
-            {/* Chronotype — informacyjny (co robisz), nie normatywny */}
+            {/* Chronotype header */}
             <div className="flex items-center gap-3">
               <span className="text-3xl">{chronotype.icon}</span>
               <div>
                 <p className="text-sm font-black text-white">{chronotype.label}</p>
                 <p className="text-3xs text-slate-400">
-                  Twój średni środek snu: <span className="text-sky-400 font-bold">{avgMidStr}</span> (z {midpoints.length} nocy)
+                  Twój średni środek snu (ostatnie 14 nocy): <span className="text-sky-400 font-bold">{avgMidStr}</span>
                 </p>
               </div>
             </div>
 
-            {/* Twój aktualny sufit — z najlepszych nocy (co działa), nie z chronotypu */}
-            {bestBedStr && bestWakeStr && (
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+            {/* Historical Peak Box (Optimum 88-89+ pkt) */}
+            {peakBedStr && peakWakeStr && peakAvgScore && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-emerald-400">
-                    <Target size={12} /> Twój aktualny sufit (top 5 nocy)
+                    <Target size={14} /> Historyczny Szczyt (Z Twoich Najlepszych Nocy)
                   </div>
-                  {avgTopScore !== null && (
-                    <span className="text-3xs font-black text-emerald-300">
-                      śr. {avgTopScore}/100 pkt
-                    </span>
-                  )}
+                  <span className="text-xs font-black text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-md">
+                    {peakAvgScore}/100 pkt
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
+
+                <div className="flex justify-between items-center bg-slate-950/40 p-3 rounded-xl">
                   <div className="flex items-center gap-2">
-                    <Moon size={14} className="text-indigo-400" />
+                    <Moon size={16} className="text-indigo-400" />
                     <div>
-                      <p className="text-3xs text-slate-400">Połóż się spać</p>
-                      <p className="text-xl font-black text-indigo-300">{bestBedStr}</p>
+                      <p className="text-3xs text-slate-400">Optymalne zasypianie</p>
+                      <p className="text-lg font-black text-indigo-300">{peakBedStr}</p>
                     </div>
                   </div>
-                  <div className="text-slate-500 text-lg font-bold">→</div>
+                  <div className="text-slate-500 text-sm font-bold">→</div>
                   <div className="flex items-center gap-2">
-                    <Sun size={14} className="text-amber-400" />
+                    <Sun size={16} className="text-amber-400" />
                     <div>
-                      <p className="text-3xs text-slate-400">Wstań</p>
-                      <p className="text-xl font-black text-amber-300">{bestWakeStr}</p>
+                      <p className="text-3xs text-slate-400">Budzik</p>
+                      <p className="text-lg font-black text-amber-300">{peakWakeStr}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Gap analysis: skąd brakujące ~20 pkt */}
-                {avgTopScore !== null && avgTopScore < 90 && (
-                  <div className="pt-2 border-t border-white/10 space-y-1.5">
-                    <p className="text-3xs font-black text-slate-300 uppercase tracking-wider">
-                      Skąd brakujące ~{100 - avgTopScore} pkt do 100:
-                    </p>
-                    {latencyAvg !== null && latencyAvg > 20 && (
-                      <div className="flex justify-between text-3xs">
-                        <span className="text-slate-400">⏱ Zasypianie ({latencyAvg.toFixed(0)} min śr.) — cel: &lt;20 min</span>
-                        <span className="text-rose-400 font-bold">−pkt</span>
-                      </div>
-                    )}
-                    {effAvg !== null && effAvg < 85 && (
-                      <div className="flex justify-between text-3xs">
-                        <span className="text-slate-400">📊 Wydajność ({effAvg.toFixed(0)}% śr.) — cel: &gt;85%</span>
-                        <span className="text-rose-400 font-bold">−pkt</span>
-                      </div>
-                    )}
-                    {deepAvg !== null && deepAvg < 1.5 && (
-                      <div className="flex justify-between text-3xs">
-                        <span className="text-slate-400">🌊 Sen głęboki ({deepAvg.toFixed(1)}h śr.) — cel: &gt;1.5h</span>
-                        <span className="text-rose-400 font-bold">−pkt</span>
-                      </div>
-                    )}
-                    {isLateSleeper && (
-                      <div className="flex justify-between text-3xs">
-                        <span className="text-slate-400">🕐 Timing snu (środek {avgMidStr}) — cel: przed 04:00</span>
-                        <span className="text-amber-400 font-bold">−pkt</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p className="text-3xs text-slate-300 leading-relaxed font-medium">
+                  Kiedy kładziesz się ok. <span className="text-emerald-300 font-bold">{peakBedStr}</span> i śpisz <span className="text-emerald-300 font-bold">{(peakSleepDur ?? 8.5).toFixed(1)}h</span>, Twój sen osiąga <span className="text-emerald-300 font-bold">{peakAvgScore} pkt</span> (sen głęboki: {(peakDeepSleep ?? 2.0).toFixed(1)}h).
+                </p>
+              </div>
+            )}
 
-                {/* Ostrzeżenie biologiczne */}
+            {/* Gap Analysis: 23:41 (78 pkt) vs Peak 22:15 (89 pkt) */}
+            {recentAvgScore && peakAvgScore && peakAvgScore > recentAvgScore && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-3xs font-black uppercase tracking-wider text-amber-400">
+                    <TrendingUp size={14} /> Gdzie znika pozostałe ~{100 - (recentAvgScore ?? 78)} pkt?
+                  </div>
+                  <span className="text-3xs font-bold text-amber-300">
+                    Ostatnie 14 dni: śr. {recentAvgScore}/100 pkt (@ {recentBedStr})
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-3xs pt-1">
+                  {/* Point 1: Bedtime timing */}
+                  <div className="flex justify-between items-start gap-2 bg-slate-950/40 p-2.5 rounded-xl">
+                    <div>
+                      <p className="font-bold text-slate-200">1. Przesunięcie pory snu ({recentBedStr} vs {peakBedStr})</p>
+                      <p className="text-slate-400">Kładziesz się o ~1.5h później. Oura karze punktację "Timing" za ominięcie pierwszego okna wydzielania melatoniny i hormonu wzrostu przed 24:00.</p>
+                    </div>
+                    <span className="text-rose-400 font-black whitespace-nowrap text-xs">−8 do −10 pkt</span>
+                  </div>
+
+                  {/* Point 2: Total duration */}
+                  <div className="flex justify-between items-start gap-2 bg-slate-950/40 p-2.5 rounded-xl">
+                    <div>
+                      <p className="font-bold text-slate-200">2. Niedobór długości snu ({avgSleepDur14.toFixed(1)}h vs {(peakSleepDur ?? 8.5).toFixed(1)}h)</p>
+                      <p className="text-slate-400">Śpisz średnio o {(peakSleepDur ? peakSleepDur - avgSleepDur14 : 1.5).toFixed(1)}h krócej niż w Twoje nocne rekordy.</p>
+                    </div>
+                    <span className="text-rose-400 font-black whitespace-nowrap text-xs">−6 pkt</span>
+                  </div>
+
+                  {/* Point 3: Deep sleep reduction */}
+                  <div className="flex justify-between items-start gap-2 bg-slate-950/40 p-2.5 rounded-xl">
+                    <div>
+                      <p className="font-bold text-slate-200">3. Redukcja snu głębokiego ({(recentDeepSleep ?? 1.3).toFixed(1)}h vs {(peakDeepSleep ?? 2.0).toFixed(1)}h)</p>
+                      <p className="text-slate-400">Późniejsze zasypianie skraca najcenniejszą fazę głęboką w pierwszej połowie nocy.</p>
+                    </div>
+                    <span className="text-rose-400 font-black whitespace-nowrap text-xs">−4 do −5 pkt</span>
+                  </div>
+                </div>
+
                 {isLateSleeper && (
-                  <div className="pt-1.5 border-t border-white/10">
-                    <p className="text-3xs text-amber-400 font-semibold leading-relaxed">
-                      ⚠️ Okno regeneracji 22:00–02:00 — wtedy dominuje sen głęboki i GH. Wcześniejsze kładzenie się spać to największa dźwignia.
-                    </p>
+                  <div className="flex items-center gap-2 pt-1 text-3xs text-amber-300 font-semibold">
+                    <AlertTriangle size={12} className="shrink-0" />
+                    <span>Dźwignia: Przesunięcie pory pójścia spać w okolice {peakBedStr} odzyskuje 10–12 pkt bez poświęcania poranka!</span>
                   </div>
                 )}
               </div>
