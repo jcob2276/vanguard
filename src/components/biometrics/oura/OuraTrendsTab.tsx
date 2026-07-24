@@ -7,7 +7,6 @@ import type { OuraHealthHubData } from './types';
 import { OuraCaffeineDecayCard } from './OuraCaffeineDecayCard';
 import { OuraCircadianClockCard } from './OuraCircadianClockCard';
 import { OuraNightCompareCard } from './OuraNightCompareCard';
-import { OuraBreathingBiofeedbackCard } from './OuraBreathingBiofeedbackCard';
 import { OuraSmartSleepCyclesCard } from './OuraSmartSleepCyclesCard';
 import { OuraBiomarkerExplorerCard } from './OuraBiomarkerExplorerCard';
 import { useCorrelationsQuery } from '../../../lib/correlationsApi';
@@ -39,13 +38,10 @@ export function OuraTrendsTab(props: OuraHealthHubData) {
       {/* 3. Night Comparison Card */}
       <OuraNightCompareCard {...props} />
 
-      {/* 4. Breathing Biofeedback Card */}
-      <OuraBreathingBiofeedbackCard />
-
-      {/* 5. Smart Sleep Cycles Card */}
+      {/* 4. Smart Sleep Cycles Card */}
       <OuraSmartSleepCyclesCard />
 
-      {/* 6. Biomarker Explorer Card */}
+      {/* 5. Biomarker Explorer Card */}
       <OuraBiomarkerExplorerCard {...props} />
 
       {/* Trends Overview Card (Dynamically computed from DB history) */}
