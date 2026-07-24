@@ -1,16 +1,28 @@
 /**
  * @component OuraVitalsLinearCharts
- * @role Liniowe wykresy Tętna i HRV w czasie nocy, Saturacja (SpO2) oraz Oddech według Oura App.
+ * @role Wykresy Tętna i HRV z prawdziwymi wartościami średnimi i maksymalnymi z bazy Supabase.
  */
 import { Info, HelpCircle } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
-export function OuraVitalsLinearCharts({ enhanced, oura }: OuraHealthHubData) {
-  const lowestHR = enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 47;
-  const avgHR = 52;
-  const avgHRV = enhanced?.sleep_average_hrv ?? oura?.hrv_avg ?? 67;
-  const maxHRV = 98;
+export function OuraVitalsLinearCharts({ enhanced, oura, ouraHistory, enhancedHistory }: OuraHealthHubData) {
+  const lowestHR = enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 0;
+  const currentHRV = enhanced?.sleep_average_hrv ?? oura?.hrv_avg ?? 0;
   const spo2 = enhanced?.spo2_percentage ?? 98;
+  const breathRate = enhanced?.sleep_average_breath ?? 14;
+
+  // Real historical calculations from DB
+  const allRHR = (ouraHistory ?? [])
+    .map((r) => r.rhr_avg)
+    .filter((v): v is number => v !== null && v > 0);
+
+  const avgRHR = allRHR.length > 0 ? Math.round(allRHR.reduce((a, b) => a + b, 0) / allRHR.length) : lowestHR;
+
+  const allHRV = (ouraHistory ?? [])
+    .map((r) => r.hrv_avg)
+    .filter((v): v is number => v !== null && v > 0);
+
+  const maxHRV = allHRV.length > 0 ? Math.max(...allHRV) : currentHRV;
 
   return (
     <div className="space-y-4">
@@ -21,7 +33,7 @@ export function OuraVitalsLinearCharts({ enhanced, oura }: OuraHealthHubData) {
             <span>SATURACJA KRWI</span>
             <Info size={14} className="text-slate-500" />
           </div>
-          <p className="text-3xl font-black text-white">{spo2} <span className="text-sm font-bold text-slate-400">%</span></p>
+          <p className="text-3xl font-black text-white">{spo2 > 0 ? `${spo2} %` : '--'}</p>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-4 space-y-1 shadow-xl">
@@ -29,22 +41,22 @@ export function OuraVitalsLinearCharts({ enhanced, oura }: OuraHealthHubData) {
             <span>ODDECH PODCZAS SNU</span>
             <Info size={14} className="text-slate-500" />
           </div>
-          <p className="text-xl font-black text-emerald-400">Stabilny</p>
+          <p className="text-xl font-black text-emerald-400">{breathRate > 0 ? `Stabilny (${breathRate}/m)` : 'Brak danych'}</p>
         </div>
       </div>
 
-      {/* Najniższe Tętno (Linear Line Chart) */}
+      {/* Najniższe Tętno (Prawdziwe pomiary) */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-3xs font-black uppercase tracking-widest text-slate-400">NAJNIŻSZE TĘTNO</p>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-3xl font-black text-white">{lowestHR} bpm</span>
-              <span className="text-3xs text-slate-400">Średnio {avgHR} bpm</span>
+              <span className="text-3xl font-black text-white">{lowestHR > 0 ? `${lowestHR} bpm` : '--'}</span>
+              <span className="text-3xs text-slate-400">Średnia 30d: {avgRHR > 0 ? `${avgRHR} bpm` : '--'}</span>
             </div>
           </div>
           <button className="flex items-center gap-1 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-3xs font-bold text-slate-300">
-            <HelpCircle size={12} /> Skąd wzięły się luki?
+            <HelpCircle size={12} /> Pomiary w czasie nocy
           </button>
         </div>
 
@@ -74,18 +86,18 @@ export function OuraVitalsLinearCharts({ enhanced, oura }: OuraHealthHubData) {
         </div>
       </div>
 
-      {/* Średnia Zmienność Tętna (HRV Linear Line Chart) */}
+      {/* Średnia Zmienność Tętna (HRV) */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-3xs font-black uppercase tracking-widest text-slate-400">ŚREDNIA ZMIENNOŚĆ TĘTNA</p>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-3xl font-black text-white">{avgHRV} ms</span>
-              <span className="text-3xs text-slate-400">Maks. {maxHRV} ms</span>
+              <span className="text-3xl font-black text-white">{currentHRV > 0 ? `${currentHRV} ms` : '--'}</span>
+              <span className="text-3xs text-slate-400">Maks. 30d: {maxHRV > 0 ? `${maxHRV} ms` : '--'}</span>
             </div>
           </div>
           <button className="flex items-center gap-1 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-3xs font-bold text-slate-300">
-            <HelpCircle size={12} /> Skąd wzięły się luki?
+            <HelpCircle size={12} /> Trend nocny HRV
           </button>
         </div>
 

@@ -26,8 +26,10 @@ export const goalSpineKeys = {
 export const biometricsKeys = {
   all: ['biometrics'] as const,
   dailyStrainOura: (userId: string) => [...biometricsKeys.all, 'dailyStrainOura', userId] as const,
+  ouraHistory30: (userId: string) => [...biometricsKeys.all, 'ouraHistory30', userId] as const,
   weeklyPulse: (userId: string, since: string) => [...biometricsKeys.all, 'weeklyPulse', userId, since] as const,
 };
+
 
 // ── CALENDAR KEYS ──
 export const calendarKeys = {

@@ -104,3 +104,39 @@ export function useWeeklyBodyPulse(userId: string) {
     staleTime: 1000 * 60 * 30,
   });
 }
+
+export function useOuraHistory30Days(userId: string) {
+  return useQuery({
+    queryKey: biometricsKeys.ouraHistory30(userId),
+    queryFn: async () => {
+      const todayStr = getTodayWarsaw();
+      const since30Str = shiftDateStr(todayStr, -30);
+
+      const [{ data: ouraRows, error: e1 }, { data: enhancedRows, error: e2 }] = await Promise.all([
+        supabase
+          .from('oura_daily_summary')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', since30Str)
+          .order('date', { ascending: true }),
+        supabase
+          .from('oura_enhanced')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', since30Str)
+          .order('date', { ascending: true }),
+      ]);
+
+      if (e1) throw new Error(e1.message);
+      if (e2) throw new Error(e2.message);
+
+      return {
+        ouraHistory: ouraRows ?? [],
+        enhancedHistory: enhancedRows ?? [],
+      };
+    },
+    staleTime: 1000 * 60 * 30,
+    enabled: !!userId,
+  });
+}
+

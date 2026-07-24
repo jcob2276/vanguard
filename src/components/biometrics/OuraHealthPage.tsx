@@ -7,8 +7,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Moon, Activity, TrendingUp, ArrowLeft } from 'lucide-react';
 import { useUserId } from '../../store/useStore';
-import { useDailyStrainOura } from '../../lib/biometricsApi';
-import { parseStrainComponents } from '../../lib/db-json-guards';
+import { useDailyStrainOura, useOuraHistory30Days } from '../../lib/biometricsApi';
 
 import { OuraReadinessTab } from './oura/OuraReadinessTab';
 import { OuraSleepTab } from './oura/OuraSleepTab';
@@ -20,15 +19,19 @@ export default function OuraHealthPage() {
   const userId = useUserId();
   const [activeTab, setActiveTab] = useState<'readiness' | 'sleep' | 'activity' | 'trends'>('readiness');
 
-  const { data: dbData, isLoading } = useDailyStrainOura(userId ?? '');
+  const { data: dbData, isLoading: loading1 } = useDailyStrainOura(userId ?? '');
+  const { data: historyData, isLoading: loading2 } = useOuraHistory30Days(userId ?? '');
 
   if (!userId) return null;
 
+  const isLoading = loading1 || loading2;
   const strainRow = dbData?.row ?? null;
   const oura = dbData?.oura ?? null;
   const ouraYesterday = dbData?.ouraYesterday ?? null;
   const enhanced = dbData?.enhanced ?? null;
   const enhancedYesterday = dbData?.enhancedYesterday ?? null;
+  const ouraHistory = historyData?.ouraHistory ?? [];
+  const enhancedHistory = historyData?.enhancedHistory ?? [];
 
   const dataProps = {
     strainRow,
@@ -36,7 +39,10 @@ export default function OuraHealthPage() {
     ouraYesterday,
     enhanced,
     enhancedYesterday,
+    ouraHistory,
+    enhancedHistory,
   };
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 sm:p-6 space-y-5 pb-24">
