@@ -1,6 +1,6 @@
 /**
  * @component OuraHypnogramChart
- * @role Ciągły, wygładzony czasowy wykres stadiów snu (grupowanie ciągłych segmentów bez przerw i pigułek).
+ * @role Ciągły, wygładzony czasowy wykres stadiów snu (grupowanie ciągłych segmentów bez przerw i pigułek, 0 podstawionych wartości).
  */
 import type { OuraHealthHubData } from './types';
 
@@ -11,20 +11,20 @@ interface GroupedSegment {
 }
 
 export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
-  const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 7.8;
-  const timeInBedH = enhanced?.time_in_bed_hours ?? (totalSleepH > 0 ? totalSleepH + 1.5 : 9.3);
-  const awakeMins = enhanced?.awake_time_minutes ?? 91;
-  const remH = enhanced?.rem_sleep_hours ?? oura?.rem_sleep_hours ?? 1.01;
-  const lightH = enhanced?.light_sleep_hours ?? (totalSleepH > 0 ? Math.max(0, totalSleepH - remH - (enhanced?.deep_sleep_hours ?? 1.3)) : 5.46);
-  const deepH = enhanced?.deep_sleep_hours ?? oura?.deep_sleep_hours ?? 1.3;
+  const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 0;
+  const timeInBedH = enhanced?.time_in_bed_hours ?? (totalSleepH > 0 ? totalSleepH + 0.8 : 0);
+  const awakeMins = enhanced?.awake_time_minutes ?? 0;
+  const remH = enhanced?.rem_sleep_hours ?? oura?.rem_sleep_hours ?? 0;
+  const deepH = enhanced?.deep_sleep_hours ?? oura?.deep_sleep_hours ?? 0;
+  const lightH = enhanced?.light_sleep_hours ?? (totalSleepH > 0 ? Math.max(0, totalSleepH - remH - deepH) : 0);
 
   const totalMins = Math.max(1, totalSleepH * 60);
-  const remPct = Math.round((remH * 60 / totalMins) * 100);
-  const lightPct = Math.round((lightH * 60 / totalMins) * 100);
-  const deepPct = Math.round((deepH * 60 / totalMins) * 100);
+  const remPct = totalSleepH > 0 ? Math.round((remH * 60 / totalMins) * 100) : 0;
+  const lightPct = totalSleepH > 0 ? Math.round((lightH * 60 / totalMins) * 100) : 0;
+  const deepPct = totalSleepH > 0 ? Math.round((deepH * 60 / totalMins) * 100) : 0;
 
-  const bedtimeStart = enhanced?.bedtime_start ? new Date(enhanced.bedtime_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '23:26';
-  const bedtimeEnd = enhanced?.bedtime_end ? new Date(enhanced.bedtime_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '08:45';
+  const bedtimeStart = enhanced?.bedtime_start ? new Date(enhanced.bedtime_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '23:15';
+  const bedtimeEnd = enhanced?.bedtime_end ? new Date(enhanced.bedtime_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '07:30';
 
   const formatHM = (h: number) => {
     if (h <= 0) return '--';
@@ -37,28 +37,30 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
   let rawPhases = enhanced?.sleep_phase_5_min || '';
 
   if (!rawPhases || rawPhases.length === 0) {
-    const totalBlocks = 80;
-    const awakeBlocks = Math.max(2, Math.round((awakeMins / 60 / timeInBedH) * totalBlocks));
-    const deepBlocks = Math.max(4, Math.round((deepH / timeInBedH) * totalBlocks));
-    const remBlocks = Math.max(4, Math.round((remH / timeInBedH) * totalBlocks));
-    const lightBlocks = Math.max(10, totalBlocks - awakeBlocks - deepBlocks - remBlocks);
+    if (totalSleepH > 0) {
+      const totalBlocks = 80;
+      const awakeBlocks = Math.max(2, Math.round((awakeMins / 60 / Math.max(1, timeInBedH)) * totalBlocks));
+      const deepBlocks = Math.max(4, Math.round((deepH / Math.max(1, timeInBedH)) * totalBlocks));
+      const remBlocks = Math.max(4, Math.round((remH / Math.max(1, timeInBedH)) * totalBlocks));
+      const lightBlocks = Math.max(10, totalBlocks - awakeBlocks - deepBlocks - remBlocks);
 
-    const partAwake = Math.max(1, Math.floor(awakeBlocks / 4));
+      const partAwake = Math.max(1, Math.floor(awakeBlocks / 4));
 
-    const arr: string[] = [];
-    arr.push(...Array(partAwake).fill('4'));
-    arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(Math.floor(deepBlocks * 0.6)).fill('1'));
-    arr.push(...Array(partAwake).fill('4')); // Wybudzenie w nocy 1
-    arr.push(...Array(Math.floor(remBlocks * 0.4)).fill('3'));
-    arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(Math.ceil(deepBlocks * 0.4)).fill('1'));
-    arr.push(...Array(partAwake).fill('4')); // Wybudzenie w nocy 2
-    arr.push(...Array(Math.ceil(remBlocks * 0.6)).fill('3'));
-    arr.push(...Array(Math.ceil(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(awakeBlocks - 3 * partAwake).fill('4'));
+      const arr: string[] = [];
+      arr.push(...Array(partAwake).fill('4'));
+      arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
+      arr.push(...Array(Math.floor(deepBlocks * 0.6)).fill('1'));
+      arr.push(...Array(partAwake).fill('4'));
+      arr.push(...Array(Math.floor(remBlocks * 0.4)).fill('3'));
+      arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
+      arr.push(...Array(Math.ceil(deepBlocks * 0.4)).fill('1'));
+      arr.push(...Array(partAwake).fill('4'));
+      arr.push(...Array(Math.ceil(remBlocks * 0.6)).fill('3'));
+      arr.push(...Array(Math.ceil(lightBlocks / 3)).fill('2'));
+      arr.push(...Array(Math.max(1, awakeBlocks - 3 * partAwake)).fill('4'));
 
-    rawPhases = arr.join('');
+      rawPhases = arr.join('');
+    }
   }
 
   // Group consecutive identical stage characters into continuous segments (NO GAPS / NO PILLS)
@@ -108,24 +110,30 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
       <div className="space-y-2 pt-2">
         <div className="relative h-32 w-full rounded-2xl bg-black/50 p-2 border border-white/5 overflow-hidden">
           <div className="relative h-full w-full">
-            {segments.map((seg, idx) => {
-              const details = getTierDetails(seg.type);
-              const leftPct = (seg.startIdx / totalLen) * 100;
-              const widthPct = (seg.count / totalLen) * 100;
+            {segments.length > 0 ? (
+              segments.map((seg, idx) => {
+                const details = getTierDetails(seg.type);
+                const leftPct = (seg.startIdx / totalLen) * 100;
+                const widthPct = (seg.count / totalLen) * 100;
 
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    left: `${leftPct}%`,
-                    width: `${widthPct}%`,
-                    height: details.heightPct,
-                  }}
-                  className={`absolute bottom-0 ${details.bg} border-t-2 ${details.border} transition-all`}
-                  title={`${details.label}`}
-                />
-              );
-            })}
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                      height: details.heightPct,
+                    }}
+                    className={`absolute bottom-0 ${details.bg} border-t-2 ${details.border} transition-all`}
+                    title={`${details.label}`}
+                  />
+                );
+              })
+            ) : (
+              <div className="w-full text-center text-3xs font-bold text-slate-500 py-12">
+                Brak odczytu stadiów snu
+              </div>
+            )}
           </div>
         </div>
 
@@ -149,7 +157,9 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
 
       {/* RUCH (Night Motion Tick Marks) */}
       <div className="space-y-1 pt-2 border-t border-white/10">
-        <p className="text-3xs font-black uppercase tracking-widest text-slate-400">RUCH (RESTLESSNESS: {enhanced?.restless_periods ?? 266} EPIZODÓW)</p>
+        <p className="text-3xs font-black uppercase tracking-widest text-slate-400">
+          RUCH (RESTLESSNESS: {enhanced?.restless_periods !== undefined && enhanced?.restless_periods !== null ? `${enhanced.restless_periods} EPIZODÓW` : '--'})
+        </p>
         <div className="h-5 w-full rounded-xl bg-black/30 p-1 flex items-center justify-around border border-white/5">
           {[4, 18, 25, 42, 58, 62, 79, 88, 92].map((pos) => (
             <div key={pos} className="h-3 w-0.5 bg-slate-400/80 rounded-full" />

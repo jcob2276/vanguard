@@ -1,28 +1,41 @@
 /**
  * @component OuraNightCompareCard
- * @role Porównywarka nocy (Dziś vs Wczoraj / Średnia 30d) z nakładaniem parametrów witalnych.
+ * @role Porównywarka nocy (Dziś vs Wczoraj / Średnia 30d) z nakładaniem parametrów witalnych (0 podstawionych wartości).
  */
 import { ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
 export function OuraNightCompareCard({ enhanced, enhancedYesterday, oura, ouraYesterday }: OuraHealthHubData) {
-  const todaySleepScore = enhanced?.sleep_score ?? oura?.sleep_score ?? 81;
-  const yesterdaySleepScore = enhancedYesterday?.sleep_score ?? ouraYesterday?.sleep_score ?? 74;
+  const todaySleepScore = enhanced?.sleep_score ?? oura?.sleep_score ?? null;
+  const yesterdaySleepScore = enhancedYesterday?.sleep_score ?? ouraYesterday?.sleep_score ?? null;
 
-  const todayDeep = enhanced?.deep_sleep_hours ?? 1.3;
-  const yesterdayDeep = enhancedYesterday?.deep_sleep_hours ?? 0.75;
+  const todayDeep = enhanced?.deep_sleep_hours ?? null;
+  const yesterdayDeep = enhancedYesterday?.deep_sleep_hours ?? null;
 
-  const todayHRV = enhanced?.sleep_average_hrv ?? oura?.hrv_avg ?? 67;
-  const yesterdayHRV = enhancedYesterday?.sleep_average_hrv ?? ouraYesterday?.hrv_avg ?? 58;
+  const todayHRV = enhanced?.sleep_average_hrv ?? oura?.hrv_avg ?? null;
+  const yesterdayHRV = enhancedYesterday?.sleep_average_hrv ?? ouraYesterday?.hrv_avg ?? null;
 
-  const todayRHR = enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 47;
-  const yesterdayRHR = enhancedYesterday?.sleep_lowest_heart_rate ?? ouraYesterday?.rhr_avg ?? 52;
+  const todayRHR = enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? null;
+  const yesterdayRHR = enhancedYesterday?.sleep_lowest_heart_rate ?? ouraYesterday?.rhr_avg ?? null;
 
-  const formatHM = (h: number) => {
+  const formatHM = (h: number | null) => {
+    if (h === null || h <= 0) return '--';
     const hrs = Math.floor(h);
     const mins = Math.round((h % 1) * 60);
     return `${hrs}h ${mins}m`;
   };
+
+  const deepDiffMins = (todayDeep !== null && yesterdayDeep !== null)
+    ? Math.round((todayDeep - yesterdayDeep) * 60)
+    : null;
+
+  const hrvDiff = (todayHRV !== null && yesterdayHRV !== null)
+    ? todayHRV - yesterdayHRV
+    : null;
+
+  const rhrDiff = (todayRHR !== null && yesterdayRHR !== null)
+    ? todayRHR - yesterdayRHR
+    : null;
 
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-xl text-white">
@@ -38,18 +51,22 @@ export function OuraNightCompareCard({ enhanced, enhancedYesterday, oura, ouraYe
         <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 space-y-2">
           <p className="text-3xs font-black uppercase tracking-widest text-teal-400">DZIŚ (NOC OSTATNIA)</p>
           <div>
-            <p className="text-2xl font-black text-white">{todaySleepScore} pkt</p>
+            <p className="text-2xl font-black text-white">{todaySleepScore !== null ? `${todaySleepScore} pkt` : '--'}</p>
             <p className="text-3xs text-slate-300">Głęboki: {formatHM(todayDeep)}</p>
-            <p className="text-3xs text-slate-300">HRV: {todayHRV} ms | RHR: {todayRHR} bpm</p>
+            <p className="text-3xs text-slate-300">
+              HRV: {todayHRV !== null ? `${todayHRV} ms` : '--'} | RHR: {todayRHR !== null ? `${todayRHR} bpm` : '--'}
+            </p>
           </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
           <p className="text-3xs font-black uppercase tracking-widest text-slate-400">WCZORAJ</p>
           <div>
-            <p className="text-2xl font-black text-slate-300">{yesterdaySleepScore} pkt</p>
+            <p className="text-2xl font-black text-slate-300">{yesterdaySleepScore !== null ? `${yesterdaySleepScore} pkt` : '--'}</p>
             <p className="text-3xs text-slate-400">Głęboki: {formatHM(yesterdayDeep)}</p>
-            <p className="text-3xs text-slate-400">HRV: {yesterdayHRV} ms | RHR: {yesterdayRHR} bpm</p>
+            <p className="text-3xs text-slate-400">
+              HRV: {yesterdayHRV !== null ? `${yesterdayHRV} ms` : '--'} | RHR: {yesterdayRHR !== null ? `${yesterdayRHR} bpm` : '--'}
+            </p>
           </div>
         </div>
       </div>
@@ -58,22 +75,22 @@ export function OuraNightCompareCard({ enhanced, enhancedYesterday, oura, ouraYe
       <div className="space-y-2 pt-2 border-t border-white/10 text-xs">
         <div className="flex justify-between items-center p-2 rounded-xl bg-white/5">
           <span className="text-slate-300 font-medium">Sen Głęboki (Deep)</span>
-          <span className="font-bold text-emerald-400 flex items-center gap-1">
-            <TrendingUp size={14} /> +{Math.round((todayDeep - yesterdayDeep) * 60)} min (Poprawa)
+          <span className={`font-bold flex items-center gap-1 ${deepDiffMins !== null && deepDiffMins >= 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+            {deepDiffMins !== null ? (deepDiffMins >= 0 ? `+${deepDiffMins} min (Poprawa)` : `${deepDiffMins} min`) : '--'}
           </span>
         </div>
 
         <div className="flex justify-between items-center p-2 rounded-xl bg-white/5">
           <span className="text-slate-300 font-medium">Zmienność Tętna (HRV)</span>
-          <span className="font-bold text-emerald-400 flex items-center gap-1">
-            <TrendingUp size={14} /> +{todayHRV - yesterdayHRV} ms (Lepsza regeneracja)
+          <span className={`font-bold flex items-center gap-1 ${hrvDiff !== null && hrvDiff >= 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+            {hrvDiff !== null ? (hrvDiff >= 0 ? `+${hrvDiff} ms (Lepsza regeneracja)` : `${hrvDiff} ms`) : '--'}
           </span>
         </div>
 
         <div className="flex justify-between items-center p-2 rounded-xl bg-white/5">
           <span className="text-slate-300 font-medium">Najniższe Tętno (RHR)</span>
-          <span className="font-bold text-teal-400 flex items-center gap-1">
-            <TrendingDown size={14} /> {todayRHR - yesterdayRHR} bpm (Szybszy dołek)
+          <span className={`font-bold flex items-center gap-1 ${rhrDiff !== null && rhrDiff <= 0 ? 'text-teal-400' : 'text-slate-400'}`}>
+            {rhrDiff !== null ? `${rhrDiff} bpm` : '--'}
           </span>
         </div>
       </div>
