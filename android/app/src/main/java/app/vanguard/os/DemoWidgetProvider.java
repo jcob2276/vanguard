@@ -32,16 +32,17 @@ public class DemoWidgetProvider extends AppWidgetProvider {
         String label = WidgetStateStore.modeLabel(modeIndex);
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_demo);
-        views.setTextViewText(R.id.widget_demo_mode, label);
-        views.setTextViewText(R.id.widget_demo_taps, taps + " tapów");
-        views.setTextViewText(R.id.widget_demo_hint, "Tap → zmienia w apce");
+        views.setTextViewText(R.id.widget_demo_mode, "Oracle Czat");
+        views.setTextViewText(R.id.widget_demo_taps, "Dotknij, aby rozmawiać");
+        views.setTextViewText(R.id.widget_demo_hint, "Otwiera /czat w Vanguard OS");
 
-        Intent tapIntent = new Intent(context, WidgetTapReceiver.class);
-        tapIntent.setAction(WidgetTapReceiver.ACTION_WIDGET_DEMO_TAP);
-        PendingIntent pending = PendingIntent.getBroadcast(
+        Intent chatIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://localhost/czat"));
+        chatIntent.setPackage(context.getPackageName());
+        chatIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pending = PendingIntent.getActivity(
             context,
             appWidgetId,
-            tapIntent,
+            chatIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         views.setOnClickPendingIntent(R.id.widget_demo_root, pending);

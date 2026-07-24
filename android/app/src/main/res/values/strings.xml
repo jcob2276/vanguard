@@ -7,6 +7,12 @@
     <string name="shortcut_todo">Zadania</string>
     <string name="shortcut_links">Linki</string>
     <string name="shortcut_keep">Notatki</string>
+    <string name="shortcut_czat">Oracle Czat</string>
+    <string name="shortcut_voice">Quick Voice</string>
+    <string name="widget_czat_name">Vanguard: Czat &amp; Głos</string>
+    <string name="widget_czat_description">Otwórz czat z Wyrocznią lub nagraj głos z pulpitu telefonu</string>
+    <string name="widget_food_name">Vanguard: Posiłki &amp; Notatki</string>
+    <string name="widget_food_description">Szybkie logowanie posiłków i notatek z pulpitu telefonu</string>
     <string name="widget_demo_name">Vanguard Demo</string>
-    <string name="widget_demo_description">Demo: tap na widgetcie zmienia tryb w apce</string>
+    <string name="widget_demo_description">Szybkie akcje Vanguard OS</string>
 </resources>

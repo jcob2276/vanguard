@@ -36,4 +36,16 @@
             android:targetClass="app.vanguard.os.MainActivity"
             android:data="https://localhost/keep" />
     </shortcut>
+    <shortcut
+        android:shortcutId="czat"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_todo"
+        android:shortcutShortLabel="@string/shortcut_czat"
+        android:shortcutLongLabel="@string/shortcut_czat">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.vanguard.os"
+            android:targetClass="app.vanguard.os.MainActivity"
+            android:data="https://localhost/czat" />
+    </shortcut>
 </shortcuts>

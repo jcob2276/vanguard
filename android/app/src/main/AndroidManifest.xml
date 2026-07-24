@@ -52,15 +52,27 @@
             android:foregroundServiceType="location" />
 
         <receiver
-            android:name=".DemoWidgetProvider"
-            android:exported="false"
-            android:label="@string/widget_demo_name">
+            android:name=".VanguardChatWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_czat_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_demo_info" />
+                android:resource="@xml/widget_czat_info" />
+        </receiver>
+
+        <receiver
+            android:name=".VanguardFoodWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_food_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_food_info" />
         </receiver>
 
         <receiver

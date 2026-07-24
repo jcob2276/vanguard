@@ -3,6 +3,7 @@ import { useActiveSection } from './useActiveSection';
 
 const SECTIONS: { id: string; label: string; href?: string }[] = [
   { id: 'scoreboard', label: 'Scoreboard' },
+  { id: 'czat', label: 'Oracle Czat', href: '/czat' },
   { id: 'korelacje', label: 'Korelacje', href: '/korelacje' },
   { id: 'trening', label: 'Trening' },
   { id: 'biometria', label: 'Biometria' },

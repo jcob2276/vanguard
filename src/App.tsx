@@ -25,6 +25,8 @@ const FinancePage = lazy(() => import('./components/finance'));
 const DesignSystemPage = lazy(() => import('./components/dev/DesignSystemPage'));
 const OuraHealthPage = lazy(() => import('./components/biometrics/OuraHealthPage'));
 const RunningPerformancePage = lazy(() => import('./components/biometrics/RunningPerformancePage'));
+const CzatView = lazy(() => import('./components/chat/CzatView'));
+import QuickCaptureWidget from './components/chat/QuickCaptureWidget';
 
 
 const FALLBACK_SPINNER = (
@@ -167,6 +169,11 @@ function AppRoutes() {
           <Screen kind="grid"><DesignSystemPage /></Screen>
         </Suspense>
       } />
+      <Route path="/czat" element={
+        <Suspense fallback={FALLBACK_SPINNER}>
+          <Screen kind="dashboard"><CzatView /></Screen>
+        </Suspense>
+      } />
       <Route path="*" element={<Navigate to="/dzis" replace />} />
       </Routes>
     </AnimatePresence>
@@ -180,6 +187,7 @@ function App() {
         <AppRoutes />
         <ActionHistoryController />
         <ToastHost />
+        <QuickCaptureWidget />
       </BrowserRouter>
     </ErrorBoundary>
   );

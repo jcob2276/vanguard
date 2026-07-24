@@ -111,13 +111,13 @@ interface ParseFoodNLResponse {
   };
 }
 
-interface CaptureVaultResponse { success: true; chunks: number; triads: number; message: string; }
-interface CaptureLinkResponse { ok: true; type: 'link'; data: Record<string, unknown>; }
-interface CaptureStreamResponse { ok: true; type: 'stream'; data: Record<string, unknown>; }
-interface CaptureTranscriptionResponse { ok: true; type: 'transcription'; transcript: string; }
-interface CaptureOcrResponse { ok: true; type: 'ocr'; text: string; }
+interface CaptureVaultResponse { ok?: boolean; success?: boolean; chunks: number; triads: number; message: string; }
+interface CaptureLinkResponse { ok: boolean; type: 'link'; data: Record<string, unknown>; }
+interface CaptureStreamResponse { ok: boolean; type: 'stream'; data: Record<string, unknown>; }
+interface CaptureTranscriptionResponse { ok: boolean; type: 'transcription'; transcript: string; }
+interface CaptureOcrResponse { ok: boolean; type: 'ocr'; text: string; }
 
-type CaptureResponse = CaptureVaultResponse | CaptureLinkResponse | CaptureStreamResponse | CaptureTranscriptionResponse | CaptureOcrResponse;
+export type CaptureResponse = CaptureVaultResponse | CaptureLinkResponse | CaptureStreamResponse | CaptureTranscriptionResponse | CaptureOcrResponse;
 
 interface NightlyResponse {
   success: boolean; run_id: string;
