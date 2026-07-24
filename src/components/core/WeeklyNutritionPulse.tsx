@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Utensils } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Utensils, Flame, Scale } from 'lucide-react';
 import { useMemo } from 'react';
 import { useNutritionData } from './useNutritionData';
 import { needsNutritionCorrection } from '../../lib/horizonSignals';
@@ -7,6 +7,7 @@ import {
   formatGrams,
   nutritionPulseHeadline,
 } from '../../lib/weeklyNutritionPulse';
+import Badge from '../ui/Badge';
 
 export default function WeeklyNutritionPulse({ weeklyCalories, refreshSignal }: { weeklyCalories: number; refreshSignal: number }) {
   const data = useNutritionData({ weeklyCalories, refreshSignal });
@@ -27,69 +28,116 @@ export default function WeeklyNutritionPulse({ weeklyCalories, refreshSignal }: 
     caloriesDeltaPct: pulse.caloriesDeltaPct,
   }) || (pulse.avgQuality != null && pulse.avgQuality < 50);
 
+  const proteinPct = pulse.avgProtein != null && pulse.proteinGoal > 0
+    ? Math.min(100, Math.round((pulse.avgProtein / pulse.proteinGoal) * 100))
+    : 0;
+
   return (
-    <section className="rounded-3xl border border-border-custom/60 bg-surface/70 p-4">
+    <section className="rounded-3xl border border-border-custom/60 bg-surface/70 p-4.5 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-2xs font-black uppercase tracking-widest text-text-muted">
-            <Utensils size={12} /> Odżywianie · 7 dni
-          </p>
-          <p className="mt-1 text-base font-bold text-text-primary">
+          <div className="flex items-center gap-2">
+            <p className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest text-text-muted">
+              <Utensils size={12} className="text-primary" /> Odżywianie · 7 dni
+            </p>
+            <Badge variant="tag" className="text-3xs font-bold">
+              Zapisane {pulse.loggedDays}/7 dni
+            </Badge>
+          </div>
+          <h3 className="mt-1 text-base font-bold text-text-primary">
             {data.loading ? 'Ładuję przebieg…' : nutritionPulseHeadline(pulse)}
+          </h3>
+        </div>
+        {needsAttention ? (
+          <Badge variant="tag" color="var(--color-warning)" className="shrink-0">
+            <AlertCircle size={12} className="mr-1 inline" /> Uwaga
+          </Badge>
+        ) : (
+          <Badge variant="tag" color="var(--color-success)" className="shrink-0">
+            <CheckCircle2 size={12} className="mr-1 inline" /> Ok
+          </Badge>
+        )}
+      </div>
+
+      {/* Hero Block 1: Protein Target vs Actual (Primary Spotlight) */}
+      <div className={`rounded-2xl border p-3.5 space-y-2.5 transition-all ${
+        !pulse.proteinOnTrack
+          ? 'border-warning/30 bg-warning/10'
+          : 'border-success/30 bg-success/10'
+      }`}>
+        <div className="flex items-center justify-between">
+          <span className="text-3xs font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
+            <Scale size={11} className={!pulse.proteinOnTrack ? 'text-warning' : 'text-success'} /> Średnie białko
+          </span>
+          <span className={`text-2xs font-extrabold px-2 py-0.5 rounded-full ${
+            !pulse.proteinOnTrack
+              ? 'bg-warning/15 text-warning'
+              : 'bg-success/15 text-success'
+          }`}>
+            {proteinPct}% celu ({pulse.proteinGoal}g)
+          </span>
+        </div>
+
+        <div className="flex items-baseline justify-between">
+          <p className="text-2xl font-black tracking-tight text-text-primary">
+            {pulse.avgProtein == null ? '—' : `${pulse.avgProtein}`}
+            <span className="text-sm font-bold text-text-muted ml-1">/ {pulse.proteinGoal} g</span>
+          </p>
+          <div className="text-right">
+            <p className="text-3xs font-bold uppercase tracking-wider text-text-muted">Śr. Kcal</p>
+            <p className="text-base font-black text-text-primary">
+              {pulse.avgCalories == null ? '—' : `${pulse.avgCalories} kcal`}
+              <span className={`text-2xs font-extrabold ml-1 ${
+                pulse.caloriesDeltaPct > 0 ? 'text-warning' : 'text-text-muted'
+              }`}>
+                ({pulse.caloriesDeltaPct > 0 ? '+' : ''}{pulse.caloriesDeltaPct}%)
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Protein progress bar */}
+        <div className="h-1.5 w-full rounded-full bg-surface-raised/60 overflow-hidden">
+          <div
+            className={`h-full transition-all rounded-full ${
+              !pulse.proteinOnTrack ? 'bg-warning' : 'bg-success'
+            }`}
+            style={{ width: `${proteinPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Secondary Macros & Quality Grid */}
+      <div className="grid grid-cols-4 gap-2">
+        <MacroChip label="Jakość" value={pulse.avgQuality == null ? '—' : `${pulse.avgQuality}/100`} />
+        <MacroChip label="Węgle" value={formatGrams(pulse.avgCarbs)} />
+        <MacroChip label="Tłuszcze" value={formatGrams(pulse.avgFat)} />
+        <MacroChip label="Błonnik" value={formatGrams(pulse.avgFiber)} />
+      </div>
+
+      {/* Footer warning line */}
+      {needsAttention && (
+        <div className="flex items-center gap-2 rounded-xl bg-warning/10 border border-warning/20 px-3 py-2 text-xs font-semibold text-warning">
+          <AlertCircle size={13} className="shrink-0" />
+          <p className="leading-tight">
+            {!pulse.proteinOnTrack
+              ? `Średnia podaż białka (${pulse.avgProtein ?? 0}g) jest poniżej bezpiecznego celu (${pulse.proteinGoal}g).`
+              : pulse.loggedDays < 5
+              ? 'Uzupełnij brakujące dni w dzienniku żywieniowym.'
+              : 'Skoryguj bilans makro na pozostałą część tygodnia.'}
           </p>
         </div>
-        {needsAttention ? <AlertCircle className="text-warning" size={18} /> : <CheckCircle2 className="text-success" size={18} />}
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border-custom/40 pt-3">
-        <Metric label="Zapisane dni" value={`${pulse.loggedDays}/7`} />
-        <Metric
-          label="Śr. kcal"
-          value={pulse.avgCalories == null ? '—' : `${pulse.avgCalories}`}
-        />
-        <Metric
-          label="vs cel"
-          value={`${pulse.caloriesDeltaPct > 0 ? '+' : ''}${pulse.caloriesDeltaPct}%`}
-        />
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border-custom/40 pt-3">
-        <Metric
-          label="Białko"
-          value={pulse.avgProtein == null ? '—' : `${pulse.avgProtein} / ${pulse.proteinGoal} g`}
-        />
-        <Metric label="Węgle" value={formatGrams(pulse.avgCarbs)} />
-        <Metric label="Tłuszcze" value={formatGrams(pulse.avgFat)} />
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border-custom/40 pt-3">
-        <Metric
-          label="Jakość"
-          value={pulse.avgQuality == null ? '—' : `${pulse.avgQuality}/100`}
-        />
-        <Metric label="Błonnik" value={formatGrams(pulse.avgFiber)} />
-        <Metric label="Cukier" value={formatGrams(pulse.avgSugar)} />
-      </div>
-
-      <p className="mt-3 text-xs leading-relaxed text-text-muted">
-        {[
-          pulse.loggedDays < 5 ? 'Najpierw uzupełnij brakujące dni.' : null,
-          !pulse.proteinOnTrack ? `Śr. białka poniżej celu ${pulse.proteinGoal} g.` : null,
-          pulse.caloriesDeltaPct > 8 ? 'Śr. kcal powyżej dziennego celu.' : null,
-          pulse.caloriesDeltaPct < -20 ? `Śr. kcal ${pulse.avgCalories} vs cel ${pulse.kcalTarget}.` : null,
-          pulse.avgQuality != null && pulse.avgQuality < 50 ? 'Śr. jakość diety poniżej 50.' : null,
-          pulse.avgInsulin != null ? `Insulin load śr. ${pulse.avgInsulin}` : null,
-        ].filter(Boolean).join(' ') || 'Makra z zapisanych dni · rolling 7 dni.'}
-      </p>
+      )}
     </section>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function MacroChip({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-2xs font-bold uppercase tracking-wider text-text-muted">{label}</p>
-      <p className="mt-1 text-sm font-black text-text-primary">{value}</p>
+    <div className="rounded-xl border border-border-custom/30 bg-surface/50 p-2 text-center">
+      <p className="text-3xs font-bold uppercase tracking-wider text-text-muted">{label}</p>
+      <p className="mt-0.5 text-xs font-black text-text-primary truncate">{value}</p>
     </div>
   );
 }
