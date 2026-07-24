@@ -67,10 +67,15 @@ export function DashboardDzisTab() {
         <TodayStatusStrip />
       </div>
       <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-5 lg:space-y-0">
-        {/* Lewa kolumna: Planowanie i aktywne zadania */}
+        {/* Lewa kolumna: Planowanie, zadania i szybki Posiłek */}
         <div className="space-y-5">
           {weeklyReviewNudge}
           <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
+          <FoodQuickCapture
+            refreshSignal={s.nutritionKey}
+            onSaved={() => { s.refresh(); s.setNutritionKey(k => k + 1); }}
+            onOpenFullModal={() => s.setShowQuickFoodEntry(true)}
+          />
           <Suspense fallback={null}>
             <TodayRunwayCard />
           </Suspense>
@@ -91,11 +96,6 @@ export function DashboardDzisTab() {
           <Suspense fallback={<ViewFallback />}>
             <DailyStrainCard refreshSignal={s.nutritionKey + s.workoutKey} />
           </Suspense>
-          <FoodQuickCapture
-            refreshSignal={s.nutritionKey}
-            onSaved={() => { s.refresh(); s.setNutritionKey(k => k + 1); }}
-            onOpenFullModal={() => s.setShowQuickFoodEntry(true)}
-          />
           <Suspense fallback={<ViewFallback />}>
             <DailySnapshotCard />
           </Suspense>

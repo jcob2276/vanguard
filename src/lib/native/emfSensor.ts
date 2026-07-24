@@ -67,12 +67,12 @@ export async function readMagnetometerEMF(): Promise<EMFReading> {
         isElevated: false,
         status: 'no_sensor',
         recommendation: null,
-        errorReason: 'Wymaga aplikacji Android APK z dostępem do Sensor.TYPE_MAGNETIC_FIELD.',
+        errorReason: 'Chromium WebView w Androidzie ogranicza surowy interfejs Web Magnetometer (µT).',
       };
     }
   }
 
-  // Web Browser without Web Magnetometer API
+  // Web Browser or WebView without Web Magnetometer API
   return {
     hardwareAvailable: false,
     totalMicroTesla: null,
@@ -82,7 +82,7 @@ export async function readMagnetometerEMF(): Promise<EMFReading> {
     isElevated: false,
     status: 'no_sensor',
     recommendation: null,
-    errorReason: 'Wymaga aplikacji Android APK z dostępem do Sensor.TYPE_MAGNETIC_FIELD.',
+    errorReason: 'Chromium WebView w Androidzie ogranicza surowy interfejs Web Magnetometer (µT).',
   };
 }
 

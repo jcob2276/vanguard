@@ -21,6 +21,7 @@ import { DashboardModals } from './DashboardModals';
 import { DashboardFastCaptureMenu, DashboardFastCaptureFAB } from './DashboardFastCapture';
 import OrientationFooter from './OrientationFooter';
 import PowerList from '../lifestyle/PowerList';
+import FoodQuickCapture from './nutrition/FoodQuickCapture';
 import SearchModal from './SearchModal';
 import { useDashboardState } from './hooks/useDashboardState';
 import Spinner from '../ui/Spinner';
@@ -188,6 +189,11 @@ export default function Dashboard({ session }: { session: Session }) {
                 <OrientationFooter />
                 {weeklyReviewNudge}
                 <PowerList session={session} todayWin={s.todayWin} onUpdate={s.refresh} planDaySignal={s.planDaySignal} />
+                <FoodQuickCapture
+                  refreshSignal={s.nutritionKey}
+                  onSaved={() => { s.refresh(); s.setNutritionKey(k => k + 1); }}
+                  onOpenFullModal={() => s.setShowQuickFoodEntry(true)}
+                />
                 {s.todayWin && isAfter20() && (
                   <Pressable onClick={() => s.setShowShutdown(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-black uppercase tracking-wider text-primary hover:bg-primary/20 active:scale-95 transition-all shadow-sm mt-4">
                     Domknij Dzień (Rytuał Wieczorny)
