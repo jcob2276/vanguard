@@ -1,18 +1,17 @@
 /**
  * @component OuraBiomarkerExplorerCard
- * @role Eksplorator biomarkerów bio-witalnych z zasilaniem VO2Max z Raportów Biegowych / Garmin Connect / Intervals.icu.
+ * @role Eksplorator biomarkerów bio-witalnych: VO2Max pobierany w 100% z Zegarka Garmin (Garmin Connect / Intervals.icu).
  */
 import { Activity, Heart, Shield, Gauge } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
 export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max, externalVo2Source }: OuraHealthHubData) {
   const vascularAgeDelta = enhanced?.vascular_age ?? null;
-  const ouraVo2Max = enhanced?.vo2_max ?? null;
-  const activeVo2Max = ouraVo2Max ?? garminVo2Max ?? null;
-  const vo2SourceLabel = ouraVo2Max !== null
-    ? 'Oura Ring'
-    : garminVo2Max !== null
-    ? (externalVo2Source ?? 'Garmin Connect / Raporty Biegowe')
+
+  // VO2Max sourced 100% from Garmin Watch (Garmin Connect / Intervals.icu), excluding Oura Ring
+  const activeVo2Max = garminVo2Max ?? null;
+  const vo2SourceLabel = garminVo2Max !== null
+    ? (externalVo2Source ?? 'Zegarek Garmin / Intervals.icu')
     : null;
 
   const spo2 = enhanced?.spo2_percentage ?? null;
@@ -68,7 +67,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
           <p className="text-3xs text-slate-400">{vAgeInfo.desc}</p>
         </div>
 
-        {/* VO2Max (z Raportów Biegowych / Garmin Connect / Intervals.icu / Oura Ring) */}
+        {/* VO2Max (100% Zegarek Garmin / Intervals.icu) */}
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1">
           <span className="flex items-center gap-1.5 font-bold text-teal-400 text-3xs uppercase">
             <Gauge size={14} /> VO2Max (Wydolność)
@@ -78,7 +77,7 @@ export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr, garminVo2Max
             {activeVo2Max !== null && <span className="text-2xs font-bold text-slate-400">ml/kg/min</span>}
           </p>
           <p className="text-3xs text-slate-400">
-            {vo2SourceLabel !== null ? `Zasilane z ${vo2SourceLabel}` : 'Brak odczytu z Raportów Biegowych / Intervals / Oura'}
+            {vo2SourceLabel !== null ? `Zasilane z ${vo2SourceLabel}` : 'Brak odczytu z Zegarka Garmin / Intervals.icu'}
           </p>
         </div>
 
