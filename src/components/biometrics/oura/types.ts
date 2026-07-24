@@ -19,7 +19,9 @@ export interface OuraHealthHubData {
   enhancedYesterday?: Tables<'oura_enhanced'> | null;
   ouraHistory?: Tables<'oura_daily_summary'>[];
   enhancedHistory?: Tables<'oura_enhanced'>[];
+  birthDateStr?: string | null;
 }
+
 
 export interface SleepDebtLedger {
   runningBalanceHours: number;

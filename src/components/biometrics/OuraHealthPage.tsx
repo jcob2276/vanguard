@@ -41,7 +41,9 @@ export default function OuraHealthPage() {
     enhancedYesterday,
     ouraHistory,
     enhancedHistory,
+    birthDateStr: dbData?.birthDateStr ?? null,
   };
+
 
 
   return (

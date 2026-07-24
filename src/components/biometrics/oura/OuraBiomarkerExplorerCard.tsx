@@ -1,27 +1,36 @@
 /**
  * @component OuraBiomarkerExplorerCard
- * @role Eksplorator biomarkerów bio-witalnych: Wiek Naczyniowy z wyliczeniem na podstawie daty urodzenia (06.07.2002 -> 24 lata).
+ * @role Eksplorator biomarkerów bio-witalnych: Wiek Naczyniowy z wyliczeniem na podstawie daty urodzenia z bazy Supabase.
  */
 import { Activity, Heart, Shield, Gauge } from 'lucide-react';
 import type { OuraHealthHubData } from './types';
 
-export function OuraBiomarkerExplorerCard({ enhanced }: OuraHealthHubData) {
+export function OuraBiomarkerExplorerCard({ enhanced, birthDateStr }: OuraHealthHubData) {
   const vascularAgeDelta = enhanced?.vascular_age ?? null;
   const vo2Max = enhanced?.vo2_max ?? null;
   const spo2 = enhanced?.spo2_percentage ?? null;
   const tempDev = enhanced?.temperature_deviation ?? null;
 
-  // Chronological age based on user birthdate 2002-07-06
-  const birthDate = new Date('2002-07-06');
-  const now = new Date();
-  let chronoAge = now.getFullYear() - birthDate.getFullYear();
-  const m = now.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) {
-    chronoAge--;
+  // Compute chronological age dynamically from user's DB profile birth_date
+  let chronoAge: number | null = null;
+
+  if (birthDateStr) {
+    const birthDate = new Date(birthDateStr);
+    if (!isNaN(birthDate.getTime())) {
+      const now = new Date();
+      let age = now.getFullYear() - birthDate.getFullYear();
+      const m = now.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      chronoAge = age;
+    }
   }
 
   const formatVascularAge = (delta: number | null) => {
     if (delta === null) return { text: '--', color: 'text-slate-400', desc: 'Brak odczytu z Oura' };
+    if (chronoAge === null) return { text: `${delta > 0 ? `+${delta}` : delta} lat`, color: 'text-teal-400', desc: 'Uzupełnij datę ur. w Ustawieniach' };
+
     const calcVascularAge = chronoAge + delta;
     if (delta < 0) return { text: `${calcVascularAge} lat (${delta} lat)`, color: 'text-emerald-400', desc: `Młodsze tętnice (wiek bio: ${chronoAge})` };
     if (delta === 0) return { text: `${calcVascularAge} lat (0)`, color: 'text-teal-400', desc: `Optymalna elastyczność (wiek bio: ${chronoAge})` };
@@ -37,7 +46,9 @@ export function OuraBiomarkerExplorerCard({ enhanced }: OuraHealthHubData) {
           <Activity size={18} className="text-teal-400" />
           <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400">EKSPLORATOR BIOMARKERÓW BIO-WITALNYCH</h4>
         </div>
-        <span className="text-3xs font-bold text-slate-400">Wiek biologiczny: {chronoAge} lata</span>
+        <span className="text-3xs font-bold text-slate-400">
+          Wiek biologiczny: {chronoAge !== null ? `${chronoAge} lata` : '--'}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-xs">

@@ -15,7 +15,7 @@ export function useDailyStrainOura(userId: string) {
       const todayStr = getTodayWarsaw();
       const yesterdayStr = shiftDateStr(todayStr, -1);
 
-      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }] = await Promise.all([
+      const [{ data: strainRows, error: e1 }, { data: ouraRows, error: e2 }, { data: enhancedRows, error: e3 }, { data: profileRow }] = await Promise.all([
         supabase
           .from('daily_strain')
           .select('*')
@@ -33,6 +33,11 @@ export function useDailyStrainOura(userId: string) {
           .select('*')
           .eq('user_id', userId)
           .in('date', [todayStr, yesterdayStr]),
+        supabase
+          .from('nutrition_profile')
+          .select('birth_date')
+          .eq('user_id', userId)
+          .maybeSingle(),
       ]);
 
       if (e1) throw new Error(e1.message);
@@ -50,8 +55,10 @@ export function useDailyStrainOura(userId: string) {
         ouraYesterday: ouraYesterdayRow,
         enhanced: enhancedRow,
         enhancedYesterday: enhancedYesterdayRow,
+        birthDateStr: profileRow?.birth_date ?? null,
       };
     },
+
     staleTime: 1000 * 60 * 30, // 30 mins cache
     enabled: !!userId,
   });
