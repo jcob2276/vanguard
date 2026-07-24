@@ -1,8 +1,9 @@
 /**
  * @component OuraSleepDebtCard
- * @role Deficyt snu z rzeczywistych nocy + Zegar Biologiczny z optymalnym oknem snu wyliczonym z danych.
+ * @role Deficyt snu z sleep_debt_h (daily_strain.components — kanoniczne źródło) + Zegar Biologiczny z optymalnym oknem snu.
  */
 import type { OuraHealthHubData } from './types';
+import { parseStrainComponents } from '../../../lib/db-json-guards';
 import { Moon, Sun, Target } from 'lucide-react';
 
 const TZ = 'Europe/Warsaw';
@@ -27,18 +28,15 @@ function decimalToHHMM(dec: number): string {
   return `${String(h).padStart(2, '0')}:${String(m === 60 ? 0 : m).padStart(2, '0')}`;
 }
 
-export function OuraSleepDebtCard({ ouraHistory, enhancedHistory }: OuraHealthHubData) {
-  // ── Sleep Debt ──────────────────────────────────────────────────────────────
-  const all14 = (ouraHistory ?? []).slice(-14);
-  const targetPerNight = 8;
-  const nightsWithData = all14.filter((r) => (r.total_sleep_hours ?? 0) > 0);
-  const n = nightsWithData.length;
+export function OuraSleepDebtCard({ strainRow, ouraHistory }: OuraHealthHubData) {
+  // ── Sleep Debt — z daily_strain.components.sleep_debt_h (kanoniczne źródło, to samo co DailyStrainCard) ──
+  const comp = parseStrainComponents(strainRow?.components ?? null) ?? {};
+  // sleep_debt_h < 0 oznacza dług (konwencja: ujemny = niedobór), > 0 = nadwyżka
+  const rawDebt = comp.sleep_debt_h != null ? -comp.sleep_debt_h : null; // konwersja na dodatni dług
+  const debtHoursDiff = rawDebt !== null ? Math.max(0, rawDebt) : null;
 
-  let debtHoursDiff: number | null = null;
-  if (n >= 3) {
-    const totalSlept = nightsWithData.reduce((acc, r) => acc + (r.total_sleep_hours ?? 0), 0);
-    debtHoursDiff = Math.max(0, n * targetPerNight - totalSlept);
-  }
+  const nightsWithData = (ouraHistory ?? []).filter((r) => (r.total_sleep_hours ?? 0) > 0);
+  const n = nightsWithData.length;
 
   const debtHours = debtHoursDiff !== null ? Math.floor(debtHoursDiff) : null;
   const debtMins = debtHoursDiff !== null ? Math.round((debtHoursDiff % 1) * 60) : null;
@@ -124,7 +122,7 @@ export function OuraSleepDebtCard({ ouraHistory, enhancedHistory }: OuraHealthHu
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
         <div className="flex items-center justify-between text-3xs font-black uppercase tracking-widest text-slate-400">
           <span>DEFICYT SNU</span>
-          <span className="font-semibold">Ostatnie 14 dni ({n} nocy z danymi)</span>
+          <span className="font-semibold">Skumulowany (rolling)</span>
         </div>
 
         {debtHours !== null && debtMins !== null && debtStatus ? (
@@ -134,7 +132,7 @@ export function OuraSleepDebtCard({ ouraHistory, enhancedHistory }: OuraHealthHu
               <span className={`text-2xs font-extrabold tracking-wider uppercase ${debtStatus.color}`}>{debtStatus.label}</span>
             </div>
             <p className="text-3xs text-slate-400">
-              {n} nocy × {targetPerNight}h = {n * targetPerNight}h celu · spałeś {nightsWithData.reduce((a, r) => a + (r.total_sleep_hours ?? 0), 0).toFixed(1)}h łącznie
+              Wyliczony przez silnik Vanguard (rolling balance z {n} nocy)
             </p>
             <div className="space-y-1.5 pt-1">
               <div className="relative h-2 w-full rounded-full bg-white/10 overflow-hidden">
