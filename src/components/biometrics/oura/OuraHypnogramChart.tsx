@@ -43,18 +43,14 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-4 shadow-2xl">
       {/* Title Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-3xs font-black uppercase tracking-widest text-slate-400">CZAS SNU</p>
-          <div className="flex items-baseline gap-2 mt-0.5">
-            <span className="text-3xl font-black text-white">{totalSleepH > 0 ? formatHM(totalSleepH) : '--'}</span>
-            <span className="text-3xs text-slate-400">Całkowity czas trwania {timeInBedH > 0 ? formatHM(timeInBedH) : '--'}</span>
-          </div>
+      <div>
+        <p className="text-3xs font-black uppercase tracking-widest text-slate-400">CZAS SNU</p>
+        <div className="flex items-baseline gap-2 mt-0.5">
+          <span className="text-3xl font-black text-white">{totalSleepH > 0 ? formatHM(totalSleepH) : '--'}</span>
+          <span className="text-3xs text-slate-400 font-semibold">Całkowity czas trwania {timeInBedH > 0 ? formatHM(timeInBedH) : '--'}</span>
         </div>
-        <button className="p-2 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer">
-          <SlidersHorizontal size={16} />
-        </button>
       </div>
+
 
       {/* Multi-tier Hypnogram Timeline (4 levels) */}
       <div className="space-y-2 pt-2">

@@ -34,8 +34,8 @@ export function OuraSleepDebtCard({ ouraHistory, enhancedHistory }: OuraHealthHu
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
         <div className="flex items-center justify-between text-3xs font-black uppercase tracking-widest text-slate-400">
           <span>DEFICYT SNU</span>
-          <span className="flex items-center gap-0.5 text-slate-400 hover:text-white cursor-pointer transition-colors">
-            Ostatnie 14 dni ({last14Days.length} nocy) <ChevronRight size={14} />
+          <span className="text-slate-400 font-semibold">
+            Ostatnie 14 dni ({last14Days.length} nocy)
           </span>
         </div>
 
@@ -63,10 +63,8 @@ export function OuraSleepDebtCard({ ouraHistory, enhancedHistory }: OuraHealthHu
 
       {/* Zegar Biologiczny (Chronotyp) */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 space-y-3 shadow-xl">
-        <div className="flex items-center justify-between text-3xs font-black uppercase tracking-widest text-slate-400">
-          <span>ZEGAR BIOLOGICZNY</span>
-          <ChevronRight size={16} className="text-slate-400" />
-        </div>
+        <p className="text-3xs font-black uppercase tracking-widest text-slate-400">ZEGAR BIOLOGICZNY</p>
+
 
         {/* Chronotyp Arc Graphic */}
         <div className="relative my-2 h-16 w-full flex items-center justify-center">

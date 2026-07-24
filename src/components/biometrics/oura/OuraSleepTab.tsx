@@ -57,10 +57,11 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
             <div key={item.label} className="space-y-1 group cursor-pointer">
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="text-slate-300">{item.label}</span>
-                <span className={`font-bold flex items-center gap-1 ${item.textCol ?? 'text-white'}`}>
-                  {item.val} <ChevronRight size={14} className="text-slate-500 group-hover:text-white transition-colors" />
+                <span className={`font-bold ${item.textCol ?? 'text-white'}`}>
+                  {item.val}
                 </span>
               </div>
+
               <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
                 <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.pct}%` }} />
               </div>
