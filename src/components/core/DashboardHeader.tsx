@@ -10,9 +10,8 @@ import {
 } from 'lucide-react';
 import { isNativePlatform } from '../../lib/native/platform';
 import { BrandTitle } from '../ui/BrandTitle';
-import { PersonaAvatarButton } from '../ui/PersonaAvatarButton';
-import WorkspaceToolsLauncher from '../shared/WorkspaceToolsLauncher';
 import { useHaptics } from '../../hooks/useHaptics';
+
 
 interface DashboardHeaderProps {
   userId: string | undefined;
@@ -66,14 +65,6 @@ export function DashboardHeader({
         </p>
       </div>
       <div className="header-icon-row flex min-w-0 items-center gap-1.5 overflow-x-auto">
-        {userId && (
-          <PersonaAvatarButton
-            userId={userId}
-            unreadCount={unreadCount}
-            onLongPress={() => { heavy(); onAvatarLongPress(); }}
-            onClick={() => { selection(); onAvatarClick(); }}
-          />
-        )}
         <Pressable
           onClick={() => { selection(); toggleTheme(); }}
           variant="ghost"
@@ -85,10 +76,6 @@ export function DashboardHeader({
 
         {!showLock && (
           <>
-            <div className="hidden sm:block">
-              <WorkspaceToolsLauncher active={view} onNavigate={onShortcutClick} placement="header" badgeCount={staleNoteCount} />
-            </div>
-
             <Pressable
               onClick={() => { selection(); onSearchClick?.(); }}
               variant="ghost"
@@ -123,6 +110,7 @@ export function DashboardHeader({
     </header>
   );
 }
+
 
 
 
