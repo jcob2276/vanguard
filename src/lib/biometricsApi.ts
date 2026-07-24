@@ -119,8 +119,9 @@ export function useWeeklyBodyPulse(userId: string) {
         .order('date', { ascending: true });
 
       if (error) throw new Error(error.message);
-      return buildWeeklyBodyPulse(data || [], fromISO, toISO);
+      return buildWeeklyBodyPulse(data || []);
     },
+
     staleTime: 1000 * 60 * 30,
     enabled: !!userId,
   });
