@@ -1,8 +1,8 @@
-import { Pressable, ControlInput } from '../ui/ControlPrimitives';
+import { ControlInput } from '../ui/ControlPrimitives';
 import { getTodayWarsaw } from '../../lib/date';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trash2, Camera } from 'lucide-react';
+import { Camera, Sparkles } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import exifr from 'exifr';
 import { notify, confirmDialog } from '../../lib/notify';
@@ -16,12 +16,21 @@ import {
   listProgressPhotos,
   removeProgressPhotoFiles,
   uploadProgressPhotoFile,
+  type ProgressPhoto,
 } from '../../lib/photosApi';
+import { requestPhysiqueAnalysis, type PhysiqueAnalysisResult } from '../../lib/physiqueApi';
+import PhysiqueAnalysisModal from './PhysiqueAnalysisModal';
+import PhotosTimelineList from './PhotosTimelineList';
 
 export default function Photos() {
   const userId = useUserId();
   const [uploading, setUploading] = useState(false);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [photoDate, setPhotoDate] = useState(getTodayWarsaw());
+
+  // Modal state
+  const [activeAnalysis, setActiveAnalysis] = useState<PhysiqueAnalysisResult | null>(null);
+  const [activeAnalysisDate, setActiveAnalysisDate] = useState<string | undefined>(undefined);
 
   // Selection logic for comparison
   const [baseId, setBaseId] = useState<string | null>(null);
@@ -63,6 +72,27 @@ export default function Photos() {
     setTargetId(id);
   }
 
+  async function handleAnalyze(photo: ProgressPhoto) {
+    try {
+      setAnalyzingId(photo.id);
+      if (photo.ai_analysis) {
+        setActiveAnalysis(photo.ai_analysis as unknown as PhysiqueAnalysisResult);
+        setActiveAnalysisDate(photo.date ? format(parseISO(photo.date), 'dd.MM.yyyy') : undefined);
+        return;
+      }
+      const result = await requestPhysiqueAnalysis(photo.id, photo.image_url, userId!);
+      setActiveAnalysis(result);
+      setActiveAnalysisDate(photo.date ? format(parseISO(photo.date), 'dd.MM.yyyy') : undefined);
+      void photosQuery.refetch();
+      notify('Przeanalizowano sylwetkę przez AI!', 'success');
+    } catch (err: unknown) {
+      console.error('[Photos] Physique analysis failed:', err);
+      notify(err instanceof Error ? err.message : 'Nie udało się przeprowadzić analizy AI', 'error');
+    } finally {
+      setAnalyzingId(null);
+    }
+  }
+
   async function uploadPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     try {
       setUploading(true);
@@ -77,9 +107,9 @@ export default function Photos() {
           occurredDate = format(new Date(dateObj), 'yyyy-MM-dd');
         }
       } catch (exifErr: unknown) {
-      console.error('[Action Error]', exifErr);
-      notify(exifErr instanceof Error ? exifErr.message : 'Wystąpił błąd', 'error');
-    }
+        console.error('[Action Error]', exifErr);
+        notify(exifErr instanceof Error ? exifErr.message : 'Wystąpił błąd', 'error');
+      }
 
       const stamp = Date.now();
       const fileName = `${userId}/${stamp}.${file.name.split('.').pop()}`;
@@ -170,10 +200,22 @@ export default function Photos() {
             <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">Postęp sylwetki</p>
             <h2 className="mt-1 font-display text-lg font-black tracking-tight text-text-primary">Transformacja</h2>
           </div>
-          <label className="cursor-pointer flex h-11 w-11 items-center justify-center rounded-2xl border border-border-custom bg-surface text-text-secondary transition-all hover:bg-primary hover:border-primary hover:text-on-accent shadow-sm">
-            {uploading ? <Spinner size="sm" /> : <Camera size={17} />}
-            <ControlInput type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
-          </label>
+          <div className="flex items-center gap-2">
+            {targetPhoto && (
+              <button
+                onClick={() => handleAnalyze(targetPhoto)}
+                disabled={analyzingId === targetPhoto.id}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-on-accent font-display text-xs font-bold uppercase tracking-wider transition-all"
+              >
+                {analyzingId === targetPhoto.id ? <Spinner size="sm" /> : <Sparkles size={15} />}
+                <span>{targetPhoto.ai_analysis ? 'Wynik AI' : 'Analizuj AI'}</span>
+              </button>
+            )}
+            <label className="cursor-pointer flex h-11 w-11 items-center justify-center rounded-2xl border border-border-custom bg-surface text-text-secondary transition-all hover:bg-primary hover:border-primary hover:text-on-accent shadow-sm">
+              {uploading ? <Spinner size="sm" /> : <Camera size={17} />}
+              <ControlInput type="file" accept="image/*" className="hidden" onChange={uploadPhoto} disabled={uploading} />
+            </label>
+          </div>
         </div>
 
         {/* Comparison */}
@@ -224,44 +266,23 @@ export default function Photos() {
         </div>
       </Card>
 
-      {/* Oś czasu */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <p className="text-2xs font-bold uppercase tracking-[var(--ds-arbitrary-0-15em)] text-text-muted font-display">Oś czasu</p>
-          <p className="text-2xs font-bold text-text-muted uppercase tracking-wider">Dotknij by zestawić</p>
-        </div>
+      {/* Oś czasu List */}
+      <PhotosTimelineList
+        photos={photos}
+        baseId={baseId}
+        targetId={targetId}
+        onSelect={handleSelect}
+        onDelete={deletePhoto}
+      />
 
-        <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {photos.map((photo) => {
-            const isBase = photo.id === baseId;
-            const isTarget = photo.id === targetId;
-
-            return (
-              <div key={photo.id} className="snap-start shrink-0 space-y-2">
-                <Pressable
-                  onClick={() => handleSelect(photo.id)}
-                  className={`relative w-[var(--ds-w-88px)] aspect-[var(--ds-arbitrary-3-4)] rounded-2xl overflow-hidden border-2 transition-all duration-[var(--motion-slow)] cursor-pointer ${isBase ? 'border-primary scale-[var(--ds-arbitrary-1-04)] shadow-md shadow-primary/20' : isTarget ? 'border-primary/50 scale-[var(--ds-arbitrary-1-04)] shadow-sm' : 'border-border-custom opacity-[var(--opacity-50)] hover:opacity-[var(--opacity-80)]'}`}
-                >
-                  <img src={photo.thumbnail_url || photo.image_url} alt={`Zdjęcie sylwetki z ${format(parseISO(photo.date!), 'dd.MM.yyyy')}`} className={`w-full h-full object-cover ${!isBase && !isTarget ? 'grayscale' : ''}`} />
-                  {(isBase || isTarget) && (
-                    <div className="absolute inset-0 flex items-end justify-center pb-2">
-                      <span className="text-2xs font-black text-on-accent uppercase bg-scrim/50 backdrop-blur-[var(--blur-sm)] px-2 py-0.5 rounded-full border border-on-accent/10">
-                        {isBase ? 'Baza' : 'Cel'}
-                      </span>
-                    </div>
-                  )}
-                </Pressable>
-                <div className="flex justify-between items-center px-0.5">
-                  <span className={`text-2xs font-bold ${isBase || isTarget ? 'text-primary' : 'text-text-secondary'}`}>
-                    {format(parseISO(photo.date!), 'dd.MM')}
-                  </span>
-                  <Pressable onClick={() => deletePhoto(photo.id, photo.image_url, photo.thumbnail_url)} variant="ghost" icon={<Trash2 size={11} />} className="text-text-muted hover:text-danger p-1 rounded-lg hover:bg-danger/5 min-w-[var(--ds-w-32px)] min-h-[var(--ds-h-32px)]" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Analysis Modal */}
+      {activeAnalysis && (
+        <PhysiqueAnalysisModal
+          analysis={activeAnalysis}
+          photoDate={activeAnalysisDate}
+          onClose={() => setActiveAnalysis(null)}
+        />
+      )}
 
     </div>
   );

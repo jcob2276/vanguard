@@ -4,12 +4,6 @@
  */
 import type { Tables } from '../../../lib/database.types';
 
-export interface SleepStageBlock {
-  stage: 'awake' | 'rem' | 'light' | 'deep';
-  startTs: string; // e.g. "23:15"
-  endTs: string;   // e.g. "00:45"
-  durationMins: number;
-}
 
 export interface OuraHealthHubData {
   strainRow: Tables<'daily_strain'> | null;
@@ -24,11 +18,3 @@ export interface OuraHealthHubData {
   externalVo2Source?: string | null;
 }
 
-
-
-
-export interface SleepDebtLedger {
-  runningBalanceHours: number;
-  last14DaysAvgNeedHours: number;
-  lastNightDeltaHours: number;
-}

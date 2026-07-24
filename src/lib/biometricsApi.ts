@@ -2,9 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { getTodayWarsaw, shiftDateStr } from './date';
 import { biometricsKeys } from './queryKeys';
-import { buildWeeklyBodyPulse, weeklyBodyPulseWindow, type WeeklyBodyPulseData } from './weeklyBodyPulse';
-
-export type { WeeklyBodyPulseData };
+import { buildWeeklyBodyPulse, weeklyBodyPulseWindow } from './weeklyBodyPulse';
 
 // ── QUERIES ──
 
@@ -65,6 +63,7 @@ export function useDailyStrainOura(userId: string) {
             externalVo2Source = 'Garmin Connect';
             break;
           }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const raw = act.raw_data as any;
           if (raw && typeof raw === 'object') {
             const v = raw.icu_vo2max ?? raw.vo2max ?? raw.garmin_vo2max ?? raw.vo2_max ?? raw.vo2Max;
@@ -78,8 +77,10 @@ export function useDailyStrainOura(userId: string) {
 
         // If no explicit VO2Max field is stored, estimate from real Intervals.icu running threshold pace/HR (lthr: 175)
         if (!garminVo2Max) {
-          const runAct = stravaRows.find((a) => a.name?.toLowerCase().includes('bieganie') || (a.raw_data as any)?.type === 'Run');
+          const runAct = stravaRows.find((a) => a.name?.toLowerCase().includes('bieganie') || // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (a.raw_data as any)?.type === 'Run');
           if (runAct) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const raw = runAct.raw_data as any;
             if (raw && raw.lthr) {
               garminVo2Max = 48.5;

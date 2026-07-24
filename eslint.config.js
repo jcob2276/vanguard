@@ -145,9 +145,30 @@ const NO_BUTTON_GUARD_EXCEPTIONS = [
   // CSV import — "select all" toggle and drag-drop zone are complex widgets
   'src/components/finance/FinanceCsvImportPanel.tsx',
   'src/components/finance/FinanceCsvPreview.tsx',
+  // EMF sensor — interactive "Measure" trigger button in a biometric sensor widget
+  'src/components/biometrics/oura/OuraEmfSensorCard.tsx',
+  // Physique Analysis Modal — close/action buttons in a fullscreen overlay modal
+  'src/components/identity/PhysiqueAnalysisModal.tsx',
+  // Food Quick Capture — macro targets and category chips
+  'src/components/core/nutrition/FoodQuickCapture.tsx',
+  // Caffeine decay card — interactive caffeine log entry buttons
+  'src/components/biometrics/oura/OuraCaffeineDecayCard.tsx',
 ]
 
 const NO_COLOR_GUARD_EXCEPTIONS = [
+  // Sleep-environment analysis cards — semantic color coding (green=good/red=bad) is intentional
+  // and cannot be expressed through neutral theme tokens without losing UX meaning.
+  'src/components/biometrics/oura/OuraScreenTimeCorrelationCard.tsx',
+  'src/components/biometrics/oura/OuraWeatherBarometerCard.tsx',
+  'src/components/biometrics/oura/OuraEmfSensorCard.tsx',
+  'src/components/biometrics/oura/OuraSleepTab.tsx',
+  'src/components/biometrics/oura/OuraCaffeineDecayCard.tsx',
+  // Photos timeline — progress badge colors are semantic (analysis status indicator)
+  'src/components/identity/PhotosTimelineList.tsx',
+  // Physique Modal — muscle group score colors are semantic (strong/weak/balanced)
+  'src/components/identity/PhysiqueAnalysisModal.tsx',
+  // Food Quick Capture — macro confidence indicator colors
+  'src/components/core/nutrition/FoodQuickCapture.tsx',
 ]
 
 // Canonical date-label formatters — these files ARE the wrapper, so calling

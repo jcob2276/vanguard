@@ -5,6 +5,9 @@
 import type { OuraHealthHubData } from './types';
 import { OuraHypnogramChart } from './OuraHypnogramChart';
 import { OuraSleepDebtCard } from './OuraSleepDebtCard';
+import { OuraScreenTimeCorrelationCard } from './OuraScreenTimeCorrelationCard';
+import { OuraWeatherBarometerCard } from './OuraWeatherBarometerCard';
+import { OuraEmfSensorCard } from './OuraEmfSensorCard';
 import { OuraDeepAnalyticsLabCard } from './OuraDeepAnalyticsLabCard';
 import { OuraVitalsLinearCharts } from './OuraVitalsLinearCharts';
 
@@ -12,7 +15,6 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
   const { oura, enhanced } = dataProps;
   const sleepScore = enhanced?.sleep_score ?? oura?.sleep_score ?? null;
   const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? null;
-  const totalInBedH = enhanced?.time_in_bed_hours ?? null;
   const efficiencyPct = enhanced?.sleep_efficiency ?? oura?.sleep_efficiency ?? null;
   const remH = enhanced?.rem_sleep_hours ?? null;
   const deepH = enhanced?.deep_sleep_hours ?? null;
@@ -84,6 +86,15 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
       {/* Deficyt Snu & Zegar Biologiczny */}
       <OuraSleepDebtCard {...dataProps} />
 
+      {/* Korelacja: Czas Ekranowy z Telefonu vs Jakość Snu Oura */}
+      <OuraScreenTimeCorrelationCard {...dataProps} />
+
+      {/* Barometr, Temperatura Nocna i Pogoda vs Sen Oura */}
+      <OuraWeatherBarometerCard {...dataProps} />
+
+      {/* Magnetometr & Detekcja Pola EMF przy Głowie */}
+      <OuraEmfSensorCard />
+
       {/* Głębokie Laboratorium Snu (Social Jetlag, Ranking Dni Tygodnia, Architektura Faz) */}
       <OuraDeepAnalyticsLabCard {...dataProps} />
 
@@ -92,3 +103,4 @@ export function OuraSleepTab(dataProps: OuraHealthHubData) {
     </div>
   );
 }
+

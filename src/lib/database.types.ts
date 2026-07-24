@@ -3670,6 +3670,7 @@ export type Database = {
       }
       progress_photos: {
         Row: {
+          ai_analysis: Json | null
           created_at: string | null
           date: string | null
           id: string
@@ -3678,6 +3679,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_analysis?: Json | null
           created_at?: string | null
           date?: string | null
           id?: string
@@ -3686,6 +3688,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_analysis?: Json | null
           created_at?: string | null
           date?: string | null
           id?: string

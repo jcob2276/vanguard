@@ -37,3 +37,16 @@ export async function fetchPhoneUsageDaily(userId: string, date: string) {
   if (error) throw error;
   return data;
 }
+
+export async function fetchPhoneUsageRange(userId: string, startDate: string, endDate: string) {
+  const { data, error } = await supabase
+    .from('phone_usage_daily')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+

@@ -38,7 +38,9 @@
     "src/lib/systemApi.ts": ["exports", "types"],
     "src/components/core/useNutritionData.ts": ["exports", "types"],
     "supabase/functions/_shared/foodParseCore.ts": ["exports"],
-    "supabase/functions/_shared/foodParse/matching.ts": ["exports"]
+    "supabase/functions/_shared/foodParse/matching.ts": ["exports"],
+    "src/lib/phoneUsageApi.ts": ["exports"],
+    "src/components/biometrics/oura/OuraCaffeineDecayCard.tsx": ["exports"]
   },
   "ignoreDependencies": [
     "npm"

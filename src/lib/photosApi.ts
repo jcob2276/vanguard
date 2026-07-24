@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Tables } from './database.types';
+import type { Tables, Json } from './database.types';
 
 export type ProgressPhoto = Tables<'progress_photos'>;
 
@@ -51,3 +51,18 @@ export async function removeProgressPhotoFiles(paths: string[]): Promise<void> {
   const { error } = await supabase.storage.from('progress-photos').remove(paths);
   if (error) throw error;
 }
+
+export async function updateProgressPhotoAnalysis(
+  userId: string,
+  photoId: string,
+  analysis: Json,
+): Promise<void> {
+  const { error } = await supabase
+    .from('progress_photos')
+    .update({ ai_analysis: analysis })
+    .eq('id', photoId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+
