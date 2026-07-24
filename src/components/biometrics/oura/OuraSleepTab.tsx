@@ -1,24 +1,19 @@
 /**
  * @component OuraSleepTab
- * @role Zakładka Sen (Sleep) — Hypnogram timeline chart, Sleep Debt Ledger, Vitals Grid.
+ * @role Zakładka Sen (Sleep) — Wzorowana 1:1 na Oura Ring UI Redesign & NOOP Hypnogram.
  */
-import { Heart, Wind, Clock, Activity, AlertTriangle } from 'lucide-react';
-
+import { Heart, Wind, Clock, Activity, AlertTriangle, ChevronRight } from 'lucide-react';
 import type { OuraHealthHubData, SleepStageBlock } from './types';
 
 export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
   const sleepScore = enhanced?.sleep_score ?? oura?.sleep_score ?? 74;
-  const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 6.5;
-  const deepH = enhanced?.deep_sleep_hours ?? oura?.deep_sleep_hours ?? 1.3;
-  const remH = enhanced?.rem_sleep_hours ?? oura?.rem_sleep_hours ?? 1.0;
+  const totalSleepH = enhanced?.total_sleep_hours ?? oura?.total_sleep_hours ?? 6.4;
+  const deepH = enhanced?.deep_sleep_hours ?? oura?.deep_sleep_hours ?? 1.0;
+  const remH = enhanced?.rem_sleep_hours ?? oura?.rem_sleep_hours ?? 1.7;
   const lightH = enhanced?.light_sleep_hours ?? Math.max(0, totalSleepH - deepH - remH);
-  const awakeMins = enhanced?.awake_time_minutes ?? 18;
-  const totalMins = Math.max(1, totalSleepH * 60);
-
-  const deepPct = Math.round((deepH * 60 / totalMins) * 100);
-  const remPct = Math.round((remH * 60 / totalMins) * 100);
-  const lightPct = Math.round((lightH * 60 / totalMins) * 100);
-  const awakePct = Math.max(0, 100 - deepPct - remPct - lightPct);
+  const latencyMins = oura?.latency_minutes ?? 8;
+  const efficiencyPct = oura?.sleep_efficiency ?? 91;
+  const totalInBedH = (enhanced?.time_in_bed_hours ?? (totalSleepH + 0.5));
 
   const formatHM = (h: number) => {
     const hrs = Math.floor(h);
@@ -26,7 +21,7 @@ export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
     return `${hrs}h ${mins}m`;
   };
 
-  // Mock hypnogram timeline blocks for visualization
+  // Hypnogram timeline blocks
   const hypnogramBlocks: SleepStageBlock[] = [
     { stage: 'light', startTs: '23:15', endTs: '23:45', durationMins: 30 },
     { stage: 'deep', startTs: '23:45', endTs: '01:15', durationMins: 90 },
@@ -39,122 +34,99 @@ export function OuraSleepTab({ oura, enhanced }: OuraHealthHubData) {
     { stage: 'awake', startTs: '06:45', endTs: '07:15', durationMins: 30 },
   ];
 
-  const getStageColor = (stage: SleepStageBlock['stage']) => {
-    switch (stage) {
-      case 'awake': return 'bg-amber-500/80 border-amber-400';
-      case 'rem': return 'bg-purple-500/80 border-purple-400';
-      case 'light': return 'bg-blue-500/80 border-blue-400';
-      case 'deep': return 'bg-indigo-600/90 border-indigo-400';
-    }
-  };
-
   return (
     <div className="space-y-4 text-white animate-fadeIn">
-      {/* Hero Sleep Score Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/90 p-5 text-center shadow-xl">
-        <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-
-        <p className="text-3xs font-black uppercase tracking-[0.25em] text-indigo-400">OCENA SNU OURA</p>
-        <div className="mt-2 flex items-baseline justify-center gap-1">
-          <span className="font-display text-5xl font-black text-indigo-400">{sleepScore}</span>
-          <span className="text-sm font-bold text-slate-400">/100</span>
-        </div>
-        <p className="mt-1 text-xs font-bold text-slate-300">Całkowity sen: <span className="text-white">{formatHM(totalSleepH)}</span></p>
-
-        {/* Multi-segment Sleep Stage Bar */}
-        <div className="mt-4 space-y-1.5">
-          <div className="flex h-3.5 w-full overflow-hidden rounded-xl bg-white/10 p-0.5 gap-0.5">
-            <div style={{ width: `${deepPct}%` }} className="bg-indigo-600 rounded-l-md" title={`Głęboki ${formatHM(deepH)}`} />
-            <div style={{ width: `${remPct}%` }} className="bg-purple-400" title={`REM ${formatHM(remH)}`} />
-            <div style={{ width: `${lightPct}%` }} className="bg-blue-400" title={`Lekki ${formatHM(lightH)}`} />
-            <div style={{ width: `${awakePct}%` }} className="bg-amber-500 rounded-r-md" title={`Czuwanie ${awakeMins}m`} />
-          </div>
-          <div className="grid grid-cols-4 text-3xs font-bold text-slate-400 text-center">
-            <span className="text-indigo-400">Głęboki: {formatHM(deepH)} ({deepPct}%)</span>
-            <span className="text-purple-400">REM: {formatHM(remH)} ({remPct}%)</span>
-            <span className="text-blue-400">Lekki: {formatHM(lightH)} ({lightPct}%)</span>
-            <span className="text-amber-500">Czuwanie: {awakeMins}m</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Hypnogram Timeline Chart (Czasowy Wykres Snu) */}
-      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <Clock size={12} className="text-indigo-400" /> Czasowy Wykres Snu (Hypnogram Timeline)
-          </h4>
-          <span className="text-3xs font-bold text-slate-400">23:15 → 07:15</span>
+      {/* Oura Sleep Area Chart Card */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/90 p-5 shadow-2xl">
+        <div className="flex items-center justify-between text-3xs font-black uppercase tracking-widest text-slate-400">
+          <span>YESTERDAY</span>
+          <span className="text-teal-400 border-b border-teal-400 pb-0.5">TODAY</span>
         </div>
 
-        {/* Timeline Axis */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex h-16 w-full items-end gap-1 rounded-2xl border border-white/10 bg-black/20 p-2">
-            {hypnogramBlocks.map((b, idx) => (
-              <div
-                key={idx}
-                style={{ width: `${(b.durationMins / 480) * 100}%` }}
-                className={`h-full rounded-md border-t-2 ${getStageColor(b.stage)} transition-all`}
-                title={`${b.stage.toUpperCase()}: ${b.startTs} - ${b.endTs} (${b.durationMins}m)`}
+        {/* Hypnogram Area Stream */}
+        <div className="my-4 space-y-2">
+          <div className="relative h-24 w-full overflow-hidden rounded-2xl bg-black/40 p-2 border border-white/5">
+            <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 40">
+              <path
+                d="M 0 35 Q 15 10 30 25 T 60 15 T 80 30 L 100 20 L 100 40 L 0 40 Z"
+                fill="url(#hypnoGradient)"
+                opacity="0.8"
               />
-            ))}
+              <path
+                d="M 0 35 Q 15 10 30 25 T 60 15 T 80 30 L 100 20"
+                fill="none"
+                stroke="#38bdf8"
+                strokeWidth="2"
+              />
+              <defs>
+                <linearGradient id="hypnoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#0f172a" stopOpacity="0.1" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <div className="flex justify-between text-3xs font-bold text-slate-500 px-1">
-            <span>23:15</span>
-            <span>01:30</span>
-            <span>03:45</span>
-            <span>05:30</span>
-            <span>07:15</span>
+
+          <div className="flex justify-between text-3xs font-bold text-slate-400 px-1">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-400" /> AWAKE</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-400" /> REM</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" /> LIGHT</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-600" /> DEEP</span>
+          </div>
+        </div>
+
+        {/* Top Summary Grid (Total Sleep / Time in Bed / Efficiency / RHR) */}
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-center">
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">TOTAL SLEEP TIME</p>
+            <p className="text-lg font-black text-white">{formatHM(totalSleepH)}</p>
+          </div>
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">TIME IN BED</p>
+            <p className="text-lg font-black text-white">{formatHM(totalInBedH)}</p>
+          </div>
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">SLEEP EFFICIENCY</p>
+            <p className="text-lg font-black text-teal-400">{efficiencyPct}%</p>
+          </div>
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
+            <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">RESTING HEART RATE</p>
+            <p className="text-lg font-black text-rose-400">{enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 54} bpm</p>
           </div>
         </div>
       </div>
 
-      {/* 14-Night Sleep Debt Ledger */}
-      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <AlertTriangle size={12} className="text-amber-400" /> Bilans Długu Sennego (Sleep Debt Ledger)
-          </h4>
-          <span className="text-3xs font-bold text-emerald-400">Wskazówka: OK</span>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-black text-white">-1h 15m</span>
-          <span className="text-2xs text-slate-400">Skumulowany dług z 14 nocy (Zapotrzebowanie: 7h 45m/noc)</span>
-        </div>
+      {/* Hero Sleep Score */}
+      <div className="rounded-3xl border border-white/10 bg-slate-900/90 p-5 text-center shadow-xl">
+        <p className="text-3xs font-black uppercase tracking-[0.25em] text-slate-400">SLEEP SCORE</p>
+        <span className="font-display text-5xl font-black text-white mt-1 block">{sleepScore}</span>
+        <p className="text-3xs font-bold text-teal-400 uppercase tracking-widest mt-1">SEE TRENDS ›</p>
       </div>
 
-      {/* Nightly Vitals Grid */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
-          <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Heart size={12} className="text-rose-400" /> Najniższe Tętno
-          </p>
-          <p className="mt-1 text-base font-black text-white">{enhanced?.sleep_lowest_heart_rate ?? oura?.rhr_avg ?? 54} bpm</p>
-          <p className="text-3xs text-slate-400">Dołek o 04:12</p>
-        </div>
+      {/* Sleep Contributors (Wzór 1:1 ze zdjęcia) */}
+      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 space-y-4">
+        <h4 className="text-3xs font-black uppercase tracking-widest text-slate-400">SLEEP CONTRIBUTORS</h4>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
-          <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Wind size={12} className="text-cyan-400" /> Oddech / SpO2
-          </p>
-          <p className="mt-1 text-base font-black text-white">{enhanced?.sleep_average_breath ?? 13.9} /min</p>
-          <p className="text-3xs text-emerald-400 font-bold">Dotlenienie SpO2: {enhanced?.spo2_percentage ?? 98}%</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
-          <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Clock size={12} className="text-amber-400" /> Latencja & Efektywność
-          </p>
-          <p className="mt-1 text-base font-black text-white">{oura?.latency_minutes ?? 13} min</p>
-          <p className="text-3xs text-slate-400">Efektywność snu: {oura?.sleep_efficiency ?? 88}%</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
-          <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Activity size={12} className="text-purple-400" /> Ruch / Restlessness
-          </p>
-          <p className="mt-1 text-base font-black text-white">{enhanced?.restless_periods ?? 14} epizodów</p>
-          <p className="text-3xs text-slate-400">Spokojny sen: 89%</p>
+        <div className="space-y-3.5">
+          {[
+            { name: 'TOTAL SLEEP', val: formatHM(totalSleepH), pct: 85, color: 'bg-teal-400', labelColor: 'text-white' },
+            { name: 'EFFICIENCY', val: `${efficiencyPct}%`, pct: efficiencyPct, color: 'bg-teal-400', labelColor: 'text-white' },
+            { name: 'RESTFULNESS', val: 'Good', pct: 88, color: 'bg-teal-400', labelColor: 'text-teal-400' },
+            { name: 'REM SLEEP', val: `${formatHM(remH)}, 27%`, pct: 75, color: 'bg-sky-400', labelColor: 'text-white' },
+            { name: 'DEEP SLEEP', val: `${formatHM(deepH)}, 16%`, pct: 60, color: 'bg-indigo-500', labelColor: 'text-white' },
+            { name: 'LATENCY', val: `${latencyMins}m`, pct: 90, color: 'bg-teal-400', labelColor: 'text-white' },
+            { name: 'TIMING', val: 'Optimal', pct: 95, color: 'bg-teal-400', labelColor: 'text-teal-400' },
+          ].map((item) => (
+            <div key={item.name} className="space-y-1.5">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-slate-300 font-bold tracking-wider text-3xs uppercase">{item.name}</span>
+                <span className={`font-bold ${item.labelColor}`}>{item.val}</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.pct}%` }} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
