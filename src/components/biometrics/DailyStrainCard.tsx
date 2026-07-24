@@ -5,9 +5,9 @@
  * @usedBy DashboardDzisTab (lazy)
  */
 import { getTodayWarsaw } from '../../lib/date';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import Button from '../ui/Button';
 import DataStateNotice from '../core/DataStateNotice';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,15 +20,14 @@ import { useDailyStrainRefresh } from './hooks/useDailyStrainRefresh';
 import DailyStrainHeader from './DailyStrainHeader';
 import DailyStrainMetricsRow from './DailyStrainMetricsRow';
 import DailyStrainVitalsRow from './DailyStrainVitalsRow';
-import OuraHealthHubModal from './OuraHealthHubModal';
 
 export default function DailyStrainCard({
   refreshSignal = 0,
 }: {
   refreshSignal?: number
 }) {
-  const [isHubOpen, setIsHubOpen] = useState(false);
   const userId = useUserId();
+
 
   const haptics = useHaptics();
   const queryClient = useQueryClient();
@@ -159,26 +158,15 @@ export default function DailyStrainCard({
       )}
 
       {/* Oura Health Hub Launcher Button */}
-      <Button
-        variant="outline"
-        onClick={() => setIsHubOpen(true)}
-        className="w-full flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-primary border-primary/20 bg-primary/[0.04] hover:bg-primary/[0.08] transition-all active:scale-[0.98] relative z-[var(--z-raised)]"
+      <Link
+        to="/oura"
+        className="w-full flex items-center justify-center gap-2 rounded-2xl py-2.5 px-4 text-xs font-bold text-primary border border-primary/20 bg-primary/[0.04] hover:bg-primary/[0.08] transition-all active:scale-[0.98] relative z-[var(--z-raised)]"
       >
         <Sparkles size={14} className="text-primary animate-pulse" />
         Pełny Wgląd Oura & Sen (110%) →
-      </Button>
-
-      <OuraHealthHubModal
-        isOpen={isHubOpen}
-        onClose={() => setIsHubOpen(false)}
-        strainRow={row}
-        oura={oura}
-        ouraYesterday={ouraYesterday}
-        enhanced={enhanced}
-        enhancedYesterday={enhancedYesterday}
-        comp={comp}
-      />
+      </Link>
     </div>
   );
 }
+
 

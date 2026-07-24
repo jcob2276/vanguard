@@ -23,6 +23,8 @@ const CorrelationsPage = lazy(() => import('./components/correlations/Correlatio
 const EndMyopiaCalculator = lazy(() => import('./components/medical/EndMyopiaCalculator'));
 const FinancePage = lazy(() => import('./components/finance'));
 const DesignSystemPage = lazy(() => import('./components/dev/DesignSystemPage'));
+const OuraHealthPage = lazy(() => import('./components/biometrics/OuraHealthPage'));
+
 
 const FALLBACK_SPINNER = (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -143,7 +145,13 @@ function AppRoutes() {
           <Screen kind="dashboard"><CorrelationsPage /></Screen>
         </Suspense>
       } />
+      <Route path="/oura" element={
+        <Suspense fallback={FALLBACK_SPINNER}>
+          <Screen kind="dashboard"><OuraHealthPage /></Screen>
+        </Suspense>
+      } />
       <Route path="/korealcje" element={<KorealcjeRedirect />} />
+
       <Route path="/optics" element={
         <Suspense fallback={FALLBACK_SPINNER}>
           <Screen kind="list"><EndMyopiaCalculator /></Screen>
