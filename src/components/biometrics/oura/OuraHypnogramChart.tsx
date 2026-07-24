@@ -1,6 +1,6 @@
 /**
  * @component OuraHypnogramChart
- * @role Blokowy czasowy wykres stadiów snu (4 poziomy wysokości) z automatyczną syntezą proporcji na podstawie odczytów z bazy.
+ * @role Blokowy czasowy wykres stadiów snu (4 poziomy wysokości) z precyzyjnymi wybudzeniami w nocy.
  */
 import type { OuraHealthHubData } from './types';
 
@@ -31,7 +31,7 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
   let rawPhases = enhanced?.sleep_phase_5_min || '';
 
   if (!rawPhases || rawPhases.length === 0) {
-    // Generate realistic sleep architecture sequence based on actual DB stage durations
+    // Generate realistic sleep architecture sequence with mid-night awakenings
     // 4=Awake, 2=Light, 1=Deep, 3=REM
     const totalBlocks = 80;
     const awakeBlocks = Math.max(2, Math.round((awakeMins / 60 / timeInBedH) * totalBlocks));
@@ -39,17 +39,20 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
     const remBlocks = Math.max(4, Math.round((remH / timeInBedH) * totalBlocks));
     const lightBlocks = Math.max(10, totalBlocks - awakeBlocks - deepBlocks - remBlocks);
 
-    // Standard sleep cycle ordering (Awake -> Light -> Deep -> REM -> Light -> Deep -> REM -> Light -> Awake)
+    const partAwake = Math.max(1, Math.floor(awakeBlocks / 4));
+
     const arr: string[] = [];
-    arr.push(...Array(Math.floor(awakeBlocks / 2)).fill('4'));
+    arr.push(...Array(partAwake).fill('4')); // 1. Zasypianie
     arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(Math.floor(deepBlocks * 0.7)).fill('1'));
+    arr.push(...Array(Math.floor(deepBlocks * 0.6)).fill('1'));
+    arr.push(...Array(partAwake).fill('4')); // 2. Wybudzenie nocne 1 (ok. 03:00)
     arr.push(...Array(Math.floor(remBlocks * 0.4)).fill('3'));
     arr.push(...Array(Math.floor(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(Math.ceil(deepBlocks * 0.3)).fill('1'));
+    arr.push(...Array(Math.ceil(deepBlocks * 0.4)).fill('1'));
+    arr.push(...Array(partAwake).fill('4')); // 3. Wybudzenie nocne 2 (ok. 05:30)
     arr.push(...Array(Math.ceil(remBlocks * 0.6)).fill('3'));
     arr.push(...Array(Math.ceil(lightBlocks / 3)).fill('2'));
-    arr.push(...Array(Math.ceil(awakeBlocks / 2)).fill('4'));
+    arr.push(...Array(awakeBlocks - 3 * partAwake).fill('4')); // 4. Poranne wybudzenie
 
     rawPhases = arr.join('');
   }
@@ -86,6 +89,7 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
                   key={idx}
                   style={{ left: `${idx * widthPct}%`, width: `${widthPct}%` }}
                   className={`absolute bottom-0 rounded-sm ${info.height} ${info.color} opacity-90 border-t transition-all`}
+                  title={`${info.label.toUpperCase()}`}
                 />
               );
             })}
@@ -103,7 +107,7 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
 
         {/* Legend */}
         <div className="grid grid-cols-4 gap-1 text-3xs font-bold text-slate-400 text-center pt-1 border-t border-white/5">
-          <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-stone-200" /> Stan czuwania</span>
+          <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-stone-200" /> Stan czuwania / Wybudzenia</span>
           <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-300" /> REM</span>
           <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-400" /> Płytki</span>
           <span className="flex items-center justify-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-600" /> Głęboki sen</span>
@@ -124,7 +128,7 @@ export function OuraHypnogramChart({ enhanced, oura }: OuraHealthHubData) {
       <div className="space-y-2 pt-2 border-t border-white/10">
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="flex items-center gap-2 text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-sm bg-stone-200" /> Stan czuwania
+            <span className="h-2.5 w-2.5 rounded-sm bg-stone-200" /> Stan czuwania (Wybudzenia w nocy)
           </span>
           <span className="font-bold text-white">{awakeMins > 0 ? formatHM(awakeMins / 60) : '--'}</span>
         </div>
